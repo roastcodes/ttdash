@@ -1,18 +1,21 @@
 {
   "name": "ccusage-dashboard",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "Local dashboard for Claude Code usage data",
   "main": "server.js",
   "bin": {
     "ccusage-dashboard": "server.js"
   },
   "scripts": {
-    "start": "node server.js"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server.js",
+    "prepublishOnly": "npm run build"
   },
   "files": [
     "server.js",
-    "index.html",
-    "assets/"
+    "dist/"
   ],
   "keywords": [
     "claude",
@@ -22,5 +25,31 @@
     "usage",
     "tokens"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-select": "^2.2.2",
+    "@radix-ui/react-slot": "^1.2.0",
+    "@radix-ui/react-toast": "^1.2.14",
+    "@radix-ui/react-tooltip": "^1.2.3",
+    "@tailwindcss/vite": "^4.1.3",
+    "@tanstack/react-query": "^5.74.4",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "framer-motion": "^12.6.5",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
+    "lucide-react": "^0.469.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.3",
+    "tailwind-merge": "^3.0.2",
+    "tailwindcss": "^4.1.3",
+    "typescript": "^5.7.3",
+    "vite": "^6.3.1"
+  }
 }

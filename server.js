@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = __dirname;
+const STATIC_ROOT = path.join(ROOT, 'dist');
 const DATA_FILE = path.join(ROOT, 'data.json');
 const START_PORT = parseInt(process.env.PORT, 10) || 3000;
 const MAX_PORT = START_PORT + 100;
@@ -36,14 +37,14 @@ function getCacheControl(filePath) {
   return 'public, max-age=86400';
 }
 
-function serveFile(res, filePath) {
-  const ext = path.extname(filePath).toLowerCase();
+function serveFile(res, reqPath) {
+  const ext = path.extname(reqPath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-  fs.readFile(filePath, (err, data) => {
+  fs.readFile(reqPath, (err, data) => {
     if (err) {
       if (err.code === 'ENOENT') {
-        fs.readFile(path.join(ROOT, 'index.html'), (err2, html) => {
+        fs.readFile(path.join(STATIC_ROOT, 'index.html'), (err2, html) => {
           if (err2) {
             res.writeHead(500);
             res.end('Internal Server Error');
@@ -63,7 +64,7 @@ function serveFile(res, filePath) {
     }
     res.writeHead(200, {
       'Content-Type': contentType,
-      'Cache-Control': getCacheControl(filePath),
+      'Cache-Control': getCacheControl(reqPath),
     });
     res.end(data);
   });
@@ -176,10 +177,10 @@ const server = http.createServer(async (req, res) => {
 
   // Static file serving
   const safePath = path.normalize(pathname).replace(/^(\.\.[/\\])+/, '');
-  let filePath = path.join(ROOT, safePath);
+  let filePath = path.join(STATIC_ROOT, safePath);
 
   if (safePath === '/' || safePath === path.sep) {
-    filePath = path.join(ROOT, 'index.html');
+    filePath = path.join(STATIC_ROOT, 'index.html');
   }
 
   serveFile(res, filePath);
