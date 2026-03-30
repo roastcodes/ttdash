@@ -69,6 +69,10 @@
   --chart-3: 160 50% 42%;
   --chart-4: 35 80% 52%;
   --chart-5: 340 55% 52%;
+  --glass-bg: 220 14% 99% / 0.85;
+  --glass-border: 220 13% 85% / 0.5;
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-card-hover: 0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.06);
 }
 
 .dark {
@@ -97,6 +101,10 @@
   --chart-3: 160 50% 52%;
   --chart-4: 35 80% 60%;
   --chart-5: 340 55% 60%;
+  --glass-bg: 224 18% 10% / 0.7;
+  --glass-border: 224 12% 20% / 0.4;
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.2), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+  --shadow-card-hover: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
 }
 
 * {
@@ -127,4 +135,42 @@ body {
 
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #3a3f4a;
+}
+
+:root ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+:root ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:root ::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+:root ::-webkit-scrollbar-thumb:hover {
+  background: #b0b5bf;
+}
+
+@keyframes subtle-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.pdf-rendering * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.pdf-rendering .glass-card {
+  background: hsl(var(--card)) !important;
+}
+
+.pdf-rendering [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: hsl(var(--card)) !important;
 }

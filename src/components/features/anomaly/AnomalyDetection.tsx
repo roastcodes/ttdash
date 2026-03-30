@@ -19,7 +19,21 @@ export function AnomalyDetection({ data, onClickDay }: AnomalyDetectionProps) {
     return { anomalies: computeAnomalies(data), mean: m, stdDev: sd }
   }, [data])
 
-  if (anomalies.length === 0) return null
+  if (anomalies.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Auffällige Tage</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <p className="text-sm text-muted-foreground">Keine Anomalien erkannt</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Alle Kosten liegen innerhalb von 2 Standardabweichungen</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>

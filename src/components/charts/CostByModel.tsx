@@ -1,16 +1,35 @@
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
 import { ChartCard } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
+import { CHART_ANIMATION } from './chart-theme'
 import { getModelColor } from '@/lib/model-utils'
 import { formatCurrency } from '@/lib/formatters'
+import { CHART_HELP } from '@/lib/help-content'
 
 interface CostByModelProps {
   data: { name: string; value: number }[]
 }
 
-export function CostByModel({ data }: CostByModelProps) {
+function CenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number }; total: string }) {
+  if (!viewBox) return null
+  const { cx, cy } = viewBox
   return (
-    <ChartCard title="Kosten nach Modell">
+    <g>
+      <text x={cx} y={cy - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={11}>
+        Total
+      </text>
+      <text x={cx} y={cy + 14} textAnchor="middle" className="fill-foreground" fontSize={16} fontWeight={600}>
+        {total}
+      </text>
+    </g>
+  )
+}
+
+export function CostByModel({ data }: CostByModelProps) {
+  const total = data.reduce((sum, d) => sum + d.value, 0)
+
+  return (
+    <ChartCard title="Kosten nach Modell" subtitle="Kostenverteilung nach Modell" info={CHART_HELP.costByModel} chartData={data as unknown as Record<string, unknown>[]} valueKey="value" valueFormatter={formatCurrency}>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
@@ -22,13 +41,18 @@ export function CostByModel({ data }: CostByModelProps) {
             paddingAngle={2}
             dataKey="value"
             nameKey="name"
+            animationDuration={CHART_ANIMATION.duration}
+            animationEasing={CHART_ANIMATION.easing}
+            label={false}
           >
             {data.map((entry) => (
               <Cell key={entry.name} fill={getModelColor(entry.name)} />
             ))}
+            <CenterLabel total={formatCurrency(total)} />
           </Pie>
           <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
           <Legend
+            wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
             formatter={(value: string) => {
               const entry = data.find(d => d.name === value)
               return <span className="text-xs text-foreground">{value} ({entry ? formatCurrency(entry.value) : ''})</span>

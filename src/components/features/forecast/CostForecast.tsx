@@ -1,21 +1,53 @@
 import { useMemo } from 'react'
-import { ResponsiveContainer, AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { ChartCard } from '@/components/charts/ChartCard'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN } from '@/components/charts/chart-theme'
 import { formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { linearRegression } from '@/lib/calculations'
 import { MetricCard } from '@/components/cards/MetricCard'
+import { FormattedValue } from '@/components/ui/formatted-value'
 import { TrendingUp } from 'lucide-react'
-import type { DailyUsage } from '@/types'
+import type { DailyUsage, ViewMode } from '@/types'
 
 interface CostForecastProps {
   data: DailyUsage[]
+  viewMode?: ViewMode
 }
 
-export function CostForecast({ data }: CostForecastProps) {
-  const { chartData, forecastTotal, currentMonthTotal } = useMemo(() => {
-    if (data.length < 7) return { chartData: [], forecastTotal: 0, currentMonthTotal: 0 }
+export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
+  // For monthly/yearly views, show a summary instead of a forecast
+  if (viewMode !== 'daily') {
+    const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
+    const total = sorted.reduce((s, d) => s + d.totalCost, 0)
+    const avg = data.length > 0 ? total / data.length : 0
+
+    if (data.length === 0) {
+      return (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border/50 bg-card/80 p-6 flex flex-col items-center justify-center text-center">
+            <TrendingUp className="h-8 w-8 text-muted-foreground/20 mb-3" />
+            <p className="text-sm text-muted-foreground font-medium">Keine Daten verfügbar</p>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-4">
+        <MetricCard
+          label={viewMode === 'monthly' ? 'Ø Monatskosten' : 'Ø Jahreskosten'}
+          value={<FormattedValue value={avg} type="currency" />}
+          subtitle={`Total: ${formatCurrency(total)} über ${data.length} ${viewMode === 'monthly' ? 'Monate' : 'Jahre'}`}
+          icon={<TrendingUp className="h-4 w-4" />}
+        />
+      </div>
+    )
+  }
+
+  // Daily view: full forecast with chart
+  const { chartData, forecastTotal, currentMonthTotal, monthData, dailyAvgTrend } = useMemo(() => {
+    if (data.length < 3) return { chartData: [], forecastTotal: 0, currentMonthTotal: 0, monthData: [], dailyAvgTrend: null }
 
     const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
     const lastDate = new Date(sorted[sorted.length - 1].date + 'T00:00:00')
@@ -25,8 +57,17 @@ export function CostForecast({ data }: CostForecastProps) {
     const monthData = sorted.filter(d => d.date.startsWith(currentMonth))
     const monthTotal = monthData.reduce((s, d) => s + d.totalCost, 0)
 
-    // Use last 14 days for regression
-    const recentData = sorted.slice(-14)
+    // Compute daily average trend: last 7 days vs previous 7 days
+    const last7 = sorted.slice(-Math.min(7, sorted.length))
+    const prev7 = sorted.length > 7 ? sorted.slice(-Math.min(14, sorted.length), -7) : []
+    const last7Avg = last7.length > 0 ? last7.reduce((s, d) => s + d.totalCost, 0) / last7.length : 0
+    const prev7Avg = prev7.length > 0 ? prev7.reduce((s, d) => s + d.totalCost, 0) / prev7.length : 0
+    const dailyAvgTrend = prev7Avg > 0
+      ? { avg: last7Avg, change: ((last7Avg - prev7Avg) / prev7Avg) * 100 }
+      : { avg: last7Avg, change: 0 }
+
+    // Use last 30 days for regression
+    const recentData = sorted.slice(-Math.min(30, sorted.length))
     const costs = recentData.map(d => d.totalCost)
     const { slope, intercept } = linearRegression(costs)
 
@@ -36,11 +77,19 @@ export function CostForecast({ data }: CostForecastProps) {
     const stdDev = Math.sqrt(residuals.reduce((s, r) => s + r * r, 0) / costs.length)
 
     // Build chart data: actual + forecast
-    const points: { date: string; cost?: number; forecast?: number; upper?: number; lower?: number }[] = []
+    const points: { date: string; cost?: number; forecast?: number; upper?: number }[] = []
 
     // Actual data points
     for (const d of monthData) {
       points.push({ date: d.date, cost: d.totalCost })
+    }
+
+    // Bridge point: last actual day also gets forecast+upper so the lines connect
+    const lastActualCost = monthData[monthData.length - 1]?.totalCost ?? 0
+    if (points.length > 0) {
+      const lastPoint = points[points.length - 1]
+      lastPoint.forecast = lastActualCost
+      lastPoint.upper = Math.max(0, lastActualCost + stdDev)
     }
 
     // Forecast to end of month
@@ -58,36 +107,58 @@ export function CostForecast({ data }: CostForecastProps) {
         date: forecastDate,
         forecast: predicted,
         upper: Math.max(0, predicted + stdDev),
-        lower: Math.max(0, predicted - stdDev),
       })
     }
 
-    return { chartData: points, forecastTotal: runningForecast, currentMonthTotal: monthTotal }
+    return { chartData: points, forecastTotal: runningForecast, currentMonthTotal: monthTotal, monthData, dailyAvgTrend }
   }, [data])
 
-  if (chartData.length === 0) return null
+  if (chartData.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-xl border border-border/50 bg-card/80 p-6 flex flex-col items-center justify-center text-center">
+          <TrendingUp className="h-8 w-8 text-muted-foreground/20 mb-3" />
+          <p className="text-sm text-muted-foreground font-medium">Keine Prognose verfügbar</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">
+            Mindestens 3 Tage mit Daten benötigt
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const confidence = monthData.length >= 14 ? 'hoch' : monthData.length >= 7 ? 'mittel' : 'niedrig'
 
   return (
     <div className="space-y-4">
       <MetricCard
         label="Prognose Monatsende"
-        value={`~${formatCurrency(forecastTotal)}`}
-        subtitle={`Bisher: ${formatCurrency(currentMonthTotal)}`}
+        value={<>~<FormattedValue value={forecastTotal} type="currency" /></>}
+        subtitle={`Bisher: ${formatCurrency(currentMonthTotal)} · Konfidenz: ${confidence}${dailyAvgTrend ? ` · Ø ${formatCurrency(dailyAvgTrend.avg)}/Tag` : ''}`}
         icon={<TrendingUp className="h-4 w-4" />}
+        trend={dailyAvgTrend && dailyAvgTrend.change !== 0 ? { value: dailyAvgTrend.change, label: 'vs. Vorwoche' } : null}
       />
-      <ChartCard title="Kostenprognose aktueller Monat">
+      <ChartCard
+        title="Kostenprognose aktueller Monat"
+        summary={<FormattedValue value={forecastTotal} type="currency" />}
+        chartData={chartData as unknown as Record<string, unknown>[]}
+        valueKey="cost"
+        valueFormatter={formatCurrency}
+      >
         <ResponsiveContainer width="100%" height={250}>
-          <AreaChart data={chartData} margin={CHART_MARGIN}>
+          <ComposedChart data={chartData} margin={CHART_MARGIN}>
             <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
             <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
             <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
             <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
             <Legend />
-            <Area type="monotone" dataKey="upper" stroke="none" fill="hsl(262, 60%, 55%)" fillOpacity={0.1} name="Konfidenzband" />
-            <Area type="monotone" dataKey="lower" stroke="none" fill="hsl(224, 20%, 6%)" fillOpacity={1} legendType="none" />
-            <Line type="monotone" dataKey="cost" stroke={CHART_COLORS.cost} name="Ist-Kosten" dot={false} strokeWidth={2} />
-            <Line type="monotone" dataKey="forecast" stroke={CHART_COLORS.ma7} name="Prognose" dot={false} strokeWidth={2} strokeDasharray="6 3" />
-          </AreaChart>
+            {/* Confidence band - semi-transparent fill from 0 to upper value */}
+            <Area type="monotone" dataKey="upper" stroke="none" fill={CHART_COLORS.cumulative} fillOpacity={0.12} name="Konfidenzband" />
+            {/* Forecast dashed line - teal/green, distinct from the blue cost line */}
+            <Line type="monotone" dataKey="forecast" stroke={CHART_COLORS.cumulative} name="Prognose" dot={false} strokeWidth={2} strokeDasharray="6 3" connectNulls />
+            {/* Actual cost line */}
+            <Line type="monotone" dataKey="cost" stroke={CHART_COLORS.cost} name="Ist-Kosten" dot={false} strokeWidth={2} connectNulls />
+          </ComposedChart>
         </ResponsiveContainer>
       </ChartCard>
     </div>

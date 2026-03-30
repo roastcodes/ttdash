@@ -16,7 +16,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <TooltipProvider>
+        <TooltipProvider delayDuration={100}>
           <Dashboard />
         </TooltipProvider>
       </ToastProvider>

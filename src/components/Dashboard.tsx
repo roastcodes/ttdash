@@ -22,12 +22,17 @@ import { DrillDownModal } from './features/drill-down/DrillDownModal'
 import { PDFReportButton } from './features/pdf-report/PDFReport'
 import { CommandPalette } from './features/command-palette/CommandPalette'
 import { FadeIn } from './features/animations/FadeIn'
+import { SectionHeader } from './ui/section-header'
+import { ExpandableCard } from './ui/expandable-card'
+import { DashboardSkeleton } from './ui/skeleton'
 import { useUsageData, useUploadData, useDeleteData } from '@/hooks/use-usage-data'
 import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
 import { useComputedMetrics } from '@/hooks/use-computed-metrics'
 import { useTheme } from '@/hooks/use-theme'
 import { useToast } from '@/components/ui/toast'
 import { downloadCSV } from '@/lib/csv-export'
+import { filterByModels } from '@/lib/data-transforms'
+import { formatCurrency, formatTokens, formatPercent } from '@/lib/formatters'
 import type { UsageData } from '@/types'
 
 export function Dashboard() {
@@ -39,6 +44,7 @@ export function Dashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dashboardRef = useRef<HTMLDivElement>(null)
   const [drillDownDate, setDrillDownDate] = useState<string | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   const daily = usageData?.daily ?? []
   const hasData = daily.length > 0
@@ -47,6 +53,9 @@ export function Dashboard() {
     viewMode, setViewMode,
     selectedMonth, setSelectedMonth,
     selectedModels, toggleModel,
+    startDate, setStartDate,
+    endDate, setEndDate,
+    applyPreset,
     filteredData,
     availableMonths,
     dateRange,
@@ -55,7 +64,18 @@ export function Dashboard() {
   const {
     metrics, modelCosts, costChartData, modelCostChartData,
     tokenChartData, weekdayData, allModels, modelPieData, tokenPieData,
-  } = useComputedMetrics(filteredData)
+  } = useComputedMetrics(filteredData, viewMode)
+
+  // Full dataset with only model filter applied (no date/month filter) for PeriodComparison
+  const comparisonData = useMemo(() => filterByModels(daily, selectedModels), [daily, selectedModels])
+
+  // Calculate total calendar days from the date range
+  const totalCalendarDays = useMemo(() => {
+    if (!dateRange) return 0
+    const start = new Date(dateRange.start + 'T00:00:00')
+    const end = new Date(dateRange.end + 'T00:00:00')
+    return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  }, [dateRange])
 
   const drillDownDay = useMemo(() => {
     if (!drillDownDate) return null
@@ -100,11 +120,7 @@ export function Dashboard() {
   }, [])
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Laden...</div>
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   if (!hasData) {
@@ -123,6 +139,8 @@ export function Dashboard() {
       <Header
         dateRange={dateRange}
         isDark={isDark}
+        helpOpen={helpOpen}
+        onHelpOpenChange={setHelpOpen}
         onToggleTheme={toggleTheme}
         onExportCSV={handleExportCSV}
         onDelete={handleDelete}
@@ -139,13 +157,19 @@ export function Dashboard() {
         allModels={allModels}
         selectedModels={selectedModels}
         onToggleModel={toggleModel}
+        startDate={startDate}
+        endDate={endDate}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+        onApplyPreset={applyPreset}
       />
 
       <div className="space-y-4 mt-4">
-        {/* Primary Metrics with animations */}
+        {/* Primary Metrics */}
         <div id="metrics">
+          <SectionHeader title="Metriken" badge="10 Kennzahlen" description="Wichtigste KPIs im Überblick" />
           <FadeIn delay={0}>
-            <PrimaryMetrics metrics={metrics} />
+            <PrimaryMetrics metrics={metrics} totalCalendarDays={totalCalendarDays} />
           </FadeIn>
           <FadeIn delay={0.1}>
             <div className="mt-4">
@@ -155,20 +179,42 @@ export function Dashboard() {
         </div>
 
         {/* Heatmap Calendar */}
-        <FadeIn delay={0.2}>
-          <HeatmapCalendar data={filteredData} />
-        </FadeIn>
+        <div>
+          <SectionHeader title="Aktivität" description="Tägliche Nutzungsübersicht" />
+          <FadeIn delay={0.2}>
+            <ExpandableCard title="Aktivitäts-Heatmap" stats={[
+              { label: 'Aktive Tage', value: String(metrics.activeDays) },
+              { label: 'Total', value: formatCurrency(metrics.totalCost) },
+              { label: 'Ø/Tag', value: formatCurrency(metrics.avgDailyCost) },
+              { label: 'Zeitraum', value: dateRange ? `${dateRange.start} – ${dateRange.end}` : '-' },
+            ]}>
+              <HeatmapCalendar data={filteredData} />
+            </ExpandableCard>
+          </FadeIn>
+        </div>
 
         {/* Cost Forecast + Cache ROI */}
-        <FadeIn delay={0.25}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CostForecast data={filteredData} />
-            <CacheROI data={filteredData} />
-          </div>
-        </FadeIn>
+        <div>
+          <SectionHeader title="Prognose & Cache" description="Kostenprognose und Cache-Effizienz" />
+          <FadeIn delay={0.25}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <ExpandableCard title="Kostenprognose">
+                <CostForecast data={filteredData} viewMode={viewMode} />
+              </ExpandableCard>
+              <ExpandableCard title="Cache ROI" stats={[
+                { label: 'Cache-Hit-Rate', value: formatPercent(metrics.cacheHitRate) },
+                { label: 'Total Tokens', value: formatTokens(metrics.totalTokens) },
+                { label: 'Cache Read', value: formatTokens(metrics.totalCacheRead) },
+              ]}>
+                <CacheROI data={filteredData} />
+              </ExpandableCard>
+            </div>
+          </FadeIn>
+        </div>
 
         {/* Charts */}
         <div id="charts">
+          <SectionHeader title="Kostenanalyse" badge={`${allModels.length} Modelle`} description="Detaillierte Kostenaufschlüsselung" />
           <FadeIn delay={0.3}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
@@ -190,25 +236,43 @@ export function Dashboard() {
               <CostByWeekday data={weekdayData} />
             </div>
           </FadeIn>
+        </div>
 
+        {/* Token Analysis */}
+        <div>
+          <SectionHeader title="Token-Analyse" description="Verbrauch nach Token-Typ" />
           <FadeIn delay={0.45}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-              <TokensOverTime data={tokenChartData} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <TokensOverTime data={tokenChartData} onClickDay={setDrillDownDate} />
               <TokenTypes data={tokenPieData} />
             </div>
           </FadeIn>
         </div>
 
         {/* Period Comparison + Anomaly Detection */}
-        <FadeIn delay={0.5}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <PeriodComparison data={filteredData} />
-            <AnomalyDetection data={filteredData} onClickDay={setDrillDownDate} />
-          </div>
-        </FadeIn>
+        <div>
+          <SectionHeader title="Vergleiche & Anomalien" description="Periodenvergleich und Ausreisser" />
+          <FadeIn delay={0.5}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <ExpandableCard title="Periodenvergleich" stats={[
+                { label: 'Datenpunkte', value: String(filteredData.length) },
+                { label: 'Ø Kosten/Tag', value: formatCurrency(metrics.avgDailyCost) },
+              ]}>
+                <PeriodComparison data={comparisonData} />
+              </ExpandableCard>
+              <ExpandableCard title="Anomalie-Erkennung" stats={[
+                { label: 'Total', value: formatCurrency(metrics.totalCost) },
+                { label: 'Ø/Tag', value: formatCurrency(metrics.avgDailyCost) },
+              ]}>
+                <AnomalyDetection data={filteredData} onClickDay={setDrillDownDate} />
+              </ExpandableCard>
+            </div>
+          </FadeIn>
+        </div>
 
         {/* Tables */}
         <div id="tables">
+          <SectionHeader title="Tabellen" description="Detaillierte Aufschlüsselungen" />
           <FadeIn delay={0.55}>
             <ModelEfficiency modelCosts={modelCosts} totalCost={metrics.totalCost} />
           </FadeIn>
@@ -235,6 +299,7 @@ export function Dashboard() {
         onDelete={handleDelete}
         onUpload={handleUpload}
         onScrollTo={handleScrollTo}
+        onHelp={() => setHelpOpen(true)}
       />
     </div>
   )

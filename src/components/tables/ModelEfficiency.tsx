@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { formatCurrency, formatTokens, formatPercent } from '@/lib/formatters'
+import { FormattedValue } from '@/components/ui/formatted-value'
+import { formatPercent } from '@/lib/formatters'
 import { getModelColor } from '@/lib/model-utils'
+import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
 
 interface ModelData {
@@ -49,12 +51,15 @@ export function ModelEfficiency({ modelCosts, totalCost }: ModelEfficiencyProps)
 
   const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
     <th
-      className="px-3 py-2 text-right text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+      className={cn(
+        "px-3 py-2 text-right text-xs font-medium cursor-pointer hover:text-foreground transition-colors",
+        sortKey === field ? "text-foreground" : "text-muted-foreground"
+      )}
       onClick={() => handleSort(field)}
     >
       <span className="inline-flex items-center gap-1">
         {label}
-        <ArrowUpDown className="h-3 w-3" />
+        <ArrowUpDown className={cn("h-3 w-3", sortKey === field && "text-primary")} />
       </span>
     </th>
   )
@@ -67,7 +72,7 @@ export function ModelEfficiency({ modelCosts, totalCost }: ModelEfficiencyProps)
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border">
                 <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Modell</th>
                 <SortHeader label="Kosten" field="cost" />
@@ -79,18 +84,27 @@ export function ModelEfficiency({ modelCosts, totalCost }: ModelEfficiencyProps)
             </thead>
             <tbody>
               {sorted.map(model => (
-                <tr key={model.name} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                <tr key={model.name} className="border-b border-border/50 even:bg-muted/5 hover:bg-muted/10 transition-colors cursor-pointer">
                   <td className="px-3 py-2.5">
                     <span className="inline-flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getModelColor(model.name) }} />
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: getModelColor(model.name) }} />
                       <span className="font-medium">{model.name}</span>
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 text-right font-mono">{formatCurrency(model.cost)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono">{formatTokens(model.tokens)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono">${model.costPerMillion.toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono">{formatPercent(model.share)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono">{model.days}</td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    <FormattedValue value={model.cost} type="currency" />
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    <FormattedValue value={model.tokens} type="tokens" />
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    <FormattedValue value={model.costPerMillion} type="currency" />
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums relative">
+                    <div className="absolute inset-y-1 left-0 rounded-sm bg-primary/10" style={{ width: `${model.share}%` }} />
+                    <span className="relative">{formatPercent(model.share)}</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{model.days}</td>
                 </tr>
               ))}
             </tbody>

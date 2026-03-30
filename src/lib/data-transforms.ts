@@ -13,9 +13,45 @@ export function filterByDateRange(data: DailyUsage[], start?: string, end?: stri
 
 export function filterByModels(data: DailyUsage[], selectedModels: string[]): DailyUsage[] {
   if (selectedModels.length === 0) return data
-  return data.filter(d =>
-    d.modelBreakdowns.some(mb => selectedModels.includes(normalizeModelName(mb.modelName)))
-  )
+
+  return data
+    .map(d => {
+      const filteredBreakdowns = d.modelBreakdowns.filter(mb =>
+        selectedModels.includes(normalizeModelName(mb.modelName))
+      )
+
+      if (filteredBreakdowns.length === 0) return null
+
+      // Recalculate totals from filtered breakdowns
+      let totalCost = 0
+      let inputTokens = 0
+      let outputTokens = 0
+      let cacheCreationTokens = 0
+      let cacheReadTokens = 0
+
+      for (const mb of filteredBreakdowns) {
+        totalCost += mb.cost
+        inputTokens += mb.inputTokens
+        outputTokens += mb.outputTokens
+        cacheCreationTokens += mb.cacheCreationTokens
+        cacheReadTokens += mb.cacheReadTokens
+      }
+
+      const totalTokens = inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens
+
+      return {
+        ...d,
+        totalCost,
+        totalTokens,
+        inputTokens,
+        outputTokens,
+        cacheCreationTokens,
+        cacheReadTokens,
+        modelBreakdowns: filteredBreakdowns,
+        modelsUsed: filteredBreakdowns.map(mb => mb.modelName),
+      }
+    })
+    .filter((d): d is DailyUsage => d !== null)
 }
 
 export function filterByMonth(data: DailyUsage[], month: string | null): DailyUsage[] {
@@ -104,7 +140,15 @@ export function toModelCostChartData(data: DailyUsage[]): (ChartDataPoint & Reco
 export function toTokenChartData(data: DailyUsage[]): TokenChartDataPoint[] {
   const sorted = sortByDate(data)
   const totals = sorted.map(d => d.totalTokens)
+  const inputs = sorted.map(d => d.inputTokens)
+  const outputs = sorted.map(d => d.outputTokens)
+  const cacheWrites = sorted.map(d => d.cacheCreationTokens)
+  const cacheReads = sorted.map(d => d.cacheReadTokens)
   const ma7 = computeMovingAverage(totals)
+  const inputMA7 = computeMovingAverage(inputs)
+  const outputMA7 = computeMovingAverage(outputs)
+  const cacheWriteMA7 = computeMovingAverage(cacheWrites)
+  const cacheReadMA7 = computeMovingAverage(cacheReads)
   return sorted.map((d, i) => ({
     date: d.date,
     Input: d.inputTokens,
@@ -112,6 +156,10 @@ export function toTokenChartData(data: DailyUsage[]): TokenChartDataPoint[] {
     'Cache Write': d.cacheCreationTokens,
     'Cache Read': d.cacheReadTokens,
     tokenMA7: ma7[i],
+    inputMA7: inputMA7[i],
+    outputMA7: outputMA7[i],
+    cacheWriteMA7: cacheWriteMA7[i],
+    cacheReadMA7: cacheReadMA7[i],
   }))
 }
 
@@ -127,6 +175,39 @@ export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {
     const avg = costs.length > 0 ? costs.reduce((s, v) => s + v, 0) / costs.length : 0
     return { day, cost: avg }
   })
+}
+
+export function aggregateToDailyFormat(data: DailyUsage[], mode: ViewMode): DailyUsage[] {
+  if (mode === 'daily') return data
+
+  const groupKey = mode === 'monthly'
+    ? (date: string) => date.slice(0, 7)
+    : (date: string) => date.slice(0, 4)
+
+  const map = new Map<string, DailyUsage>()
+
+  for (const d of data) {
+    const key = groupKey(d.date)
+    const existing = map.get(key)
+
+    if (!existing) {
+      map.set(key, { ...d })  // clone the first day as base
+    } else {
+      existing.totalCost += d.totalCost
+      existing.totalTokens += d.totalTokens
+      existing.inputTokens += d.inputTokens
+      existing.outputTokens += d.outputTokens
+      existing.cacheCreationTokens += d.cacheCreationTokens
+      existing.cacheReadTokens += d.cacheReadTokens
+      // Merge model breakdowns
+      existing.modelBreakdowns = [...existing.modelBreakdowns, ...d.modelBreakdowns]
+      // Merge modelsUsed (unique)
+      const allModels = new Set([...existing.modelsUsed, ...d.modelsUsed])
+      existing.modelsUsed = Array.from(allModels)
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date))
 }
 
 export function aggregateByMonth(data: DailyUsage[]): { period: string; totalCost: number; totalTokens: number; inputTokens: number; outputTokens: number; cacheCreationTokens: number; cacheReadTokens: number; days: number; modelBreakdowns: DailyUsage['modelBreakdowns'] }[] {

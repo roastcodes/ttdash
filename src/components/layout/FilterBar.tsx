@@ -1,5 +1,4 @@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/cn'
 import { getModelColor } from '@/lib/model-utils'
 import { formatMonthYear } from '@/lib/formatters'
@@ -15,6 +14,11 @@ interface FilterBarProps {
   allModels: string[]
   selectedModels: string[]
   onToggleModel: (model: string) => void
+  startDate?: string
+  endDate?: string
+  onStartDateChange: (date: string | undefined) => void
+  onEndDateChange: (date: string | undefined) => void
+  onApplyPreset: (preset: string) => void
 }
 
 export function FilterBar({
@@ -22,6 +26,7 @@ export function FilterBar({
   selectedMonth, onMonthChange,
   availableMonths, allModels,
   selectedModels, onToggleModel,
+  onApplyPreset,
 }: FilterBarProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap py-2 px-1">
@@ -48,6 +53,24 @@ export function FilterBar({
         </SelectContent>
       </Select>
 
+      <div className="flex gap-1.5">
+        {[
+          { key: '7d', label: '7T' },
+          { key: '30d', label: '30T' },
+          { key: 'month', label: 'Monat' },
+          { key: 'year', label: 'Jahr' },
+          { key: 'all', label: 'Alle' },
+        ].map(p => (
+          <button
+            key={p.key}
+            onClick={() => onApplyPreset(p.key)}
+            className="rounded-full px-2.5 py-1 text-xs font-medium border border-border hover:bg-accent hover:border-accent transition-all duration-200"
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap gap-1.5">
         {allModels.map(model => {
           const isSelected = selectedModels.includes(model)
@@ -57,8 +80,8 @@ export function FilterBar({
               key={model}
               onClick={() => onToggleModel(model)}
               className={cn(
-                'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium transition-all cursor-pointer',
-                'border',
+                'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium cursor-pointer',
+                'border transition-all duration-200 hover:scale-105',
                 isSelected || selectedModels.length === 0
                   ? 'opacity-100'
                   : 'opacity-40 hover:opacity-70'

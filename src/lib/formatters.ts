@@ -20,6 +20,10 @@ export function formatNumber(value: number): string {
   return value.toLocaleString('de-CH')
 }
 
+export function formatTokensExact(value: number): string {
+  return `${value.toLocaleString('de-CH')} Tokens`
+}
+
 export function formatPercent(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`
 }

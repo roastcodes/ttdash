@@ -1,10 +1,13 @@
-import { Upload, Trash2, Download, Moon, Sun } from 'lucide-react'
+import { Upload, Trash2, Download, Moon, Sun, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { VERSION } from '@/lib/constants'
+import { HelpPanel } from '@/components/features/help/HelpPanel'
 
 interface HeaderProps {
   dateRange: { start: string; end: string } | null
   isDark: boolean
+  helpOpen: boolean
+  onHelpOpenChange: (open: boolean) => void
   onToggleTheme: () => void
   onExportCSV: () => void
   onDelete: () => void
@@ -12,7 +15,7 @@ interface HeaderProps {
   pdfButton?: React.ReactNode
 }
 
-export function Header({ dateRange, isDark, onToggleTheme, onExportCSV, onDelete, onUpload, pdfButton }: HeaderProps) {
+export function Header({ dateRange, isDark, helpOpen, onHelpOpenChange, onToggleTheme, onExportCSV, onDelete, onUpload, pdfButton }: HeaderProps) {
   return (
     <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-4 px-1">
       <div className="flex items-center gap-3">
@@ -40,10 +43,14 @@ export function Header({ dateRange, isDark, onToggleTheme, onExportCSV, onDelete
           <Upload className="h-4 w-4" />
           <span className="hidden sm:inline">Upload</span>
         </Button>
+        <Button variant="ghost" size="icon" onClick={() => onHelpOpenChange(true)} title="Hilfe & Tastenkürzel">
+          <HelpCircle className="h-4 w-4" />
+        </Button>
         <Button variant="ghost" size="icon" onClick={onToggleTheme} title="Theme wechseln">
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
       </div>
+      <HelpPanel open={helpOpen} onOpenChange={onHelpOpenChange} />
     </header>
   )
 }

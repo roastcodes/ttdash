@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { formatCurrency, formatPercent } from '@/lib/formatters'
+import { formatPercent } from '@/lib/formatters'
 import { normalizeModelName } from '@/lib/model-utils'
 import { MODEL_PRICES } from '@/lib/constants'
 import { Zap } from 'lucide-react'
+import { FormattedValue } from '@/components/ui/formatted-value'
+import { InfoButton } from '@/components/features/help/InfoButton'
 import type { DailyUsage } from '@/types'
 
 interface CacheROIProps {
@@ -11,7 +13,7 @@ interface CacheROIProps {
 }
 
 export function CacheROI({ data }: CacheROIProps) {
-  const { actualCost, hypotheticalCost, savings, savingsPercent } = useMemo(() => {
+  const { actualCost, hypotheticalCost, savings, savingsPercent, dailyAvg } = useMemo(() => {
     let actual = 0
     let hypothetical = 0
 
@@ -35,11 +37,26 @@ export function CacheROI({ data }: CacheROIProps) {
 
     const saved = hypothetical - actual
     const pct = hypothetical > 0 ? (saved / hypothetical) * 100 : 0
+    const dailyAvg = data.length > 0 ? actual / data.length : 0
 
-    return { actualCost: actual, hypotheticalCost: hypothetical, savings: saved, savingsPercent: pct }
+    return { actualCost: actual, hypotheticalCost: hypothetical, savings: saved, savingsPercent: pct, dailyAvg }
   }, [data])
 
-  if (data.length === 0) return null
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Zap className="h-4 w-4 text-muted-foreground/30" />
+            Cache-Ersparnis (ROI)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground text-center py-4">Keine Daten verfügbar</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   const barWidth = hypotheticalCost > 0 ? (actualCost / hypotheticalCost) * 100 : 100
 
@@ -49,23 +66,30 @@ export function CacheROI({ data }: CacheROIProps) {
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           <Zap className="h-4 w-4 text-yellow-500" />
           Cache-Ersparnis (ROI)
+          <InfoButton text="Vergleicht hypothetische Kosten ohne Cache mit den tatsächlichen Kosten. Cache-Read-Tokens werden zu regulären Input-Token-Preisen berechnet." />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <div className="text-xs text-muted-foreground">Ohne Cache</div>
-            <div className="text-lg font-bold text-red-400">{formatCurrency(hypotheticalCost)}</div>
+            <div className="text-lg font-bold text-red-400"><FormattedValue value={hypotheticalCost} type="currency" /></div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Mit Cache (tatsächlich)</div>
-            <div className="text-lg font-bold text-green-400">{formatCurrency(actualCost)}</div>
+            <div className="text-lg font-bold text-green-400"><FormattedValue value={actualCost} type="currency" /></div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Ersparnis</div>
             <div className="text-lg font-bold text-primary">
-              {formatCurrency(savings)}
+              <FormattedValue value={savings} type="currency" />
               <span className="text-xs ml-1 text-green-400">({formatPercent(savingsPercent)})</span>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Ø Tageskosten</div>
+            <div className="text-lg font-bold text-foreground">
+              <FormattedValue value={dailyAvg} type="currency" />
             </div>
           </div>
         </div>

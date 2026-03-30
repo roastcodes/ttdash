@@ -83,6 +83,10 @@ export interface TokenChartDataPoint {
   'Cache Write': number
   'Cache Read': number
   tokenMA7?: number
+  inputMA7?: number
+  outputMA7?: number
+  cacheWriteMA7?: number
+  cacheReadMA7?: number
 }
 
 export interface WeekdayData {

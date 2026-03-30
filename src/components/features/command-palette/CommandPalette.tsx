@@ -3,7 +3,7 @@ import { Command } from 'cmdk'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
   Download, Trash2, Upload, Sun, Moon, Calendar, BarChart3,
-  Table, Search, ArrowUp
+  Table, Search, ArrowUp, HelpCircle
 } from 'lucide-react'
 
 interface CommandPaletteProps {
@@ -13,6 +13,7 @@ interface CommandPaletteProps {
   onDelete: () => void
   onUpload: () => void
   onScrollTo: (section: string) => void
+  onHelp: () => void
 }
 
 interface CommandItem {
@@ -24,7 +25,7 @@ interface CommandItem {
   group: string
 }
 
-export function CommandPalette({ isDark, onToggleTheme, onExportCSV, onDelete, onUpload, onScrollTo }: CommandPaletteProps) {
+export function CommandPalette({ isDark, onToggleTheme, onExportCSV, onDelete, onUpload, onScrollTo, onHelp }: CommandPaletteProps) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export function CommandPalette({ isDark, onToggleTheme, onExportCSV, onDelete, o
     { id: 'metrics', label: 'Zu Metriken', icon: <BarChart3 className="h-4 w-4" />, action: () => onScrollTo('metrics'), group: 'Navigation' },
     { id: 'charts', label: 'Zu Charts', icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('charts'), group: 'Navigation' },
     { id: 'tables', label: 'Zu Tabellen', icon: <Table className="h-4 w-4" />, action: () => onScrollTo('tables'), group: 'Navigation' },
+    { id: 'help', label: 'Hilfe & Tastenkürzel', shortcut: '?', icon: <HelpCircle className="h-4 w-4" />, action: onHelp, group: 'Hilfe' },
   ]
 
   const groups = Array.from(new Set(commands.map(c => c.group)))

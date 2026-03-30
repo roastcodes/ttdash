@@ -5,7 +5,10 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('rounded-xl border border-border bg-card text-card-foreground', className)}
+      className={cn(
+        'relative rounded-xl border border-border/50 bg-card/80 backdrop-blur-xl text-card-foreground shadow-[var(--shadow-card)] transition-all duration-300 hover:shadow-[var(--shadow-card-hover)] hover:border-border/80',
+        className
+      )}
       {...props}
     />
   )
@@ -33,4 +36,11 @@ const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
 )
 CardContent.displayName = 'CardContent'
 
-export { Card, CardHeader, CardTitle, CardContent }
+const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
+  ({ className, ...props }, ref) => (
+    <p ref={ref} className={cn('text-xs text-muted-foreground', className)} {...props} />
+  )
+)
+CardDescription.displayName = 'CardDescription'
+
+export { Card, CardHeader, CardTitle, CardContent, CardDescription }
