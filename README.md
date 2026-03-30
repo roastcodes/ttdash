@@ -47,6 +47,16 @@ bun server.js
 2. Upload your `ccusage.json` file via the UI
 3. Explore your usage data — costs, tokens, model breakdowns
 
+### Generating the data file
+
+Export your Claude Code usage data with [ccusage](https://github.com/ryoppippi/ccusage):
+
+```bash
+ccusage daily -j > ccusage.json
+```
+
+Then upload `ccusage.json` via the dashboard UI.
+
 ### Custom port
 
 ```bash

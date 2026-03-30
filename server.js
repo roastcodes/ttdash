@@ -9,6 +9,7 @@ const DATA_FILE = path.join(ROOT, 'data.json');
 const START_PORT = parseInt(process.env.PORT, 10) || 3000;
 const MAX_PORT = START_PORT + 100;
 const API_PREFIX = '/port/5000/api';
+const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -25,13 +26,22 @@ const MIME_TYPES = {
   '.woff2': 'font/woff2',
 };
 
+function getCacheControl(filePath) {
+  if (filePath.includes(path.sep + 'assets' + path.sep)) {
+    return 'public, max-age=31536000, immutable';
+  }
+  if (filePath.endsWith('.html')) {
+    return 'no-cache';
+  }
+  return 'public, max-age=86400';
+}
+
 function serveFile(res, filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
-      // SPA fallback: serve index.html for missing files
       if (err.code === 'ENOENT') {
         fs.readFile(path.join(ROOT, 'index.html'), (err2, html) => {
           if (err2) {
@@ -39,7 +49,10 @@ function serveFile(res, filePath) {
             res.end('Internal Server Error');
             return;
           }
-          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.writeHead(200, {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-cache',
+          });
           res.end(html);
         });
         return;
@@ -48,7 +61,10 @@ function serveFile(res, filePath) {
       res.end('Internal Server Error');
       return;
     }
-    res.writeHead(200, { 'Content-Type': contentType });
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Cache-Control': getCacheControl(filePath),
+    });
     res.end(data);
   });
 }
@@ -70,7 +86,16 @@ function writeData(data) {
 function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on('data', (c) => chunks.push(c));
+    let totalSize = 0;
+    req.on('data', (c) => {
+      totalSize += c.length;
+      if (totalSize > MAX_BODY_SIZE) {
+        req.destroy();
+        reject(new Error('Payload too large'));
+        return;
+      }
+      chunks.push(c);
+    });
     req.on('end', () => {
       try {
         resolve(JSON.parse(Buffer.concat(chunks).toString()));
@@ -87,14 +112,32 @@ function json(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+function resolveApiPath(pathname) {
+  if (pathname.startsWith(API_PREFIX + '/')) {
+    return pathname.slice(API_PREFIX.length);
+  }
+  if (pathname === API_PREFIX) {
+    return '/';
+  }
+  if (pathname.startsWith('/api/')) {
+    return pathname.slice(4);
+  }
+  if (pathname === '/api') {
+    return '/';
+  }
+  return null;
+}
+
 // --- Server ---
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = decodeURIComponent(url.pathname);
 
-  // API routes
-  if (pathname === `${API_PREFIX}/usage`) {
+  // API routing
+  const apiPath = resolveApiPath(pathname);
+
+  if (apiPath === '/usage') {
     if (req.method === 'GET') {
       const data = readData();
       return json(res, 200, data || { daily: [], totals: {} });
@@ -103,20 +146,32 @@ const server = http.createServer(async (req, res) => {
       try { fs.unlinkSync(DATA_FILE); } catch {}
       return json(res, 200, { success: true });
     }
+    return json(res, 405, { message: 'Method Not Allowed' });
   }
 
-  if (pathname === `${API_PREFIX}/upload` && req.method === 'POST') {
-    try {
-      const body = await readBody(req);
-      writeData(body);
-      const days = body.daily ? body.daily.length : 0;
-      const totalCost = body.daily
-        ? body.daily.reduce((s, d) => s + (d.totalCost || 0), 0)
-        : 0;
-      return json(res, 200, { days, totalCost });
-    } catch (e) {
-      return json(res, 400, { message: 'Ungültiges JSON' });
+  if (apiPath === '/upload') {
+    if (req.method === 'POST') {
+      try {
+        const body = await readBody(req);
+        writeData(body);
+        const days = body.daily ? body.daily.length : 0;
+        const totalCost = body.daily
+          ? body.daily.reduce((s, d) => s + (d.totalCost || 0), 0)
+          : 0;
+        return json(res, 200, { days, totalCost });
+      } catch (e) {
+        const status = e.message === 'Payload too large' ? 413 : 400;
+        const message = e.message === 'Payload too large'
+          ? 'Datei zu gross (max. 10 MB)'
+          : 'Ungültiges JSON';
+        return json(res, status, { message });
+      }
     }
+    return json(res, 405, { message: 'Method Not Allowed' });
+  }
+
+  if (apiPath !== null) {
+    return json(res, 404, { message: 'API-Endpunkt nicht gefunden' });
   }
 
   // Static file serving
