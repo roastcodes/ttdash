@@ -1,0 +1,12 @@
+{
+  "name": "ccusage-dashboard",
+  "version": "1.0.0",
+  "description": "Local dashboard for Claude Code usage data",
+  "bin": {
+    "ccusage-dashboard": "server.js"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT"
+}
