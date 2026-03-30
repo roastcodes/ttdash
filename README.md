@@ -7,13 +7,10 @@ Zero external dependencies. Runs with Node.js or Bun.
 ## Quick Start
 
 ```bash
-npx ccusage-dashboard
-```
-
-Or with Bun:
-
-```bash
-bunx ccusage-dashboard
+git clone <repo-url>
+cd ccusage-dashboard
+npm install -g .
+ccusage-dashboard
 ```
 
 Then open the URL shown in the terminal (default: `http://localhost:3000`).
@@ -22,8 +19,10 @@ Then open the URL shown in the terminal (default: `http://localhost:3000`).
 
 ### Global (recommended)
 
+From the project directory:
+
 ```bash
-npm install -g ccusage-dashboard
+npm install -g .
 ```
 
 Then start from anywhere:
@@ -32,15 +31,7 @@ Then start from anywhere:
 ccusage-dashboard
 ```
 
-### From source
-
-```bash
-git clone <repo-url>
-cd ccusage-dashboard
-npm start
-```
-
-Or directly:
+### Without installing
 
 ```bash
 node server.js
