@@ -23,7 +23,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
           data={data}
           margin={CHART_MARGIN}
           onMouseMove={(state) => {
-            if (state?.activeTooltipIndex !== undefined) {
+            if (state?.activeTooltipIndex !== undefined && typeof state.activeTooltipIndex === 'number') {
               setActiveIndex(state.activeTooltipIndex)
             }
           }}

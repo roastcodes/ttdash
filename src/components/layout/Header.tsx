@@ -1,4 +1,4 @@
-import { Upload, Trash2, Download, Moon, Sun, HelpCircle } from 'lucide-react'
+import { Upload, Trash2, Download, Moon, Sun, CircleHelp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { VERSION } from '@/lib/constants'
 import { HelpPanel } from '@/components/features/help/HelpPanel'
@@ -44,7 +44,7 @@ export function Header({ dateRange, isDark, helpOpen, onHelpOpenChange, onToggle
           <span className="hidden sm:inline">Upload</span>
         </Button>
         <Button variant="ghost" size="icon" onClick={() => onHelpOpenChange(true)} title="Hilfe & Tastenkürzel">
-          <HelpCircle className="h-4 w-4" />
+          <CircleHelp className="h-4 w-4" />
         </Button>
         <Button variant="ghost" size="icon" onClick={onToggleTheme} title="Theme wechseln">
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

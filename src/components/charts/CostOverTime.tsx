@@ -18,8 +18,11 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
     <ChartCard title="Kosten im Zeitverlauf + 7-Tage Ø" subtitle="Tageskosten mit 7-Tage gleitendem Durchschnitt" info={CHART_HELP.costOverTime} chartData={data as unknown as Record<string, unknown>[]} valueKey="cost" valueFormatter={formatCurrency}>
       <ResponsiveContainer width="100%" height={300}>
         <ComposedChart data={data} margin={CHART_MARGIN} onClick={(e) => {
-          if (e?.activePayload?.[0]?.payload?.date && onClickDay) {
-            onClickDay(e.activePayload[0].payload.date)
+          if (onClickDay && e?.activeTooltipIndex != null && typeof e.activeTooltipIndex === 'number') {
+            const point = data[e.activeTooltipIndex]
+            if (point?.date) {
+              onClickDay(point.date)
+            }
           }
         }}>
           <defs>

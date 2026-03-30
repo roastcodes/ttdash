@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
-import { FileText, Loader2 } from 'lucide-react'
+import { FileText, LoaderCircle } from 'lucide-react'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 
@@ -145,7 +145,7 @@ export function PDFReportButton({ containerRef }: PDFReportProps) {
 
   return (
     <Button variant="outline" size="sm" onClick={handleGenerate} disabled={generating} title="PDF Report">
-      {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+      {generating ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
       <span className="hidden sm:inline">Report</span>
     </Button>
   )

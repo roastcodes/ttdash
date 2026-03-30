@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, BarChart3, ArrowUpDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, ChartBar, ArrowUpDown } from 'lucide-react'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { formatDate, formatTokens } from '@/lib/formatters'
@@ -35,7 +35,7 @@ export function SecondaryMetrics({ metrics }: SecondaryMetricsProps) {
         label="Ø Kosten/Tag"
         value={<FormattedValue value={metrics.avgDailyCost} type="currency" />}
         subtitle={costSpread !== null ? `Spanne: $${costSpread.toFixed(2)}` : undefined}
-        icon={<BarChart3 className="h-4 w-4" />}
+        icon={<ChartBar className="h-4 w-4" />}
         info={METRIC_HELP.avgCostPerDay}
       />
       <MetricCard

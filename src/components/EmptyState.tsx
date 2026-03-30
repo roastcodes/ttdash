@@ -1,4 +1,4 @@
-import { Upload, BarChart3 } from 'lucide-react'
+import { Upload, ChartBar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { VERSION } from '@/lib/constants'
@@ -12,7 +12,7 @@ export function EmptyState({ onUpload }: EmptyStateProps) {
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <Card className="p-10 max-w-md w-full text-center space-y-6">
         <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-          <BarChart3 className="h-8 w-8 text-primary" />
+          <ChartBar className="h-8 w-8 text-primary" />
         </div>
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">

@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Keyboard, BarChart3, LineChart } from 'lucide-react'
+import { Keyboard, ChartBar, LineChart } from 'lucide-react'
 import { KEYBOARD_SHORTCUTS, METRIC_HELP, CHART_HELP } from '@/lib/help-content'
 
 interface HelpPanelProps {
@@ -69,7 +69,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
         {/* Metric explanations */}
         <section>
           <div className="flex items-center gap-2 mb-3">
-            <BarChart3 className="h-4 w-4 text-primary" />
+            <ChartBar className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-semibold">Metriken</h3>
           </div>
           <div className="space-y-2">

@@ -146,11 +146,11 @@ The server automatically finds a free port if the default (3000) is already in u
 
 ## Tech Stack
 
-- **Frontend**: React 18, TypeScript, Vite 6, Tailwind CSS v4
-- **Charts**: Recharts
-- **UI**: Radix UI primitives, Lucide icons, Framer Motion
+- **Frontend**: React 19, TypeScript 6, Vite 8 (Rolldown), Tailwind CSS v4
+- **Charts**: Recharts 3
+- **UI**: Radix UI primitives, Lucide React 1.x, Framer Motion
 - **State**: TanStack React Query, React hooks
-- **PDF**: html2canvas + jsPDF
+- **PDF**: html2canvas + jsPDF 4
 - **Server**: Node.js HTTP (zero dependencies)
 
 ## Uninstall

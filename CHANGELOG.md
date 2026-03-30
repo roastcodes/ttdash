@@ -1,5 +1,27 @@
 # Changelog
 
+## [3.1.0] - 2026-03-31
+
+### Upgraded
+- **React** 18.3.1 → 19.2.4
+- **react-dom** 18.3.1 → 19.2.4
+- **TypeScript** 5.9.3 → 6.0.2
+- **Vite** 6.4.1 → 8.0.3 (Rolldown bundler, ~10x faster builds)
+- **@vitejs/plugin-react** 4.7.0 → 6.0.1
+- **Recharts** 2.15.4 → 3.8.1
+- **lucide-react** 0.469.0 → 1.7.0
+- **jsPDF** 3.0.1 → 4.2.1 (security fix)
+- **@tailwindcss/vite** 4.1.3 → 4.2.2
+- **@types/react** 18.3.28 → 19.2.14
+- **@types/react-dom** 18.3.7 → 19.2.3
+
+### Changed
+- Removed deprecated `baseUrl` from tsconfig.json (TypeScript 6 requirement)
+- Renamed deprecated lucide icons: `HelpCircle` → `CircleHelp`, `AlertTriangle` → `TriangleAlert`, `Loader2` → `LoaderCircle`, `BarChart3` → `ChartBar`
+- Adapted Recharts 3 type changes (`activeTooltipIndex`, deprecated `Cell`)
+- Build time reduced from ~12s to ~1.5s thanks to Vite 8's Rolldown bundler
+- 0 npm audit vulnerabilities
+
 ## [3.0.0] - 2026-03-31
 
 ### Added

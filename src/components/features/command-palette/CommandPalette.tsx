@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { Command } from 'cmdk'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
-  Download, Trash2, Upload, Sun, Moon, Calendar, BarChart3,
-  Table, Search, ArrowUp, HelpCircle
+  Download, Trash2, Upload, Sun, Moon, Calendar, ChartBar,
+  Table, Search, ArrowUp, CircleHelp
 } from 'lucide-react'
 
 interface CommandPaletteProps {
@@ -45,10 +45,10 @@ export function CommandPalette({ isDark, onToggleTheme, onExportCSV, onDelete, o
     { id: 'delete', label: 'Daten löschen', icon: <Trash2 className="h-4 w-4" />, action: onDelete, group: 'Aktionen' },
     { id: 'theme', label: isDark ? 'Light Mode' : 'Dark Mode', shortcut: '⌘D', icon: isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />, action: onToggleTheme, group: 'Ansicht' },
     { id: 'top', label: 'Nach oben scrollen', shortcut: '⌘↑', icon: <ArrowUp className="h-4 w-4" />, action: () => window.scrollTo({ top: 0, behavior: 'smooth' }), group: 'Navigation' },
-    { id: 'metrics', label: 'Zu Metriken', icon: <BarChart3 className="h-4 w-4" />, action: () => onScrollTo('metrics'), group: 'Navigation' },
+    { id: 'metrics', label: 'Zu Metriken', icon: <ChartBar className="h-4 w-4" />, action: () => onScrollTo('metrics'), group: 'Navigation' },
     { id: 'charts', label: 'Zu Charts', icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('charts'), group: 'Navigation' },
     { id: 'tables', label: 'Zu Tabellen', icon: <Table className="h-4 w-4" />, action: () => onScrollTo('tables'), group: 'Navigation' },
-    { id: 'help', label: 'Hilfe & Tastenkürzel', shortcut: '?', icon: <HelpCircle className="h-4 w-4" />, action: onHelp, group: 'Hilfe' },
+    { id: 'help', label: 'Hilfe & Tastenkürzel', shortcut: '?', icon: <CircleHelp className="h-4 w-4" />, action: onHelp, group: 'Hilfe' },
   ]
 
   const groups = Array.from(new Set(commands.map(c => c.group)))

@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { computeAnomalies } from '@/lib/calculations'
-import { AlertTriangle } from 'lucide-react'
+import { TriangleAlert } from 'lucide-react'
 import type { DailyUsage } from '@/types'
 
 interface AnomalyDetectionProps {
@@ -39,7 +39,7 @@ export function AnomalyDetection({ data, onClickDay }: AnomalyDetectionProps) {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+          <TriangleAlert className="h-4 w-4 text-yellow-500" />
           Auffällige Tage ({anomalies.length})
         </CardTitle>
       </CardHeader>
