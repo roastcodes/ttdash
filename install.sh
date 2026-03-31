@@ -11,14 +11,14 @@ NC='\033[0m'
 step=0
 total=3
 
-info()  { step=$((step + 1)); echo -e "\n${BLUE}${BOLD}[$step/$total]${NC} $1"; }
-ok()    { echo -e "  ${GREEN}✓${NC} $1"; }
-fail()  { echo -e "  ${RED}✗${NC} $1"; exit 1; }
+info()  { step=$((step + 1)); printf "\n${BLUE}${BOLD}[$step/$total]${NC} %s\n" "$1"; }
+ok()    { printf "  ${GREEN}✓${NC} %s\n" "$1"; }
+fail()  { printf "  ${RED}✗${NC} %s\n" "$1"; exit 1; }
 
 cd "$(dirname "$0")"
 
-echo -e "${BOLD}ccusage-dashboard${NC} installer"
-echo -e "${DIM}$(pwd)${NC}"
+printf "${BOLD}ccusage-dashboard${NC} installer\n"
+printf "${DIM}%s${NC}\n" "$(pwd)"
 
 # 1 — Dependencies
 info "Installiere Abhängigkeiten..."
@@ -44,6 +44,5 @@ else
   fail "Globale Installation fehlgeschlagen (evtl. sudo nötig)"
 fi
 
-echo ""
-echo -e "${GREEN}${BOLD}Fertig!${NC} Starte das Dashboard mit:"
-echo -e "  ${BOLD}ccusage-dashboard${NC}"
+printf "\n${GREEN}${BOLD}Fertig!${NC} Starte das Dashboard mit:\n"
+printf "  ${BOLD}ccusage-dashboard${NC}\n"

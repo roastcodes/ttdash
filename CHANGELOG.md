@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.2.1] - 2026-03-31
+
+### Fixed
+- **install.sh `-e` Ausgabe** — `echo -e` durch `printf` ersetzt, damit das Script auch mit `sh install.sh` korrekt funktioniert (POSIX-Shell kennt `echo -e` nicht)
+
 ## [5.2.0] - 2026-03-31
 
 ### Added
