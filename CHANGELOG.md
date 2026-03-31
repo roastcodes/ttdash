@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.0.0] - 2026-03-31
+
+### Added
+- **Auto-Import** — one-click data import directly from Claude Code usage logs via `ccusage` programmatic API, no manual file export needed
+  - SSE streaming with real-time progress in a terminal-style modal
+  - Fetches latest model pricing from LiteLLM for accurate cost calculation
+  - Available in Header toolbar, EmptyState, and Command Palette
+  - `ccusage` added as npm dependency for direct API access (no child process spawning)
+- **Today KPIs** — new section after metrics showing current-day stats: cost (with trend vs. average), tokens, models used, top model cost, cache-hit-rate, input/output ratio. Auto-hidden when no data for today exists
+- **Favicon** — "CC" branding icon in SVG + PNG, matching the app's primary blue on dark background
+- **Install script** — `install.sh` for one-command setup (install, build, global install)
+
+### Changed
+- `ccusage` is now a production dependency instead of requiring external installation
+- EmptyState now shows Auto-Import as primary action, manual upload as secondary
+- Server no longer needs `child_process` for data import (uses programmatic API)
+
 ## [3.1.0] - 2026-03-31
 
 ### Upgraded

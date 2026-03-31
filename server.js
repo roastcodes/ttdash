@@ -129,6 +129,14 @@ function resolveApiPath(pathname) {
   return null;
 }
 
+// --- SSE helpers ---
+
+function sendSSE(res, event, data) {
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
+let autoImportRunning = false;
+
 // --- Server ---
 
 const server = http.createServer(async (req, res) => {
@@ -169,6 +177,97 @@ const server = http.createServer(async (req, res) => {
       }
     }
     return json(res, 405, { message: 'Method Not Allowed' });
+  }
+
+  if (apiPath === '/auto-import/stream') {
+    if (req.method !== 'GET') {
+      return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    if (autoImportRunning) {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      });
+      sendSSE(res, 'error', { message: 'Ein Auto-Import läuft bereits. Bitte warten.' });
+      sendSSE(res, 'done', {});
+      res.end();
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+
+    autoImportRunning = true;
+    let aborted = false;
+
+    const cleanup = () => { autoImportRunning = false; };
+
+    req.on('close', () => { aborted = true; cleanup(); });
+
+    sendSSE(res, 'check', { tool: 'ccusage', status: 'checking' });
+
+    // Progress indicator
+    let progressSeconds = 0;
+    const progressInterval = setInterval(() => {
+      if (!aborted) {
+        progressSeconds += 5;
+        sendSSE(res, 'stderr', { line: `Verarbeite Nutzungsdaten... (${progressSeconds}s)` });
+      }
+    }, 5000);
+
+    try {
+      const { loadDailyUsageData } = await import('ccusage/data-loader');
+      const pkg = require('ccusage/package.json');
+
+      sendSSE(res, 'check', { tool: 'ccusage', status: 'found', method: 'api', version: pkg.version });
+      sendSSE(res, 'progress', { message: 'Lade Nutzungsdaten via ccusage API...' });
+
+      const daily = await loadDailyUsageData({});
+
+      clearInterval(progressInterval);
+      if (aborted) { cleanup(); return; }
+
+      if (!Array.isArray(daily) || daily.length === 0) {
+        sendSSE(res, 'error', { message: 'Keine Nutzungsdaten gefunden.' });
+        sendSSE(res, 'done', {});
+        res.end();
+        cleanup();
+        return;
+      }
+
+      // Normalize: add totalTokens if missing
+      for (const d of daily) {
+        if (d.totalTokens == null) {
+          d.totalTokens = (d.inputTokens || 0) + (d.outputTokens || 0) +
+            (d.cacheCreationTokens || 0) + (d.cacheReadTokens || 0);
+        }
+      }
+
+      writeData({ daily });
+
+      const days = daily.length;
+      const totalCost = daily.reduce((s, d) => s + (d.totalCost || 0), 0);
+
+      sendSSE(res, 'success', { days, totalCost });
+      sendSSE(res, 'done', {});
+      res.end();
+      cleanup();
+    } catch (err) {
+      clearInterval(progressInterval);
+      if (aborted) { cleanup(); return; }
+      sendSSE(res, 'error', { message: `Fehler: ${err.message}` });
+      sendSSE(res, 'done', {});
+      res.end();
+      cleanup();
+    }
+    return;
   }
 
   if (apiPath !== null) {

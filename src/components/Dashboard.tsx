@@ -1,8 +1,10 @@
 import { useRef, useState, useCallback, useMemo } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Header } from './layout/Header'
 import { FilterBar } from './layout/FilterBar'
 import { PrimaryMetrics } from './cards/PrimaryMetrics'
 import { SecondaryMetrics } from './cards/SecondaryMetrics'
+import { TodayMetrics } from './cards/TodayMetrics'
 import { CostOverTime } from './charts/CostOverTime'
 import { CostByModel } from './charts/CostByModel'
 import { CostByModelOverTime } from './charts/CostByModelOverTime'
@@ -21,6 +23,7 @@ import { AnomalyDetection } from './features/anomaly/AnomalyDetection'
 import { DrillDownModal } from './features/drill-down/DrillDownModal'
 import { PDFReportButton } from './features/pdf-report/PDFReport'
 import { CommandPalette } from './features/command-palette/CommandPalette'
+import { AutoImportModal } from './features/auto-import/AutoImportModal'
 import { FadeIn } from './features/animations/FadeIn'
 import { SectionHeader } from './ui/section-header'
 import { ExpandableCard } from './ui/expandable-card'
@@ -39,12 +42,14 @@ export function Dashboard() {
   const { data: usageData, isLoading } = useUsageData()
   const uploadMutation = useUploadData()
   const deleteMutation = useDeleteData()
+  const queryClient = useQueryClient()
   const { isDark, toggle: toggleTheme } = useTheme()
   const { addToast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dashboardRef = useRef<HTMLDivElement>(null)
   const [drillDownDate, setDrillDownDate] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [autoImportOpen, setAutoImportOpen] = useState(false)
 
   const daily = usageData?.daily ?? []
   const hasData = daily.length > 0
@@ -76,6 +81,9 @@ export function Dashboard() {
     const end = new Date(dateRange.end + 'T00:00:00')
     return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
   }, [dateRange])
+
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayData = useMemo(() => daily.find(d => d.date === todayStr) ?? null, [daily, todayStr])
 
   const drillDownDay = useMemo(() => {
     if (!drillDownDate) return null
@@ -114,6 +122,15 @@ export function Dashboard() {
     addToast('CSV exportiert', 'success')
   }, [filteredData, addToast])
 
+  const handleAutoImport = useCallback(() => {
+    setAutoImportOpen(true)
+  }, [])
+
+  const handleAutoImportSuccess = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['usage'] })
+    addToast('Daten erfolgreich importiert', 'success')
+  }, [queryClient, addToast])
+
   const handleScrollTo = useCallback((section: string) => {
     const el = document.getElementById(section)
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -126,8 +143,9 @@ export function Dashboard() {
   if (!hasData) {
     return (
       <>
-        <EmptyState onUpload={handleUpload} />
+        <EmptyState onUpload={handleUpload} onAutoImport={handleAutoImport} />
         <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} />
+        <AutoImportModal open={autoImportOpen} onOpenChange={setAutoImportOpen} onSuccess={handleAutoImportSuccess} />
       </>
     )
   }
@@ -145,6 +163,7 @@ export function Dashboard() {
         onExportCSV={handleExportCSV}
         onDelete={handleDelete}
         onUpload={handleUpload}
+        onAutoImport={handleAutoImport}
         pdfButton={<PDFReportButton containerRef={dashboardRef} />}
       />
 
@@ -177,6 +196,11 @@ export function Dashboard() {
             </div>
           </FadeIn>
         </div>
+
+        {/* Today's KPIs */}
+        {todayData && (
+          <TodayMetrics today={todayData} metrics={metrics} />
+        )}
 
         {/* Heatmap Calendar */}
         <div>
@@ -298,9 +322,12 @@ export function Dashboard() {
         onExportCSV={handleExportCSV}
         onDelete={handleDelete}
         onUpload={handleUpload}
+        onAutoImport={handleAutoImport}
         onScrollTo={handleScrollTo}
         onHelp={() => setHelpOpen(true)}
       />
+
+      <AutoImportModal open={autoImportOpen} onOpenChange={setAutoImportOpen} onSuccess={handleAutoImportSuccess} />
     </div>
   )
 }

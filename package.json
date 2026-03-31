@@ -1,6 +1,6 @@
 {
   "name": "ccusage-dashboard",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "description": "Local dashboard for Claude Code usage data",
   "main": "server.js",
   "bin": {
@@ -53,6 +53,7 @@
     "vite": "^8.0.3"
   },
   "dependencies": {
+    "ccusage": "^18.0.10",
     "react-is": "^19.2.4"
   }
 }

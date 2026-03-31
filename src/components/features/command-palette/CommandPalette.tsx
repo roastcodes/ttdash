@@ -3,7 +3,7 @@ import { Command } from 'cmdk'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
   Download, Trash2, Upload, Sun, Moon, Calendar, ChartBar,
-  Table, Search, ArrowUp, CircleHelp
+  Table, Search, ArrowUp, CircleHelp, Zap
 } from 'lucide-react'
 
 interface CommandPaletteProps {
@@ -12,6 +12,7 @@ interface CommandPaletteProps {
   onExportCSV: () => void
   onDelete: () => void
   onUpload: () => void
+  onAutoImport: () => void
   onScrollTo: (section: string) => void
   onHelp: () => void
 }
@@ -25,7 +26,7 @@ interface CommandItem {
   group: string
 }
 
-export function CommandPalette({ isDark, onToggleTheme, onExportCSV, onDelete, onUpload, onScrollTo, onHelp }: CommandPaletteProps) {
+export function CommandPalette({ isDark, onToggleTheme, onExportCSV, onDelete, onUpload, onAutoImport, onScrollTo, onHelp }: CommandPaletteProps) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export function CommandPalette({ isDark, onToggleTheme, onExportCSV, onDelete, o
   }, [])
 
   const commands: CommandItem[] = [
+    { id: 'auto-import', label: 'Auto-Import', icon: <Zap className="h-4 w-4" />, action: onAutoImport, group: 'Aktionen' },
     { id: 'csv', label: 'CSV exportieren', shortcut: '⌘E', icon: <Download className="h-4 w-4" />, action: onExportCSV, group: 'Aktionen' },
     { id: 'upload', label: 'Daten hochladen', shortcut: '⌘U', icon: <Upload className="h-4 w-4" />, action: onUpload, group: 'Aktionen' },
     { id: 'delete', label: 'Daten löschen', icon: <Trash2 className="h-4 w-4" />, action: onDelete, group: 'Aktionen' },
