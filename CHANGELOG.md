@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.1.1] - 2026-03-31
+
+### Fixed
+- **Browser Tab Titel** — zeigt jetzt "CCUsage — Claude Code Dashboard" statt "localhost:3000"
+
 ## [5.1.0] - 2026-03-31
 
 ### Added
