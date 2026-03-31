@@ -20,6 +20,7 @@ Then open the URL shown in the terminal (default: `http://localhost:3000`).
 
 - **Auto-Import** — one-click data import from Claude Code usage logs, no manual file export needed
 - **Today KPIs** — current-day cost, tokens, models, $/1M efficiency, cache rate, I/O ratio with trend vs. average
+- **Month KPIs** — current-month cost (with trend vs. previous month), tokens, active days/coverage, models, $/1M efficiency, cache rate
 - **12 KPI Metric Cards** — total cost, tokens, active days, top model, cache hit rate, $/1M tokens, most/least expensive day, avg cost/day, median/day — all with hover tooltips for exact values
 - **Active Streak** — consecutive active days shown as 🔥 badge in header
 - **Interactive Charts** — cost over time, model breakdown, cumulative cost (with end-of-month projection), weekday analysis (peak/low highlighting), token analysis
@@ -108,7 +109,7 @@ src/
   components/
     ui/                 # base components (Button, Card, Dialog, Tooltip, FormattedValue, Skeleton, etc.)
     layout/             # Header, FilterBar
-    cards/              # MetricCard, PrimaryMetrics, SecondaryMetrics, TodayMetrics
+    cards/              # MetricCard, PrimaryMetrics, SecondaryMetrics, TodayMetrics, MonthMetrics
     charts/             # Recharts visualizations (ChartCard, CostOverTime, TokensOverTime, TokenEfficiency, ModelMix, etc.)
     tables/             # ModelEfficiency, RecentDays
     features/           # auto-import, heatmap, forecast, cache-roi, comparison, anomaly, drill-down, help, pdf, command-palette

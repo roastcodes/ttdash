@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.2.0] - 2026-03-31
+
+### Added
+- **Monats-KPIs** — neue Sektion unter "Heute" zeigt 6 Kennzahlen des laufenden Monats: Kosten (mit Trend vs. Vormonat), Tokens, aktive Tage/Abdeckung, Modelle, $/1M Tokens, Cache-Hit-Rate. Wird automatisch ausgeblendet wenn keine Daten für den aktuellen Monat vorhanden sind
+
 ## [5.1.1] - 2026-03-31
 
 ### Fixed

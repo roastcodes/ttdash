@@ -5,6 +5,7 @@ import { FilterBar } from './layout/FilterBar'
 import { PrimaryMetrics } from './cards/PrimaryMetrics'
 import { SecondaryMetrics } from './cards/SecondaryMetrics'
 import { TodayMetrics } from './cards/TodayMetrics'
+import { MonthMetrics } from './cards/MonthMetrics'
 import { CostOverTime } from './charts/CostOverTime'
 import { CostByModel } from './charts/CostByModel'
 import { CostByModelOverTime } from './charts/CostByModelOverTime'
@@ -229,6 +230,9 @@ export function Dashboard() {
         {todayData && (
           <TodayMetrics today={todayData} metrics={metrics} />
         )}
+
+        {/* Current Month KPIs */}
+        <MonthMetrics daily={daily} metrics={metrics} />
 
         {/* Heatmap Calendar */}
         <div>

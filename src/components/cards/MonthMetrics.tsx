@@ -1,0 +1,135 @@
+import { useMemo } from 'react'
+import { TrendingDown, DollarSign, Coins, Cpu, Database, CalendarDays } from 'lucide-react'
+import { MetricCard } from './MetricCard'
+import { FormattedValue } from '@/components/ui/formatted-value'
+import { SectionHeader } from '@/components/ui/section-header'
+import { FadeIn } from '@/components/features/animations/FadeIn'
+import { formatCurrency, formatMonthYear } from '@/lib/formatters'
+import { normalizeModelName } from '@/lib/model-utils'
+import type { DailyUsage, DashboardMetrics } from '@/types'
+
+interface MonthMetricsProps {
+  daily: DailyUsage[]
+  metrics: DashboardMetrics
+}
+
+export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
+  const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM
+
+  const monthData = useMemo(
+    () => daily.filter(d => d.date.startsWith(currentMonth)),
+    [daily, currentMonth],
+  )
+
+  const prevMonth = useMemo(() => {
+    const [y, m] = currentMonth.split('-').map(Number)
+    const pm = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`
+    return daily.filter(d => d.date.startsWith(pm))
+  }, [daily, currentMonth])
+
+  const agg = useMemo(() => {
+    if (monthData.length === 0) return null
+
+    const totalCost = monthData.reduce((s, d) => s + d.totalCost, 0)
+    const totalTokens = monthData.reduce((s, d) => s + d.totalTokens, 0)
+    const inputTokens = monthData.reduce((s, d) => s + d.inputTokens, 0)
+    const outputTokens = monthData.reduce((s, d) => s + d.outputTokens, 0)
+    const cacheRead = monthData.reduce((s, d) => s + d.cacheReadTokens, 0)
+    const cacheCreate = monthData.reduce((s, d) => s + d.cacheCreationTokens, 0)
+
+    const allTokens = cacheRead + cacheCreate + inputTokens + outputTokens
+    const cacheHitRate = allTokens > 0 ? (cacheRead / allTokens) * 100 : 0
+    const costPerMillion = totalTokens > 0 ? totalCost / (totalTokens / 1_000_000) : 0
+
+    const models = new Set<string>()
+    const modelCosts = new Map<string, number>()
+    for (const d of monthData) {
+      for (const mb of d.modelBreakdowns) {
+        const name = normalizeModelName(mb.modelName)
+        models.add(name)
+        modelCosts.set(name, (modelCosts.get(name) ?? 0) + mb.cost)
+      }
+    }
+    let topModel: { name: string; cost: number } | null = null
+    for (const [name, cost] of modelCosts) {
+      if (!topModel || cost > topModel.cost) topModel = { name, cost }
+    }
+
+    // Days elapsed in the current month so far
+    const today = new Date()
+    const dayOfMonth = today.getDate()
+
+    return {
+      totalCost, totalTokens, inputTokens, outputTokens,
+      cacheRead, cacheCreate, cacheHitRate, costPerMillion,
+      activeDays: monthData.length, dayOfMonth,
+      modelCount: models.size, topModel,
+    }
+  }, [monthData])
+
+  const prevMonthCost = useMemo(
+    () => prevMonth.reduce((s, d) => s + d.totalCost, 0),
+    [prevMonth],
+  )
+
+  if (!agg) return null
+
+  const diffToPrev = prevMonthCost > 0
+    ? ((agg.totalCost - prevMonthCost) / prevMonthCost) * 100
+    : null
+
+  const ioTotal = agg.inputTokens + agg.outputTokens
+
+  return (
+    <div>
+      <SectionHeader
+        title={`Monat — ${formatMonthYear(currentMonth)}`}
+        badge={`${agg.activeDays} Tage`}
+        description="KPIs des laufenden Monats"
+      />
+      <FadeIn delay={0.08}>
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          <MetricCard
+            label="Kosten Monat"
+            value={<FormattedValue value={agg.totalCost} type="currency" />}
+            subtitle={`Ø ${formatCurrency(agg.totalCost / agg.activeDays)}/Tag`}
+            icon={<DollarSign className="h-4 w-4" />}
+            trend={diffToPrev !== null ? { value: diffToPrev, label: 'vs. Vormonat' } : null}
+          />
+          <MetricCard
+            label="Tokens Monat"
+            value={<FormattedValue value={agg.totalTokens} type="tokens" />}
+            subtitle={agg.inputTokens > 0 && agg.outputTokens > 0
+              ? `I/O Ratio: ${(agg.inputTokens / agg.outputTokens).toFixed(1)}:1`
+              : undefined}
+            icon={<Coins className="h-4 w-4" />}
+          />
+          <MetricCard
+            label="Aktive Tage"
+            value={`${agg.activeDays} / ${agg.dayOfMonth}`}
+            subtitle={`${((agg.activeDays / agg.dayOfMonth) * 100).toFixed(0)}% Abdeckung`}
+            icon={<CalendarDays className="h-4 w-4" />}
+          />
+          <MetricCard
+            label="Modelle"
+            value={String(agg.modelCount)}
+            subtitle={agg.topModel ? `Top: ${agg.topModel.name}` : undefined}
+            icon={<Cpu className="h-4 w-4" />}
+          />
+          <MetricCard
+            label="$/1M Tokens"
+            value={<FormattedValue value={agg.costPerMillion} type="currency" />}
+            subtitle={metrics.costPerMillion > 0 ? `Gesamt-Ø: ${formatCurrency(metrics.costPerMillion)}` : undefined}
+            icon={<TrendingDown className="h-4 w-4" />}
+          />
+          <MetricCard
+            label="Cache-Hit-Rate"
+            value={<FormattedValue value={agg.cacheHitRate} type="percent" />}
+            subtitle={`In: ${ioTotal > 0 ? ((agg.inputTokens / ioTotal) * 100).toFixed(0) : 0}% / Out: ${ioTotal > 0 ? ((agg.outputTokens / ioTotal) * 100).toFixed(0) : 0}%`}
+            icon={<Database className="h-4 w-4" />}
+          />
+        </div>
+      </FadeIn>
+    </div>
+  )
+}
