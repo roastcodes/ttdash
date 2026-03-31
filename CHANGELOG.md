@@ -1,5 +1,29 @@
 # Changelog
 
+## [5.3.0] - 2026-03-31
+
+### Fixed
+- **Monatsansicht & Jahresansicht komplett überarbeitet** — alle Metriken, Diagramme und Tabellen zeigen jetzt korrekte Daten in der Monats- und Jahresansicht:
+  - **Aktive Tage** — zeigt die tatsächliche Anzahl aktiver Tage (vorher: 1 pro Monat/Jahr wegen fehlender Aggregation)
+  - **Ø Kosten** — korrekte Durchschnittsberechnung pro Tag (vorher: durch Anzahl Perioden geteilt statt Anzahl Tage)
+  - **Datumformatierung** — Perioden wie "März 2026" und "2026" statt "So, 01.03.2026"
+  - **Tabellen** — "Monate im Detail" / "Jahre im Detail" mit korrekter Beschriftung und Aggregation
+  - **Modell-Effizienz** — "Ø/Mt." / "Monate" bzw. "Ø/Jahr" / "Jahre" Spaltenüberschriften
+  - **Anomalie-Erkennung** — "Auffällige Monate" / "Auffällige Jahre"
+  - **Cache ROI** — korrekte Durchschnittskosten-Berechnung
+  - **Heatmap** — zeigt Hinweis "nur in der Tagesansicht verfügbar" statt fehlerhafter Darstellung
+  - **Wochentagsanalyse** — ignoriert aggregierte Einträge (keine falschen Wochentag-Zuordnungen)
+  - **Sektionsbeschriftungen** — "Monatliche/Jährliche Nutzungsübersicht"
+- **PeriodComparison Monat-Bug** — `setMonth()` Overflow behoben: März 31 → Feb 31 → März 3 (klassischer JS-Date-Bug bei Monaten mit weniger Tagen)
+
+### Technical
+- Neues `_aggregatedDays`-Feld in `DailyUsage` trackt die Anzahl aggregierter Tage pro Eintrag
+- `aggregateToDailyFormat()` setzt `date` auf Period-Key ("2026-03" / "2026") statt erstes Tagesdatum
+- `computeMetrics()` und `computeModelCosts()` nutzen `_aggregatedDays` für korrekte Berechnungen
+- `formatDate()` und `formatDateAxis()` erkennen Period-Strings und formatieren passend
+- `periodLabel()` und `periodUnit()` Hilfsfunktionen für ansichtsabhängige Labels
+- `viewMode`-Prop an 8 Komponenten weitergereicht für adaptive Beschriftung
+
 ## [5.2.1] - 2026-03-31
 
 ### Fixed

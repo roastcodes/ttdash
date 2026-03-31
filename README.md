@@ -38,7 +38,7 @@ Then open the URL shown in the terminal (default: `http://localhost:3000`).
 - **Zoom Mode** — expand any chart to fullscreen with stats (min/max/avg/total) and CSV export
 - **Date Range Filter** — preset buttons (7T, 30T, Monat, Jahr) with active state highlighting
 - **Model Filter** — toggle individual models with accurate per-model cost recalculation
-- **View Modes** — daily, monthly, yearly data aggregation
+- **View Modes** — daily, monthly, yearly data aggregation with adaptive labels, correct metrics, and period-aware formatting throughout all components
 - **Command Palette** (⌘K) — keyboard navigation for all actions
 - **Help Panel** — keyboard shortcuts and metric explanations
 - **PDF Export** — full dashboard screenshot as multi-page A4 PDF

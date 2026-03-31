@@ -16,14 +16,18 @@ interface ModelData {
   costPerDay: number
 }
 
+import { periodUnit, periodLabel } from '@/lib/formatters'
+import type { ViewMode } from '@/types'
+
 interface ModelEfficiencyProps {
-  modelCosts: Map<string, { cost: number; tokens: number; days: Set<string> }>
+  modelCosts: Map<string, { cost: number; tokens: number; days: number }>
   totalCost: number
+  viewMode?: ViewMode
 }
 
 type SortKey = 'cost' | 'tokens' | 'costPerMillion' | 'share' | 'days' | 'costPerDay'
 
-export function ModelEfficiency({ modelCosts, totalCost }: ModelEfficiencyProps) {
+export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: ModelEfficiencyProps) {
   const [sortKey, setSortKey] = useState<SortKey>('cost')
   const [sortAsc, setSortAsc] = useState(false)
 
@@ -33,8 +37,8 @@ export function ModelEfficiency({ modelCosts, totalCost }: ModelEfficiencyProps)
     tokens: v.tokens,
     costPerMillion: v.tokens > 0 ? v.cost / (v.tokens / 1_000_000) : 0,
     share: totalCost > 0 ? (v.cost / totalCost) * 100 : 0,
-    days: v.days.size,
-    costPerDay: v.days.size > 0 ? v.cost / v.days.size : 0,
+    days: v.days,
+    costPerDay: v.days > 0 ? v.cost / v.days : 0,
   }))
 
   const sorted = [...models].sort((a, b) => {
@@ -81,8 +85,8 @@ export function ModelEfficiency({ modelCosts, totalCost }: ModelEfficiencyProps)
                 <SortHeader label="Tokens" field="tokens" />
                 <SortHeader label="$/1M" field="costPerMillion" />
                 <SortHeader label="Anteil" field="share" />
-                <SortHeader label="Ø/Tag" field="costPerDay" />
-                <SortHeader label="Tage" field="days" />
+                <SortHeader label={`Ø/${periodUnit(viewMode)}`} field="costPerDay" />
+                <SortHeader label={periodLabel(viewMode, true)} field="days" />
               </tr>
             </thead>
             <tbody>

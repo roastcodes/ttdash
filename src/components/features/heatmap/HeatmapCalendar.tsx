@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/formatters'
-import type { DailyUsage } from '@/types'
+import type { DailyUsage, ViewMode } from '@/types'
 
 interface HeatmapCalendarProps {
   data: DailyUsage[]
+  viewMode?: ViewMode
 }
 
 const CELL_SIZE = 14
@@ -24,7 +25,7 @@ function getColor(cost: number, maxCost: number): string {
   return 'hsl(215, 70%, 70%)'
 }
 
-export function HeatmapCalendar({ data }: HeatmapCalendarProps) {
+export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarProps) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; date: string; cost: number } | null>(null)
 
   const { cells, weeks, months, maxCost } = useMemo(() => {
@@ -79,6 +80,23 @@ export function HeatmapCalendar({ data }: HeatmapCalendarProps) {
   }, [data])
 
   const todayStr = new Date().toISOString().slice(0, 10)
+
+  // Heatmap only makes sense for daily view
+  if (viewMode !== 'daily') {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Kosten-Heatmap</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <p className="text-sm text-muted-foreground">Heatmap nur in der Tagesansicht verfügbar</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Wechsle zur Tagesansicht für die Kalender-Heatmap</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (cells.length === 0) return null
 

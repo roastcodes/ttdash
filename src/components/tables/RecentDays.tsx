@@ -6,16 +6,18 @@ import { formatDate } from '@/lib/formatters'
 import { normalizeModelName, getModelColor } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
-import type { DailyUsage } from '@/types'
+import { periodLabel } from '@/lib/formatters'
+import type { DailyUsage, ViewMode } from '@/types'
 
 interface RecentDaysProps {
   data: DailyUsage[]
   onClickDay?: (date: string) => void
+  viewMode?: ViewMode
 }
 
 type SortKey = 'date' | 'cost' | 'tokens' | 'costPerM'
 
-export function RecentDays({ data, onClickDay }: RecentDaysProps) {
+export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysProps) {
   const [showAll, setShowAll] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortAsc, setSortAsc] = useState(false)
@@ -54,10 +56,10 @@ export function RecentDays({ data, onClickDay }: RecentDaysProps) {
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex flex-col gap-0.5">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Letzte Tage im Detail
+            {viewMode === 'monthly' ? 'Monate im Detail' : viewMode === 'yearly' ? 'Jahre im Detail' : 'Letzte Tage im Detail'}
           </CardTitle>
           <span className="text-xs text-muted-foreground/70">
-            Zeige {displayed.length} von {sorted.length} Tagen
+            Zeige {displayed.length} von {sorted.length} {periodLabel(viewMode, true)}
           </span>
         </div>
         {sorted.length > 30 && (

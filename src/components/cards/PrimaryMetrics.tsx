@@ -1,16 +1,17 @@
 import { DollarSign, Coins, Calendar, Cpu, Database, TrendingDown } from 'lucide-react'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { formatCurrency, formatPercent } from '@/lib/formatters'
+import { formatCurrency, formatPercent, periodUnit } from '@/lib/formatters'
 import { METRIC_HELP } from '@/lib/help-content'
-import type { DashboardMetrics } from '@/types'
+import type { DashboardMetrics, ViewMode } from '@/types'
 
 interface PrimaryMetricsProps {
   metrics: DashboardMetrics
   totalCalendarDays?: number
+  viewMode?: ViewMode
 }
 
-export function PrimaryMetrics({ metrics, totalCalendarDays }: PrimaryMetricsProps) {
+export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' }: PrimaryMetricsProps) {
   // Calculate input/output ratio
   const ioRatio = metrics.totalInput > 0 && metrics.totalOutput > 0
     ? (metrics.totalInput / metrics.totalOutput).toFixed(1)
@@ -26,7 +27,7 @@ export function PrimaryMetrics({ metrics, totalCalendarDays }: PrimaryMetricsPro
       <MetricCard
         label="Gesamtkosten"
         value={<FormattedValue value={metrics.totalCost} type="currency" />}
-        subtitle={`Ø ${formatCurrency(metrics.avgDailyCost)}/Tag`}
+        subtitle={`Ø ${formatCurrency(metrics.avgDailyCost)}/${periodUnit(viewMode)}`}
         icon={<DollarSign className="h-4 w-4" />}
         trend={metrics.weekOverWeekChange !== null ? { value: metrics.weekOverWeekChange } : null}
         info={METRIC_HELP.totalCost}
@@ -41,7 +42,7 @@ export function PrimaryMetrics({ metrics, totalCalendarDays }: PrimaryMetricsPro
       <MetricCard
         label="Aktive Tage"
         value={String(metrics.activeDays)}
-        subtitle={totalCalendarDays ? `von ${totalCalendarDays} Kalendertagen` : undefined}
+        subtitle={viewMode === 'daily' && totalCalendarDays ? `von ${totalCalendarDays} Kalendertagen` : undefined}
         icon={<Calendar className="h-4 w-4" />}
         info={METRIC_HELP.activeDays}
       />

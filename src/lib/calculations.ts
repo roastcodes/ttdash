@@ -18,7 +18,7 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
   const totalCacheRead = data.reduce((s, d) => s + d.cacheReadTokens, 0)
   const totalCacheCreate = data.reduce((s, d) => s + d.cacheCreationTokens, 0)
 
-  const activeDays = data.length
+  const activeDays = data.reduce((s, d) => s + (d._aggregatedDays ?? 1), 0)
   const avgDailyCost = totalCost / activeDays
   const costPerMillion = totalTokens > 0 ? totalCost / (totalTokens / 1_000_000) : 0
   const cacheHitRate = (totalCacheRead + totalCacheCreate + totalInput + totalOutput) > 0
@@ -78,23 +78,27 @@ export function computeMovingAverage(values: number[], window = 7): (number | un
 
 export function computeModelCosts(data: DailyUsage[]): Map<string, {
   cost: number; tokens: number; input: number; output: number;
-  cacheRead: number; cacheCreate: number; days: Set<string>
+  cacheRead: number; cacheCreate: number; days: number
 }> {
   const map = new Map<string, {
     cost: number; tokens: number; input: number; output: number;
-    cacheRead: number; cacheCreate: number; days: Set<string>
+    cacheRead: number; cacheCreate: number; days: number; _dates: Set<string>
   }>()
   for (const d of data) {
+    const entryDays = d._aggregatedDays ?? 1
     for (const mb of d.modelBreakdowns) {
       const name = normalizeModelName(mb.modelName)
-      const existing = map.get(name) ?? { cost: 0, tokens: 0, input: 0, output: 0, cacheRead: 0, cacheCreate: 0, days: new Set<string>() }
+      const existing = map.get(name) ?? { cost: 0, tokens: 0, input: 0, output: 0, cacheRead: 0, cacheCreate: 0, days: 0, _dates: new Set<string>() }
       existing.cost += mb.cost
       existing.tokens += mb.inputTokens + mb.outputTokens + mb.cacheCreationTokens + mb.cacheReadTokens
       existing.input += mb.inputTokens
       existing.output += mb.outputTokens
       existing.cacheRead += mb.cacheReadTokens
       existing.cacheCreate += mb.cacheCreationTokens
-      existing.days.add(d.date)
+      if (!existing._dates.has(d.date)) {
+        existing._dates.add(d.date)
+        existing.days += entryDays
+      }
       map.set(name, existing)
     }
   }

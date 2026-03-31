@@ -3,14 +3,16 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { computeAnomalies } from '@/lib/calculations'
 import { TriangleAlert } from 'lucide-react'
-import type { DailyUsage } from '@/types'
+import { periodLabel } from '@/lib/formatters'
+import type { DailyUsage, ViewMode } from '@/types'
 
 interface AnomalyDetectionProps {
   data: DailyUsage[]
   onClickDay?: (date: string) => void
+  viewMode?: ViewMode
 }
 
-export function AnomalyDetection({ data, onClickDay }: AnomalyDetectionProps) {
+export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: AnomalyDetectionProps) {
   const { anomalies, mean, stdDev } = useMemo(() => {
     if (data.length < 3) return { anomalies: [], mean: 0, stdDev: 0 }
     const costs = data.map(d => d.totalCost)
@@ -23,7 +25,7 @@ export function AnomalyDetection({ data, onClickDay }: AnomalyDetectionProps) {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Auffällige Tage</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Auffällige {periodLabel(viewMode, true)}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -40,12 +42,12 @@ export function AnomalyDetection({ data, onClickDay }: AnomalyDetectionProps) {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           <TriangleAlert className="h-4 w-4 text-yellow-500" />
-          Auffällige Tage ({anomalies.length})
+          Auffällige {periodLabel(viewMode, true)} ({anomalies.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-xs text-muted-foreground mb-3">
-          Tage mit Kosten &gt;2 Standardabweichungen vom Mittelwert ({formatCurrency(mean)} ± {formatCurrency(stdDev)})
+          {periodLabel(viewMode, true)} mit Kosten &gt;2 Standardabweichungen vom Mittelwert ({formatCurrency(mean)} ± {formatCurrency(stdDev)})
         </p>
         <div className="space-y-2">
           {anomalies

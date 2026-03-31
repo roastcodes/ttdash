@@ -29,6 +29,18 @@ export function formatPercent(value: number, decimals = 1): string {
 }
 
 export function formatDate(dateStr: string, mode: 'short' | 'long' | 'weekday' = 'short'): string {
+  // Yearly period: "2026"
+  if (/^\d{4}$/.test(dateStr)) return dateStr
+
+  // Monthly period: "2026-03"
+  if (/^\d{4}-\d{2}$/.test(dateStr)) {
+    const [y, m] = dateStr.split('-')
+    const d = new Date(parseInt(y), parseInt(m) - 1)
+    if (mode === 'short') return d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' })
+    return d.toLocaleDateString('de-CH', { month: 'long', year: 'numeric' })
+  }
+
+  // Daily: "2026-03-31"
   const date = new Date(dateStr + 'T00:00:00')
   if (mode === 'long') {
     return date.toLocaleDateString('de-CH', {
@@ -45,8 +57,32 @@ export function formatDate(dateStr: string, mode: 'short' | 'long' | 'weekday' =
 }
 
 export function formatDateAxis(dateStr: string): string {
+  // Yearly period
+  if (/^\d{4}$/.test(dateStr)) return dateStr
+
+  // Monthly period: "2026-03"
+  if (/^\d{4}-\d{2}$/.test(dateStr)) {
+    const [y, m] = dateStr.split('-')
+    const d = new Date(parseInt(y), parseInt(m) - 1)
+    return d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' })
+  }
+
   const date = new Date(dateStr + 'T00:00:00')
   return date.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' })
+}
+
+/** Returns the period noun for the given view mode */
+export function periodLabel(viewMode: 'daily' | 'monthly' | 'yearly', plural = false): string {
+  if (viewMode === 'monthly') return plural ? 'Monate' : 'Monat'
+  if (viewMode === 'yearly') return plural ? 'Jahre' : 'Jahr'
+  return plural ? 'Tage' : 'Tag'
+}
+
+/** Returns the period noun for the given view mode (singular, for compound words like "Ø/Tag") */
+export function periodUnit(viewMode: 'daily' | 'monthly' | 'yearly'): string {
+  if (viewMode === 'monthly') return 'Mt.'
+  if (viewMode === 'yearly') return 'Jahr'
+  return 'Tag'
 }
 
 export function formatMonthYear(dateStr: string): string {

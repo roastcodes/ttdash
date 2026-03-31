@@ -17,6 +17,8 @@ export interface DailyUsage {
   totalCost: number
   modelsUsed: string[]
   modelBreakdowns: ModelBreakdown[]
+  /** Number of original days merged into this entry (1 for daily, N for monthly/yearly) */
+  _aggregatedDays?: number
 }
 
 export interface UsageData {

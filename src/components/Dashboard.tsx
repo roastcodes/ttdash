@@ -38,7 +38,7 @@ import { useTheme } from '@/hooks/use-theme'
 import { useToast } from '@/components/ui/toast'
 import { downloadCSV } from '@/lib/csv-export'
 import { filterByModels } from '@/lib/data-transforms'
-import { formatCurrency, formatTokens, formatPercent } from '@/lib/formatters'
+import { formatCurrency, formatTokens, formatPercent, periodUnit } from '@/lib/formatters'
 import type { UsageData } from '@/types'
 
 export function Dashboard() {
@@ -85,13 +85,13 @@ export function Dashboard() {
   // Full dataset with only model filter applied (no date/month filter) for PeriodComparison
   const comparisonData = useMemo(() => filterByModels(daily, selectedModels), [daily, selectedModels])
 
-  // Calculate total calendar days from the date range
+  // Calculate total calendar days from the date range (only meaningful for daily view)
   const totalCalendarDays = useMemo(() => {
-    if (!dateRange) return 0
+    if (!dateRange || viewMode !== 'daily') return 0
     const start = new Date(dateRange.start + 'T00:00:00')
     const end = new Date(dateRange.end + 'T00:00:00')
     return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
-  }, [dateRange])
+  }, [dateRange, viewMode])
 
   const todayStr = new Date().toISOString().slice(0, 10)
   const todayData = useMemo(() => daily.find(d => d.date === todayStr) ?? null, [daily, todayStr])
@@ -217,11 +217,11 @@ export function Dashboard() {
         <div id="metrics">
           <SectionHeader title="Metriken" badge="10 Kennzahlen" description="Wichtigste KPIs im Überblick" />
           <FadeIn delay={0}>
-            <PrimaryMetrics metrics={metrics} totalCalendarDays={totalCalendarDays} />
+            <PrimaryMetrics metrics={metrics} totalCalendarDays={totalCalendarDays} viewMode={viewMode} />
           </FadeIn>
           <FadeIn delay={0.1}>
             <div className="mt-4">
-              <SecondaryMetrics metrics={metrics} dailyCosts={filteredData.map(d => d.totalCost)} />
+              <SecondaryMetrics metrics={metrics} dailyCosts={filteredData.map(d => d.totalCost)} viewMode={viewMode} />
             </div>
           </FadeIn>
         </div>
@@ -236,15 +236,15 @@ export function Dashboard() {
 
         {/* Heatmap Calendar */}
         <div>
-          <SectionHeader title="Aktivität" description="Tägliche Nutzungsübersicht" />
+          <SectionHeader title="Aktivität" description={viewMode === 'daily' ? 'Tägliche Nutzungsübersicht' : viewMode === 'monthly' ? 'Monatliche Nutzungsübersicht' : 'Jährliche Nutzungsübersicht'} />
           <FadeIn delay={0.2}>
             <ExpandableCard title="Aktivitäts-Heatmap" stats={[
               { label: 'Aktive Tage', value: String(metrics.activeDays) },
               { label: 'Total', value: formatCurrency(metrics.totalCost) },
-              { label: 'Ø/Tag', value: formatCurrency(metrics.avgDailyCost) },
+              { label: `Ø/${periodUnit(viewMode)}`, value: formatCurrency(metrics.avgDailyCost) },
               { label: 'Zeitraum', value: dateRange ? `${dateRange.start} – ${dateRange.end}` : '-' },
             ]}>
-              <HeatmapCalendar data={filteredData} />
+              <HeatmapCalendar data={filteredData} viewMode={viewMode} />
             </ExpandableCard>
           </FadeIn>
         </div>
@@ -262,7 +262,7 @@ export function Dashboard() {
                 { label: 'Total Tokens', value: formatTokens(metrics.totalTokens) },
                 { label: 'Cache Read', value: formatTokens(metrics.totalCacheRead) },
               ]}>
-                <CacheROI data={filteredData} />
+                <CacheROI data={filteredData} viewMode={viewMode} />
               </ExpandableCard>
             </div>
           </FadeIn>
@@ -319,15 +319,15 @@ export function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ExpandableCard title="Periodenvergleich" stats={[
                 { label: 'Datenpunkte', value: String(filteredData.length) },
-                { label: 'Ø Kosten/Tag', value: formatCurrency(metrics.avgDailyCost) },
+                { label: `Ø Kosten/${periodUnit(viewMode)}`, value: formatCurrency(metrics.avgDailyCost) },
               ]}>
                 <PeriodComparison data={comparisonData} />
               </ExpandableCard>
               <ExpandableCard title="Anomalie-Erkennung" stats={[
                 { label: 'Total', value: formatCurrency(metrics.totalCost) },
-                { label: 'Ø/Tag', value: formatCurrency(metrics.avgDailyCost) },
+                { label: `Ø/${periodUnit(viewMode)}`, value: formatCurrency(metrics.avgDailyCost) },
               ]}>
-                <AnomalyDetection data={filteredData} onClickDay={setDrillDownDate} />
+                <AnomalyDetection data={filteredData} onClickDay={setDrillDownDate} viewMode={viewMode} />
               </ExpandableCard>
             </div>
           </FadeIn>
@@ -337,11 +337,11 @@ export function Dashboard() {
         <div id="tables">
           <SectionHeader title="Tabellen" description="Detaillierte Aufschlüsselungen" />
           <FadeIn delay={0.55}>
-            <ModelEfficiency modelCosts={modelCosts} totalCost={metrics.totalCost} />
+            <ModelEfficiency modelCosts={modelCosts} totalCost={metrics.totalCost} viewMode={viewMode} />
           </FadeIn>
           <FadeIn delay={0.6}>
             <div className="mt-4">
-              <RecentDays data={filteredData} onClickDay={setDrillDownDate} />
+              <RecentDays data={filteredData} onClickDay={setDrillDownDate} viewMode={viewMode} />
             </div>
           </FadeIn>
         </div>

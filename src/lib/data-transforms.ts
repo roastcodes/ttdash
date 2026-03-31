@@ -166,6 +166,8 @@ export function toTokenChartData(data: DailyUsage[]): TokenChartDataPoint[] {
 export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {
   const weekdayCosts: Record<number, number[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
   for (const d of data) {
+    // Skip non-daily entries (monthly "2026-03" or yearly "2026")
+    if (d.date.length !== 10) continue
     const date = new Date(d.date + 'T00:00:00')
     const dow = (date.getDay() + 6) % 7 // Monday = 0
     weekdayCosts[dow].push(d.totalCost)
@@ -189,9 +191,10 @@ export function aggregateToDailyFormat(data: DailyUsage[], mode: ViewMode): Dail
   for (const d of data) {
     const key = groupKey(d.date)
     const existing = map.get(key)
+    const days = d._aggregatedDays ?? 1
 
     if (!existing) {
-      map.set(key, { ...d })  // clone the first day as base
+      map.set(key, { ...d, date: key, _aggregatedDays: days })
     } else {
       existing.totalCost += d.totalCost
       existing.totalTokens += d.totalTokens
@@ -199,6 +202,7 @@ export function aggregateToDailyFormat(data: DailyUsage[], mode: ViewMode): Dail
       existing.outputTokens += d.outputTokens
       existing.cacheCreationTokens += d.cacheCreationTokens
       existing.cacheReadTokens += d.cacheReadTokens
+      existing._aggregatedDays = (existing._aggregatedDays ?? 1) + days
       // Merge model breakdowns
       existing.modelBreakdowns = [...existing.modelBreakdowns, ...d.modelBreakdowns]
       // Merge modelsUsed (unique)

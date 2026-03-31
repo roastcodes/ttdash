@@ -71,6 +71,7 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
     // month - use string-based month extraction (no timezone issue)
     const currentMonth = lastStr.slice(0, 7)
     const prevDate = new Date(lastDate)
+    prevDate.setDate(1) // avoid overflow when prev month has fewer days (e.g. Mar 31 → Feb 31 → Mar 3)
     prevDate.setMonth(prevDate.getMonth() - 1)
     const prevMonth = fmtLocal(prevDate).slice(0, 7)
 

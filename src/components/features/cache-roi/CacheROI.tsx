@@ -6,13 +6,15 @@ import { MODEL_PRICES } from '@/lib/constants'
 import { Zap } from 'lucide-react'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { InfoButton } from '@/components/features/help/InfoButton'
-import type { DailyUsage } from '@/types'
+import { periodUnit } from '@/lib/formatters'
+import type { DailyUsage, ViewMode } from '@/types'
 
 interface CacheROIProps {
   data: DailyUsage[]
+  viewMode?: ViewMode
 }
 
-export function CacheROI({ data }: CacheROIProps) {
+export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
   const { actualCost, hypotheticalCost, savings, savingsPercent, dailyAvg } = useMemo(() => {
     let actual = 0
     let hypothetical = 0
@@ -37,7 +39,8 @@ export function CacheROI({ data }: CacheROIProps) {
 
     const saved = hypothetical - actual
     const pct = hypothetical > 0 ? (saved / hypothetical) * 100 : 0
-    const dailyAvg = data.length > 0 ? actual / data.length : 0
+    const totalPeriods = data.reduce((s, d) => s + (d._aggregatedDays ?? 1), 0)
+    const dailyAvg = totalPeriods > 0 ? actual / totalPeriods : 0
 
     return { actualCost: actual, hypotheticalCost: hypothetical, savings: saved, savingsPercent: pct, dailyAvg }
   }, [data])
@@ -87,7 +90,7 @@ export function CacheROI({ data }: CacheROIProps) {
             </div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground">Ø Tageskosten</div>
+            <div className="text-xs text-muted-foreground">Ø Kosten/{periodUnit(viewMode)}</div>
             <div className="text-lg font-bold text-foreground">
               <FormattedValue value={dailyAvg} type="currency" />
             </div>
