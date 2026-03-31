@@ -1,5 +1,5 @@
-import { useId } from 'react'
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { useId, useMemo } from 'react'
+import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { ChartCard } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
@@ -13,10 +13,40 @@ interface CumulativeCostProps {
 
 export function CumulativeCost({ data }: CumulativeCostProps) {
   const uid = useId().replace(/:/g, '')
+
+  // Add projected end-of-month line
+  const chartData = useMemo(() => {
+    if (data.length < 3) return data
+    const last = data[data.length - 1]
+    if (!last?.date || !last.cumulative) return data
+
+    const lastDate = new Date(last.date + 'T00:00:00')
+    const currentMonth = last.date.slice(0, 7)
+    const daysInMonth = new Date(lastDate.getFullYear(), lastDate.getMonth() + 1, 0).getDate()
+    const dayNum = lastDate.getDate()
+
+    // Only project if not already end of month
+    if (dayNum >= daysInMonth) return data
+
+    const avgDaily = last.cumulative / data.length
+    const projected = last.cumulative + avgDaily * (daysInMonth - dayNum)
+    const endDate = `${currentMonth}-${String(daysInMonth).padStart(2, '0')}`
+
+    return [
+      ...data.map(d => ({ ...d, projected: undefined as number | undefined })),
+      // Bridge point on last actual date
+      { ...data[data.length - 1], projected: last.cumulative },
+      // Projected end-of-month point
+      { date: endDate, cumulative: undefined as number | undefined, projected, cost: 0, ma7: 0 },
+    ]
+  }, [data])
+
+  const lastCumulative = data[data.length - 1]?.cumulative ?? 0
+
   return (
-    <ChartCard title="Kumulative Kosten" subtitle="Kumulierte Ausgaben über den Zeitraum" info={CHART_HELP.cumulativeCost} chartData={data as unknown as Record<string, unknown>[]} valueKey="cumulative" valueFormatter={formatCurrency}>
+    <ChartCard title="Kumulative Kosten" subtitle={`Total: ${formatCurrency(lastCumulative)}`} info={CHART_HELP.cumulativeCost} chartData={data as unknown as Record<string, unknown>[]} valueKey="cumulative" valueFormatter={formatCurrency}>
       <ResponsiveContainer width="100%" height={300}>
-        <AreaChart data={data} margin={CHART_MARGIN}>
+        <ComposedChart data={chartData as Record<string, unknown>[]} margin={CHART_MARGIN}>
           <defs>
             <linearGradient id={`${uid}-cumulGrad`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={CHART_COLORS.cumulative} stopOpacity={0.4} />
@@ -39,8 +69,20 @@ export function CumulativeCost({ data }: CumulativeCostProps) {
             dot={false}
             animationDuration={CHART_ANIMATION.duration}
             animationEasing={CHART_ANIMATION.easing}
+            connectNulls={false}
           />
-        </AreaChart>
+          <Line
+            type="monotone"
+            dataKey="projected"
+            stroke={CHART_COLORS.cumulative}
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            dot={false}
+            name="Projektion"
+            connectNulls
+            animationDuration={CHART_ANIMATION.duration}
+          />
+        </ComposedChart>
       </ResponsiveContainer>
     </ChartCard>
   )

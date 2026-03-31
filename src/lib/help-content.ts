@@ -1,10 +1,6 @@
 export const KEYBOARD_SHORTCUTS = [
   { keys: '⌘ K', description: 'Command Palette öffnen' },
   { keys: 'ESC', description: 'Dialog / Zoom schliessen' },
-  { keys: '⌘ E', description: 'CSV exportieren' },
-  { keys: '⌘ U', description: 'Daten hochladen' },
-  { keys: '⌘ D', description: 'Theme wechseln (Dark/Light)' },
-  { keys: '⌘ ↑', description: 'Nach oben scrollen' },
 ] as const
 
 export const METRIC_HELP: Record<string, string> = {

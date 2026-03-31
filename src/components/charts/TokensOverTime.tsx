@@ -61,7 +61,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
           <YAxis tickFormatter={formatTokens} stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} width={55} />
           <Tooltip content={<CustomTooltip formatter={formatTokens} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
           <Area type="monotone" dataKey="total" stroke={CHART_COLORS.cost} fill={`url(#${gid('total')})`} strokeWidth={1.5} name="Total Tokens" animationDuration={CHART_ANIMATION.duration} />
-          <Line type="monotone" dataKey="tokenMA7" stroke={CHART_COLORS.ma7} strokeWidth={2} strokeDasharray="4 3" dot={false} connectNulls name="7-Tage Ø" animationDuration={CHART_ANIMATION.duration} />
+          <Line type="monotone" dataKey="tokenMA7" stroke={CHART_COLORS.ma7} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="7-Tage Ø" animationDuration={CHART_ANIMATION.duration} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -81,22 +81,20 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
     >
       {/* Summary row with totals per type */}
       <div className="grid grid-cols-4 gap-2 mb-3 text-center">
-        <div className="rounded-lg bg-muted/20 p-1.5">
-          <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Cache Read</div>
-          <div className="text-xs font-mono font-semibold" style={{ color: CHART_COLORS.cacheRead }}>{formatTokens(totals.cacheRead)}</div>
-        </div>
-        <div className="rounded-lg bg-muted/20 p-1.5">
-          <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Cache Write</div>
-          <div className="text-xs font-mono font-semibold" style={{ color: CHART_COLORS.cacheWrite }}>{formatTokens(totals.cacheWrite)}</div>
-        </div>
-        <div className="rounded-lg bg-muted/20 p-1.5">
-          <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Output</div>
-          <div className="text-xs font-mono font-semibold" style={{ color: CHART_COLORS.output }}>{formatTokens(totals.output)}</div>
-        </div>
-        <div className="rounded-lg bg-muted/20 p-1.5">
-          <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Input</div>
-          <div className="text-xs font-mono font-semibold" style={{ color: CHART_COLORS.input }}>{formatTokens(totals.input)}</div>
-        </div>
+        {([
+          { label: 'Cache Read', value: totals.cacheRead, color: CHART_COLORS.cacheRead },
+          { label: 'Cache Write', value: totals.cacheWrite, color: CHART_COLORS.cacheWrite },
+          { label: 'Output', value: totals.output, color: CHART_COLORS.output },
+          { label: 'Input', value: totals.input, color: CHART_COLORS.input },
+        ] as const).map(item => (
+          <div key={item.label} className="rounded-lg bg-muted/20 p-1.5">
+            <div className="text-[9px] text-muted-foreground uppercase tracking-wider">{item.label}</div>
+            <div className="text-xs font-mono font-semibold" style={{ color: item.color }}>{formatTokens(item.value)}</div>
+            <div className="text-[9px] text-muted-foreground/60 font-mono">
+              {totals.total > 0 ? `${((item.value / totals.total) * 100).toFixed(1)}%` : '–'}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Chart 1: Cache Tokens (large scale) with per-type MA7 */}
@@ -120,8 +118,8 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
             <Tooltip content={<CustomTooltip formatter={formatTokens} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
             <Area type="monotone" dataKey="Cache Read" stroke={CHART_COLORS.cacheRead} fill={`url(#${gid('cacheRead')})`} strokeWidth={1.5} name="Cache Read" animationDuration={CHART_ANIMATION.duration} />
             <Area type="monotone" dataKey="Cache Write" stroke={CHART_COLORS.cacheWrite} fill={`url(#${gid('cacheWrite')})`} strokeWidth={1.5} name="Cache Write" animationDuration={CHART_ANIMATION.duration} />
-            <Line type="monotone" dataKey="cacheReadMA7" stroke={CHART_COLORS.cacheRead} strokeWidth={2} strokeDasharray="4 3" dot={false} connectNulls name="Cache Read Ø" animationDuration={CHART_ANIMATION.duration} />
-            <Line type="monotone" dataKey="cacheWriteMA7" stroke={CHART_COLORS.cacheWrite} strokeWidth={2} strokeDasharray="4 3" dot={false} connectNulls name="Cache Write Ø" animationDuration={CHART_ANIMATION.duration} />
+            <Line type="monotone" dataKey="cacheReadMA7" stroke={CHART_COLORS.cacheRead} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Cache Read Ø" animationDuration={CHART_ANIMATION.duration} />
+            <Line type="monotone" dataKey="cacheWriteMA7" stroke={CHART_COLORS.cacheWrite} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Cache Write Ø" animationDuration={CHART_ANIMATION.duration} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -147,8 +145,8 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
             <Tooltip content={<CustomTooltip formatter={formatTokens} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
             <Area type="monotone" dataKey="Output" stroke={CHART_COLORS.output} fill={`url(#${gid('output')})`} strokeWidth={1.5} name="Output" animationDuration={CHART_ANIMATION.duration} />
             <Area type="monotone" dataKey="Input" stroke={CHART_COLORS.input} fill={`url(#${gid('input')})`} strokeWidth={1.5} name="Input" animationDuration={CHART_ANIMATION.duration} />
-            <Line type="monotone" dataKey="outputMA7" stroke={CHART_COLORS.output} strokeWidth={2} strokeDasharray="4 3" dot={false} connectNulls name="Output Ø" animationDuration={CHART_ANIMATION.duration} />
-            <Line type="monotone" dataKey="inputMA7" stroke={CHART_COLORS.input} strokeWidth={2} strokeDasharray="4 3" dot={false} connectNulls name="Input Ø" animationDuration={CHART_ANIMATION.duration} />
+            <Line type="monotone" dataKey="outputMA7" stroke={CHART_COLORS.output} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Output Ø" animationDuration={CHART_ANIMATION.duration} />
+            <Line type="monotone" dataKey="inputMA7" stroke={CHART_COLORS.input} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Input Ø" animationDuration={CHART_ANIMATION.duration} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

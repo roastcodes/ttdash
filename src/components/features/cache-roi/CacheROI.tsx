@@ -104,9 +104,14 @@ export function CacheROI({ data }: CacheROIProps) {
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="text-muted-foreground w-24">Mit Cache</span>
-            <div className="flex-1 h-6 bg-green-400/20 rounded-md overflow-hidden">
-              <div className="h-full bg-green-400/60 rounded-md transition-all duration-1000" style={{ width: `${barWidth}%` }} />
+            <div className="flex-1 h-6 bg-muted/20 rounded-md overflow-hidden flex">
+              <div className="h-full bg-green-400/60 rounded-l-md transition-all duration-1000" style={{ width: `${barWidth}%` }} />
+              <div className="h-full bg-green-400/20 flex-1 rounded-r-md border-l border-green-400/30 border-dashed" />
             </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-400/60" /> Bezahlt</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-400/20 border border-green-400/30 border-dashed" /> Gespart</span>
           </div>
         </div>
       </CardContent>

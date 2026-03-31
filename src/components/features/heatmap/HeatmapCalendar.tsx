@@ -15,10 +15,13 @@ const DAY_LABELS = ['Mo', '', 'Mi', '', 'Fr', '', 'So']
 function getColor(cost: number, maxCost: number): string {
   if (cost === 0) return 'hsl(224, 12%, 14%)'
   const intensity = Math.min(cost / maxCost, 1)
-  if (intensity < 0.25) return 'hsl(215, 70%, 20%)'
-  if (intensity < 0.5) return 'hsl(215, 70%, 35%)'
-  if (intensity < 0.75) return 'hsl(215, 70%, 50%)'
-  return 'hsl(215, 70%, 65%)'
+  if (intensity < 0.15) return 'hsl(215, 70%, 18%)'
+  if (intensity < 0.30) return 'hsl(215, 70%, 26%)'
+  if (intensity < 0.45) return 'hsl(215, 70%, 34%)'
+  if (intensity < 0.60) return 'hsl(215, 70%, 42%)'
+  if (intensity < 0.75) return 'hsl(215, 70%, 52%)'
+  if (intensity < 0.90) return 'hsl(215, 70%, 60%)'
+  return 'hsl(215, 70%, 70%)'
 }
 
 export function HeatmapCalendar({ data }: HeatmapCalendarProps) {
@@ -75,6 +78,8 @@ export function HeatmapCalendar({ data }: HeatmapCalendarProps) {
     return { cells: result, weeks: week + 1, months: monthLabels, maxCost: max }
   }, [data])
 
+  const todayStr = new Date().toISOString().slice(0, 10)
+
   if (cells.length === 0) return null
 
   const svgWidth = weeks * TOTAL + 30
@@ -119,29 +124,45 @@ export function HeatmapCalendar({ data }: HeatmapCalendarProps) {
             ))}
 
             {/* Cells */}
-            {cells.map((cell, i) => (
-              <rect
-                key={i}
-                x={30 + cell.week * TOTAL}
-                y={18 + cell.day * TOTAL}
-                width={CELL_SIZE}
-                height={CELL_SIZE}
-                rx={2}
-                fill={getColor(cell.cost, maxCost)}
-                className="transition-all duration-150 cursor-pointer"
-                onMouseEnter={(e) => {
-                  const rect = (e.target as SVGRectElement).getBoundingClientRect()
-                  setTooltip({ x: rect.left, y: rect.top - 40, date: cell.date, cost: cell.cost })
-                }}
-                onMouseLeave={() => setTooltip(null)}
-              />
-            ))}
+            {cells.map((cell, i) => {
+              const isToday = cell.date === todayStr
+              return (
+                <g key={i}>
+                  <rect
+                    x={30 + cell.week * TOTAL}
+                    y={18 + cell.day * TOTAL}
+                    width={CELL_SIZE}
+                    height={CELL_SIZE}
+                    rx={2}
+                    fill={getColor(cell.cost, maxCost)}
+                    className="transition-all duration-150 cursor-pointer"
+                    onMouseEnter={(e) => {
+                      const rect = (e.target as SVGRectElement).getBoundingClientRect()
+                      setTooltip({ x: rect.left, y: rect.top - 40, date: cell.date, cost: cell.cost })
+                    }}
+                    onMouseLeave={() => setTooltip(null)}
+                  />
+                  {isToday && (
+                    <rect
+                      x={30 + cell.week * TOTAL - 1}
+                      y={18 + cell.day * TOTAL - 1}
+                      width={CELL_SIZE + 2}
+                      height={CELL_SIZE + 2}
+                      rx={3}
+                      fill="none"
+                      stroke="hsl(215, 70%, 55%)"
+                      strokeWidth={1.5}
+                    />
+                  )}
+                </g>
+              )
+            })}
           </svg>
 
           {/* Legend */}
-          <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground">
             <span>Weniger</span>
-            {[0, 0.25, 0.5, 0.75, 1].map((level, i) => (
+            {[0, 0.15, 0.30, 0.45, 0.60, 0.75, 0.90, 1].map((level, i) => (
               <div
                 key={i}
                 className="w-3 h-3 rounded-sm"

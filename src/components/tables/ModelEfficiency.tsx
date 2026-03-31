@@ -13,6 +13,7 @@ interface ModelData {
   costPerMillion: number
   share: number
   days: number
+  costPerDay: number
 }
 
 interface ModelEfficiencyProps {
@@ -20,7 +21,7 @@ interface ModelEfficiencyProps {
   totalCost: number
 }
 
-type SortKey = 'cost' | 'tokens' | 'costPerMillion' | 'share' | 'days'
+type SortKey = 'cost' | 'tokens' | 'costPerMillion' | 'share' | 'days' | 'costPerDay'
 
 export function ModelEfficiency({ modelCosts, totalCost }: ModelEfficiencyProps) {
   const [sortKey, setSortKey] = useState<SortKey>('cost')
@@ -33,6 +34,7 @@ export function ModelEfficiency({ modelCosts, totalCost }: ModelEfficiencyProps)
     costPerMillion: v.tokens > 0 ? v.cost / (v.tokens / 1_000_000) : 0,
     share: totalCost > 0 ? (v.cost / totalCost) * 100 : 0,
     days: v.days.size,
+    costPerDay: v.days.size > 0 ? v.cost / v.days.size : 0,
   }))
 
   const sorted = [...models].sort((a, b) => {
@@ -79,6 +81,7 @@ export function ModelEfficiency({ modelCosts, totalCost }: ModelEfficiencyProps)
                 <SortHeader label="Tokens" field="tokens" />
                 <SortHeader label="$/1M" field="costPerMillion" />
                 <SortHeader label="Anteil" field="share" />
+                <SortHeader label="Ø/Tag" field="costPerDay" />
                 <SortHeader label="Tage" field="days" />
               </tr>
             </thead>
@@ -101,8 +104,11 @@ export function ModelEfficiency({ modelCosts, totalCost }: ModelEfficiencyProps)
                     <FormattedValue value={model.costPerMillion} type="currency" />
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums relative">
-                    <div className="absolute inset-y-1 left-0 rounded-sm bg-primary/10" style={{ width: `${model.share}%` }} />
+                    <div className="absolute inset-y-1 left-0 rounded-sm transition-all duration-500" style={{ width: `${model.share}%`, backgroundColor: `${getModelColor(model.name)}20` }} />
                     <span className="relative">{formatPercent(model.share)}</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    <FormattedValue value={model.costPerDay} type="currency" />
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums">{model.days}</td>
                 </tr>

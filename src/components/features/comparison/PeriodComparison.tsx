@@ -157,8 +157,15 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
                   <td className="px-2 py-2 text-right font-mono">{row.b}</td>
                   <td className="px-2 py-2 text-center"><ArrowRight className="h-3 w-3 text-muted-foreground inline" /></td>
                   <td className="px-2 py-2 text-right font-mono font-medium">{row.a}</td>
-                  <td className={`px-2 py-2 text-right font-mono font-medium ${row.delta.color}`}>
-                    {row.delta.hasData ? `${row.delta.arrow}${formatPercent(row.delta.value)}` : '–'}
+                  <td className="px-2 py-2 text-right">
+                    {row.delta.hasData ? (
+                      <span className={`inline-flex items-center gap-1 font-mono font-medium text-xs px-1.5 py-0.5 rounded ${row.delta.color} ${
+                        row.delta.color === 'text-red-400' ? 'bg-red-400/10' :
+                        row.delta.color === 'text-green-400' ? 'bg-green-400/10' : ''
+                      }`}>
+                        {row.delta.arrow}{formatPercent(row.delta.value)}
+                      </span>
+                    ) : '–'}
                   </td>
                 </tr>
               ))}

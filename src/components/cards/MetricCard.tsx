@@ -4,7 +4,7 @@ import { InfoButton } from '@/components/features/help/InfoButton'
 import { cn } from '@/lib/cn'
 
 interface MetricCardProps {
-  label: string
+  label: ReactNode
   value: ReactNode
   subtitle?: string
   icon?: ReactNode
@@ -30,8 +30,10 @@ export function MetricCard({ label, value, subtitle, icon, trend, info, classNam
         )}
         {trend && trend.value !== 0 && (
           <span className={cn(
-            'text-xs font-medium',
-            trend.value > 0 ? 'text-red-400' : 'text-green-400'
+            'text-[10px] font-semibold px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5',
+            trend.value > 0
+              ? 'text-red-400 bg-red-400/10'
+              : 'text-green-400 bg-green-400/10'
           )}>
             {trend.value > 0 ? '↑' : '↓'}{Math.abs(trend.value).toFixed(1)}%
             {trend.label && ` ${trend.label}`}

@@ -128,13 +128,14 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
   }
 
   const confidence = monthData.length >= 14 ? 'hoch' : monthData.length >= 7 ? 'mittel' : 'niedrig'
+  const confidenceColor = confidence === 'hoch' ? 'text-green-400 bg-green-400/10' : confidence === 'mittel' ? 'text-yellow-400 bg-yellow-400/10' : 'text-red-400 bg-red-400/10'
 
   return (
     <div className="space-y-4">
       <MetricCard
-        label="Prognose Monatsende"
+        label={<span className="flex items-center gap-2">Prognose Monatsende <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${confidenceColor}`}>{confidence}</span></span>}
         value={<>~<FormattedValue value={forecastTotal} type="currency" /></>}
-        subtitle={`Bisher: ${formatCurrency(currentMonthTotal)} · Konfidenz: ${confidence}${dailyAvgTrend ? ` · Ø ${formatCurrency(dailyAvgTrend.avg)}/Tag` : ''}`}
+        subtitle={`Bisher: ${formatCurrency(currentMonthTotal)}${dailyAvgTrend ? ` · Ø ${formatCurrency(dailyAvgTrend.avg)}/Tag` : ''}`}
         icon={<TrendingUp className="h-4 w-4" />}
         trend={dailyAvgTrend && dailyAvgTrend.change !== 0 ? { value: dailyAvgTrend.change, label: 'vs. Vorwoche' } : null}
       />
@@ -147,17 +148,23 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
       >
         <ResponsiveContainer width="100%" height={250}>
           <ComposedChart data={chartData} margin={CHART_MARGIN}>
+            <defs>
+              <linearGradient id="forecast-cost-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
             <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
             <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
             <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
             <Legend />
-            {/* Confidence band - semi-transparent fill from 0 to upper value */}
+            {/* Confidence band */}
             <Area type="monotone" dataKey="upper" stroke="none" fill={CHART_COLORS.cumulative} fillOpacity={0.12} name="Konfidenzband" />
-            {/* Forecast dashed line - teal/green, distinct from the blue cost line */}
+            {/* Actual cost area with gradient fill */}
+            <Area type="monotone" dataKey="cost" stroke={CHART_COLORS.cost} fill="url(#forecast-cost-grad)" name="Ist-Kosten" strokeWidth={2} dot={false} connectNulls />
+            {/* Forecast dashed line */}
             <Line type="monotone" dataKey="forecast" stroke={CHART_COLORS.cumulative} name="Prognose" dot={false} strokeWidth={2} strokeDasharray="6 3" connectNulls />
-            {/* Actual cost line */}
-            <Line type="monotone" dataKey="cost" stroke={CHART_COLORS.cost} name="Ist-Kosten" dot={false} strokeWidth={2} connectNulls />
           </ComposedChart>
         </ResponsiveContainer>
       </ChartCard>

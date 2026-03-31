@@ -67,6 +67,32 @@ export function DrillDownModal({ day, open, onClose }: DrillDownModalProps) {
           </div>
         </div>
 
+        {/* Token type stacked bar */}
+        <div>
+          <div className="text-xs text-muted-foreground mb-1.5">Token-Verteilung</div>
+          <div className="flex h-3 rounded-full overflow-hidden">
+            {day.totalTokens > 0 && ([
+              { value: day.cacheReadTokens, color: 'hsl(160, 50%, 42%)', label: 'Cache Read' },
+              { value: day.cacheCreationTokens, color: 'hsl(262, 60%, 55%)', label: 'Cache Write' },
+              { value: day.inputTokens, color: 'hsl(340, 55%, 52%)', label: 'Input' },
+              { value: day.outputTokens, color: 'hsl(35, 80%, 52%)', label: 'Output' },
+            ] as const).map(seg => (
+              <div
+                key={seg.label}
+                className="h-full transition-all duration-500"
+                style={{ width: `${(seg.value / day.totalTokens) * 100}%`, backgroundColor: seg.color }}
+                title={`${seg.label}: ${formatTokens(seg.value)} (${((seg.value / day.totalTokens) * 100).toFixed(1)}%)`}
+              />
+            ))}
+          </div>
+          <div className="flex gap-3 mt-1.5 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(160, 50%, 42%)' }} />Cache Read {formatPercent((day.cacheReadTokens / day.totalTokens) * 100)}</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(262, 60%, 55%)' }} />Cache Write {formatPercent((day.cacheCreationTokens / day.totalTokens) * 100)}</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(340, 55%, 52%)' }} />Input {formatPercent((day.inputTokens / day.totalTokens) * 100)}</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(35, 80%, 52%)' }} />Output {formatPercent((day.outputTokens / day.totalTokens) * 100)}</span>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <ResponsiveContainer width="100%" height={180}>
@@ -82,18 +108,22 @@ export function DrillDownModal({ day, open, onClose }: DrillDownModalProps) {
           </div>
 
           <div className="space-y-2">
-            {modelData.map(model => (
-              <div key={model.name} className="flex items-center justify-between text-sm p-1.5 rounded hover:bg-muted/30">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getModelColor(model.name) }} />
-                  <span>{model.name}</span>
+            {modelData.map(model => {
+              const share = day.totalCost > 0 ? (model.cost / day.totalCost) * 100 : 0
+              return (
+                <div key={model.name} className="flex items-center justify-between text-sm p-1.5 rounded hover:bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getModelColor(model.name) }} />
+                    <span>{model.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{formatPercent(share)}</span>
+                  </div>
+                  <div className="text-right font-mono">
+                    <span className="font-medium"><FormattedValue value={model.cost} type="currency" /></span>
+                    <span className="text-muted-foreground ml-2 text-xs"><FormattedValue value={model.tokens} type="tokens" /></span>
+                  </div>
                 </div>
-                <div className="text-right font-mono">
-                  <span className="font-medium"><FormattedValue value={model.cost} type="currency" /></span>
-                  <span className="text-muted-foreground ml-2 text-xs"><FormattedValue value={model.tokens} type="tokens" /></span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </DialogContent>

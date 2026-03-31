@@ -1,4 +1,4 @@
-import { CalendarClock, DollarSign, Coins, Cpu, Database, ArrowRightLeft } from 'lucide-react'
+import { TrendingDown, DollarSign, Coins, Cpu, Database, ArrowRightLeft } from 'lucide-react'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
@@ -55,10 +55,10 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
             icon={<Cpu className="h-4 w-4" />}
           />
           <MetricCard
-            label="Top Modell Kosten"
-            value={topModel ? formatCurrency(topModel.cost) : '–'}
-            subtitle={topModel ? normalizeModelName(topModel.modelName) : undefined}
-            icon={<CalendarClock className="h-4 w-4" />}
+            label="$/1M Tokens"
+            value={<FormattedValue value={today.totalTokens > 0 ? today.totalCost / (today.totalTokens / 1_000_000) : 0} type="currency" />}
+            subtitle={metrics.costPerMillion > 0 ? `Gesamt-Ø: ${formatCurrency(metrics.costPerMillion)}` : undefined}
+            icon={<TrendingDown className="h-4 w-4" />}
           />
           <MetricCard
             label="Cache-Hit-Rate"

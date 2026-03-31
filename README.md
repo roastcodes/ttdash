@@ -9,7 +9,8 @@ Built-in data import via [ccusage](https://github.com/ryoppippi/ccusage). Runs w
 ```bash
 git clone <repo-url>
 cd ccusage-dashboard
-./install.sh
+./install.sh          # macOS/Linux
+install.bat           # Windows
 ccusage-dashboard
 ```
 
@@ -18,22 +19,27 @@ Then open the URL shown in the terminal (default: `http://localhost:3000`).
 ## Features
 
 - **Auto-Import** — one-click data import from Claude Code usage logs, no manual file export needed
-- **Today KPIs** — current-day cost, tokens, models, cache rate with trend vs. average
-- **10 KPI Metric Cards** with hover tooltips showing exact values
-- **Interactive Charts** — cost over time, model breakdown, cumulative cost, weekday analysis, token analysis
-- **Token-Analyse** — split view for Cache and I/O tokens with independent scales and per-type 7-day averages
-- **Cost Forecast** — linear regression with confidence band and week-over-week trend
-- **Cache ROI** — savings analysis comparing actual vs. hypothetical costs without caching
-- **Heatmap Calendar** — GitHub-style daily cost visualization
-- **Period Comparison** — week/month comparison with delta indicators (Monday-based weeks)
-- **Anomaly Detection** — flags days with costs > 2 standard deviations from mean
-- **Drill-Down Modal** — click any data point for daily detail view with model breakdown
+- **Today KPIs** — current-day cost, tokens, models, $/1M efficiency, cache rate, I/O ratio with trend vs. average
+- **12 KPI Metric Cards** — total cost, tokens, active days, top model, cache hit rate, $/1M tokens, most/least expensive day, avg cost/day, median/day — all with hover tooltips for exact values
+- **Active Streak** — consecutive active days shown as 🔥 badge in header
+- **Interactive Charts** — cost over time, model breakdown, cumulative cost (with end-of-month projection), weekday analysis (peak/low highlighting), token analysis
+- **Token-Effizienz** — $/1M tokens over time with 7-day moving average, shows cost optimization trends
+- **Modell-Mix** — stacked percentage area chart showing model usage proportions over time with gradient fills
+- **Token-Analyse** — split view for Cache and I/O tokens with independent scales, per-type 7-day averages, and percentage breakdowns
+- **Cost Forecast** — linear regression with confidence band, color-coded confidence badge (high/medium/low), gradient fill, and week-over-week trend
+- **Cache ROI** — savings analysis with "paid" vs "saved" visualization and cost comparison bars
+- **Heatmap Calendar** — GitHub-style daily cost visualization with 7-level color scale and today marker
+- **Period Comparison** — week/month comparison with colored delta badges (Monday-based weeks)
+- **Anomaly Detection** — flags days with costs > 2σ, severity levels with "KRITISCH" badge for ≥3σ
+- **Drill-Down Modal** — click any data point for daily detail with token type stacked bar, model share percentages, and pie chart
+- **Model Efficiency Table** — sortable columns including $/1M, cost share with model-colored bars, avg cost per active day
+- **Recent Days Table** — sortable by date/cost/tokens/$/1M with cost intensity bars and left border intensity
 - **Zoom Mode** — expand any chart to fullscreen with stats (min/max/avg/total) and CSV export
-- **Date Range Filter** — preset buttons (7T, 30T, Monat, Jahr) and custom date range
+- **Date Range Filter** — preset buttons (7T, 30T, Monat, Jahr) with active state highlighting
 - **Model Filter** — toggle individual models with accurate per-model cost recalculation
 - **View Modes** — daily, monthly, yearly data aggregation
-- **Command Palette** (Cmd+K) — keyboard navigation for all actions
-- **Help Panel** — keyboard shortcuts, metric explanations, chart descriptions
+- **Command Palette** (⌘K) — keyboard navigation for all actions
+- **Help Panel** — keyboard shortcuts and metric explanations
 - **PDF Export** — full dashboard screenshot as multi-page A4 PDF
 - **CSV Export** — filtered data download
 - **Dark/Light Mode** — glassmorphism design with full theme support
@@ -44,7 +50,8 @@ Then open the URL shown in the terminal (default: `http://localhost:3000`).
 ### Global (recommended)
 
 ```bash
-./install.sh         # install, build, and register globally
+./install.sh         # macOS/Linux
+install.bat          # Windows (run as Administrator)
 ccusage-dashboard    # start from anywhere
 ```
 
@@ -102,12 +109,13 @@ src/
     ui/                 # base components (Button, Card, Dialog, Tooltip, FormattedValue, Skeleton, etc.)
     layout/             # Header, FilterBar
     cards/              # MetricCard, PrimaryMetrics, SecondaryMetrics, TodayMetrics
-    charts/             # Recharts visualizations (ChartCard, CostOverTime, TokensOverTime, etc.)
+    charts/             # Recharts visualizations (ChartCard, CostOverTime, TokensOverTime, TokenEfficiency, ModelMix, etc.)
     tables/             # ModelEfficiency, RecentDays
     features/           # auto-import, heatmap, forecast, cache-roi, comparison, anomaly, drill-down, help, pdf, command-palette
 dist/                   # production build output (generated by npm run build)
 server.js               # Node.js HTTP server (serves dist/ + API + auto-import)
-install.sh              # one-command setup script
+install.sh              # one-command setup script (macOS/Linux)
+install.bat             # one-command setup script (Windows)
 ```
 
 ## Usage
@@ -116,16 +124,13 @@ install.sh              # one-command setup script
 2. Click **Auto-Import** to load data directly from your Claude Code usage logs
 3. Explore your usage data — costs, tokens, model breakdowns
 
-You can also upload a JSON file manually via the Upload button (Cmd+U).
+You can also upload a JSON file manually via the Upload button.
 
 ### Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| Cmd+K | Command Palette |
-| Cmd+E | CSV Export |
-| Cmd+U | Upload Data |
-| Cmd+D | Toggle Theme |
+| ⌘K / Ctrl+K | Command Palette |
 | ESC | Close Dialog / Zoom |
 
 ### Custom port

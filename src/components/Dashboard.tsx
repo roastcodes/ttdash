@@ -12,6 +12,8 @@ import { CumulativeCost } from './charts/CumulativeCost'
 import { TokensOverTime } from './charts/TokensOverTime'
 import { TokenTypes } from './charts/TokenTypes'
 import { CostByWeekday } from './charts/CostByWeekday'
+import { TokenEfficiency } from './charts/TokenEfficiency'
+import { ModelMix } from './charts/ModelMix'
 import { ModelEfficiency } from './tables/ModelEfficiency'
 import { RecentDays } from './tables/RecentDays'
 import { EmptyState } from './EmptyState'
@@ -84,6 +86,18 @@ export function Dashboard() {
 
   const todayStr = new Date().toISOString().slice(0, 10)
   const todayData = useMemo(() => daily.find(d => d.date === todayStr) ?? null, [daily, todayStr])
+
+  // Compute active streak (consecutive days from today backwards)
+  const streak = useMemo(() => {
+    const dates = new Set(daily.map(d => d.date))
+    let count = 0
+    const d = new Date(todayStr + 'T00:00:00')
+    while (dates.has(d.toISOString().slice(0, 10))) {
+      count++
+      d.setDate(d.getDate() - 1)
+    }
+    return count
+  }, [daily, todayStr])
 
   const drillDownDay = useMemo(() => {
     if (!drillDownDate) return null
@@ -158,6 +172,7 @@ export function Dashboard() {
         dateRange={dateRange}
         isDark={isDark}
         helpOpen={helpOpen}
+        streak={streak}
         onHelpOpenChange={setHelpOpen}
         onToggleTheme={toggleTheme}
         onExportCSV={handleExportCSV}
@@ -192,7 +207,7 @@ export function Dashboard() {
           </FadeIn>
           <FadeIn delay={0.1}>
             <div className="mt-4">
-              <SecondaryMetrics metrics={metrics} />
+              <SecondaryMetrics metrics={metrics} dailyCosts={filteredData.map(d => d.totalCost)} />
             </div>
           </FadeIn>
         </div>
@@ -258,6 +273,13 @@ export function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
               <CumulativeCost data={costChartData} />
               <CostByWeekday data={weekdayData} />
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={0.42}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+              <TokenEfficiency data={filteredData} />
+              <ModelMix data={filteredData} />
             </div>
           </FadeIn>
         </div>

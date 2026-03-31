@@ -15,25 +15,40 @@ interface CustomTooltipProps {
 export function CustomTooltip({ active, payload, label, formatter }: CustomTooltipProps) {
   if (!active || !payload?.length) return null
 
-  const total = payload.reduce((sum, entry) => sum + (entry.value ?? 0), 0)
-  const showTotal = payload.length >= 2
+  // Separate actual values from moving average (Ø) lines
+  const isMA = (entry: TooltipPayloadEntry) =>
+    entry.name.includes('Ø') || entry.dataKey?.toString().includes('MA7') || entry.dataKey?.toString().includes('_ma7')
+
+  const actualEntries = payload.filter(e => !isMA(e))
+  const maEntries = payload.filter(e => isMA(e))
+
+  const total = actualEntries.reduce((sum, entry) => sum + (entry.value ?? 0), 0)
+  const showTotal = actualEntries.length >= 2
 
   return (
     <div className="bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">
       <p className="font-medium text-muted-foreground mb-1.5">{label}</p>
       <div className="space-y-1.5">
-        {payload.map((entry, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <span
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-muted-foreground">{entry.name}:</span>
-            <span className="font-mono font-medium text-foreground ml-auto">
-              {formatter ? formatter(entry.value, entry.name) : entry.value}
-            </span>
-          </div>
-        ))}
+        {actualEntries.map((entry, i) => {
+          const pct = showTotal && total > 0 ? (entry.value / total) * 100 : null
+          return (
+            <div key={i} className="flex items-center gap-2">
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-muted-foreground">{entry.name}:</span>
+              <span className="font-mono font-medium text-foreground ml-auto">
+                {formatter ? formatter(entry.value, entry.name) : entry.value}
+              </span>
+              {pct !== null && (
+                <span className="text-muted-foreground/60 font-mono w-10 text-right">
+                  {pct.toFixed(0)}%
+                </span>
+              )}
+            </div>
+          )
+        })}
         {showTotal && (
           <>
             <div className="border-t border-border/40 my-1" />
@@ -43,7 +58,25 @@ export function CustomTooltip({ active, payload, label, formatter }: CustomToolt
               <span className="font-mono font-medium text-foreground ml-auto">
                 {formatter ? formatter(total, 'Total') : total}
               </span>
+              <span className="text-muted-foreground/60 font-mono w-10 text-right">100%</span>
             </div>
+          </>
+        )}
+        {maEntries.length > 0 && (
+          <>
+            <div className="border-t border-border/40 my-1" />
+            {maEntries.map((entry, i) => (
+              <div key={`ma-${i}`} className="flex items-center gap-2 opacity-70">
+                <span
+                  className="w-2 h-0.5 shrink-0 border-t border-dashed"
+                  style={{ borderColor: entry.color }}
+                />
+                <span className="text-muted-foreground">{entry.name}:</span>
+                <span className="font-mono font-medium text-foreground ml-auto">
+                  {formatter ? formatter(entry.value, entry.name) : entry.value}
+                </span>
+              </div>
+            ))}
           </>
         )}
       </div>

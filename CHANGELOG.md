@@ -1,5 +1,43 @@
 # Changelog
 
+## [5.0.0] - 2026-03-31
+
+### Added
+- **Token-Effizienz Chart** — $/1M Tokens über die Zeit mit 7-Tage Ø und Durchschnitts-Referenzlinie, zeigt ob Kosten-Optimierung (Cache, Modell-Wahl) wirkt
+- **Modell-Mix Chart** — Stacked percentage area chart zeigt Modell-Nutzungsanteile über die Zeit, visualisiert Migration-Muster (z.B. Wechsel von Opus 4.5 zu 4.6)
+- **Aktiv-Streak** — Header zeigt konsekutive aktive Tage als 🔥-Badge
+- **⌘K Shortcut-Hint** — Command Palette Discoverability im Header
+- **Heatmap Today-Marker** — heutiger Tag mit blauer Umrandung hervorgehoben
+- **Median/Tag Metrik** — ersetzt "Output Tokens" in SecondaryMetrics, zeigt typischen Tageswert mit Vergleich zum Durchschnitt (weniger anfällig für Ausreisser)
+- **Modell-Effizienz Ø/Tag** — neue sortierbare Spalte zeigt durchschnittliche Kosten pro aktivem Tag pro Modell
+- **DrillDown Token-Verteilung** — Stacked Bar mit Cache Read/Write/Input/Output Prozenten und farbiger Legende
+- **DrillDown Modell-Anteile** — Prozentanzeige pro Modell im Detail-Modal
+- **install.bat** — Windows-kompatibles Installationsscript
+
+### Improved
+- **FilterBar** — aktiver Preset-Button (7T, 30T, etc.) visuell hervorgehoben, Reset bei Filterwechsel
+- **SectionHeaders** — linker Akzent-Border (`border-l-2 border-primary/40`) für visuelle Hierarchie
+- **MetricCard Trends** — Badges mit farbigem Hintergrund-Pill statt reinem Text
+- **Chart Tooltips** — Prozent-Anteil pro Eintrag, MA7-Werte korrekt vom Total separiert und mit gestricheltem Indikator abgetrennt
+- **CostByWeekday** — Peak-Tag (orange) und Low-Tag (grün) farblich hervorgehoben, Subtitle zeigt Tagnamen
+- **Heatmap** — 7-stufige Farbskala (vorher 4) für bessere Datenauflösung
+- **ModelEfficiency** — Share-Bars in Modell-Farben statt generisch, neue Ø/Tag Spalte
+- **RecentDays** — sortierbare Spalten (Datum, Kosten, Tokens, $/1M), Kosten-Intensitätsbalken pro Zeile
+- **AnomalyDetection** — Severity-Levels: "KRITISCH" Badge + roter Hintergrund bei ≥3σ
+- **Header** — Aktionen logisch gruppiert (Import → Export → Destructive), Löschen als Ghost-Icon mit destructive Hover, Date Range als Badge
+- **TokensOverTime** — Prozent-Anteile in Token-Typ Summary-Boxen
+- **PeriodComparison** — Delta-Werte als farbige Badges mit Hintergrund
+- **CacheROI** — "Bezahlt" vs "Gespart" Visualisierung mit Legende
+- **CostForecast** — Konfidenz-Badge (HOCH/MITTEL/NIEDRIG) farbkodiert, Ist-Kosten mit Farbverlauf
+- **CumulativeCost** — End-of-Month Projektionslinie (gestrichelt) + Total im Subtitle
+- **Modell-Mix** — Farbverläufe pro Modell für mehr Tiefe
+- **TodayMetrics** — "$/1M Tokens" statt redundantem "Top Modell Kosten", korrektes Icon
+
+### Fixed
+- **Keyboard Shortcuts** — nicht-implementierte Shortcuts (⌘E, ⌘U, ⌘D, ⌘↑) aus Hilfe entfernt, die mit Browser-Shortcuts kollidierten
+- **CustomTooltip Total** — MA7-Durchschnittswerte werden nicht mehr fälschlich ins Total eingerechnet
+- **Token-Linien Dash-Pattern** — 7-Tage Ø Linien in Tokens-Charts nutzen jetzt `"5 5"` wie Kosten-Charts
+
 ## [4.0.0] - 2026-03-31
 
 ### Added

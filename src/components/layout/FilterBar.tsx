@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { cn } from '@/lib/cn'
 import { getModelColor } from '@/lib/model-utils'
@@ -28,6 +29,11 @@ export function FilterBar({
   selectedModels, onToggleModel,
   onApplyPreset,
 }: FilterBarProps) {
+  const [activePreset, setActivePreset] = useState<string | null>(null)
+
+  // Reset active preset when month or viewMode changes externally
+  useEffect(() => { setActivePreset(null) }, [selectedMonth, viewMode])
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap py-2 px-1">
       <Select value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)}>
@@ -41,7 +47,7 @@ export function FilterBar({
         </SelectContent>
       </Select>
 
-      <Select value={selectedMonth ?? 'all'} onValueChange={(v) => onMonthChange(v === 'all' ? null : v)}>
+      <Select value={selectedMonth ?? 'all'} onValueChange={(v) => { setActivePreset(null); onMonthChange(v === 'all' ? null : v) }}>
         <SelectTrigger className="w-[180px]">
           <SelectValue />
         </SelectTrigger>
@@ -63,8 +69,13 @@ export function FilterBar({
         ].map(p => (
           <button
             key={p.key}
-            onClick={() => onApplyPreset(p.key)}
-            className="rounded-full px-2.5 py-1 text-xs font-medium border border-border hover:bg-accent hover:border-accent transition-all duration-200"
+            onClick={() => { setActivePreset(p.key); onApplyPreset(p.key) }}
+            className={cn(
+              'rounded-full px-2.5 py-1 text-xs font-medium border transition-all duration-200',
+              activePreset === p.key
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'border-border hover:bg-accent hover:border-accent'
+            )}
           >
             {p.label}
           </button>

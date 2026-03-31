@@ -16,8 +16,13 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
   const uid = useId()
   const gid = (n: string) => `${uid}-${n}`.replace(/:/g, '')
 
+  const maxCost = Math.max(...data.map(d => d.cost))
+  const minCost = Math.min(...data.map(d => d.cost))
+  const peakIndex = data.findIndex(d => d.cost === maxCost)
+  const lowIndex = data.findIndex(d => d.cost === minCost)
+
   return (
-    <ChartCard title="Kosten nach Wochentag" subtitle="Durchschnittliche Kosten pro Wochentag" info={CHART_HELP.costByWeekday} chartData={data as unknown as Record<string, unknown>[]} valueKey="cost" valueFormatter={formatCurrency}>
+    <ChartCard title="Kosten nach Wochentag" subtitle={`Ø/Tag · Peak: ${data[peakIndex]?.day ?? '–'} · Low: ${data[lowIndex]?.day ?? '–'}`} info={CHART_HELP.costByWeekday} chartData={data as unknown as Record<string, unknown>[]} valueKey="cost" valueFormatter={formatCurrency}>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart
           data={data}
@@ -38,6 +43,14 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
               <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={1} />
               <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0.6} />
             </linearGradient>
+            <linearGradient id={gid('weekdayPeak')} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(35, 80%, 52%)" stopOpacity={1} />
+              <stop offset="100%" stopColor="hsl(35, 80%, 52%)" stopOpacity={0.5} />
+            </linearGradient>
+            <linearGradient id={gid('weekdayLow')} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(160, 50%, 52%)" stopOpacity={0.8} />
+              <stop offset="100%" stopColor="hsl(160, 50%, 52%)" stopOpacity={0.3} />
+            </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
           <XAxis dataKey="day" stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
@@ -53,12 +66,13 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
             animationDuration={CHART_ANIMATION.duration}
             animationEasing={CHART_ANIMATION.easing}
           >
-            {data.map((_, index) => (
-              <Cell
-                key={index}
-                fill={activeIndex === index ? `url(#${gid('weekdayActive')})` : `url(#${gid('weekday')})`}
-              />
-            ))}
+            {data.map((_, index) => {
+              let fill = `url(#${gid('weekday')})`
+              if (activeIndex === index) fill = `url(#${gid('weekdayActive')})`
+              else if (index === peakIndex) fill = `url(#${gid('weekdayPeak')})`
+              else if (index === lowIndex) fill = `url(#${gid('weekdayLow')})`
+              return <Cell key={index} fill={fill} />
+            })}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
