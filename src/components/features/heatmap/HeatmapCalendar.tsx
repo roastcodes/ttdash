@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { formatCurrency } from '@/lib/formatters'
+import { formatCurrency, localToday, toLocalDateStr } from '@/lib/formatters'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface HeatmapCalendarProps {
@@ -54,7 +54,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
     let lastMonth = -1
 
     while (currentDate <= endDate || week === 0) {
-      const dateStr = currentDate.toISOString().slice(0, 10)
+      const dateStr = toLocalDateStr(currentDate)
       const dow = (currentDate.getDay() + 6) % 7
       const cost = costMap.get(dateStr) ?? 0
 
@@ -79,7 +79,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
     return { cells: result, weeks: week + 1, months: monthLabels, maxCost: max }
   }, [data])
 
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = localToday()
 
   // Heatmap only makes sense for daily view
   if (viewMode !== 'daily') {

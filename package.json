@@ -1,6 +1,6 @@
 {
   "name": "ccusage-dashboard",
-  "version": "5.3.0",
+  "version": "5.3.1",
   "description": "Local dashboard for Claude Code usage data",
   "main": "server.js",
   "bin": {

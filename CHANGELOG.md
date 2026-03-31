@@ -1,5 +1,11 @@
 # Changelog
 
+## [5.3.1] - 2026-04-01
+
+### Fixed
+- **Datum in Heute/Monat-Sektion falsch** — `toISOString()` lieferte UTC-Datum statt Lokalzeit, wodurch zwischen Mitternacht und 02:00 MESZ das gestrige Datum angezeigt wurde. Betraf: Heute-KPIs, Monats-KPIs, Heatmap-Markierung, Streak-Berechnung, Datumsfilter-Presets, PDF/CSV-Dateinamen
+- Neue `toLocalDateStr()`, `localToday()`, `localMonth()` Hilfsfunktionen ersetzen alle 7 `toISOString().slice()`-Aufrufe durch korrekte lokale Datumsberechnung
+
 ## [5.3.0] - 2026-03-31
 
 ### Fixed

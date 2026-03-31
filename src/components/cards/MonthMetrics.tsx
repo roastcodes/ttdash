@@ -4,7 +4,7 @@ import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
 import { FadeIn } from '@/components/features/animations/FadeIn'
-import { formatCurrency, formatMonthYear } from '@/lib/formatters'
+import { formatCurrency, formatMonthYear, localMonth } from '@/lib/formatters'
 import { normalizeModelName } from '@/lib/model-utils'
 import type { DailyUsage, DashboardMetrics } from '@/types'
 
@@ -14,7 +14,7 @@ interface MonthMetricsProps {
 }
 
 export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
-  const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM
+  const currentMonth = localMonth()
 
   const monthData = useMemo(
     () => daily.filter(d => d.date.startsWith(currentMonth)),

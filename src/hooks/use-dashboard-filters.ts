@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import type { DailyUsage, ViewMode } from '@/types'
 import { filterByDateRange, filterByModels, filterByMonth, sortByDate, getAvailableMonths, getDateRange, aggregateToDailyFormat } from '@/lib/data-transforms'
+import { toLocalDateStr } from '@/lib/formatters'
 
 export function useDashboardFilters(data: DailyUsage[]) {
   const [viewMode, setViewMode] = useState<ViewMode>('daily')
@@ -20,7 +21,8 @@ export function useDashboardFilters(data: DailyUsage[]) {
   const applyPreset = useCallback((preset: string) => {
     setSelectedMonth(null)
     const today = new Date()
-    const fmt = (d: Date) => d.toISOString().slice(0, 10)
+    today.setHours(0, 0, 0, 0)
+    const fmt = toLocalDateStr
 
     switch (preset) {
       case '7d': {

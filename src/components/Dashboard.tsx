@@ -38,7 +38,7 @@ import { useTheme } from '@/hooks/use-theme'
 import { useToast } from '@/components/ui/toast'
 import { downloadCSV } from '@/lib/csv-export'
 import { filterByModels } from '@/lib/data-transforms'
-import { formatCurrency, formatTokens, formatPercent, periodUnit } from '@/lib/formatters'
+import { formatCurrency, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
 import type { UsageData } from '@/types'
 
 export function Dashboard() {
@@ -93,7 +93,7 @@ export function Dashboard() {
     return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
   }, [dateRange, viewMode])
 
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = localToday()
   const todayData = useMemo(() => daily.find(d => d.date === todayStr) ?? null, [daily, todayStr])
 
   // Compute active streak (consecutive days from today backwards)
@@ -101,7 +101,7 @@ export function Dashboard() {
     const dates = new Set(daily.map(d => d.date))
     let count = 0
     const d = new Date(todayStr + 'T00:00:00')
-    while (dates.has(d.toISOString().slice(0, 10))) {
+    while (dates.has(toLocalDateStr(d))) {
       count++
       d.setDate(d.getDate() - 1)
     }

@@ -1,5 +1,6 @@
 import type { DailyUsage } from '@/types'
 import { normalizeModelName } from './model-utils'
+import { localToday } from './formatters'
 
 export function generateCSV(data: DailyUsage[]): string {
   const header = 'date,totalCost,totalTokens,inputTokens,outputTokens,cacheCreationTokens,cacheReadTokens,models'
@@ -19,7 +20,7 @@ export function downloadCSV(data: DailyUsage[]) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `ccusage-export-${new Date().toISOString().slice(0, 10)}.csv`
+  a.download = `ccusage-export-${localToday()}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }

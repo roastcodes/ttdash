@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { localMonth } from '@/lib/formatters'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
 import { FileText, LoaderCircle } from 'lucide-react'
@@ -119,7 +120,7 @@ export function PDFReportButton({ containerRef }: PDFReportProps) {
         heightLeft -= pageHeight
       }
 
-      const month = new Date().toISOString().slice(0, 7)
+      const month = localMonth()
       pdf.save(`ccusage-report-${month}.pdf`)
       addToast('PDF Report exportiert', 'success')
     } catch (error) {

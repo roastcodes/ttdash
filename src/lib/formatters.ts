@@ -1,3 +1,18 @@
+/** Formats a Date as YYYY-MM-DD in local timezone */
+export function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** Returns today's date as YYYY-MM-DD in local timezone */
+export function localToday(): string {
+  return toLocalDateStr(new Date())
+}
+
+/** Returns current month as YYYY-MM in local timezone */
+export function localMonth(): string {
+  return localToday().slice(0, 7)
+}
+
 export function formatCurrency(value: number): string {
   if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`
   if (value >= 100) return `$${Math.round(value)}`
