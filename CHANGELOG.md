@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.1.0] - 2026-03-31
+
+### Added
+- **Datenquellen-Badge im Header** — zeigt woher die Daten stammen: "Gespeichert" (grau, bei App-Start), "Auto-Import · HH:MM" (grün, nach Import), oder "dateiname.json · HH:MM" (blau, nach Upload). Wird bei Löschen zurückgesetzt
+- **Graceful Shutdown** — Server fährt bei Ctrl+C (SIGINT) und kill (SIGTERM) sauber herunter, schliesst offene Verbindungen ordentlich mit 3s Force-Exit Fallback
+
+### Improved
+- **Header Responsive** — 2-Zeilen-Layout statt 1-Zeile: Zeile 1 = Branding + Meta-Badges + Utility-Icons, Zeile 2 = Action-Buttons. Funktioniert sauber auf Desktop (1440px), Tablet (768px) und Mobile (375px)
+
 ## [5.0.1] - 2026-03-31
 
 ### Fixed

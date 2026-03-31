@@ -307,3 +307,20 @@ function tryListen(port) {
 }
 
 tryListen(START_PORT);
+
+// Graceful shutdown on Ctrl+C / kill
+function shutdown(signal) {
+  console.log(`\n${signal} empfangen, fahre Server herunter...`);
+  server.close(() => {
+    console.log('Server gestoppt.');
+    process.exit(0);
+  });
+  // Force exit after 3s if connections don't close
+  setTimeout(() => {
+    console.log('Erzwinge Beendigung.');
+    process.exit(0);
+  }, 3000);
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

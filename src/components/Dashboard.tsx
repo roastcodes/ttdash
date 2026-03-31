@@ -52,9 +52,17 @@ export function Dashboard() {
   const [drillDownDate, setDrillDownDate] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   const [autoImportOpen, setAutoImportOpen] = useState(false)
+  const [dataSource, setDataSource] = useState<{ type: 'stored' | 'auto-import' | 'file'; label?: string; time?: string } | null>(null)
 
   const daily = usageData?.daily ?? []
   const hasData = daily.length > 0
+
+  // Set initial data source on first load
+  const initialSourceSet = useRef(false)
+  if (hasData && !initialSourceSet.current && !dataSource) {
+    initialSourceSet.current = true
+    setDataSource({ type: 'stored' })
+  }
 
   const {
     viewMode, setViewMode,
@@ -119,6 +127,7 @@ export function Dashboard() {
         return
       }
       await uploadMutation.mutateAsync(json)
+      setDataSource({ type: 'file', label: file.name, time: new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) })
       addToast(`${json.daily.length} Tage erfolgreich geladen`, 'success')
     } catch {
       addToast('Datei konnte nicht gelesen werden', 'error')
@@ -128,6 +137,8 @@ export function Dashboard() {
 
   const handleDelete = useCallback(async () => {
     await deleteMutation.mutateAsync()
+    setDataSource(null)
+    initialSourceSet.current = false
     addToast('Daten gelöscht', 'info')
   }, [deleteMutation, addToast])
 
@@ -142,6 +153,7 @@ export function Dashboard() {
 
   const handleAutoImportSuccess = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['usage'] })
+    setDataSource({ type: 'auto-import', time: new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) })
     addToast('Daten erfolgreich importiert', 'success')
   }, [queryClient, addToast])
 
@@ -173,6 +185,7 @@ export function Dashboard() {
         isDark={isDark}
         helpOpen={helpOpen}
         streak={streak}
+        dataSource={dataSource}
         onHelpOpenChange={setHelpOpen}
         onToggleTheme={toggleTheme}
         onExportCSV={handleExportCSV}
