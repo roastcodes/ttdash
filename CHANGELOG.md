@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.0.1] - 2026-03-31
+
+### Fixed
+- **7-Tage Ø Linien unsichtbar** — Recharts 3 Line-Drawing-Animation überschrieb `stroke-dasharray` auf gestrichelten Linien, wodurch das Dash-Pattern zerstört wurde. Fix: `isAnimationActive={false}` auf allen 10 gestrichelten MA7/Prognose-Linien in 6 Chart-Komponenten
+
 ## [5.0.0] - 2026-03-31
 
 ### Added

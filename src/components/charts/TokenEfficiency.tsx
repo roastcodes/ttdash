@@ -77,7 +77,7 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
             dot={false}
             connectNulls
             name="7-Tage Ø"
-            animationDuration={CHART_ANIMATION.duration}
+            isAnimationActive={false}
           />
         </ComposedChart>
       </ResponsiveContainer>

@@ -80,7 +80,7 @@ export function CumulativeCost({ data }: CumulativeCostProps) {
             dot={false}
             name="Projektion"
             connectNulls
-            animationDuration={CHART_ANIMATION.duration}
+            isAnimationActive={false}
           />
         </ComposedChart>
       </ResponsiveContainer>

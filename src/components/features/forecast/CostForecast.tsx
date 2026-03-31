@@ -164,7 +164,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
             {/* Actual cost area with gradient fill */}
             <Area type="monotone" dataKey="cost" stroke={CHART_COLORS.cost} fill="url(#forecast-cost-grad)" name="Ist-Kosten" strokeWidth={2} dot={false} connectNulls />
             {/* Forecast dashed line */}
-            <Line type="monotone" dataKey="forecast" stroke={CHART_COLORS.cumulative} name="Prognose" dot={false} strokeWidth={2} strokeDasharray="6 3" connectNulls />
+            <Line type="monotone" dataKey="forecast" stroke={CHART_COLORS.cumulative} name="Prognose" dot={false} strokeWidth={2} strokeDasharray="6 3" connectNulls isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </ChartCard>

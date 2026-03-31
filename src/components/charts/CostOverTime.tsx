@@ -57,8 +57,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
             strokeWidth={2}
             strokeDasharray="5 5"
             connectNulls
-            animationDuration={CHART_ANIMATION.duration}
-            animationEasing={CHART_ANIMATION.easing}
+            isAnimationActive={false}
           />
         </ComposedChart>
       </ResponsiveContainer>

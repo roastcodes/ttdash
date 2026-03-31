@@ -61,7 +61,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
           <YAxis tickFormatter={formatTokens} stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} width={55} />
           <Tooltip content={<CustomTooltip formatter={formatTokens} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
           <Area type="monotone" dataKey="total" stroke={CHART_COLORS.cost} fill={`url(#${gid('total')})`} strokeWidth={1.5} name="Total Tokens" animationDuration={CHART_ANIMATION.duration} />
-          <Line type="monotone" dataKey="tokenMA7" stroke={CHART_COLORS.ma7} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="7-Tage Ø" animationDuration={CHART_ANIMATION.duration} />
+          <Line type="monotone" dataKey="tokenMA7" stroke={CHART_COLORS.ma7} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="7-Tage Ø" isAnimationActive={false} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -118,8 +118,8 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
             <Tooltip content={<CustomTooltip formatter={formatTokens} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
             <Area type="monotone" dataKey="Cache Read" stroke={CHART_COLORS.cacheRead} fill={`url(#${gid('cacheRead')})`} strokeWidth={1.5} name="Cache Read" animationDuration={CHART_ANIMATION.duration} />
             <Area type="monotone" dataKey="Cache Write" stroke={CHART_COLORS.cacheWrite} fill={`url(#${gid('cacheWrite')})`} strokeWidth={1.5} name="Cache Write" animationDuration={CHART_ANIMATION.duration} />
-            <Line type="monotone" dataKey="cacheReadMA7" stroke={CHART_COLORS.cacheRead} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Cache Read Ø" animationDuration={CHART_ANIMATION.duration} />
-            <Line type="monotone" dataKey="cacheWriteMA7" stroke={CHART_COLORS.cacheWrite} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Cache Write Ø" animationDuration={CHART_ANIMATION.duration} />
+            <Line type="monotone" dataKey="cacheReadMA7" stroke={CHART_COLORS.cacheRead} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Cache Read Ø" isAnimationActive={false} />
+            <Line type="monotone" dataKey="cacheWriteMA7" stroke={CHART_COLORS.cacheWrite} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Cache Write Ø" isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -145,8 +145,8 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
             <Tooltip content={<CustomTooltip formatter={formatTokens} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
             <Area type="monotone" dataKey="Output" stroke={CHART_COLORS.output} fill={`url(#${gid('output')})`} strokeWidth={1.5} name="Output" animationDuration={CHART_ANIMATION.duration} />
             <Area type="monotone" dataKey="Input" stroke={CHART_COLORS.input} fill={`url(#${gid('input')})`} strokeWidth={1.5} name="Input" animationDuration={CHART_ANIMATION.duration} />
-            <Line type="monotone" dataKey="outputMA7" stroke={CHART_COLORS.output} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Output Ø" animationDuration={CHART_ANIMATION.duration} />
-            <Line type="monotone" dataKey="inputMA7" stroke={CHART_COLORS.input} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Input Ø" animationDuration={CHART_ANIMATION.duration} />
+            <Line type="monotone" dataKey="outputMA7" stroke={CHART_COLORS.output} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Output Ø" isAnimationActive={false} />
+            <Line type="monotone" dataKey="inputMA7" stroke={CHART_COLORS.input} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Input Ø" isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

@@ -38,8 +38,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
               strokeWidth={2}
               strokeDasharray="5 4"
               connectNulls
-              animationDuration={CHART_ANIMATION.duration}
-              animationEasing={CHART_ANIMATION.easing}
+              isAnimationActive={false}
             />
           ))}
         </LineChart>
