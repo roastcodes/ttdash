@@ -6,3 +6,4 @@ data.json
 .envrc.*.cache
 .direnv/
 .idea
+requirements/
