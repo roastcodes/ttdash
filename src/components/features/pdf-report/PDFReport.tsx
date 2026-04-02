@@ -3,8 +3,6 @@ import { localMonth } from '@/lib/formatters'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
 import { FileText, LoaderCircle } from 'lucide-react'
-import html2canvas from 'html2canvas'
-import { jsPDF } from 'jspdf'
 
 /**
  * Convert any modern CSS color (oklab, oklch, etc.) to an rgb() string
@@ -40,6 +38,11 @@ export function PDFReportButton({ containerRef }: PDFReportProps) {
     const styleBackups: { el: HTMLStyleElement; text: string }[] = []
 
     try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
+
       const container = containerRef.current
       const isDark = document.documentElement.classList.contains('dark')
       const bgColor = isDark ? '#0f1117' : '#f3f4f6'
@@ -139,8 +142,7 @@ export function PDFReportButton({ containerRef }: PDFReportProps) {
       }
       addToast(`PDF-Export fehlgeschlagen: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`, 'error')
     } finally {
-      setGenerating(true)
-      setTimeout(() => setGenerating(false), 500)
+      setGenerating(false)
     }
   }
 

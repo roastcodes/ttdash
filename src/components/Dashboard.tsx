@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useMemo } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Header } from './layout/Header'
 import { FilterBar } from './layout/FilterBar'
@@ -23,10 +23,8 @@ import { CostForecast } from './features/forecast/CostForecast'
 import { CacheROI } from './features/cache-roi/CacheROI'
 import { PeriodComparison } from './features/comparison/PeriodComparison'
 import { AnomalyDetection } from './features/anomaly/AnomalyDetection'
-import { DrillDownModal } from './features/drill-down/DrillDownModal'
 import { PDFReportButton } from './features/pdf-report/PDFReport'
 import { CommandPalette } from './features/command-palette/CommandPalette'
-import { AutoImportModal } from './features/auto-import/AutoImportModal'
 import { FadeIn } from './features/animations/FadeIn'
 import { SectionHeader } from './ui/section-header'
 import { ExpandableCard } from './ui/expandable-card'
@@ -39,6 +37,9 @@ import { useToast } from '@/components/ui/toast'
 import { downloadCSV } from '@/lib/csv-export'
 import { filterByModels } from '@/lib/data-transforms'
 import { formatCurrency, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
+
+const DrillDownModal = lazy(() => import('./features/drill-down/DrillDownModal').then(module => ({ default: module.DrillDownModal })))
+const AutoImportModal = lazy(() => import('./features/auto-import/AutoImportModal').then(module => ({ default: module.AutoImportModal })))
 
 export function Dashboard() {
   const { data: usageData, isLoading } = useUsageData()
@@ -58,12 +59,13 @@ export function Dashboard() {
   const daily = usageData?.daily ?? []
   const hasData = daily.length > 0
 
-  // Set initial data source on first load
   const initialSourceSet = useRef(false)
-  if (hasData && !initialSourceSet.current && !dataSource) {
-    initialSourceSet.current = true
-    setDataSource({ type: 'stored' })
-  }
+  useEffect(() => {
+    if (hasData && !initialSourceSet.current && !dataSource) {
+      initialSourceSet.current = true
+      setDataSource({ type: 'stored' })
+    }
+  }, [hasData, dataSource])
 
   const {
     viewMode, setViewMode,
@@ -174,7 +176,9 @@ export function Dashboard() {
       <>
         <EmptyState onUpload={handleUpload} onAutoImport={handleAutoImport} />
         <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} />
-        <AutoImportModal open={autoImportOpen} onOpenChange={setAutoImportOpen} onSuccess={handleAutoImportSuccess} />
+        <Suspense fallback={null}>
+          {autoImportOpen && <AutoImportModal open={autoImportOpen} onOpenChange={setAutoImportOpen} onSuccess={handleAutoImportSuccess} />}
+        </Suspense>
       </>
     )
   }
@@ -355,11 +359,15 @@ export function Dashboard() {
       </div>
 
       {/* Drill-Down Modal */}
-      <DrillDownModal
-        day={drillDownDay}
-        open={drillDownDate !== null}
-        onClose={() => setDrillDownDate(null)}
-      />
+      <Suspense fallback={null}>
+        {drillDownDate !== null && (
+          <DrillDownModal
+            day={drillDownDay}
+            open={drillDownDate !== null}
+            onClose={() => setDrillDownDate(null)}
+          />
+        )}
+      </Suspense>
 
       {/* Command Palette */}
       <CommandPalette
@@ -373,7 +381,9 @@ export function Dashboard() {
         onHelp={() => setHelpOpen(true)}
       />
 
-      <AutoImportModal open={autoImportOpen} onOpenChange={setAutoImportOpen} onSuccess={handleAutoImportSuccess} />
+      <Suspense fallback={null}>
+        {autoImportOpen && <AutoImportModal open={autoImportOpen} onOpenChange={setAutoImportOpen} onSuccess={handleAutoImportSuccess} />}
+      </Suspense>
     </div>
   )
 }

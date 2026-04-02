@@ -17,6 +17,12 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const IS_WINDOWS = process.platform === 'win32';
 const TOKTRACK_LOCAL_BIN = path.join(ROOT, 'node_modules', '.bin', IS_WINDOWS ? 'toktrack.cmd' : 'toktrack');
 const NPX_CACHE_DIR = path.join(os.tmpdir(), 'ttdash-npx-cache');
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'no-referrer',
+  'X-Frame-Options': 'DENY',
+  'Cross-Origin-Opener-Policy': 'same-origin',
+};
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -82,6 +88,7 @@ function serveFile(res, reqPath) {
           res.writeHead(200, {
             'Content-Type': 'text/html; charset=utf-8',
             'Cache-Control': 'no-cache',
+            ...SECURITY_HEADERS,
           });
           res.end(html);
         });
@@ -94,6 +101,7 @@ function serveFile(res, reqPath) {
     res.writeHead(200, {
       'Content-Type': contentType,
       'Cache-Control': getCacheControl(reqPath),
+      ...SECURITY_HEADERS,
     });
     res.end(data);
   });
@@ -138,7 +146,10 @@ function readBody(req) {
 }
 
 function json(res, status, data) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    ...SECURITY_HEADERS,
+  });
   res.end(JSON.stringify(data));
 }
 
@@ -315,6 +326,7 @@ const server = http.createServer(async (req, res) => {
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'X-Accel-Buffering': 'no',
+        ...SECURITY_HEADERS,
       });
       sendSSE(res, 'error', { message: 'Ein Auto-Import läuft bereits. Bitte warten.' });
       sendSSE(res, 'done', {});
@@ -327,6 +339,7 @@ const server = http.createServer(async (req, res) => {
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no',
+      ...SECURITY_HEADERS,
     });
 
     autoImportRunning = true;

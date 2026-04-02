@@ -3,6 +3,40 @@ import { computeMovingAverage } from './calculations'
 import { getModelProvider, normalizeModelName } from './model-utils'
 import { WEEKDAYS } from './constants'
 
+function recalculateDayFromBreakdowns(day: DailyUsage, filteredBreakdowns: DailyUsage['modelBreakdowns']): DailyUsage {
+  let totalCost = 0
+  let inputTokens = 0
+  let outputTokens = 0
+  let cacheCreationTokens = 0
+  let cacheReadTokens = 0
+  let thinkingTokens = 0
+  let requestCount = 0
+
+  for (const mb of filteredBreakdowns) {
+    totalCost += mb.cost
+    inputTokens += mb.inputTokens
+    outputTokens += mb.outputTokens
+    cacheCreationTokens += mb.cacheCreationTokens
+    cacheReadTokens += mb.cacheReadTokens
+    thinkingTokens += mb.thinkingTokens
+    requestCount += mb.requestCount
+  }
+
+  return {
+    ...day,
+    totalCost,
+    totalTokens: inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens + thinkingTokens,
+    inputTokens,
+    outputTokens,
+    cacheCreationTokens,
+    cacheReadTokens,
+    thinkingTokens,
+    requestCount,
+    modelBreakdowns: filteredBreakdowns,
+    modelsUsed: filteredBreakdowns.map(mb => mb.modelName),
+  }
+}
+
 export function filterByDateRange(data: DailyUsage[], start?: string, end?: string): DailyUsage[] {
   return data.filter(d => {
     if (start && d.date < start) return false
@@ -13,95 +47,32 @@ export function filterByDateRange(data: DailyUsage[], start?: string, end?: stri
 
 export function filterByModels(data: DailyUsage[], selectedModels: string[]): DailyUsage[] {
   if (selectedModels.length === 0) return data
+  const selected = new Set(selectedModels)
 
   return data
     .map(d => {
       const filteredBreakdowns = d.modelBreakdowns.filter(mb =>
-        selectedModels.includes(normalizeModelName(mb.modelName))
+        selected.has(normalizeModelName(mb.modelName))
       )
 
       if (filteredBreakdowns.length === 0) return null
-
-      // Recalculate totals from filtered breakdowns
-      let totalCost = 0
-      let inputTokens = 0
-      let outputTokens = 0
-      let cacheCreationTokens = 0
-      let cacheReadTokens = 0
-      let thinkingTokens = 0
-      let requestCount = 0
-
-      for (const mb of filteredBreakdowns) {
-        totalCost += mb.cost
-        inputTokens += mb.inputTokens
-        outputTokens += mb.outputTokens
-        cacheCreationTokens += mb.cacheCreationTokens
-        cacheReadTokens += mb.cacheReadTokens
-        thinkingTokens += mb.thinkingTokens
-        requestCount += mb.requestCount
-      }
-
-      const totalTokens = inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens + thinkingTokens
-
-      return {
-        ...d,
-        totalCost,
-        totalTokens,
-        inputTokens,
-        outputTokens,
-        cacheCreationTokens,
-        cacheReadTokens,
-        thinkingTokens,
-        requestCount,
-        modelBreakdowns: filteredBreakdowns,
-        modelsUsed: filteredBreakdowns.map(mb => mb.modelName),
-      }
+      return recalculateDayFromBreakdowns(d, filteredBreakdowns)
     })
     .filter((d): d is DailyUsage => d !== null)
 }
 
 export function filterByProviders(data: DailyUsage[], selectedProviders: string[]): DailyUsage[] {
   if (selectedProviders.length === 0) return data
+  const selected = new Set(selectedProviders)
 
   return data
     .map(d => {
       const filteredBreakdowns = d.modelBreakdowns.filter(mb =>
-        selectedProviders.includes(getModelProvider(mb.modelName))
+        selected.has(getModelProvider(mb.modelName))
       )
 
       if (filteredBreakdowns.length === 0) return null
-
-      let totalCost = 0
-      let inputTokens = 0
-      let outputTokens = 0
-      let cacheCreationTokens = 0
-      let cacheReadTokens = 0
-      let thinkingTokens = 0
-      let requestCount = 0
-
-      for (const mb of filteredBreakdowns) {
-        totalCost += mb.cost
-        inputTokens += mb.inputTokens
-        outputTokens += mb.outputTokens
-        cacheCreationTokens += mb.cacheCreationTokens
-        cacheReadTokens += mb.cacheReadTokens
-        thinkingTokens += mb.thinkingTokens
-        requestCount += mb.requestCount
-      }
-
-      return {
-        ...d,
-        totalCost,
-        totalTokens: inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens + thinkingTokens,
-        inputTokens,
-        outputTokens,
-        cacheCreationTokens,
-        cacheReadTokens,
-        thinkingTokens,
-        requestCount,
-        modelBreakdowns: filteredBreakdowns,
-        modelsUsed: filteredBreakdowns.map(mb => mb.modelName),
-      }
+      return recalculateDayFromBreakdowns(d, filteredBreakdowns)
     })
     .filter((d): d is DailyUsage => d !== null)
 }
@@ -125,8 +96,14 @@ export function getAvailableMonths(data: DailyUsage[]): string[] {
 
 export function getDateRange(data: DailyUsage[]): { start: string; end: string } | null {
   if (data.length === 0) return null
-  const sorted = sortByDate(data)
-  return { start: sorted[0].date, end: sorted[sorted.length - 1].date }
+  let start = data[0].date
+  let end = data[0].date
+  for (let i = 1; i < data.length; i++) {
+    const date = data[i].date
+    if (date < start) start = date
+    if (date > end) end = date
+  }
+  return { start, end }
 }
 
 export function toCostChartData(data: DailyUsage[]): ChartDataPoint[] {

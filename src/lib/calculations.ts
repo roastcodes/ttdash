@@ -11,39 +11,44 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
     }
   }
 
-  const totalCost = data.reduce((s, d) => s + d.totalCost, 0)
-  const totalTokens = data.reduce((s, d) => s + d.totalTokens, 0)
-  const totalInput = data.reduce((s, d) => s + d.inputTokens, 0)
-  const totalOutput = data.reduce((s, d) => s + d.outputTokens, 0)
-  const totalCacheRead = data.reduce((s, d) => s + d.cacheReadTokens, 0)
-  const totalCacheCreate = data.reduce((s, d) => s + d.cacheCreationTokens, 0)
-  const totalThinking = data.reduce((s, d) => s + d.thinkingTokens, 0)
-  const totalRequests = data.reduce((s, d) => s + d.requestCount, 0)
-
-  const activeDays = data.reduce((s, d) => s + (d._aggregatedDays ?? 1), 0)
-  const avgDailyCost = totalCost / activeDays
-  const avgRequestsPerDay = totalRequests / activeDays
-  const costPerMillion = totalTokens > 0 ? totalCost / (totalTokens / 1_000_000) : 0
-  const cacheHitRate = (totalCacheRead + totalCacheCreate + totalInput + totalOutput + totalThinking) > 0
-    ? (totalCacheRead / (totalCacheRead + totalCacheCreate + totalInput + totalOutput + totalThinking)) * 100
-    : 0
-
-  // Top/cheapest day
   let topDay = { date: data[0].date, cost: data[0].totalCost }
   let cheapestDay = { date: data[0].date, cost: data[0].totalCost }
+  let totalCost = 0
+  let totalTokens = 0
+  let totalInput = 0
+  let totalOutput = 0
+  let totalCacheRead = 0
+  let totalCacheCreate = 0
+  let totalThinking = 0
+  let totalRequests = 0
+  let activeDays = 0
+  const modelCosts = new Map<string, number>()
+
   for (const d of data) {
+    totalCost += d.totalCost
+    totalTokens += d.totalTokens
+    totalInput += d.inputTokens
+    totalOutput += d.outputTokens
+    totalCacheRead += d.cacheReadTokens
+    totalCacheCreate += d.cacheCreationTokens
+    totalThinking += d.thinkingTokens
+    totalRequests += d.requestCount
+    activeDays += d._aggregatedDays ?? 1
+
     if (d.totalCost > topDay.cost) topDay = { date: d.date, cost: d.totalCost }
     if (d.totalCost < cheapestDay.cost) cheapestDay = { date: d.date, cost: d.totalCost }
-  }
-
-  // Top model
-  const modelCosts = new Map<string, number>()
-  for (const d of data) {
     for (const mb of d.modelBreakdowns) {
       const name = normalizeModelName(mb.modelName)
       modelCosts.set(name, (modelCosts.get(name) ?? 0) + mb.cost)
     }
   }
+
+  const avgDailyCost = totalCost / activeDays
+  const avgRequestsPerDay = totalRequests / activeDays
+  const costPerMillion = totalTokens > 0 ? totalCost / (totalTokens / 1_000_000) : 0
+  const cacheBase = totalCacheRead + totalCacheCreate + totalInput + totalOutput + totalThinking
+  const cacheHitRate = cacheBase > 0 ? (totalCacheRead / cacheBase) * 100 : 0
+
   let topModel: { name: string; cost: number } | null = null
   for (const [name, cost] of modelCosts) {
     if (!topModel || cost > topModel.cost) topModel = { name, cost }
@@ -73,11 +78,20 @@ export function computeWeekOverWeekChange(data: DailyUsage[]): number | null {
 }
 
 export function computeMovingAverage(values: number[], window = 7): (number | undefined)[] {
-  return values.map((_, i) => {
-    if (i < window - 1) return undefined
-    const slice = values.slice(i - window + 1, i + 1)
-    return slice.reduce((s, v) => s + v, 0) / window
-  })
+  const result: (number | undefined)[] = new Array(values.length)
+  let sum = 0
+
+  for (let i = 0; i < values.length; i++) {
+    sum += values[i]
+
+    if (i >= window) {
+      sum -= values[i - window]
+    }
+
+    result[i] = i < window - 1 ? undefined : sum / window
+  }
+
+  return result
 }
 
 export function computeModelCosts(data: DailyUsage[]): Map<string, {
