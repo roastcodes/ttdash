@@ -63,8 +63,8 @@ fi
 # 3 — Global install
 info "Installiere global..."
 if [ "$global_tool" = "bun" ]; then
-  if bun link >/dev/null 2>&1 && bun link --global ttdash 2>&1 | tail -1; then
-    ok "Global via Bun verlinkt"
+  if bun add -g "file:$(pwd)" 2>&1 | tail -1; then
+    ok "Global via Bun installiert"
   else
     warn "Globale Bun-Installation fehlgeschlagen, wechsle auf npm-Fallback"
     if npm install -g . 2>&1 | tail -1; then
