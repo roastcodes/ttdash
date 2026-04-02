@@ -16,6 +16,7 @@ global_tool="npm"
 info()  { step=$((step + 1)); printf "\n${BLUE}${BOLD}[$step/$total]${NC} %s\n" "$1"; }
 ok()    { printf "  ${GREEN}✓${NC} %s\n" "$1"; }
 fail()  { printf "  ${RED}✗${NC} %s\n" "$1"; exit 1; }
+warn()  { printf "  ${RED}!${NC} %s\n" "$1"; }
 
 cd "$(dirname "$0")"
 
@@ -62,10 +63,15 @@ fi
 # 3 — Global install
 info "Installiere global..."
 if [ "$global_tool" = "bun" ]; then
-  if bun link --global 2>&1 | tail -1; then
+  if bun link >/dev/null 2>&1 && bun link --global ttdash 2>&1 | tail -1; then
     ok "Global via Bun verlinkt"
   else
-    fail "Globale Bun-Installation fehlgeschlagen"
+    warn "Globale Bun-Installation fehlgeschlagen, wechsle auf npm-Fallback"
+    if npm install -g . 2>&1 | tail -1; then
+      ok "Global via npm installiert"
+    else
+      fail "Globale Installation fehlgeschlagen (Bun und npm)"
+    fi
   fi
 else
   if npm install -g . 2>&1 | tail -1; then

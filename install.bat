@@ -56,12 +56,21 @@ echo    √ Build abgeschlossen (dist/)
 echo.
 echo  [3/3] Installiere global...
 if /i "%GLOBAL_TOOL%"=="bun" (
-    call bun link --global >nul 2>&1
-    if !errorlevel! neq 0 (
-        echo    x Globale Bun-Installation fehlgeschlagen
-        exit /b 1
+    call bun link >nul 2>&1
+    if !errorlevel! equ 0 (
+        call bun link --global ttdash >nul 2>&1
     )
-    echo    √ Global via Bun verlinkt
+    if !errorlevel! neq 0 (
+        echo    ! Globale Bun-Installation fehlgeschlagen, wechsle auf npm-Fallback
+        call npm install -g . >nul 2>&1
+        if !errorlevel! neq 0 (
+            echo    x Globale Installation fehlgeschlagen ^(Bun und npm^)
+            exit /b 1
+        )
+        echo    √ Global via npm installiert
+    ) else (
+        echo    √ Global via Bun verlinkt
+    )
 ) else (
     call npm install -g . >nul 2>&1
     if !errorlevel! neq 0 (
