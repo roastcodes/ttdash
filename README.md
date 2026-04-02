@@ -1,159 +1,173 @@
-# ttdash
+# TTDash
 
-Local dashboard for visualizing `toktrack` usage data locally — token consumption, costs, requests, and model breakdowns.
+Local usage dashboard for `toktrack` data. `TTDash` runs entirely on your machine and turns raw usage exports into charts, KPIs, forecasts, provider/model breakdowns, and drill-down views.
 
-Built-in data import via [toktrack](https://github.com/mag123c/toktrack). Runs locally with Node.js or Bun.
+![TTDash dashboard screenshot](docs/ttdash-dashboard.png)
 
-## Quick Start
+## Why TTDash
 
-```bash
-git clone <repo-url>
-cd ttdash
-./install.sh          # macOS/Linux
-install.bat           # Windows
-ttdash
-```
-
-Then open the URL shown in the terminal (default: `http://localhost:3000`).
+- Local-first: data stays on your device
+- Fast setup: install once, run with `ttdash`
+- Works with `toktrack` and legacy `ccusage` JSON
+- Auto-import from local `toktrack` without manual export
+- Built for day-to-day cost and token analysis, not just static reports
 
 ## Features
 
-- **Auto-Import** — one-click import via `bunx toktrack daily --json`, no manual export needed
-- **Today KPIs** — current-day cost, tokens, models, $/1M efficiency, cache rate, I/O ratio with trend vs. average
-- **Month KPIs** — current-month cost (with trend vs. previous month), tokens, active days/coverage, models, $/1M efficiency, cache rate
-- **12 KPI Metric Cards** — total cost, tokens, active days, top model, cache hit rate, $/1M tokens, most/least expensive day, avg cost/day, median/day — all with hover tooltips for exact values
-- **Active Streak** — consecutive active days shown as 🔥 badge in header
-- **Interactive Charts** — cost over time, model breakdown, cumulative cost (with end-of-month projection), weekday analysis (peak/low highlighting), token analysis
-- **Token-Effizienz** — $/1M tokens over time with 7-day moving average, shows cost optimization trends
-- **Modell-Mix** — stacked percentage area chart showing model usage proportions over time with gradient fills
-- **Token-Analyse** — split view for Cache and I/O tokens with independent scales, per-type 7-day averages, and percentage breakdowns
-- **Cost Forecast** — linear regression with confidence band, color-coded confidence badge (high/medium/low), gradient fill, and week-over-week trend
-- **Cache ROI** — savings analysis with "paid" vs "saved" visualization and cost comparison bars
-- **Heatmap Calendar** — GitHub-style daily cost visualization with 7-level color scale and today marker
-- **Period Comparison** — week/month comparison with colored delta badges (Monday-based weeks)
-- **Anomaly Detection** — flags days with costs > 2σ, severity levels with "KRITISCH" badge for ≥3σ
-- **Drill-Down Modal** — click any data point for daily detail with token type stacked bar, model share percentages, and pie chart
-- **Model Efficiency Table** — sortable columns including $/1M, cost share with model-colored bars, avg cost per active day
-- **Recent Days Table** — sortable by date/cost/tokens/$/1M with cost intensity bars and left border intensity
-- **Zoom Mode** — expand any chart to fullscreen with stats (min/max/avg/total) and CSV export
-- **Date Range Filter** — preset buttons (7T, 30T, Monat, Jahr) with active state highlighting
-- **Model Filter** — toggle individual models with accurate per-model cost recalculation
-- **View Modes** — daily, monthly, yearly data aggregation with adaptive labels, correct metrics, and period-aware formatting throughout all components
-- **Command Palette** (⌘K) — keyboard navigation for all actions
-- **Help Panel** — keyboard shortcuts and metric explanations
-- **PDF Export** — full dashboard screenshot as multi-page A4 PDF
-- **CSV Export** — filtered data download
-- **Dark/Light Mode** — glassmorphism design with full theme support
-- **Responsive Design** — works on desktop, tablet, and mobile
+- Provider and model filtering for OpenAI, Anthropic, Google, and more
+- KPI sections for overall usage, today, and current month
+- Cost charts, cumulative projection, forecast, token mix, model mix, heatmap, and weekday analysis
+- Drill-down modal for per-day details
+- CSV export and PDF report export
+- Command palette, keyboard shortcuts, and responsive layout
+- Animated chart reveals on scroll and on dashboard reload
 
 ## Installation
 
-### Global (recommended)
+### Recommended
+
+macOS / Linux:
 
 ```bash
-./install.sh         # macOS/Linux
-install.bat          # Windows (run as Administrator)
-ttdash              # start from anywhere
+sh install.sh
+ttdash
 ```
 
-Or manually:
+Windows:
 
-```bash
-npm install          # install dependencies
-npm run build        # build the frontend into dist/
-npm install -g .     # install globally
+```bat
+install.bat
+ttdash
 ```
 
-### Without installing globally
+The installer prefers Bun when available and falls back to npm where needed. The app opens in your browser automatically on local start.
+
+### Manual install
 
 ```bash
 npm install
 npm run build
-node server.js
+npm install -g .
+ttdash
 ```
 
-## Development
-
-The frontend is built with Vite + React + TypeScript + Tailwind CSS v4. Source code lives in `src/`, the production build goes to `dist/`.
+Or with Bun:
 
 ```bash
-npm install          # install dependencies (first time only)
-npm run dev          # start Vite dev server (port 5173) with hot reload
-```
-
-Run the API server in a separate terminal for data access:
-
-```bash
-node server.js       # API server on port 3000
-```
-
-Vite proxies `/api` requests to the API server automatically.
-
-### Build
-
-```bash
-npm run build        # compile TypeScript + bundle with Vite into dist/
-npm run preview      # preview the production build locally
-```
-
-### Project Structure
-
-```
-src/
-  main.tsx              # entry point
-  App.tsx               # provider stack (React Query, Tooltip, Toast)
-  index.css             # Tailwind v4 + theme variables + glassmorphism
-  types/                # TypeScript interfaces
-  lib/                  # utilities (formatters, calculations, api, csv, help-content)
-  hooks/                # React hooks (data fetching, filters, metrics, theme)
-  components/
-    ui/                 # base components (Button, Card, Dialog, Tooltip, FormattedValue, Skeleton, etc.)
-    layout/             # Header, FilterBar
-    cards/              # MetricCard, PrimaryMetrics, SecondaryMetrics, TodayMetrics, MonthMetrics
-    charts/             # Recharts visualizations (ChartCard, CostOverTime, TokensOverTime, TokenEfficiency, ModelMix, etc.)
-    tables/             # ModelEfficiency, RecentDays
-    features/           # auto-import, heatmap, forecast, cache-roi, comparison, anomaly, drill-down, help, pdf, command-palette
-dist/                   # production build output (generated by npm run build)
-server.js               # Node.js HTTP server (serves dist/ + API + auto-import)
-install.sh              # one-command setup script (macOS/Linux)
-install.bat             # one-command setup script (Windows)
+bun install
+bun run build
+bun add -g file:$(pwd)
+ttdash
 ```
 
 ## Usage
 
-1. Start the dashboard
-2. Click **Auto-Import** to load data directly via `toktrack`
-3. Explore your usage data — costs, tokens, model breakdowns
-
-You can also upload a JSON file manually via the Upload button.
-
-### Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| ⌘K / Ctrl+K | Command Palette |
-| ESC | Close Dialog / Zoom |
-
-### Custom port
+Start the app:
 
 ```bash
-PORT=8080 ttdash
+ttdash
 ```
 
-The server automatically finds a free port if the default (3000) is already in use.
+Then either:
+
+1. Click `Auto-Import` to load local `toktrack` data
+2. Upload a `toktrack` JSON file manually
+3. Upload a legacy `ccusage` export
+
+The auto-import path prefers:
+
+1. local `toktrack`
+2. `bunx toktrack`
+3. `npx --yes toktrack`
+
+The server automatically picks the next free port if `3000` is occupied.
+
+## Development
+
+```bash
+npm install
+npm run dev
+node server.js
+```
+
+- Vite dev server: `http://localhost:5173`
+- API / production server: `http://localhost:3000`
+
+Build a production bundle:
+
+```bash
+npm run build
+```
+
+## Project Structure
+
+```text
+src/
+  components/
+    cards/        metric sections
+    charts/       Recharts visualizations and chart containers
+    features/     auto-import, forecast, heatmap, drill-down, PDF, help
+    layout/       header and filter controls
+    tables/       model and recent-day breakdowns
+    ui/           shared UI primitives
+  hooks/          data, filter, and metric hooks
+  lib/            calculations, formatters, API helpers, model/provider utils
+  types/          shared TypeScript types
+server.js         local HTTP server and auto-import endpoint
+usage-normalizer.js
+install.sh
+install.bat
+dist/             production build output
+docs/             README assets
+```
+
+## Data & Privacy
+
+- No cloud backend
+- No remote database
+- Imported data is stored locally in `data.json`
+- Auto-import reads local `toktrack` output and normalizes it for the dashboard
+
+## Troubleshooting
+
+### `ttdash` not found after install
+
+Make sure your global package manager bin directory is in `PATH`.
+
+For Bun:
+
+```bash
+echo $PATH
+ls -la ~/.bun/bin/ttdash
+```
+
+### Port already in use
+
+`TTDash` automatically retries on the next port. You can also force one:
+
+```bash
+PORT=3010 ttdash
+```
+
+### Auto-import cannot find `toktrack`
+
+Install `toktrack` locally or ensure `bunx` / `npx` can execute it.
 
 ## Tech Stack
 
-- **Frontend**: React 19, TypeScript 6, Vite 8 (Rolldown), Tailwind CSS v4
-- **Charts**: Recharts 3
-- **UI**: Radix UI primitives, Lucide React 1.x, Framer Motion
-- **State**: TanStack React Query, React hooks
-- **PDF**: html2canvas + jsPDF 4
-- **Data**: toktrack JSON (local CLI import)
-- **Server**: Node.js HTTP
+- React 19
+- TypeScript 6
+- Vite 8
+- Tailwind CSS v4
+- Recharts 3
+- Radix UI
+- Framer Motion
+- Node.js HTTP server
 
-## Uninstall
+## Status
 
-```bash
-npm uninstall -g ttdash
-```
+There is currently no dedicated automated test suite in the repository. Validation is done via production builds and Playwright-based browser checks.
+
+## License
+
+MIT
