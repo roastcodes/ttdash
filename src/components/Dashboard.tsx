@@ -101,6 +101,7 @@ export function Dashboard() {
 
   const todayStr = localToday()
   const todayData = useMemo(() => filteredDailyData.find(d => d.date === todayStr) ?? null, [filteredDailyData, todayStr])
+  const hasCurrentMonthData = useMemo(() => filteredDailyData.some(d => d.date.startsWith(todayStr.slice(0, 7))), [filteredDailyData, todayStr])
 
   // Compute active streak (consecutive days from today backwards)
   const streak = useMemo(() => {
@@ -203,26 +204,28 @@ export function Dashboard() {
         pdfButton={<PDFReportButton containerRef={dashboardRef} />}
       />
 
-      <FilterBar
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        selectedMonth={selectedMonth}
-        onMonthChange={setSelectedMonth}
-        availableMonths={availableMonths}
-        availableProviders={availableProviders}
-        selectedProviders={selectedProviders}
-        onToggleProvider={toggleProvider}
-        onClearProviders={clearProviders}
-        allModels={availableModels}
-        selectedModels={selectedModels}
-        onToggleModel={toggleModel}
-        onClearModels={clearModels}
-        startDate={startDate}
-        endDate={endDate}
-        onStartDateChange={setStartDate}
-        onEndDateChange={setEndDate}
-        onApplyPreset={applyPreset}
-      />
+      <div id="filters">
+        <FilterBar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+          availableMonths={availableMonths}
+          availableProviders={availableProviders}
+          selectedProviders={selectedProviders}
+          onToggleProvider={toggleProvider}
+          onClearProviders={clearProviders}
+          allModels={availableModels}
+          selectedModels={selectedModels}
+          onToggleModel={toggleModel}
+          onClearModels={clearModels}
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          onApplyPreset={applyPreset}
+        />
+      </div>
 
       <div key={`${animationSeed}-${daily.length}-${daily[daily.length - 1]?.date ?? 'empty'}-${Math.round(metrics.totalCost)}`} className="space-y-4 mt-4">
         <div id="insights">
@@ -244,14 +247,20 @@ export function Dashboard() {
 
         {/* Today's KPIs */}
         {todayData && (
-          <TodayMetrics today={todayData} metrics={metrics} />
+          <div id="today">
+            <TodayMetrics today={todayData} metrics={metrics} />
+          </div>
         )}
 
         {/* Current Month KPIs */}
-        <MonthMetrics daily={filteredDailyData} metrics={metrics} />
+        {hasCurrentMonthData && (
+          <div id="current-month">
+            <MonthMetrics daily={filteredDailyData} metrics={metrics} />
+          </div>
+        )}
 
         {/* Heatmap Calendar */}
-        <div>
+        <div id="activity">
           <SectionHeader title="Aktivität" description={viewMode === 'daily' ? 'Tägliche Nutzungsübersicht' : viewMode === 'monthly' ? 'Monatliche Nutzungsübersicht' : 'Jährliche Nutzungsübersicht'} />
           <FadeIn delay={0.2}>
             <ExpandableCard title="Aktivitäts-Heatmap" stats={[
@@ -266,7 +275,7 @@ export function Dashboard() {
         </div>
 
         {/* Cost Forecast + Cache ROI */}
-        <div>
+        <div id="forecast-cache">
           <SectionHeader title="Prognose & Cache" description="Kostenprognose und Cache-Effizienz" />
           <FadeIn delay={0.25}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -318,7 +327,7 @@ export function Dashboard() {
         </div>
 
         {/* Token Analysis */}
-        <div>
+        <div id="token-analysis">
           <SectionHeader title="Token-Analyse" description="Verbrauch nach Token-Typ" />
           <FadeIn delay={0.45}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -329,7 +338,7 @@ export function Dashboard() {
         </div>
 
         {/* Period Comparison + Anomaly Detection */}
-        <div>
+        <div id="comparisons">
           <SectionHeader title="Vergleiche & Anomalien" description="Periodenvergleich und Ausreisser" />
           <FadeIn delay={0.5}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -377,12 +386,28 @@ export function Dashboard() {
       {/* Command Palette */}
       <CommandPalette
         isDark={isDark}
+        availableProviders={availableProviders}
+        selectedProviders={selectedProviders}
+        availableModels={availableModels}
+        selectedModels={selectedModels}
+        hasTodaySection={Boolean(todayData)}
+        hasMonthSection={hasCurrentMonthData}
         onToggleTheme={toggleTheme}
         onExportCSV={handleExportCSV}
         onDelete={handleDelete}
         onUpload={handleUpload}
         onAutoImport={handleAutoImport}
         onScrollTo={handleScrollTo}
+        onViewModeChange={setViewMode}
+        onApplyPreset={applyPreset}
+        onToggleProvider={toggleProvider}
+        onToggleModel={toggleModel}
+        onClearProviders={clearProviders}
+        onClearModels={clearModels}
+        onClearDateRange={() => {
+          setStartDate(undefined)
+          setEndDate(undefined)
+        }}
         onHelp={() => setHelpOpen(true)}
       />
 

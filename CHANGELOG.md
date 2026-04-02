@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.3.6] - 2026-04-02
+
+### Added
+- **Erweiterte Command Palette** — `cmd+k` bietet jetzt zusätzliche Sprungziele, Ansichtswechsel, Zeitraum-Presets sowie direkte Anbieter- und Modell-Filterbefehle auf Basis der aktuell verfügbaren Daten
+- **Kontextsprünge** — direkte Navigation zu `Heute` und `Monat`, wenn diese Bereiche im aktuellen Filterzustand vorhanden sind
+
+### Improved
+- **Favicon-Auslieferung** — Root-, `public/`- und `dist/`-Icons sind jetzt synchron; HTML enthält zusätzliche `shortcut icon`- und `apple-touch-icon`-Links für robustere Browser-Erkennung
+
 ## [5.3.5] - 2026-04-02
 
 ### Improved
