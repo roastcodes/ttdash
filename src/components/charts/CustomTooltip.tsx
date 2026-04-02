@@ -19,14 +19,16 @@ export function CustomTooltip({ active, payload, label, formatter }: CustomToolt
   const isMA = (entry: TooltipPayloadEntry) =>
     entry.name.includes('Ø') || entry.dataKey?.toString().includes('MA7') || entry.dataKey?.toString().includes('_ma7')
 
-  const actualEntries = payload.filter(e => !isMA(e))
+  const actualEntries = payload
+    .filter(e => !isMA(e))
+    .sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
   const maEntries = payload.filter(e => isMA(e))
 
   const total = actualEntries.reduce((sum, entry) => sum + (entry.value ?? 0), 0)
   const showTotal = actualEntries.length >= 2
 
   return (
-    <div className="bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">
+    <div className="max-w-[280px] bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">
       <p className="font-medium text-muted-foreground mb-1.5">{label}</p>
       <div className="space-y-1.5">
         {actualEntries.map((entry, i) => {

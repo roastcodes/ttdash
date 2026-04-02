@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, useMemo } from 'react'
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
@@ -14,8 +14,26 @@ interface CostOverTimeProps {
 
 export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
   const uid = useId().replace(/:/g, '')
+  const summary = useMemo(() => {
+    if (data.length === 0) return null
+    const latest = data[data.length - 1]
+    const peak = [...data].sort((a, b) => b.cost - a.cost)[0]
+    return {
+      latest: latest.cost,
+      peak: peak.cost,
+      peakDate: peak.date,
+    }
+  }, [data])
+
   return (
-    <ChartCard title="Kosten im Zeitverlauf + 7-Tage Ø" subtitle="Tageskosten mit 7-Tage gleitendem Durchschnitt" info={CHART_HELP.costOverTime} chartData={data as unknown as Record<string, unknown>[]} valueKey="cost" valueFormatter={formatCurrency}>
+    <ChartCard
+      title="Kosten im Zeitverlauf + 7-Tage Ø"
+      subtitle={summary ? `Letzter Wert ${formatCurrency(summary.latest)} · Peak ${formatCurrency(summary.peak)} am ${formatDateAxis(summary.peakDate)}` : 'Tageskosten mit 7-Tage gleitendem Durchschnitt'}
+      info={CHART_HELP.costOverTime}
+      chartData={data as unknown as Record<string, unknown>[]}
+      valueKey="cost"
+      valueFormatter={formatCurrency}
+    >
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="line">

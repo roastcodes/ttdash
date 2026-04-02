@@ -3,7 +3,7 @@ import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
 import { FadeIn } from '@/components/features/animations/FadeIn'
-import { formatCurrency, formatPercent, formatDate } from '@/lib/formatters'
+import { formatCurrency, formatPercent, formatDate, formatTokens } from '@/lib/formatters'
 import { normalizeModelName } from '@/lib/model-utils'
 import type { DailyUsage, DashboardMetrics } from '@/types'
 
@@ -42,7 +42,7 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
           />
           <MetricCard
             label="Tokens heute"
-            value={<FormattedValue value={today.totalTokens} type="tokens" />}
+            value={<FormattedValue value={today.totalTokens} type="tokens" label="Tokens heute" insight={`${formatTokens(today.requestCount > 0 ? today.totalTokens / today.requestCount : 0)} pro Request`} />}
             subtitle={today.inputTokens > 0 && today.outputTokens > 0
               ? `I/O Ratio: ${(today.inputTokens / today.outputTokens).toFixed(1)}:1`
               : undefined}
@@ -68,8 +68,8 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
           />
           <MetricCard
             label="Requests"
-            value={<FormattedValue value={today.requestCount} type="number" />}
-            subtitle={today.modelsUsed?.length ? `${(today.requestCount / today.modelsUsed.length).toFixed(1)} / Modell` : undefined}
+            value={today.requestCount > 0 ? <FormattedValue value={today.requestCount} type="number" label="Requests heute" insight={`${formatCurrency(today.totalCost / today.requestCount)} pro Request`} /> : 'n/v'}
+            subtitle={today.requestCount > 0 && today.modelsUsed?.length ? `${(today.requestCount / today.modelsUsed.length).toFixed(1)} / Modell` : 'Keine Request-Zähler'}
             icon={<Activity className="h-4 w-4" />}
           />
           <MetricCard

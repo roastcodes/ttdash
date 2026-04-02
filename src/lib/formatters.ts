@@ -25,10 +25,15 @@ export function formatCurrencyExact(value: number): string {
 }
 
 export function formatTokens(value: number): string {
+  if (!Number.isFinite(value)) return '0'
   if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`
   if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`
   if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`
-  return value.toString()
+  if (value >= 100) return value.toFixed(0)
+  if (value >= 10) return value.toFixed(1)
+  if (value >= 1) return value.toFixed(2)
+  if (value === 0) return '0'
+  return value.toFixed(3)
 }
 
 export function formatNumber(value: number): string {

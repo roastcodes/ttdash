@@ -1,12 +1,13 @@
 import type { DailyUsage, DashboardMetrics } from '@/types'
-import { normalizeModelName } from './model-utils'
+import { getModelProvider, normalizeModelName } from './model-utils'
 
 export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
   if (data.length === 0) {
     return {
       totalCost: 0, totalTokens: 0, activeDays: 0, topModel: null,
-      cacheHitRate: 0, costPerMillion: 0, avgDailyCost: 0, avgRequestsPerDay: 0,
-      topDay: null, cheapestDay: null, totalInput: 0, totalOutput: 0,
+      topModelShare: 0, topThreeModelsShare: 0, topProvider: null, providerCount: 0, hasRequestData: false,
+      cacheHitRate: 0, costPerMillion: 0, avgTokensPerRequest: 0, avgCostPerRequest: 0, avgModelsPerDay: 0, avgDailyCost: 0, avgRequestsPerDay: 0,
+      topDay: null, cheapestDay: null, busiestWeek: null, weekendCostShare: null, totalInput: 0, totalOutput: 0,
       totalCacheRead: 0, totalCacheCreate: 0, totalThinking: 0, totalRequests: 0, weekOverWeekChange: null,
     }
   }
@@ -22,7 +23,12 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
   let totalThinking = 0
   let totalRequests = 0
   let activeDays = 0
+  let hasRequestData = false
   const modelCosts = new Map<string, number>()
+  const providerCosts = new Map<string, number>()
+  let totalModelsUsed = 0
+  let weekendCost = 0
+  let weekendEligible = 0
 
   for (const d of data) {
     totalCost += d.totalCost
@@ -33,19 +39,32 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
     totalCacheCreate += d.cacheCreationTokens
     totalThinking += d.thinkingTokens
     totalRequests += d.requestCount
+    if (d.requestCount > 0 || d.modelBreakdowns.some(mb => mb.requestCount > 0)) hasRequestData = true
     activeDays += d._aggregatedDays ?? 1
+    totalModelsUsed += d.modelsUsed.length
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d.date)) {
+      const weekday = new Date(`${d.date}T00:00:00`).getDay()
+      if (weekday === 0 || weekday === 6) weekendCost += d.totalCost
+      weekendEligible += d.totalCost
+    }
 
     if (d.totalCost > topDay.cost) topDay = { date: d.date, cost: d.totalCost }
     if (d.totalCost < cheapestDay.cost) cheapestDay = { date: d.date, cost: d.totalCost }
     for (const mb of d.modelBreakdowns) {
       const name = normalizeModelName(mb.modelName)
       modelCosts.set(name, (modelCosts.get(name) ?? 0) + mb.cost)
+      const provider = getModelProvider(mb.modelName)
+      providerCosts.set(provider, (providerCosts.get(provider) ?? 0) + mb.cost)
     }
   }
 
   const avgDailyCost = totalCost / activeDays
-  const avgRequestsPerDay = totalRequests / activeDays
+  const avgRequestsPerDay = hasRequestData && activeDays > 0 ? totalRequests / activeDays : 0
   const costPerMillion = totalTokens > 0 ? totalCost / (totalTokens / 1_000_000) : 0
+  const avgTokensPerRequest = hasRequestData && totalRequests > 0 ? totalTokens / totalRequests : 0
+  const avgCostPerRequest = hasRequestData && totalRequests > 0 ? totalCost / totalRequests : 0
+  const avgModelsPerDay = activeDays > 0 ? totalModelsUsed / data.length : 0
   const cacheBase = totalCacheRead + totalCacheCreate + totalInput + totalOutput + totalThinking
   const cacheHitRate = cacheBase > 0 ? (totalCacheRead / cacheBase) * 100 : 0
 
@@ -53,17 +72,64 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
   for (const [name, cost] of modelCosts) {
     if (!topModel || cost > topModel.cost) topModel = { name, cost }
   }
+  const topModelShare = topModel && totalCost > 0 ? (topModel.cost / totalCost) * 100 : 0
+  const topThreeModelsShare = totalCost > 0
+    ? [...modelCosts.values()].sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0) / totalCost * 100
+    : 0
+
+  let topProvider: { name: string; cost: number; share: number } | null = null
+  for (const [name, cost] of providerCosts) {
+    if (!topProvider || cost > topProvider.cost) {
+      topProvider = { name, cost, share: totalCost > 0 ? (cost / totalCost) * 100 : 0 }
+    }
+  }
+
+  const busiestWeek = computeBusiestWeek(data)
+  const weekendCostShare = weekendEligible > 0 ? (weekendCost / weekendEligible) * 100 : null
 
   // Week-over-week change
   const weekOverWeekChange = computeWeekOverWeekChange(data)
 
   return {
-    totalCost, totalTokens, activeDays, topModel, cacheHitRate,
-    costPerMillion, avgDailyCost, avgRequestsPerDay, topDay, cheapestDay,
+    totalCost, totalTokens, activeDays, topModel, topModelShare, topThreeModelsShare, topProvider, providerCount: providerCosts.size, hasRequestData, cacheHitRate,
+    costPerMillion, avgTokensPerRequest, avgCostPerRequest, avgModelsPerDay, avgDailyCost, avgRequestsPerDay, topDay, cheapestDay, busiestWeek, weekendCostShare,
     totalInput, totalOutput, totalCacheRead, totalCacheCreate,
     totalThinking, totalRequests,
     weekOverWeekChange,
   }
+}
+
+function computeBusiestWeek(data: DailyUsage[]): { start: string; end: string; cost: number } | null {
+  const sorted = data
+    .filter(entry => /^\d{4}-\d{2}-\d{2}$/.test(entry.date))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  if (sorted.length < 3) return null
+
+  let bestWindow: { start: string; end: string; cost: number } | null = null
+
+  for (let start = 0; start < sorted.length; start++) {
+    const startDate = new Date(`${sorted[start].date}T00:00:00`)
+    const endLimit = new Date(startDate)
+    endLimit.setDate(endLimit.getDate() + 6)
+    let windowCost = 0
+    let end = start
+
+    while (end < sorted.length && new Date(`${sorted[end].date}T00:00:00`) <= endLimit) {
+      windowCost += sorted[end].totalCost
+      end++
+    }
+
+    if (!bestWindow || windowCost > bestWindow.cost) {
+      bestWindow = {
+        start: sorted[start].date,
+        end: sorted[end - 1].date,
+        cost: windowCost,
+      }
+    }
+  }
+
+  return bestWindow
 }
 
 export function computeWeekOverWeekChange(data: DailyUsage[]): number | null {

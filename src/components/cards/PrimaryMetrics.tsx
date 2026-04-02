@@ -1,7 +1,7 @@
 import { DollarSign, Coins, Calendar, Cpu, Database, TrendingDown, Activity, BrainCircuit } from 'lucide-react'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { formatCurrency, formatPercent, periodUnit } from '@/lib/formatters'
+import { formatCurrency, formatPercent, formatTokens, periodUnit } from '@/lib/formatters'
 import { METRIC_HELP } from '@/lib/help-content'
 import type { DashboardMetrics, ViewMode } from '@/types'
 
@@ -17,46 +17,45 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
     ? (metrics.totalInput / metrics.totalOutput).toFixed(1)
     : null
 
-  // Estimate cache savings: cache reads that didn't need to be input tokens
-  const cacheSavingsPercent = metrics.totalTokens > 0
-    ? (metrics.totalCacheRead / metrics.totalTokens) * 100
-    : 0
+  const coverageRate = totalCalendarDays && viewMode === 'daily'
+    ? (metrics.activeDays / totalCalendarDays) * 100
+    : null
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
       <MetricCard
         label="Gesamtkosten"
-        value={<FormattedValue value={metrics.totalCost} type="currency" />}
-        subtitle={`Ø ${formatCurrency(metrics.avgDailyCost)}/${periodUnit(viewMode)}`}
+        value={<FormattedValue value={metrics.totalCost} type="currency" label="Gesamtkosten" insight={`${formatCurrency(metrics.avgDailyCost)}/${periodUnit(viewMode)} im Mittel`} />}
+        subtitle={`Ø ${formatCurrency(metrics.avgDailyCost)}/${periodUnit(viewMode)} · ${formatCurrency(metrics.avgCostPerRequest)}/Req`}
         icon={<DollarSign className="h-4 w-4" />}
         trend={metrics.weekOverWeekChange !== null ? { value: metrics.weekOverWeekChange } : null}
         info={METRIC_HELP.totalCost}
       />
       <MetricCard
         label="Total Tokens"
-        value={<FormattedValue value={metrics.totalTokens} type="tokens" />}
-        subtitle={ioRatio ? `Input/Output Ratio: ${ioRatio}:1` : undefined}
+        value={<FormattedValue value={metrics.totalTokens} type="tokens" label="Total Tokens" insight={`${formatTokens(metrics.avgTokensPerRequest)} pro Request im Mittel`} />}
+        subtitle={ioRatio ? `I/O ${ioRatio}:1 · ${formatTokens(metrics.avgTokensPerRequest)}/Req` : `${formatTokens(metrics.avgTokensPerRequest)}/Req`}
         icon={<Coins className="h-4 w-4" />}
         info={METRIC_HELP.totalTokens}
       />
       <MetricCard
         label="Aktive Tage"
         value={String(metrics.activeDays)}
-        subtitle={viewMode === 'daily' && totalCalendarDays ? `von ${totalCalendarDays} Kalendertagen` : undefined}
+        subtitle={coverageRate !== null ? `${formatPercent(coverageRate, 0)} Abdeckung von ${totalCalendarDays} Tagen` : `${metrics.providerCount} Anbieter aktiv`}
         icon={<Calendar className="h-4 w-4" />}
         info={METRIC_HELP.activeDays}
       />
       <MetricCard
         label="Top Modell"
         value={metrics.topModel?.name ?? '–'}
-        subtitle={metrics.topModel ? formatCurrency(metrics.topModel.cost) : undefined}
+        subtitle={metrics.topModel ? `${formatCurrency(metrics.topModel.cost)} · ${formatPercent(metrics.topModelShare, 0)} Anteil` : undefined}
         icon={<Cpu className="h-4 w-4" />}
         info={METRIC_HELP.topModel}
       />
       <MetricCard
         label="Cache-Hit-Rate"
         value={<FormattedValue value={metrics.cacheHitRate} type="percent" />}
-        subtitle={cacheSavingsPercent > 0 ? `${formatPercent(cacheSavingsPercent)} Cache-Anteil` : undefined}
+        subtitle={metrics.totalTokens > 0 ? `${formatPercent((metrics.totalCacheRead / metrics.totalTokens) * 100)} aller Tokens via Cache Read` : undefined}
         icon={<Database className="h-4 w-4" />}
         info={METRIC_HELP.cacheHitRate}
       />
@@ -68,14 +67,14 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
       />
       <MetricCard
         label="Requests"
-        value={<FormattedValue value={metrics.totalRequests} type="number" />}
-        subtitle={`Ø ${metrics.avgRequestsPerDay.toFixed(1)}/${periodUnit(viewMode)}`}
+        value={metrics.hasRequestData ? <FormattedValue value={metrics.totalRequests} type="number" label="Requests" insight={`${formatCurrency(metrics.avgCostPerRequest)} pro Request im Mittel`} /> : 'n/v'}
+        subtitle={metrics.hasRequestData ? `Ø ${metrics.avgRequestsPerDay.toFixed(1)}/${periodUnit(viewMode)} · ${formatCurrency(metrics.avgCostPerRequest)}/Req` : 'Keine Request-Zähler im Datensatz'}
         icon={<Activity className="h-4 w-4" />}
       />
       <MetricCard
         label="Thinking"
-        value={<FormattedValue value={metrics.totalThinking} type="tokens" />}
-        subtitle={metrics.totalTokens > 0 ? `${formatPercent((metrics.totalThinking / metrics.totalTokens) * 100)} Anteil` : undefined}
+        value={<FormattedValue value={metrics.totalThinking} type="tokens" label="Thinking Tokens" insight={metrics.totalTokens > 0 ? `${formatPercent((metrics.totalThinking / metrics.totalTokens) * 100)} des gesamten Tokenvolumens` : undefined} />}
+        subtitle={metrics.totalTokens > 0 ? `${formatPercent((metrics.totalThinking / metrics.totalTokens) * 100)} Anteil · ${formatTokens(metrics.totalThinking / Math.max(metrics.totalRequests, 1))}/Req` : undefined}
         icon={<BrainCircuit className="h-4 w-4" />}
       />
     </div>

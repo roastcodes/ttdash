@@ -9,6 +9,8 @@ interface FormattedValueProps {
   type: ValueType
   className?: string
   decimals?: number  // for percent type
+  label?: string
+  insight?: string
 }
 
 // Maps type to abbreviated formatter
@@ -27,7 +29,7 @@ const EXACT_FORMATTERS: Record<ValueType, (value: number) => string> = {
   percent: (v) => formatPercent(v, 4),
 }
 
-export function FormattedValue({ value, type, className, decimals }: FormattedValueProps) {
+export function FormattedValue({ value, type, className, decimals, label, insight }: FormattedValueProps) {
   const abbreviated = FORMATTERS[type](value, decimals)
   const exact = EXACT_FORMATTERS[type](value)
 
@@ -45,8 +47,12 @@ export function FormattedValue({ value, type, className, decimals }: FormattedVa
           {abbreviated}
         </span>
       </TooltipTrigger>
-      <TooltipContent>
-        <span className="font-mono text-xs">{exact}</span>
+      <TooltipContent className="max-w-[260px]">
+        <div className="space-y-1">
+          {label && <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>}
+          <div className="font-mono text-xs">{exact}</div>
+          {insight && <div className="text-[11px] text-muted-foreground leading-relaxed">{insight}</div>}
+        </div>
       </TooltipContent>
     </Tooltip>
   )

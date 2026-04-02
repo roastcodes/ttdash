@@ -1,7 +1,7 @@
-import { TrendingUp, TrendingDown, ChartBar, Sigma } from 'lucide-react'
+import { TrendingUp, ChartBar, Sigma, Building2 } from 'lucide-react'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { formatDate, formatCurrency, periodUnit } from '@/lib/formatters'
+import { formatDate, formatCurrency, formatPercent, periodUnit } from '@/lib/formatters'
 import { METRIC_HELP } from '@/lib/help-content'
 import type { DashboardMetrics, ViewMode } from '@/types'
 
@@ -35,16 +35,18 @@ export function SecondaryMetrics({ metrics, dailyCosts, viewMode = 'daily' }: Se
         info={METRIC_HELP.mostExpensiveDay}
       />
       <MetricCard
-        label={viewMode === 'yearly' ? 'Günstigstes Jahr' : viewMode === 'monthly' ? 'Günstigster Monat' : 'Günstigster Tag'}
-        value={metrics.cheapestDay ? <FormattedValue value={metrics.cheapestDay.cost} type="currency" /> : '–'}
-        subtitle={metrics.cheapestDay ? formatDate(metrics.cheapestDay.date, 'long') : undefined}
-        icon={<TrendingDown className="h-4 w-4" />}
-        info={METRIC_HELP.cheapestDay}
+        label="Dominanter Anbieter"
+        value={metrics.topProvider?.name ?? '–'}
+        subtitle={metrics.topProvider ? `${formatPercent(metrics.topProvider.share, 0)} Anteil · ${formatCurrency(metrics.topProvider.cost)}` : undefined}
+        icon={<Building2 className="h-4 w-4" />}
+        info="Anbieter mit dem höchsten Kostenanteil im gewählten Zeitraum. Hilft Konzentrationsrisiken und Provider-Abhängigkeiten zu erkennen."
       />
       <MetricCard
-        label={`Ø Kosten/${periodUnit(viewMode)}`}
-        value={<FormattedValue value={metrics.avgDailyCost} type="currency" />}
-        subtitle={costSpread !== null ? `Spanne: ${formatCurrency(costSpread)}` : undefined}
+        label={viewMode === 'daily' ? 'Peak 7 Tage' : `Ø Kosten/${periodUnit(viewMode)}`}
+        value={viewMode === 'daily' && metrics.busiestWeek ? <FormattedValue value={metrics.busiestWeek.cost} type="currency" /> : <FormattedValue value={metrics.avgDailyCost} type="currency" />}
+        subtitle={viewMode === 'daily' && metrics.busiestWeek
+          ? `${formatDate(metrics.busiestWeek.start)} – ${formatDate(metrics.busiestWeek.end)}`
+          : costSpread !== null ? `Spanne: ${formatCurrency(costSpread)}` : undefined}
         icon={<ChartBar className="h-4 w-4" />}
         info={METRIC_HELP.avgCostPerDay}
       />

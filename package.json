@@ -1,6 +1,6 @@
 {
   "name": "ttdash",
-  "version": "5.3.3",
+  "version": "5.3.4",
   "description": "Local dashboard for toktrack usage data",
   "main": "server.js",
   "bin": {

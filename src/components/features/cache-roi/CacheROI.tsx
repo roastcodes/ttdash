@@ -15,9 +15,10 @@ interface CacheROIProps {
 }
 
 export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
-  const { actualCost, hypotheticalCost, savings, savingsPercent, dailyAvg } = useMemo(() => {
+  const { actualCost, hypotheticalCost, savings, savingsPercent, dailyAvg, heuristicModels } = useMemo(() => {
     let actual = 0
     let hypothetical = 0
+    const heuristicModels = new Set<string>()
 
     for (const d of data) {
       actual += d.totalCost
@@ -27,6 +28,7 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
         const prices = MODEL_PRICES[name]
         if (!prices) {
           // If no pricing info, assume cache read saves ~90% vs input
+          heuristicModels.add(name)
           hypothetical += mb.cost + (mb.cacheReadTokens / 1_000_000) * 10
           continue
         }
@@ -42,7 +44,7 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
     const totalPeriods = data.reduce((s, d) => s + (d._aggregatedDays ?? 1), 0)
     const dailyAvg = totalPeriods > 0 ? actual / totalPeriods : 0
 
-    return { actualCost: actual, hypotheticalCost: hypothetical, savings: saved, savingsPercent: pct, dailyAvg }
+    return { actualCost: actual, hypotheticalCost: hypothetical, savings: saved, savingsPercent: pct, dailyAvg, heuristicModels: Array.from(heuristicModels).sort() }
   }, [data])
 
   if (data.length === 0) {
@@ -73,6 +75,11 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {heuristicModels.length > 0 && (
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-xs text-amber-200/90">
+            Für {heuristicModels.length} Modell{heuristicModels.length === 1 ? '' : 'e'} ohne hinterlegte Preistabelle nutzt die ROI-Schätzung einen Heuristik-Fallback.
+          </div>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <div className="text-xs text-muted-foreground">Ohne Cache</div>

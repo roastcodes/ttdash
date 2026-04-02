@@ -20,9 +20,20 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
   const minCost = Math.min(...data.map(d => d.cost))
   const peakIndex = data.findIndex(d => d.cost === maxCost)
   const lowIndex = data.findIndex(d => d.cost === minCost)
+  const weekendCost = data
+    .filter(entry => entry.day === 'Sa' || entry.day === 'So')
+    .reduce((sum, entry) => sum + entry.cost, 0)
+  const weekTotal = data.reduce((sum, entry) => sum + entry.cost, 0)
 
   return (
-    <ChartCard title="Kosten nach Wochentag" subtitle={`Ø/Tag · Peak: ${data[peakIndex]?.day ?? '–'} · Low: ${data[lowIndex]?.day ?? '–'}`} info={CHART_HELP.costByWeekday} chartData={data as unknown as Record<string, unknown>[]} valueKey="cost" valueFormatter={formatCurrency}>
+    <ChartCard
+      title="Kosten nach Wochentag"
+      subtitle={`Peak: ${data[peakIndex]?.day ?? '–'} · Low: ${data[lowIndex]?.day ?? '–'} · Wochenende ${(weekTotal > 0 ? (weekendCost / weekTotal) * 100 : 0).toFixed(0)}%`}
+      info={CHART_HELP.costByWeekday}
+      chartData={data as unknown as Record<string, unknown>[]}
+      valueKey="cost"
+      valueFormatter={formatCurrency}
+    >
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="bar">

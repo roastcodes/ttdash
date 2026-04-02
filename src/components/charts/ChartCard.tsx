@@ -149,14 +149,14 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
 
       {expandable && (
         <Dialog open={expanded} onOpenChange={setExpanded}>
-          <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] h-[90vh] overflow-auto p-0">
+          <DialogContent className="max-w-[96vw] w-[96vw] sm:max-w-[95vw] sm:w-[95vw] max-h-[92vh] h-[92vh] sm:max-h-[90vh] sm:h-[90vh] overflow-auto p-0">
             <DialogTitle className="sr-only">{title}</DialogTitle>
             <DialogDescription className="sr-only">
               Vergrösserte Diagrammansicht mit Statistik-Zusammenfassung und optionalem CSV-Export.
             </DialogDescription>
             <ChartAnimationContext.Provider value={expanded}>
               <div className="relative h-full flex flex-col">
-                <div className="p-6 pb-2">
+                  <div className="p-4 sm:p-6 pb-2">
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-lg font-semibold">{title}</h2>
@@ -196,7 +196,7 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
                     </div>
                   )}
                 </div>
-                <div className="flex-1 p-6 pt-2 overflow-auto">
+                <div className="flex-1 p-4 sm:p-6 pt-2 overflow-auto">
                   {renderChildren(true)}
                   {expandedExtra}
                 </div>

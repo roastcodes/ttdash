@@ -51,12 +51,22 @@ export interface DashboardMetrics {
   totalTokens: number
   activeDays: number
   topModel: { name: string; cost: number } | null
+  topModelShare: number
+  topThreeModelsShare: number
+  topProvider: { name: string; cost: number; share: number } | null
+  providerCount: number
+  hasRequestData: boolean
   cacheHitRate: number
   costPerMillion: number
+  avgTokensPerRequest: number
+  avgCostPerRequest: number
+  avgModelsPerDay: number
   avgDailyCost: number
   avgRequestsPerDay: number
   topDay: { date: string; cost: number } | null
   cheapestDay: { date: string; cost: number } | null
+  busiestWeek: { start: string; end: string; cost: number } | null
+  weekendCostShare: number | null
   totalInput: number
   totalOutput: number
   totalCacheRead: number

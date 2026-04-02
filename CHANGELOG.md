@@ -1,5 +1,24 @@
 # Changelog
 
+## [5.3.4] - 2026-04-02
+
+### Added
+- **Dashboard Insights** — neue verdichtete Analyse-Sektion mit Provider-Dominanz, Modell-Konzentration, Kosten- und Request-Ökonomie sowie Aktivitätsmustern
+- **Responsive Tabellen-Karten** — `Recent Days` und `Model Efficiency` liefern auf kleinen Screens jetzt echte Card-Layouts statt primär horizontaler Scrollflächen
+
+### Improved
+- **Dashboard-Informationsdichte** — KPI-Karten, Chart-Untertitel und Tabellen-Summaries zeigen mehr Kontext, abgeleitete Kennzahlen und klarere Hilfstexte
+- **Unbekannte Modellfamilien** — neue `toktrack`-Modelle werden robuster normalisiert, erhalten deterministische Farben und bleiben in Filtern, Charts und Tooltips sauber lesbar
+- **Zahlenformatierung & Tooltips** — lange Werte werden kompakt dargestellt; Tooltips zeigen exakte Zahlen, Labels und zusätzliche Insights
+- **Responsive Layouts** — Header, Filter-Bar, Karten, Zoom-Ansichten und Tabellen verhalten sich stabiler bei Resize, Tablet-Breite und Mobile
+
+### Fixed
+- **Windows Auto-Import** — Prozessstart für `toktrack`, `npx.cmd` und `bunx` ist unter Windows robuster, damit der Auto-Upload nicht mehr am `spawn`-Pfad scheitert
+- **Expanded Donut-Charts** — Donuts sitzen im Zoom-Dialog tiefer, nutzen die verfügbare Fläche besser und kollidieren weniger mit Legenden
+- **Request-Ökonomie ohne Request-Daten** — bei fehlenden `requestCount`-Feldern zeigt das UI jetzt `n/v` statt irreführender Nullwerte
+- **Numerische Ausreißer im UI** — rohe lange Float-Werte werden nicht mehr ungefiltert im Dashboard angezeigt
+- **Heuristik-Hinweise für Preis-Fallbacks** — Cache-ROI kennzeichnet fehlende Preisdefinitionen für unbekannte Modelle explizit statt stillschweigend
+- **Erweiterbarkeit für neue Anbieter** — Provider-Erkennung deckt zusätzliche Familien wie `xAI`, `Meta`, `Cohere`, `Mistral`, `DeepSeek` und `Alibaba` besser ab
 ## [5.3.3] - 2026-04-02
 
 ### Improved

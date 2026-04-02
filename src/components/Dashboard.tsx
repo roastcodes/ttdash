@@ -23,6 +23,7 @@ import { CostForecast } from './features/forecast/CostForecast'
 import { CacheROI } from './features/cache-roi/CacheROI'
 import { PeriodComparison } from './features/comparison/PeriodComparison'
 import { AnomalyDetection } from './features/anomaly/AnomalyDetection'
+import { UsageInsights } from './features/insights/UsageInsights'
 import { PDFReportButton } from './features/pdf-report/PDFReport'
 import { CommandPalette } from './features/command-palette/CommandPalette'
 import { FadeIn } from './features/animations/FadeIn'
@@ -224,6 +225,10 @@ export function Dashboard() {
       />
 
       <div key={`${animationSeed}-${daily.length}-${daily[daily.length - 1]?.date ?? 'empty'}-${Math.round(metrics.totalCost)}`} className="space-y-4 mt-4">
+        <div id="insights">
+          <UsageInsights metrics={metrics} viewMode={viewMode} totalCalendarDays={totalCalendarDays} />
+        </div>
+
         {/* Primary Metrics */}
         <div id="metrics">
           <SectionHeader title="Metriken" badge="10 Kennzahlen" description="Wichtigste KPIs im Überblick" />

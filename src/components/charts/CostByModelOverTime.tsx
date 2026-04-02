@@ -13,6 +13,13 @@ interface CostByModelOverTimeProps {
 }
 
 export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) {
+  const topModel = models
+    .map(model => ({
+      model,
+      total: data.reduce((sum, point) => sum + (typeof point[model] === 'number' ? point[model] : 0), 0),
+    }))
+    .sort((a, b) => b.total - a.total)[0] ?? null
+
   // Expanded extra: taller chart with per-model 7-day MA lines
   const expandedChart = (
     <ChartAnimationAware>
@@ -57,7 +64,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
   return (
     <ChartCard
       title="Kosten nach Modell im Zeitverlauf"
-      subtitle="Pro Modell über die Zeit"
+      subtitle={topModel ? `Top Treiber: ${topModel.model} · ${formatCurrency(topModel.total)} kumuliert` : 'Pro Modell über die Zeit'}
       info={CHART_HELP.costByModelOverTime}
       className="lg:col-span-2"
       chartData={data as unknown as Record<string, unknown>[]}
