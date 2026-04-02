@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.3.3] - 2026-04-02
+
+### Improved
+- **Performance-Optimierungen** — PDF-Export und schwere Modals werden jetzt lazy geladen; Datenpfade für gleitende Durchschnitte, Metriken und Filter wurden effizienter gemacht
+- **Bundle-Splitting** — Vendor-Code ist in getrennte Chunks für React, Recharts, Motion und UI aufgeteilt, damit das Dashboard schneller initial lädt
+
+### Fixed
+- **Dashboard-Renderpfad** — Datenquellen-Initialisierung erfolgt nicht mehr während des Renderns, wodurch unnötige Renders und React-Warnungen vermieden werden
+- **PDF-Export Ladezustand** — Export-Button bleibt nach Abschluss nicht mehr fälschlich im aktiven Zustand hängen
+- **Server-Sicherheitsheader** — lokale Responses liefern jetzt grundlegende Schutz-Header wie `nosniff`, `DENY` und `same-origin`
+
 ## [5.3.2] - 2026-04-02
 
 ### Added
