@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.3.5] - 2026-04-02
+
+### Improved
+- **Filter-Konsistenz über alle Ansichten** — Tages-, Monats- und Jahressicht basieren jetzt auf derselben vollständig gefilterten Tagesbasis, damit Anbieter-, Modell- und Zeitraumfilter in KPIs, Header, Vergleichskarten und Tabellen übereinstimmen
+- **Favicon & App-Branding** — neues `TTDash`-Monogramm als optimiertes SVG/PNG mit klarerer Wiedererkennbarkeit und besserer Lesbarkeit bei kleinen Größen
+- **Release-Output im Terminal** — Installer und Server-Start zeigen die aktuelle App-Version jetzt dynamisch direkt aus `package.json`
+
+### Fixed
+- **Heute-/Monat-Karten bei Kombinationsfiltern** — Bereiche mit aktiven Anbieter-, Modell- und Datumsfiltern greifen nicht mehr auf unfiltrierte Rohdaten zurück
+- **Header-Zeitraum & Periodenvergleich** — Datumsbadge und Vergleichswerte folgen jetzt derselben Filterbasis wie die restlichen Dashboard-Metriken
+
 ## [5.3.4] - 2026-04-02
 
 ### Added

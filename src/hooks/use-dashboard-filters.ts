@@ -73,25 +73,35 @@ export function useDashboardFilters(data: DailyUsage[]) {
     }
   }, [])
 
-  const preModelFilteredData = useMemo(() => {
+  const preProviderFilteredData = useMemo(() => {
     let result = sortByDate(data)
     result = filterByDateRange(result, startDate, endDate)
     result = filterByMonth(result, selectedMonth)
+    return result
+  }, [data, startDate, endDate, selectedMonth])
+
+  const preModelFilteredData = useMemo(() => {
+    let result = preProviderFilteredData
     result = filterByProviders(result, selectedProviders)
     return result
-  }, [data, startDate, endDate, selectedMonth, selectedProviders])
+  }, [preProviderFilteredData, selectedProviders])
 
-  const filteredData = useMemo(() => {
+  const filteredDailyData = useMemo(() => {
     let result = preModelFilteredData
     result = filterByModels(result, selectedModels)
+    return result
+  }, [preModelFilteredData, selectedModels])
+
+  const filteredData = useMemo(() => {
+    let result = filteredDailyData
     result = aggregateToDailyFormat(result, viewMode)
     return result
-  }, [preModelFilteredData, selectedModels, viewMode])
+  }, [filteredDailyData, viewMode])
 
   const availableMonths = useMemo(() => getAvailableMonths(data), [data])
-  const availableProviders = useMemo(() => getUniqueProviders(data.map(d => d.modelsUsed)), [data])
+  const availableProviders = useMemo(() => getUniqueProviders(preProviderFilteredData.map(d => d.modelsUsed)), [preProviderFilteredData])
   const availableModels = useMemo(() => getUniqueModels(preModelFilteredData.map(d => d.modelsUsed)), [preModelFilteredData])
-  const dateRange = useMemo(() => getDateRange(filteredData), [filteredData])
+  const dateRange = useMemo(() => getDateRange(filteredDailyData), [filteredDailyData])
 
   return {
     viewMode, setViewMode,
@@ -101,6 +111,7 @@ export function useDashboardFilters(data: DailyUsage[]) {
     startDate, setStartDate,
     endDate, setEndDate,
     applyPreset,
+    filteredDailyData,
     filteredData,
     availableMonths,
     availableProviders,

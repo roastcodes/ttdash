@@ -36,7 +36,6 @@ import { useComputedMetrics } from '@/hooks/use-computed-metrics'
 import { useTheme } from '@/hooks/use-theme'
 import { useToast } from '@/components/ui/toast'
 import { downloadCSV } from '@/lib/csv-export'
-import { filterByModels } from '@/lib/data-transforms'
 import { formatCurrency, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
 
 const DrillDownModal = lazy(() => import('./features/drill-down/DrillDownModal').then(module => ({ default: module.DrillDownModal })))
@@ -76,6 +75,7 @@ export function Dashboard() {
     startDate, setStartDate,
     endDate, setEndDate,
     applyPreset,
+    filteredDailyData,
     filteredData,
     availableMonths,
     availableProviders,
@@ -89,7 +89,7 @@ export function Dashboard() {
   } = useComputedMetrics(filteredData, viewMode)
 
   // Full dataset with only model filter applied (no date/month filter) for PeriodComparison
-  const comparisonData = useMemo(() => filterByModels(daily, selectedModels), [daily, selectedModels])
+  const comparisonData = filteredDailyData
 
   // Calculate total calendar days from the date range (only meaningful for daily view)
   const totalCalendarDays = useMemo(() => {
@@ -100,11 +100,11 @@ export function Dashboard() {
   }, [dateRange, viewMode])
 
   const todayStr = localToday()
-  const todayData = useMemo(() => daily.find(d => d.date === todayStr) ?? null, [daily, todayStr])
+  const todayData = useMemo(() => filteredDailyData.find(d => d.date === todayStr) ?? null, [filteredDailyData, todayStr])
 
   // Compute active streak (consecutive days from today backwards)
   const streak = useMemo(() => {
-    const dates = new Set(daily.map(d => d.date))
+    const dates = new Set(filteredDailyData.map(d => d.date))
     let count = 0
     const d = new Date(todayStr + 'T00:00:00')
     while (dates.has(toLocalDateStr(d))) {
@@ -112,7 +112,7 @@ export function Dashboard() {
       d.setDate(d.getDate() - 1)
     }
     return count
-  }, [daily, todayStr])
+  }, [filteredDailyData, todayStr])
 
   const drillDownDay = useMemo(() => {
     if (!drillDownDate) return null
@@ -248,7 +248,7 @@ export function Dashboard() {
         )}
 
         {/* Current Month KPIs */}
-        <MonthMetrics daily={daily} metrics={metrics} />
+        <MonthMetrics daily={filteredDailyData} metrics={metrics} />
 
         {/* Heatmap Calendar */}
         <div>
