@@ -177,9 +177,21 @@ function sendSSE(res, event, data) {
 
 let autoImportRunning = false;
 
+function shouldUseShell(command) {
+  return IS_WINDOWS && /\.(cmd|bat)$/i.test(command);
+}
+
+function spawnCommand(command, args, options = {}) {
+  return spawn(command, args, {
+    ...options,
+    shell: options.shell ?? shouldUseShell(command),
+    windowsHide: options.windowsHide ?? true,
+  });
+}
+
 function commandExists(command, args = ['--version']) {
   return new Promise((resolve) => {
-    const child = spawn(command, args, { stdio: 'ignore' });
+    const child = spawnCommand(command, args, { stdio: 'ignore' });
     child.on('error', () => resolve(false));
     child.on('close', (code) => resolve(code === 0));
   });
@@ -199,8 +211,8 @@ async function resolveToktrackRunner() {
 
   if (await commandExists(IS_WINDOWS ? 'bun.exe' : 'bun')) {
     return {
-      command: IS_WINDOWS ? 'bunx.cmd' : 'bunx',
-      prefixArgs: ['toktrack'],
+      command: IS_WINDOWS ? 'bun.exe' : 'bunx',
+      prefixArgs: IS_WINDOWS ? ['x', 'toktrack'] : ['toktrack'],
       env: process.env,
       method: 'bunx',
       label: 'bunx',
@@ -227,7 +239,7 @@ async function resolveToktrackRunner() {
 
 function runToktrack(runner, args, { streamStderr = false, onStderr, signalOnClose } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(runner.command, [...runner.prefixArgs, ...args], {
+    const child = spawnCommand(runner.command, [...runner.prefixArgs, ...args], {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: runner.env,
     });

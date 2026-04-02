@@ -13,7 +13,7 @@ interface ChartCardProps {
   summary?: ReactNode
   info?: string
   expandable?: boolean
-  children: ReactNode
+  children: ReactNode | ((expanded: boolean) => ReactNode)
   className?: string
   chartData?: Record<string, unknown>[]
   valueKey?: string
@@ -95,6 +95,9 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
   }, [chartData, valueKey])
 
   const fmt = valueFormatter ?? formatCurrency
+  const renderChildren = (isExpanded: boolean) => typeof children === 'function'
+    ? children(isExpanded)
+    : children
 
   const handleExport = useCallback(() => {
     if (!chartData || chartData.length === 0) return
@@ -131,7 +134,7 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
       <ChartAnimationContext.Provider value={animationActive}>
         <Card ref={cardRef} className={cn('group relative', className)}>
           {header}
-          <CardContent>{children}</CardContent>
+          <CardContent>{renderChildren(false)}</CardContent>
           {expandable && (
             <button
               onClick={() => setExpanded(true)}
@@ -194,7 +197,7 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
                   )}
                 </div>
                 <div className="flex-1 p-6 pt-2 overflow-auto">
-                  {children}
+                  {renderChildren(true)}
                   {expandedExtra}
                 </div>
               </div>

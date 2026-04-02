@@ -37,43 +37,52 @@ export function TokenTypes({ data }: TokenTypesProps) {
 
   return (
     <ChartCard title="Token-Typen" subtitle="Verteilung der Token-Typen" info={CHART_HELP.tokenTypes} chartData={data as unknown as Record<string, unknown>[]} valueKey="value" valueFormatter={formatTokens}>
-      <ChartAnimationAware>
-        {(animate) => (
-          <ChartReveal variant="radial" delay={0.04}>
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="57%"
-                  innerRadius={58}
-                  outerRadius={92}
-                  paddingAngle={2}
-                  dataKey="value"
-                  nameKey="name"
-                  isAnimationActive={animate}
-                  animationDuration={CHART_ANIMATION.duration}
-                  animationBegin={CHART_ANIMATION.stagger}
-                  animationEasing={CHART_ANIMATION.easing}
-                >
-                  {data.map((entry) => (
-                    <Cell key={entry.name} fill={TOKEN_COLORS[entry.name] ?? CHART_COLORS.cost} />
-                  ))}
-                  <CenterLabel total={formatTokens(total)} />
-                </Pie>
-                <Tooltip content={<CustomTooltip formatter={(v) => formatTokens(v)} />} />
-                <Legend
-                  wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
-                  formatter={(value: string) => {
-                    const entry = data.find(d => d.name === value)
-                    return <span className="text-xs text-foreground">{value} ({entry ? formatTokens(entry.value) : ''})</span>
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartReveal>
-        )}
-      </ChartAnimationAware>
+      {(expanded) => {
+        const chartHeight = expanded ? 560 : 320
+        const pieCenterY = expanded ? '66%' : '57%'
+        const innerRadius = expanded ? 84 : 58
+        const outerRadius = expanded ? 134 : 92
+
+        return (
+          <ChartAnimationAware>
+            {(animate) => (
+              <ChartReveal variant="radial" delay={0.04}>
+                <ResponsiveContainer width="100%" height={chartHeight}>
+                  <PieChart>
+                    <Pie
+                      data={data}
+                      cx="50%"
+                      cy={pieCenterY}
+                      innerRadius={innerRadius}
+                      outerRadius={outerRadius}
+                      paddingAngle={2}
+                      dataKey="value"
+                      nameKey="name"
+                      isAnimationActive={animate}
+                      animationDuration={CHART_ANIMATION.duration}
+                      animationBegin={CHART_ANIMATION.stagger}
+                      animationEasing={CHART_ANIMATION.easing}
+                    >
+                      {data.map((entry) => (
+                        <Cell key={entry.name} fill={TOKEN_COLORS[entry.name] ?? CHART_COLORS.cost} />
+                      ))}
+                      <CenterLabel total={formatTokens(total)} />
+                    </Pie>
+                    <Tooltip content={<CustomTooltip formatter={(v) => formatTokens(v)} />} />
+                    <Legend
+                      wrapperStyle={{ fontSize: '12px', paddingTop: expanded ? '22px' : '8px' }}
+                      formatter={(value: string) => {
+                        const entry = data.find(d => d.name === value)
+                        return <span className="text-xs text-foreground">{value} ({entry ? formatTokens(entry.value) : ''})</span>
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartReveal>
+            )}
+          </ChartAnimationAware>
+        )
+      }}
     </ChartCard>
   )
 }
