@@ -109,7 +109,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
         <CardTitle className="text-sm font-medium text-muted-foreground">Kosten-Heatmap</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <svg width={svgWidth} height={svgHeight} className="block">
             {/* Day labels */}
             {DAY_LABELS.map((label, i) => (
@@ -154,9 +154,13 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
                     rx={2}
                     fill={getColor(cell.cost, maxCost)}
                     className="transition-all duration-150 cursor-pointer"
-                    onMouseEnter={(e) => {
-                      const rect = (e.target as SVGRectElement).getBoundingClientRect()
-                      setTooltip({ x: rect.left, y: rect.top - 40, date: cell.date, cost: cell.cost })
+                    onMouseEnter={() => {
+                      setTooltip({
+                        x: 30 + cell.week * TOTAL + CELL_SIZE / 2,
+                        y: 18 + cell.day * TOTAL - 8,
+                        date: cell.date,
+                        cost: cell.cost,
+                      })
                     }}
                     onMouseLeave={() => setTooltip(null)}
                   />
@@ -177,6 +181,16 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
             })}
           </svg>
 
+          {tooltip && (
+            <div
+              className="absolute z-20 -translate-x-1/2 -translate-y-full rounded-md border border-border bg-popover px-2 py-1 text-xs shadow-lg pointer-events-none whitespace-nowrap"
+              style={{ left: tooltip.x, top: tooltip.y }}
+            >
+              <span className="font-medium">{formatCurrency(tooltip.cost)}</span>
+              <span className="text-muted-foreground ml-1">{tooltip.date}</span>
+            </div>
+          )}
+
           {/* Legend */}
           <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground">
             <span>Weniger</span>
@@ -190,17 +204,6 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
             <span>Mehr</span>
           </div>
         </div>
-
-        {/* Tooltip */}
-        {tooltip && (
-          <div
-            className="fixed z-50 rounded-md border border-border bg-popover px-2 py-1 text-xs shadow-lg pointer-events-none"
-            style={{ left: tooltip.x, top: tooltip.y }}
-          >
-            <span className="font-medium">{formatCurrency(tooltip.cost)}</span>
-            <span className="text-muted-foreground ml-1">{tooltip.date}</span>
-          </div>
-        )}
       </CardContent>
     </Card>
   )

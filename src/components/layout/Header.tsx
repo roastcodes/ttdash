@@ -53,7 +53,7 @@ export function Header({ dateRange, isDark, helpOpen, streak, dataSource, onHelp
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <h1 className="text-2xl font-bold tracking-tight shrink-0">
-            <span className="text-primary">CC</span>Usage
+            <span className="text-primary">TT</span>Dash
           </h1>
           <span className="text-xs text-muted-foreground font-mono shrink-0">v{VERSION}</span>
           {dateRange && (

@@ -4,14 +4,16 @@ import { ChartCard } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { formatCurrency, formatDateAxis } from '@/lib/formatters'
+import { computeCurrentMonthForecast } from '@/lib/calculations'
 import { CHART_HELP } from '@/lib/help-content'
-import type { ChartDataPoint } from '@/types'
+import type { ChartDataPoint, DailyUsage } from '@/types'
 
 interface CumulativeCostProps {
   data: ChartDataPoint[]
+  rawData: DailyUsage[]
 }
 
-export function CumulativeCost({ data }: CumulativeCostProps) {
+export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
   const uid = useId().replace(/:/g, '')
 
   // Add projected end-of-month line
@@ -19,17 +21,16 @@ export function CumulativeCost({ data }: CumulativeCostProps) {
     if (data.length < 3) return data
     const last = data[data.length - 1]
     if (!last?.date || !last.cumulative) return data
+    const forecast = computeCurrentMonthForecast(rawData)
+    if (!forecast) return data
 
-    const lastDate = new Date(last.date + 'T00:00:00')
-    const currentMonth = last.date.slice(0, 7)
-    const daysInMonth = new Date(lastDate.getFullYear(), lastDate.getMonth() + 1, 0).getDate()
-    const dayNum = lastDate.getDate()
+    const { currentMonth, daysInMonth, projectedDailyBurn } = forecast
+    const dayNum = forecast.elapsedDays
 
     // Only project if not already end of month
     if (dayNum >= daysInMonth) return data
 
-    const avgDaily = last.cumulative / data.length
-    const projected = last.cumulative + avgDaily * (daysInMonth - dayNum)
+    const projected = last.cumulative + projectedDailyBurn * (daysInMonth - dayNum)
     const endDate = `${currentMonth}-${String(daysInMonth).padStart(2, '0')}`
 
     return [
@@ -39,7 +40,7 @@ export function CumulativeCost({ data }: CumulativeCostProps) {
       // Projected end-of-month point
       { date: endDate, cumulative: undefined as number | undefined, projected, cost: 0, ma7: 0 },
     ]
-  }, [data])
+  }, [data, rawData])
 
   const lastCumulative = data[data.length - 1]?.cumulative ?? 0
 
@@ -67,6 +68,7 @@ export function CumulativeCost({ data }: CumulativeCostProps) {
             strokeWidth={2}
             activeDot={{ r: 5, strokeWidth: 2, stroke: CHART_COLORS.cumulative, fill: 'hsl(var(--background))' }}
             dot={false}
+            animationBegin={0}
             animationDuration={CHART_ANIMATION.duration}
             animationEasing={CHART_ANIMATION.easing}
             connectNulls={false}
@@ -80,7 +82,8 @@ export function CumulativeCost({ data }: CumulativeCostProps) {
             dot={false}
             name="Projektion"
             connectNulls
-            isAnimationActive={false}
+            animationBegin={CHART_ANIMATION.stagger}
+            animationDuration={CHART_ANIMATION.slowDuration}
           />
         </ComposedChart>
       </ResponsiveContainer>

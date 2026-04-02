@@ -1,4 +1,4 @@
-import { DollarSign, Coins, Calendar, Cpu, Database, TrendingDown } from 'lucide-react'
+import { DollarSign, Coins, Calendar, Cpu, Database, TrendingDown, Activity, BrainCircuit } from 'lucide-react'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { formatCurrency, formatPercent, periodUnit } from '@/lib/formatters'
@@ -23,7 +23,7 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
     : 0
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
       <MetricCard
         label="Gesamtkosten"
         value={<FormattedValue value={metrics.totalCost} type="currency" />}
@@ -65,6 +65,18 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
         value={<FormattedValue value={metrics.costPerMillion} type="currency" />}
         icon={<TrendingDown className="h-4 w-4" />}
         info={METRIC_HELP.costPerMillion}
+      />
+      <MetricCard
+        label="Requests"
+        value={<FormattedValue value={metrics.totalRequests} type="number" />}
+        subtitle={`Ø ${metrics.avgRequestsPerDay.toFixed(1)}/${periodUnit(viewMode)}`}
+        icon={<Activity className="h-4 w-4" />}
+      />
+      <MetricCard
+        label="Thinking"
+        value={<FormattedValue value={metrics.totalThinking} type="tokens" />}
+        subtitle={metrics.totalTokens > 0 ? `${formatPercent((metrics.totalThinking / metrics.totalTokens) * 100)} Anteil` : undefined}
+        icon={<BrainCircuit className="h-4 w-4" />}
       />
     </div>
   )

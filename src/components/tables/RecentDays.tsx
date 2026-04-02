@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { formatDate } from '@/lib/formatters'
-import { normalizeModelName, getModelColor } from '@/lib/model-utils'
+import { normalizeModelName, getModelColor, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
 import { periodLabel } from '@/lib/formatters'
@@ -86,6 +86,8 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                 <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden md:table-cell">Output</th>
                 <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden lg:table-cell">Cache Write</th>
                 <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden lg:table-cell">Cache Read</th>
+                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden xl:table-cell">Thinking</th>
+                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden xl:table-cell">Req</th>
                 <th className={cn("px-2 py-2 text-right text-xs font-medium cursor-pointer hover:text-foreground transition-colors", sortKey === 'costPerM' ? 'text-foreground' : 'text-muted-foreground')} onClick={() => handleSort('costPerM')}>
                   <span className="inline-flex items-center gap-1">$/1M <ArrowUpDown className={cn("h-3 w-3", sortKey === 'costPerM' && "text-primary")} /></span>
                 </th>
@@ -123,24 +125,33 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                     <td className="px-2 py-2.5 text-right font-mono tabular-nums hidden lg:table-cell">
                       <FormattedValue value={day.cacheReadTokens} type="tokens" />
                     </td>
+                    <td className="px-2 py-2.5 text-right font-mono tabular-nums hidden xl:table-cell">
+                      <FormattedValue value={day.thinkingTokens} type="tokens" />
+                    </td>
+                    <td className="px-2 py-2.5 text-right font-mono tabular-nums hidden xl:table-cell">
+                      <FormattedValue value={day.requestCount} type="number" />
+                    </td>
                     <td className="px-2 py-2.5 text-right font-mono tabular-nums">
                       <FormattedValue value={costPerM} type="currency" />
                     </td>
                     <td className="px-2 py-2.5">
                       <div className="flex flex-wrap gap-1.5">
                         {day.modelBreakdowns
-                          .map(mb => normalizeModelName(mb.modelName))
-                          .filter((v, i, a) => a.indexOf(v) === i)
-                          .map(name => (
+                          .map(mb => ({ name: normalizeModelName(mb.modelName), provider: getModelProvider(mb.modelName) }))
+                          .filter((entry, i, a) => a.findIndex(item => item.name === entry.name) === i)
+                          .map(({ name, provider }) => (
                             <span
                               key={name}
-                              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium leading-tight"
+                              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium leading-tight"
                               style={{
                                 backgroundColor: `${getModelColor(name)}20`,
                                 color: getModelColor(name),
                               }}
                             >
-                              {name}
+                              <span>{name}</span>
+                              <span className={cn('inline-flex items-center rounded-full border px-1 py-0.5 text-[9px] leading-none', getProviderBadgeClasses(provider))}>
+                                {provider}
+                              </span>
                             </span>
                           ))}
                       </div>

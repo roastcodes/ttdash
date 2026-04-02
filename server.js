@@ -2,7 +2,10 @@
 
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { spawn } = require('child_process');
+const { normalizeIncomingData } = require('./usage-normalizer');
 
 const ROOT = __dirname;
 const STATIC_ROOT = path.join(ROOT, 'dist');
@@ -11,6 +14,9 @@ const START_PORT = parseInt(process.env.PORT, 10) || 3000;
 const MAX_PORT = START_PORT + 100;
 const API_PREFIX = '/port/5000/api';
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
+const IS_WINDOWS = process.platform === 'win32';
+const TOKTRACK_LOCAL_BIN = path.join(ROOT, 'node_modules', '.bin', IS_WINDOWS ? 'toktrack.cmd' : 'toktrack');
+const NPX_CACHE_DIR = path.join(os.tmpdir(), 'ttdash-npx-cache');
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -26,6 +32,29 @@ const MIME_TYPES = {
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
 };
+
+function openBrowser(url) {
+  if (process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1' || !process.stdout.isTTY) {
+    return;
+  }
+
+  const platform = process.platform;
+  const command = platform === 'darwin'
+    ? 'open'
+    : platform === 'win32'
+      ? 'cmd'
+      : 'xdg-open';
+  const args = platform === 'win32'
+    ? ['/c', 'start', '', url]
+    : [url];
+
+  const child = spawn(command, args, {
+    detached: true,
+    stdio: 'ignore',
+  });
+  child.on('error', () => {});
+  child.unref();
+}
 
 function getCacheControl(filePath) {
   if (filePath.includes(path.sep + 'assets' + path.sep)) {
@@ -74,7 +103,7 @@ function serveFile(res, reqPath) {
 
 function readData() {
   try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+    return normalizeIncomingData(JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')));
   } catch {
     return null;
   }
@@ -137,6 +166,91 @@ function sendSSE(res, event, data) {
 
 let autoImportRunning = false;
 
+function commandExists(command, args = ['--version']) {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, { stdio: 'ignore' });
+    child.on('error', () => resolve(false));
+    child.on('close', (code) => resolve(code === 0));
+  });
+}
+
+async function resolveToktrackRunner() {
+  if (fs.existsSync(TOKTRACK_LOCAL_BIN)) {
+    return {
+      command: TOKTRACK_LOCAL_BIN,
+      prefixArgs: [],
+      env: process.env,
+      method: 'lokal',
+      label: 'lokales toktrack',
+      displayCommand: 'node_modules/.bin/toktrack daily --json',
+    };
+  }
+
+  if (await commandExists(IS_WINDOWS ? 'bun.exe' : 'bun')) {
+    return {
+      command: IS_WINDOWS ? 'bunx.cmd' : 'bunx',
+      prefixArgs: ['toktrack'],
+      env: process.env,
+      method: 'bunx',
+      label: 'bunx',
+      displayCommand: 'bunx toktrack daily --json',
+    };
+  }
+
+  if (await commandExists(IS_WINDOWS ? 'npx.cmd' : 'npx')) {
+    return {
+      command: IS_WINDOWS ? 'npx.cmd' : 'npx',
+      prefixArgs: ['--yes', 'toktrack'],
+      env: {
+        ...process.env,
+        npm_config_cache: NPX_CACHE_DIR,
+      },
+      method: 'npm',
+      label: 'npm exec',
+      displayCommand: 'npx --yes toktrack daily --json',
+    };
+  }
+
+  return null;
+}
+
+function runToktrack(runner, args, { streamStderr = false, onStderr, signalOnClose } = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(runner.command, [...runner.prefixArgs, ...args], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: runner.env,
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    if (signalOnClose) {
+      signalOnClose(() => child.kill('SIGTERM'));
+    }
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on('data', (chunk) => {
+      const line = chunk.toString();
+      stderr += line;
+      if (streamStderr && onStderr && line.trim()) {
+        onStderr(line.trimEnd());
+      }
+    });
+
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve(stdout.trimEnd());
+        return;
+      }
+      reject(new Error(stderr.trim() || `${runner.label} konnte nicht gestartet werden.`));
+    });
+  });
+}
+
 // --- Server ---
 
 const server = http.createServer(async (req, res) => {
@@ -149,7 +263,19 @@ const server = http.createServer(async (req, res) => {
   if (apiPath === '/usage') {
     if (req.method === 'GET') {
       const data = readData();
-      return json(res, 200, data || { daily: [], totals: {} });
+      return json(res, 200, data || {
+        daily: [],
+        totals: {
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          thinkingTokens: 0,
+          totalCost: 0,
+          totalTokens: 0,
+          requestCount: 0,
+        },
+      });
     }
     if (req.method === 'DELETE') {
       try { fs.unlinkSync(DATA_FILE); } catch {}
@@ -162,17 +288,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST') {
       try {
         const body = await readBody(req);
-        writeData(body);
-        const days = body.daily ? body.daily.length : 0;
-        const totalCost = body.daily
-          ? body.daily.reduce((s, d) => s + (d.totalCost || 0), 0)
-          : 0;
+        const normalized = normalizeIncomingData(body);
+        writeData(normalized);
+        const days = normalized.daily.length;
+        const totalCost = normalized.totals.totalCost;
         return json(res, 200, { days, totalCost });
       } catch (e) {
         const status = e.message === 'Payload too large' ? 413 : 400;
         const message = e.message === 'Payload too large'
           ? 'Datei zu gross (max. 10 MB)'
-          : 'Ungültiges JSON';
+          : e.message || 'Ungültiges JSON';
         return json(res, status, { message });
       }
     }
@@ -211,7 +336,7 @@ const server = http.createServer(async (req, res) => {
 
     req.on('close', () => { aborted = true; cleanup(); });
 
-    sendSSE(res, 'check', { tool: 'ccusage', status: 'checking' });
+    sendSSE(res, 'check', { tool: 'toktrack', status: 'checking' });
 
     // Progress indicator
     let progressSeconds = 0;
@@ -223,37 +348,43 @@ const server = http.createServer(async (req, res) => {
     }, 5000);
 
     try {
-      const { loadDailyUsageData } = await import('ccusage/data-loader');
-      const pkg = require('ccusage/package.json');
+      sendSSE(res, 'progress', { message: 'Starte lokalen toktrack-Import...' });
 
-      sendSSE(res, 'check', { tool: 'ccusage', status: 'found', method: 'api', version: pkg.version });
-      sendSSE(res, 'progress', { message: 'Lade Nutzungsdaten via ccusage API...' });
+      const runner = await resolveToktrackRunner();
+      if (!runner) {
+        sendSSE(res, 'check', { tool: 'toktrack', status: 'not_found' });
+        throw new Error('Kein lokales toktrack, Bun oder npm exec gefunden.');
+      }
 
-      const daily = await loadDailyUsageData({});
+      const versionResult = await runToktrack(runner, ['--version']);
+      sendSSE(res, 'check', {
+        tool: 'toktrack',
+        status: 'found',
+        method: runner.label,
+        version: String(versionResult).replace(/^toktrack\s+/, ''),
+      });
+      sendSSE(res, 'progress', { message: `Lade Nutzungsdaten via ${runner.displayCommand}...` });
+
+      const rawJson = await runToktrack(runner, ['daily', '--json'], {
+        streamStderr: true,
+        onStderr: (line) => {
+          if (!aborted) {
+            sendSSE(res, 'stderr', { line });
+          }
+        },
+        signalOnClose: (close) => {
+          req.on('close', close);
+        },
+      });
 
       clearInterval(progressInterval);
       if (aborted) { cleanup(); return; }
 
-      if (!Array.isArray(daily) || daily.length === 0) {
-        sendSSE(res, 'error', { message: 'Keine Nutzungsdaten gefunden.' });
-        sendSSE(res, 'done', {});
-        res.end();
-        cleanup();
-        return;
-      }
+      const normalized = normalizeIncomingData(JSON.parse(rawJson));
+      writeData(normalized);
 
-      // Normalize: add totalTokens if missing
-      for (const d of daily) {
-        if (d.totalTokens == null) {
-          d.totalTokens = (d.inputTokens || 0) + (d.outputTokens || 0) +
-            (d.cacheCreationTokens || 0) + (d.cacheReadTokens || 0);
-        }
-      }
-
-      writeData({ daily });
-
-      const days = daily.length;
-      const totalCost = daily.reduce((s, d) => s + (d.totalCost || 0), 0);
+      const days = normalized.daily.length;
+      const totalCost = normalized.totals.totalCost;
 
       sendSSE(res, 'success', { days, totalCost });
       sendSSE(res, 'done', {});
@@ -275,11 +406,11 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Static file serving
-  const safePath = path.normalize(pathname).replace(/^(\.\.[/\\])+/, '');
-  let filePath = path.join(STATIC_ROOT, safePath);
+  const safePath = pathname === '/' ? '/index.html' : pathname;
+  const filePath = path.resolve(STATIC_ROOT, `.${safePath}`);
 
-  if (safePath === '/' || safePath === path.sep) {
-    filePath = path.join(STATIC_ROOT, 'index.html');
+  if (!filePath.startsWith(path.resolve(STATIC_ROOT) + path.sep) && filePath !== path.resolve(STATIC_ROOT, 'index.html')) {
+    return json(res, 403, { message: 'Zugriff verweigert' });
   }
 
   serveFile(res, filePath);
@@ -291,11 +422,8 @@ function tryListen(port) {
     process.exit(1);
   }
 
-  server.listen(port, () => {
-    console.log(`Server läuft auf http://localhost:${port}`);
-  });
-
-  server.once('error', (err) => {
+  const onError = (err) => {
+    server.off('listening', onListening);
     if (err.code === 'EADDRINUSE') {
       console.log(`Port ${port} belegt, versuche ${port + 1}...`);
       tryListen(port + 1);
@@ -303,7 +431,18 @@ function tryListen(port) {
       console.error(err);
       process.exit(1);
     }
-  });
+  };
+
+  const onListening = () => {
+    server.off('error', onError);
+    const url = `http://localhost:${port}`;
+    console.log(`Server läuft auf ${url}`);
+    openBrowser(url);
+  };
+
+  server.once('error', onError);
+  server.once('listening', onListening);
+  server.listen(port);
 }
 
 tryListen(START_PORT);

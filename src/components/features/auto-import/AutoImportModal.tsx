@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { LoaderCircle, CheckCircle2, XCircle, Terminal } from 'lucide-react'
 import { startAutoImport } from '@/lib/auto-import'
@@ -100,8 +100,11 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Terminal className="h-5 w-5" />
-            Auto-Import
+            Toktrack Auto-Import
           </DialogTitle>
+          <DialogDescription>
+            Importiert lokale Nutzungsdaten automatisch via lokalem `toktrack`, `bunx` oder `npm exec` und speichert sie nur auf diesem Gerät.
+          </DialogDescription>
         </DialogHeader>
 
         {/* Terminal output */}

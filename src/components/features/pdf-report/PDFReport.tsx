@@ -121,7 +121,7 @@ export function PDFReportButton({ containerRef }: PDFReportProps) {
       }
 
       const month = localMonth()
-      pdf.save(`ccusage-report-${month}.pdf`)
+      pdf.save(`ttdash-report-${month}.pdf`)
       addToast('PDF Report exportiert', 'success')
     } catch (error) {
       console.error('PDF generation failed:', error)

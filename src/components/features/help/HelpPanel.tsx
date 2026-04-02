@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Keyboard, ChartBar, LineChart } from 'lucide-react'
 import { KEYBOARD_SHORTCUTS, METRIC_HELP, CHART_HELP } from '@/lib/help-content'
 
@@ -41,6 +41,9 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Hilfe & Tastenkürzel</DialogTitle>
+          <DialogDescription>
+            Referenz für Tastenkürzel, Kennzahlen und Diagramm-Erklärungen im ttdash Dashboard.
+          </DialogDescription>
         </DialogHeader>
 
         {/* Keyboard shortcuts */}

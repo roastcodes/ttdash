@@ -24,6 +24,7 @@ export function useComputedMetrics(data: DailyUsage[], viewMode: ViewMode = 'dai
     { name: 'Output', value: metrics.totalOutput },
     { name: 'Cache Write', value: metrics.totalCacheCreate },
     { name: 'Cache Read', value: metrics.totalCacheRead },
+    { name: 'Thinking', value: metrics.totalThinking },
   ], [metrics])
 
   return {

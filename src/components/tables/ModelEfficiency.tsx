@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { formatPercent } from '@/lib/formatters'
-import { getModelColor } from '@/lib/model-utils'
+import { getModelColor, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
 
@@ -13,6 +13,7 @@ interface ModelData {
   costPerMillion: number
   share: number
   days: number
+  requests: number
   costPerDay: number
 }
 
@@ -25,7 +26,7 @@ interface ModelEfficiencyProps {
   viewMode?: ViewMode
 }
 
-type SortKey = 'cost' | 'tokens' | 'costPerMillion' | 'share' | 'days' | 'costPerDay'
+type SortKey = 'cost' | 'tokens' | 'costPerMillion' | 'share' | 'days' | 'requests' | 'costPerDay'
 
 export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: ModelEfficiencyProps) {
   const [sortKey, setSortKey] = useState<SortKey>('cost')
@@ -38,6 +39,7 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
     costPerMillion: v.tokens > 0 ? v.cost / (v.tokens / 1_000_000) : 0,
     share: totalCost > 0 ? (v.cost / totalCost) * 100 : 0,
     days: v.days,
+    requests: v.requests,
     costPerDay: v.days > 0 ? v.cost / v.days : 0,
   }))
 
@@ -85,6 +87,7 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
                 <SortHeader label="Tokens" field="tokens" />
                 <SortHeader label="$/1M" field="costPerMillion" />
                 <SortHeader label="Anteil" field="share" />
+                <SortHeader label="Req" field="requests" />
                 <SortHeader label={`Ø/${periodUnit(viewMode)}`} field="costPerDay" />
                 <SortHeader label={periodLabel(viewMode, true)} field="days" />
               </tr>
@@ -93,9 +96,12 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
               {sorted.map(model => (
                 <tr key={model.name} className="border-b border-border/50 even:bg-muted/5 hover:bg-muted/10 transition-colors cursor-pointer">
                   <td className="px-3 py-2.5">
-                    <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 flex-wrap">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: getModelColor(model.name) }} />
                       <span className="font-medium">{model.name}</span>
+                      <span className={cn('inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none', getProviderBadgeClasses(getModelProvider(model.name)))}>
+                        {getModelProvider(model.name)}
+                      </span>
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums">
@@ -111,6 +117,7 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
                     <div className="absolute inset-y-1 left-0 rounded-sm transition-all duration-500" style={{ width: `${model.share}%`, backgroundColor: `${getModelColor(model.name)}20` }} />
                     <span className="relative">{formatPercent(model.share)}</span>
                   </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{model.requests}</td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums">
                     <FormattedValue value={model.costPerDay} type="currency" />
                   </td>

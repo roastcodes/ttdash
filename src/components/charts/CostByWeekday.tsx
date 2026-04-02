@@ -63,6 +63,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
             dataKey="cost"
             radius={[4, 4, 0, 0]}
             name="Ø Kosten"
+            animationBegin={CHART_ANIMATION.stagger}
             animationDuration={CHART_ANIMATION.duration}
             animationEasing={CHART_ANIMATION.easing}
           >

@@ -10,6 +10,7 @@ const TOKEN_COLORS: Record<string, string> = {
   'Output': CHART_COLORS.output,
   'Cache Write': CHART_COLORS.cacheWrite,
   'Cache Read': CHART_COLORS.cacheRead,
+  'Thinking': CHART_COLORS.cost,
 }
 
 interface TokenTypesProps {
@@ -48,6 +49,7 @@ export function TokenTypes({ data }: TokenTypesProps) {
             dataKey="value"
             nameKey="name"
             animationDuration={CHART_ANIMATION.duration}
+            animationBegin={CHART_ANIMATION.stagger}
             animationEasing={CHART_ANIMATION.easing}
           >
             {data.map((entry) => (

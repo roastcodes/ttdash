@@ -39,7 +39,6 @@ import { useToast } from '@/components/ui/toast'
 import { downloadCSV } from '@/lib/csv-export'
 import { filterByModels } from '@/lib/data-transforms'
 import { formatCurrency, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
-import type { UsageData } from '@/types'
 
 export function Dashboard() {
   const { data: usageData, isLoading } = useUsageData()
@@ -54,6 +53,7 @@ export function Dashboard() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [autoImportOpen, setAutoImportOpen] = useState(false)
   const [dataSource, setDataSource] = useState<{ type: 'stored' | 'auto-import' | 'file'; label?: string; time?: string } | null>(null)
+  const [animationSeed, setAnimationSeed] = useState(0)
 
   const daily = usageData?.daily ?? []
   const hasData = daily.length > 0
@@ -68,12 +68,15 @@ export function Dashboard() {
   const {
     viewMode, setViewMode,
     selectedMonth, setSelectedMonth,
-    selectedModels, toggleModel,
+    selectedProviders, toggleProvider, clearProviders,
+    selectedModels, toggleModel, clearModels,
     startDate, setStartDate,
     endDate, setEndDate,
     applyPreset,
     filteredData,
     availableMonths,
+    availableProviders,
+    availableModels,
     dateRange,
   } = useDashboardFilters(daily)
 
@@ -122,14 +125,11 @@ export function Dashboard() {
     if (!file) return
     try {
       const text = await file.text()
-      const json = JSON.parse(text) as UsageData
-      if (!json.daily || !Array.isArray(json.daily)) {
-        addToast("Die JSON-Datei muss ein 'daily' Array enthalten", 'error')
-        return
-      }
+      const json = JSON.parse(text)
       await uploadMutation.mutateAsync(json)
+      setAnimationSeed(prev => prev + 1)
       setDataSource({ type: 'file', label: file.name, time: new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) })
-      addToast(`${json.daily.length} Tage erfolgreich geladen`, 'success')
+      addToast(`Datei ${file.name} erfolgreich geladen`, 'success')
     } catch {
       addToast('Datei konnte nicht gelesen werden', 'error')
     }
@@ -138,6 +138,7 @@ export function Dashboard() {
 
   const handleDelete = useCallback(async () => {
     await deleteMutation.mutateAsync()
+    setAnimationSeed(prev => prev + 1)
     setDataSource(null)
     initialSourceSet.current = false
     addToast('Daten gelöscht', 'info')
@@ -154,6 +155,7 @@ export function Dashboard() {
 
   const handleAutoImportSuccess = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['usage'] })
+    setAnimationSeed(prev => prev + 1)
     setDataSource({ type: 'auto-import', time: new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) })
     addToast('Daten erfolgreich importiert', 'success')
   }, [queryClient, addToast])
@@ -202,9 +204,14 @@ export function Dashboard() {
         selectedMonth={selectedMonth}
         onMonthChange={setSelectedMonth}
         availableMonths={availableMonths}
-        allModels={allModels}
+        availableProviders={availableProviders}
+        selectedProviders={selectedProviders}
+        onToggleProvider={toggleProvider}
+        onClearProviders={clearProviders}
+        allModels={availableModels}
         selectedModels={selectedModels}
         onToggleModel={toggleModel}
+        onClearModels={clearModels}
         startDate={startDate}
         endDate={endDate}
         onStartDateChange={setStartDate}
@@ -212,7 +219,7 @@ export function Dashboard() {
         onApplyPreset={applyPreset}
       />
 
-      <div className="space-y-4 mt-4">
+      <div key={`${animationSeed}-${daily.length}-${daily[daily.length - 1]?.date ?? 'empty'}-${Math.round(metrics.totalCost)}`} className="space-y-4 mt-4">
         {/* Primary Metrics */}
         <div id="metrics">
           <SectionHeader title="Metriken" badge="10 Kennzahlen" description="Wichtigste KPIs im Überblick" />
@@ -288,7 +295,7 @@ export function Dashboard() {
 
           <FadeIn delay={0.4}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-              <CumulativeCost data={costChartData} />
+              <CumulativeCost data={costChartData} rawData={filteredData} />
               <CostByWeekday data={weekdayData} />
             </div>
           </FadeIn>

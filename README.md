@@ -1,24 +1,24 @@
-# ccusage-dashboard
+# ttdash
 
-Local dashboard for visualizing [Claude Code](https://docs.anthropic.com/en/docs/claude-code) usage data — token consumption, costs, and model breakdowns.
+Local dashboard for visualizing `toktrack` usage data locally — token consumption, costs, requests, and model breakdowns.
 
-Built-in data import via [ccusage](https://github.com/ryoppippi/ccusage). Runs with Node.js or Bun.
+Built-in data import via [toktrack](https://github.com/mag123c/toktrack). Runs locally with Node.js or Bun.
 
 ## Quick Start
 
 ```bash
 git clone <repo-url>
-cd ccusage-dashboard
+cd ttdash
 ./install.sh          # macOS/Linux
 install.bat           # Windows
-ccusage-dashboard
+ttdash
 ```
 
 Then open the URL shown in the terminal (default: `http://localhost:3000`).
 
 ## Features
 
-- **Auto-Import** — one-click data import from Claude Code usage logs, no manual file export needed
+- **Auto-Import** — one-click import via `bunx toktrack daily --json`, no manual export needed
 - **Today KPIs** — current-day cost, tokens, models, $/1M efficiency, cache rate, I/O ratio with trend vs. average
 - **Month KPIs** — current-month cost (with trend vs. previous month), tokens, active days/coverage, models, $/1M efficiency, cache rate
 - **12 KPI Metric Cards** — total cost, tokens, active days, top model, cache hit rate, $/1M tokens, most/least expensive day, avg cost/day, median/day — all with hover tooltips for exact values
@@ -53,7 +53,7 @@ Then open the URL shown in the terminal (default: `http://localhost:3000`).
 ```bash
 ./install.sh         # macOS/Linux
 install.bat          # Windows (run as Administrator)
-ccusage-dashboard    # start from anywhere
+ttdash              # start from anywhere
 ```
 
 Or manually:
@@ -122,7 +122,7 @@ install.bat             # one-command setup script (Windows)
 ## Usage
 
 1. Start the dashboard
-2. Click **Auto-Import** to load data directly from your Claude Code usage logs
+2. Click **Auto-Import** to load data directly via `toktrack`
 3. Explore your usage data — costs, tokens, model breakdowns
 
 You can also upload a JSON file manually via the Upload button.
@@ -137,7 +137,7 @@ You can also upload a JSON file manually via the Upload button.
 ### Custom port
 
 ```bash
-PORT=8080 ccusage-dashboard
+PORT=8080 ttdash
 ```
 
 The server automatically finds a free port if the default (3000) is already in use.
@@ -149,11 +149,11 @@ The server automatically finds a free port if the default (3000) is already in u
 - **UI**: Radix UI primitives, Lucide React 1.x, Framer Motion
 - **State**: TanStack React Query, React hooks
 - **PDF**: html2canvas + jsPDF 4
-- **Data**: ccusage (programmatic API for Claude Code usage logs)
+- **Data**: toktrack JSON (local CLI import)
 - **Server**: Node.js HTTP
 
 ## Uninstall
 
 ```bash
-npm uninstall -g ccusage-dashboard
+npm uninstall -g ttdash
 ```

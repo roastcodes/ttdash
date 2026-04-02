@@ -45,6 +45,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
             strokeWidth={1.5}
             activeDot={{ r: 5, strokeWidth: 2, stroke: CHART_COLORS.cost, fill: 'hsl(var(--background))' }}
             dot={false}
+            animationBegin={0}
             animationDuration={CHART_ANIMATION.duration}
             animationEasing={CHART_ANIMATION.easing}
           />
@@ -57,7 +58,8 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
             strokeWidth={2}
             strokeDasharray="5 5"
             connectNulls
-            isAnimationActive={false}
+            animationBegin={CHART_ANIMATION.stagger}
+            animationDuration={CHART_ANIMATION.slowDuration}
           />
         </ComposedChart>
       </ResponsiveContainer>

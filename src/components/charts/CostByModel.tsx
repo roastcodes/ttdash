@@ -42,6 +42,7 @@ export function CostByModel({ data }: CostByModelProps) {
             dataKey="value"
             nameKey="name"
             animationDuration={CHART_ANIMATION.duration}
+            animationBegin={CHART_ANIMATION.stagger}
             animationEasing={CHART_ANIMATION.easing}
             label={false}
           >

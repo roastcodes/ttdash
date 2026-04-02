@@ -1,7 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchUsage, uploadData, deleteUsage } from '@/lib/api'
-import type { UsageData } from '@/types'
-
 export function useUsageData() {
   return useQuery({
     queryKey: ['usage'],
@@ -13,7 +11,7 @@ export function useUsageData() {
 export function useUploadData() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: UsageData) => uploadData(data),
+    mutationFn: (data: unknown) => uploadData(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usage'] })
     },

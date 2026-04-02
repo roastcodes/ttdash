@@ -101,7 +101,9 @@ export function ModelMix({ data }: ModelMixProps) {
                 strokeOpacity={0.6}
                 fill={`url(#${id})`}
                 name={model}
+                animationBegin={CHART_ANIMATION.stagger * (models.indexOf(model) % 5)}
                 animationDuration={CHART_ANIMATION.duration}
+                animationEasing={CHART_ANIMATION.easing}
               />
             )
           })}

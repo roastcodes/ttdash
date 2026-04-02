@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Command } from 'cmdk'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import {
   Download, Trash2, Upload, Sun, Moon, Calendar, ChartBar,
   Table, Search, ArrowUp, CircleHelp, Zap
@@ -63,6 +63,10 @@ export function CommandPalette({ isDark, onToggleTheme, onExportCSV, onDelete, o
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="p-0 max-w-md overflow-hidden">
+        <DialogTitle className="sr-only">Command Palette</DialogTitle>
+        <DialogDescription className="sr-only">
+          Tastaturgesteuerte Befehlsauswahl für Navigation und Aktionen im ttdash Dashboard.
+        </DialogDescription>
         <Command className="bg-transparent">
           <div className="flex items-center gap-2 border-b border-border px-3">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />

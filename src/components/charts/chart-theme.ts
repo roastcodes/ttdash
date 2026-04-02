@@ -17,6 +17,8 @@ export const CHART_MARGIN = { top: 5, right: 10, left: 10, bottom: 5 }
 export const CHART_ANIMATION = {
   duration: 800,
   easing: 'ease-out' as const,
+  stagger: 140,
+  slowDuration: 1200,
 }
 
 /** Generate a CSS-safe gradient ID from a name */

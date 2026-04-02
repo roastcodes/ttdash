@@ -15,7 +15,7 @@ interface MetricCardProps {
 
 export function MetricCard({ label, value, subtitle, icon, trend, info, className }: MetricCardProps) {
   return (
-    <Card className={cn('p-4 flex flex-col gap-1', className)}>
+    <Card className={cn('p-4 flex flex-col gap-1 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg', className)}>
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
           {label}

@@ -1,4 +1,4 @@
-import { TrendingDown, DollarSign, Coins, Cpu, Database, ArrowRightLeft } from 'lucide-react'
+import { TrendingDown, DollarSign, Coins, Cpu, Database, Activity, BrainCircuit } from 'lucide-react'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
@@ -14,7 +14,7 @@ interface TodayMetricsProps {
 
 export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
   const cacheHitRate = (today.cacheReadTokens + today.cacheCreationTokens) > 0
-    ? (today.cacheReadTokens / (today.cacheReadTokens + today.cacheCreationTokens + today.inputTokens + today.outputTokens)) * 100
+    ? (today.cacheReadTokens / (today.cacheReadTokens + today.cacheCreationTokens + today.inputTokens + today.outputTokens + today.thinkingTokens)) * 100
     : 0
 
   const topModel = today.modelBreakdowns?.length
@@ -32,7 +32,7 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
         description="KPIs des aktuellen Tages"
       />
       <FadeIn delay={0.05}>
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
           <MetricCard
             label="Kosten heute"
             value={<FormattedValue value={today.totalCost} type="currency" />}
@@ -67,10 +67,16 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
             icon={<Database className="h-4 w-4" />}
           />
           <MetricCard
-            label="Input / Output"
-            value={<FormattedValue value={today.inputTokens + today.outputTokens} type="tokens" />}
-            subtitle={`In: ${((today.inputTokens / ((today.inputTokens + today.outputTokens) || 1)) * 100).toFixed(0)}% / Out: ${((today.outputTokens / ((today.inputTokens + today.outputTokens) || 1)) * 100).toFixed(0)}%`}
-            icon={<ArrowRightLeft className="h-4 w-4" />}
+            label="Requests"
+            value={<FormattedValue value={today.requestCount} type="number" />}
+            subtitle={today.modelsUsed?.length ? `${(today.requestCount / today.modelsUsed.length).toFixed(1)} / Modell` : undefined}
+            icon={<Activity className="h-4 w-4" />}
+          />
+          <MetricCard
+            label="Thinking"
+            value={<FormattedValue value={today.thinkingTokens} type="tokens" />}
+            subtitle={today.totalTokens > 0 ? `${formatPercent((today.thinkingTokens / today.totalTokens) * 100)} Anteil` : undefined}
+            icon={<BrainCircuit className="h-4 w-4" />}
           />
         </div>
       </FadeIn>

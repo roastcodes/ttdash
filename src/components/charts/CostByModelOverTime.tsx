@@ -76,6 +76,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
               name={model}
               dot={false}
               strokeWidth={1.5}
+              animationBegin={CHART_ANIMATION.stagger * (models.indexOf(model) % 5)}
               animationDuration={CHART_ANIMATION.duration}
               animationEasing={CHART_ANIMATION.easing}
             />

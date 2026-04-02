@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, type ReactNode } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Maximize2 } from 'lucide-react'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { cn } from '@/lib/cn'
@@ -89,6 +89,9 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
         <Dialog open={expanded} onOpenChange={setExpanded}>
           <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] h-[90vh] overflow-auto p-0">
             <DialogTitle className="sr-only">{title}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Vergrösserte Diagrammansicht mit Statistik-Zusammenfassung und optionalem CSV-Export.
+            </DialogDescription>
             <div className="relative h-full flex flex-col">
               <div className="p-6 pb-2">
                 <div className="flex items-center justify-between">

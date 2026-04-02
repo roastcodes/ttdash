@@ -4,7 +4,9 @@ export interface ModelBreakdown {
   outputTokens: number
   cacheCreationTokens: number
   cacheReadTokens: number
+  thinkingTokens: number
   cost: number
+  requestCount: number
 }
 
 export interface DailyUsage {
@@ -13,8 +15,10 @@ export interface DailyUsage {
   outputTokens: number
   cacheCreationTokens: number
   cacheReadTokens: number
+  thinkingTokens: number
   totalTokens: number
   totalCost: number
+  requestCount: number
   modelsUsed: string[]
   modelBreakdowns: ModelBreakdown[]
   /** Number of original days merged into this entry (1 for daily, N for monthly/yearly) */
@@ -28,8 +32,10 @@ export interface UsageData {
     outputTokens: number
     cacheCreationTokens: number
     cacheReadTokens: number
+    thinkingTokens: number
     totalCost: number
     totalTokens: number
+    requestCount: number
   }
 }
 
@@ -48,12 +54,15 @@ export interface DashboardMetrics {
   cacheHitRate: number
   costPerMillion: number
   avgDailyCost: number
+  avgRequestsPerDay: number
   topDay: { date: string; cost: number } | null
   cheapestDay: { date: string; cost: number } | null
   totalInput: number
   totalOutput: number
   totalCacheRead: number
   totalCacheCreate: number
+  totalThinking: number
+  totalRequests: number
   weekOverWeekChange: number | null
 }
 
@@ -66,8 +75,10 @@ export interface AggregatedPeriod {
   outputTokens: number
   cacheCreationTokens: number
   cacheReadTokens: number
+  thinkingTokens: number
+  requestCount: number
   days: number
-  modelBreakdowns: Map<string, { cost: number; tokens: number; input: number; output: number; cacheRead: number; cacheCreate: number }>
+  modelBreakdowns: Map<string, { cost: number; tokens: number; input: number; output: number; cacheRead: number; cacheCreate: number; thinking: number; requests: number }>
 }
 
 export interface ChartDataPoint {
@@ -84,11 +95,13 @@ export interface TokenChartDataPoint {
   Output: number
   'Cache Write': number
   'Cache Read': number
+  Thinking: number
   tokenMA7?: number
   inputMA7?: number
   outputMA7?: number
   cacheWriteMA7?: number
   cacheReadMA7?: number
+  thinkingMA7?: number
 }
 
 export interface WeekdayData {

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Maximize2 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
@@ -33,6 +33,9 @@ export function ExpandableCard({ children, title, className, expandedClassName, 
           expandedClassName
         )}>
           <DialogTitle className="sr-only">{title ?? 'Vergrösserte Ansicht'}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Vergrösserte Kartenansicht mit zusätzlichen Kennzahlen und vollständigem Inhalt.
+          </DialogDescription>
           <div className="h-full">
             {stats && stats.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">

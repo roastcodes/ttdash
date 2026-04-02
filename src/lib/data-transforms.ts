@@ -1,6 +1,6 @@
 import type { DailyUsage, ChartDataPoint, TokenChartDataPoint, WeekdayData, ViewMode } from '@/types'
 import { computeMovingAverage } from './calculations'
-import { normalizeModelName } from './model-utils'
+import { getModelProvider, normalizeModelName } from './model-utils'
 import { WEEKDAYS } from './constants'
 
 export function filterByDateRange(data: DailyUsage[], start?: string, end?: string): DailyUsage[] {
@@ -28,6 +28,8 @@ export function filterByModels(data: DailyUsage[], selectedModels: string[]): Da
       let outputTokens = 0
       let cacheCreationTokens = 0
       let cacheReadTokens = 0
+      let thinkingTokens = 0
+      let requestCount = 0
 
       for (const mb of filteredBreakdowns) {
         totalCost += mb.cost
@@ -35,9 +37,11 @@ export function filterByModels(data: DailyUsage[], selectedModels: string[]): Da
         outputTokens += mb.outputTokens
         cacheCreationTokens += mb.cacheCreationTokens
         cacheReadTokens += mb.cacheReadTokens
+        thinkingTokens += mb.thinkingTokens
+        requestCount += mb.requestCount
       }
 
-      const totalTokens = inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens
+      const totalTokens = inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens + thinkingTokens
 
       return {
         ...d,
@@ -47,6 +51,54 @@ export function filterByModels(data: DailyUsage[], selectedModels: string[]): Da
         outputTokens,
         cacheCreationTokens,
         cacheReadTokens,
+        thinkingTokens,
+        requestCount,
+        modelBreakdowns: filteredBreakdowns,
+        modelsUsed: filteredBreakdowns.map(mb => mb.modelName),
+      }
+    })
+    .filter((d): d is DailyUsage => d !== null)
+}
+
+export function filterByProviders(data: DailyUsage[], selectedProviders: string[]): DailyUsage[] {
+  if (selectedProviders.length === 0) return data
+
+  return data
+    .map(d => {
+      const filteredBreakdowns = d.modelBreakdowns.filter(mb =>
+        selectedProviders.includes(getModelProvider(mb.modelName))
+      )
+
+      if (filteredBreakdowns.length === 0) return null
+
+      let totalCost = 0
+      let inputTokens = 0
+      let outputTokens = 0
+      let cacheCreationTokens = 0
+      let cacheReadTokens = 0
+      let thinkingTokens = 0
+      let requestCount = 0
+
+      for (const mb of filteredBreakdowns) {
+        totalCost += mb.cost
+        inputTokens += mb.inputTokens
+        outputTokens += mb.outputTokens
+        cacheCreationTokens += mb.cacheCreationTokens
+        cacheReadTokens += mb.cacheReadTokens
+        thinkingTokens += mb.thinkingTokens
+        requestCount += mb.requestCount
+      }
+
+      return {
+        ...d,
+        totalCost,
+        totalTokens: inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens + thinkingTokens,
+        inputTokens,
+        outputTokens,
+        cacheCreationTokens,
+        cacheReadTokens,
+        thinkingTokens,
+        requestCount,
         modelBreakdowns: filteredBreakdowns,
         modelsUsed: filteredBreakdowns.map(mb => mb.modelName),
       }
@@ -144,22 +196,26 @@ export function toTokenChartData(data: DailyUsage[]): TokenChartDataPoint[] {
   const outputs = sorted.map(d => d.outputTokens)
   const cacheWrites = sorted.map(d => d.cacheCreationTokens)
   const cacheReads = sorted.map(d => d.cacheReadTokens)
+  const thinking = sorted.map(d => d.thinkingTokens)
   const ma7 = computeMovingAverage(totals)
   const inputMA7 = computeMovingAverage(inputs)
   const outputMA7 = computeMovingAverage(outputs)
   const cacheWriteMA7 = computeMovingAverage(cacheWrites)
   const cacheReadMA7 = computeMovingAverage(cacheReads)
+  const thinkingMA7 = computeMovingAverage(thinking)
   return sorted.map((d, i) => ({
     date: d.date,
     Input: d.inputTokens,
     Output: d.outputTokens,
     'Cache Write': d.cacheCreationTokens,
     'Cache Read': d.cacheReadTokens,
+    Thinking: d.thinkingTokens,
     tokenMA7: ma7[i],
     inputMA7: inputMA7[i],
     outputMA7: outputMA7[i],
     cacheWriteMA7: cacheWriteMA7[i],
     cacheReadMA7: cacheReadMA7[i],
+    thinkingMA7: thinkingMA7[i],
   }))
 }
 
@@ -202,6 +258,8 @@ export function aggregateToDailyFormat(data: DailyUsage[], mode: ViewMode): Dail
       existing.outputTokens += d.outputTokens
       existing.cacheCreationTokens += d.cacheCreationTokens
       existing.cacheReadTokens += d.cacheReadTokens
+      existing.thinkingTokens += d.thinkingTokens
+      existing.requestCount += d.requestCount
       existing._aggregatedDays = (existing._aggregatedDays ?? 1) + days
       // Merge model breakdowns
       existing.modelBreakdowns = [...existing.modelBreakdowns, ...d.modelBreakdowns]
@@ -214,17 +272,17 @@ export function aggregateToDailyFormat(data: DailyUsage[], mode: ViewMode): Dail
   return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date))
 }
 
-export function aggregateByMonth(data: DailyUsage[]): { period: string; totalCost: number; totalTokens: number; inputTokens: number; outputTokens: number; cacheCreationTokens: number; cacheReadTokens: number; days: number; modelBreakdowns: DailyUsage['modelBreakdowns'] }[] {
+export function aggregateByMonth(data: DailyUsage[]): { period: string; totalCost: number; totalTokens: number; inputTokens: number; outputTokens: number; cacheCreationTokens: number; cacheReadTokens: number; thinkingTokens: number; requestCount: number; days: number; modelBreakdowns: DailyUsage['modelBreakdowns'] }[] {
   const map = new Map<string, {
     totalCost: number; totalTokens: number; inputTokens: number; outputTokens: number;
-    cacheCreationTokens: number; cacheReadTokens: number; days: number;
+    cacheCreationTokens: number; cacheReadTokens: number; thinkingTokens: number; requestCount: number; days: number;
     modelBreakdowns: DailyUsage['modelBreakdowns']
   }>()
   for (const d of data) {
     const month = d.date.slice(0, 7)
     const existing = map.get(month) ?? {
       totalCost: 0, totalTokens: 0, inputTokens: 0, outputTokens: 0,
-      cacheCreationTokens: 0, cacheReadTokens: 0, days: 0, modelBreakdowns: [],
+      cacheCreationTokens: 0, cacheReadTokens: 0, thinkingTokens: 0, requestCount: 0, days: 0, modelBreakdowns: [],
     }
     existing.totalCost += d.totalCost
     existing.totalTokens += d.totalTokens
@@ -232,6 +290,8 @@ export function aggregateByMonth(data: DailyUsage[]): { period: string; totalCos
     existing.outputTokens += d.outputTokens
     existing.cacheCreationTokens += d.cacheCreationTokens
     existing.cacheReadTokens += d.cacheReadTokens
+    existing.thinkingTokens += d.thinkingTokens
+    existing.requestCount += d.requestCount
     existing.days += 1
     existing.modelBreakdowns = [...existing.modelBreakdowns, ...d.modelBreakdowns]
     map.set(month, existing)

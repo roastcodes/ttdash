@@ -5,9 +5,9 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
   if (data.length === 0) {
     return {
       totalCost: 0, totalTokens: 0, activeDays: 0, topModel: null,
-      cacheHitRate: 0, costPerMillion: 0, avgDailyCost: 0,
+      cacheHitRate: 0, costPerMillion: 0, avgDailyCost: 0, avgRequestsPerDay: 0,
       topDay: null, cheapestDay: null, totalInput: 0, totalOutput: 0,
-      totalCacheRead: 0, totalCacheCreate: 0, weekOverWeekChange: null,
+      totalCacheRead: 0, totalCacheCreate: 0, totalThinking: 0, totalRequests: 0, weekOverWeekChange: null,
     }
   }
 
@@ -17,12 +17,15 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
   const totalOutput = data.reduce((s, d) => s + d.outputTokens, 0)
   const totalCacheRead = data.reduce((s, d) => s + d.cacheReadTokens, 0)
   const totalCacheCreate = data.reduce((s, d) => s + d.cacheCreationTokens, 0)
+  const totalThinking = data.reduce((s, d) => s + d.thinkingTokens, 0)
+  const totalRequests = data.reduce((s, d) => s + d.requestCount, 0)
 
   const activeDays = data.reduce((s, d) => s + (d._aggregatedDays ?? 1), 0)
   const avgDailyCost = totalCost / activeDays
+  const avgRequestsPerDay = totalRequests / activeDays
   const costPerMillion = totalTokens > 0 ? totalCost / (totalTokens / 1_000_000) : 0
-  const cacheHitRate = (totalCacheRead + totalCacheCreate + totalInput + totalOutput) > 0
-    ? (totalCacheRead / (totalCacheRead + totalCacheCreate + totalInput + totalOutput)) * 100
+  const cacheHitRate = (totalCacheRead + totalCacheCreate + totalInput + totalOutput + totalThinking) > 0
+    ? (totalCacheRead / (totalCacheRead + totalCacheCreate + totalInput + totalOutput + totalThinking)) * 100
     : 0
 
   // Top/cheapest day
@@ -51,8 +54,9 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
 
   return {
     totalCost, totalTokens, activeDays, topModel, cacheHitRate,
-    costPerMillion, avgDailyCost, topDay, cheapestDay,
+    costPerMillion, avgDailyCost, avgRequestsPerDay, topDay, cheapestDay,
     totalInput, totalOutput, totalCacheRead, totalCacheCreate,
+    totalThinking, totalRequests,
     weekOverWeekChange,
   }
 }
@@ -78,23 +82,25 @@ export function computeMovingAverage(values: number[], window = 7): (number | un
 
 export function computeModelCosts(data: DailyUsage[]): Map<string, {
   cost: number; tokens: number; input: number; output: number;
-  cacheRead: number; cacheCreate: number; days: number
+  cacheRead: number; cacheCreate: number; thinking: number; requests: number; days: number
 }> {
   const map = new Map<string, {
     cost: number; tokens: number; input: number; output: number;
-    cacheRead: number; cacheCreate: number; days: number; _dates: Set<string>
+    cacheRead: number; cacheCreate: number; thinking: number; requests: number; days: number; _dates: Set<string>
   }>()
   for (const d of data) {
     const entryDays = d._aggregatedDays ?? 1
     for (const mb of d.modelBreakdowns) {
       const name = normalizeModelName(mb.modelName)
-      const existing = map.get(name) ?? { cost: 0, tokens: 0, input: 0, output: 0, cacheRead: 0, cacheCreate: 0, days: 0, _dates: new Set<string>() }
+      const existing = map.get(name) ?? { cost: 0, tokens: 0, input: 0, output: 0, cacheRead: 0, cacheCreate: 0, thinking: 0, requests: 0, days: 0, _dates: new Set<string>() }
       existing.cost += mb.cost
-      existing.tokens += mb.inputTokens + mb.outputTokens + mb.cacheCreationTokens + mb.cacheReadTokens
+      existing.tokens += mb.inputTokens + mb.outputTokens + mb.cacheCreationTokens + mb.cacheReadTokens + mb.thinkingTokens
       existing.input += mb.inputTokens
       existing.output += mb.outputTokens
       existing.cacheRead += mb.cacheReadTokens
       existing.cacheCreate += mb.cacheCreationTokens
+      existing.thinking += mb.thinkingTokens
+      existing.requests += mb.requestCount
       if (!existing._dates.has(d.date)) {
         existing._dates.add(d.date)
         existing.days += entryDays
@@ -127,4 +133,104 @@ export function linearRegression(values: number[]): { slope: number; intercept: 
   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX)
   const intercept = (sumY - slope * sumX) / n
   return { slope, intercept }
+}
+
+function average(values: number[]): number {
+  if (values.length === 0) return 0
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function stdDev(values: number[]): number {
+  if (values.length < 2) return 0
+  const mean = average(values)
+  return Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length)
+}
+
+function quantile(values: number[], q: number): number {
+  if (values.length === 0) return 0
+  const sorted = [...values].sort((a, b) => a - b)
+  const index = (sorted.length - 1) * q
+  const lower = Math.floor(index)
+  const upper = Math.ceil(index)
+  if (lower === upper) return sorted[lower]
+  const weight = index - lower
+  return sorted[lower] * (1 - weight) + sorted[upper] * weight
+}
+
+function winsorizedAverage(values: number[], limit = 0.15): number {
+  if (values.length === 0) return 0
+  if (values.length < 4) return average(values)
+  const low = quantile(values, limit)
+  const high = quantile(values, 1 - limit)
+  return average(values.map(value => Math.min(high, Math.max(low, value))))
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
+
+export function computeCurrentMonthForecast(data: DailyUsage[]) {
+  if (data.length < 2) return null
+
+  const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
+  const lastDate = new Date(sorted[sorted.length - 1].date + 'T00:00:00')
+  const currentMonth = sorted[sorted.length - 1].date.slice(0, 7)
+  const monthData = sorted.filter(d => d.date.startsWith(currentMonth))
+
+  if (monthData.length < 2) return null
+
+  const monthTotal = monthData.reduce((sum, day) => sum + day.totalCost, 0)
+  const monthCostMap = new Map(monthData.map(day => [day.date, day.totalCost]))
+  const daysInMonth = new Date(lastDate.getFullYear(), lastDate.getMonth() + 1, 0).getDate()
+  const elapsedDays = lastDate.getDate()
+  const remainingDays = Math.max(0, daysInMonth - elapsedDays)
+
+  const elapsedCalendarSeries = Array.from({ length: elapsedDays }, (_, index) => {
+    const day = index + 1
+    const date = `${currentMonth}-${String(day).padStart(2, '0')}`
+    return {
+      date,
+      cost: monthCostMap.get(date) ?? 0,
+    }
+  })
+
+  const elapsedCosts = elapsedCalendarSeries.map(point => point.cost)
+  const monthToDateAvg = monthTotal / elapsedDays
+  const recentWindow = elapsedCosts.slice(-Math.min(7, elapsedCosts.length))
+  const previousWindow = elapsedCosts.slice(-Math.min(14, elapsedCosts.length), -Math.min(7, elapsedCosts.length))
+  const recentAvg = winsorizedAverage(recentWindow)
+  const previousAvg = previousWindow.length > 0 ? winsorizedAverage(previousWindow) : 0
+  const trendAdjustment = previousAvg > 0
+    ? clamp((recentAvg - previousAvg) / previousAvg, -0.35, 0.35) * 0.25
+    : 0
+  const projectedDailyBurn = Math.max(0, (monthToDateAvg * 0.6 + recentAvg * 0.4) * (1 + trendAdjustment))
+
+  const volatility = stdDev(recentWindow.length >= 4 ? recentWindow : elapsedCosts)
+  const lowerDaily = Math.max(0, projectedDailyBurn - volatility)
+  const upperDaily = projectedDailyBurn + volatility
+  const forecastTotal = monthTotal + projectedDailyBurn * remainingDays
+  const dailyAvgTrend = previousAvg > 0
+    ? { avg: recentAvg, change: ((recentAvg - previousAvg) / previousAvg) * 100 }
+    : { avg: recentAvg, change: 0 }
+
+  let confidence = 'niedrig'
+  if (elapsedDays >= 14 && volatility <= projectedDailyBurn * 0.75) confidence = 'hoch'
+  else if (elapsedDays >= 7 && volatility <= projectedDailyBurn * 1.25) confidence = 'mittel'
+
+  return {
+    currentMonth,
+    monthData,
+    currentMonthTotal: monthTotal,
+    elapsedDays,
+    elapsedCalendarSeries,
+    daysInMonth,
+    remainingDays,
+    projectedDailyBurn,
+    volatility,
+    lowerDaily,
+    upperDaily,
+    forecastTotal,
+    dailyAvgTrend,
+    confidence,
+  }
 }

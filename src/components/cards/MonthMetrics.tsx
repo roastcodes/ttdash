@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { TrendingDown, DollarSign, Coins, Cpu, Database, CalendarDays } from 'lucide-react'
+import { TrendingDown, DollarSign, Coins, Cpu, Database, CalendarDays, Activity, BrainCircuit } from 'lucide-react'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
@@ -36,8 +36,10 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
     const outputTokens = monthData.reduce((s, d) => s + d.outputTokens, 0)
     const cacheRead = monthData.reduce((s, d) => s + d.cacheReadTokens, 0)
     const cacheCreate = monthData.reduce((s, d) => s + d.cacheCreationTokens, 0)
+    const thinkingTokens = monthData.reduce((s, d) => s + d.thinkingTokens, 0)
+    const requestCount = monthData.reduce((s, d) => s + d.requestCount, 0)
 
-    const allTokens = cacheRead + cacheCreate + inputTokens + outputTokens
+    const allTokens = cacheRead + cacheCreate + inputTokens + outputTokens + thinkingTokens
     const cacheHitRate = allTokens > 0 ? (cacheRead / allTokens) * 100 : 0
     const costPerMillion = totalTokens > 0 ? totalCost / (totalTokens / 1_000_000) : 0
 
@@ -61,7 +63,7 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
 
     return {
       totalCost, totalTokens, inputTokens, outputTokens,
-      cacheRead, cacheCreate, cacheHitRate, costPerMillion,
+      cacheRead, cacheCreate, thinkingTokens, requestCount, cacheHitRate, costPerMillion,
       activeDays: monthData.length, dayOfMonth,
       modelCount: models.size, topModel,
     }
@@ -88,7 +90,7 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
         description="KPIs des laufenden Monats"
       />
       <FadeIn delay={0.08}>
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
           <MetricCard
             label="Kosten Monat"
             value={<FormattedValue value={agg.totalCost} type="currency" />}
@@ -127,6 +129,18 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
             value={<FormattedValue value={agg.cacheHitRate} type="percent" />}
             subtitle={`In: ${ioTotal > 0 ? ((agg.inputTokens / ioTotal) * 100).toFixed(0) : 0}% / Out: ${ioTotal > 0 ? ((agg.outputTokens / ioTotal) * 100).toFixed(0) : 0}%`}
             icon={<Database className="h-4 w-4" />}
+          />
+          <MetricCard
+            label="Requests"
+            value={<FormattedValue value={agg.requestCount} type="number" />}
+            subtitle={`Ø ${(agg.requestCount / agg.activeDays).toFixed(1)}/Tag`}
+            icon={<Activity className="h-4 w-4" />}
+          />
+          <MetricCard
+            label="Thinking"
+            value={<FormattedValue value={agg.thinkingTokens} type="tokens" />}
+            subtitle={agg.totalTokens > 0 ? `${((agg.thinkingTokens / agg.totalTokens) * 100).toFixed(1)}% Anteil` : undefined}
+            icon={<BrainCircuit className="h-4 w-4" />}
           />
         </div>
       </FadeIn>

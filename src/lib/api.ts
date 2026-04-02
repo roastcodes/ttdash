@@ -6,7 +6,7 @@ export async function fetchUsage(): Promise<UsageData> {
   return res.json()
 }
 
-export async function uploadData(data: UsageData): Promise<{ days: number; totalCost: number }> {
+export async function uploadData(data: unknown): Promise<{ days: number; totalCost: number }> {
   const res = await fetch('/api/upload', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
