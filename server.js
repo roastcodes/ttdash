@@ -6,6 +6,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const { normalizeIncomingData } = require('./usage-normalizer');
+const { version: APP_VERSION } = require('./package.json');
 
 const ROOT = __dirname;
 const STATIC_ROOT = path.join(ROOT, 'dist');
@@ -23,6 +24,7 @@ const SECURITY_HEADERS = {
   'X-Frame-Options': 'DENY',
   'Cross-Origin-Opener-Policy': 'same-origin',
 };
+const APP_LABEL = 'TTDash';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -60,6 +62,64 @@ function openBrowser(url) {
   });
   child.on('error', () => {});
   child.unref();
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat('de-CH', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: value >= 100 ? 0 : 2,
+    maximumFractionDigits: value >= 100 ? 0 : 2,
+  }).format(value || 0);
+}
+
+function formatInteger(value) {
+  return new Intl.NumberFormat('de-CH').format(value || 0);
+}
+
+function describeDataFile() {
+  if (!fs.existsSync(DATA_FILE)) {
+    return 'keine lokale Datei gefunden';
+  }
+
+  try {
+    const normalized = readData();
+    if (!normalized) {
+      return 'vorhanden, aber nicht lesbar';
+    }
+
+    const totalCost = formatCurrency(normalized.totals?.totalCost || 0);
+    const totalTokens = formatInteger(normalized.totals?.totalTokens || 0);
+    const dailyCount = formatInteger(normalized.daily?.length || 0);
+    return `${dailyCount} Tage, ${totalCost}, ${totalTokens} Tokens`;
+  } catch {
+    return 'vorhanden, aber nicht lesbar';
+  }
+}
+
+function printStartupSummary(url, port) {
+  const browserMode = process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1' || !process.stdout.isTTY
+    ? 'deaktiviert'
+    : 'aktiviert';
+
+  console.log('');
+  console.log(`${APP_LABEL} v${APP_VERSION} ist bereit`);
+  console.log(`  URL:            ${url}`);
+  console.log(`  API:            ${url}/api/usage`);
+  console.log(`  Port:           ${port}`);
+  console.log(`  Static Root:    ${STATIC_ROOT}`);
+  console.log(`  Daten-Datei:    ${DATA_FILE}`);
+  console.log(`  Datenstatus:    ${describeDataFile()}`);
+  console.log(`  Browser-Start:  ${browserMode}`);
+  console.log('');
+  console.log('Verfügbare Wege für Daten:');
+  console.log('  1. Auto-Import aus der App starten');
+  console.log('  2. toktrack JSON per Upload importieren');
+  console.log('');
+  console.log('Nützliche Kommandos:');
+  console.log(`  NO_OPEN_BROWSER=1 PORT=${port} node server.js`);
+  console.log(`  curl ${url}/api/usage`);
+  console.log('');
 }
 
 function getCacheControl(filePath) {
@@ -461,7 +521,7 @@ function tryListen(port) {
   const onListening = () => {
     server.off('error', onError);
     const url = `http://localhost:${port}`;
-    console.log(`Server läuft auf ${url}`);
+    printStartupSummary(url, port);
     openBrowser(url);
   };
 
