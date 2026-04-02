@@ -1,5 +1,27 @@
 # Changelog
 
+## [5.3.2] - 2026-04-02
+
+### Added
+- **Toktrack-Migration & Rebranding** — Dashboard, Paket und UI laufen jetzt unter `TTDash` mit `toktrack` als primärem Datenformat; Legacy-`ccusage`-JSON bleibt kompatibel
+- **Anbieter-Filter** — Filterung nach `OpenAI`, `Anthropic`, `Google` usw. mit passender Einschränkung der sichtbaren Modelle
+- **Anbieter-Badges** — farbige Provider-Labels in Tabellen, Drill-downs und Filtern für bessere Modell-Zuordnung
+- **Thinking- & Request-Metriken** — zusätzliche Nutzungsfelder im Datenmodell, in KPIs und Visualisierungen
+- **Bun-aware Installation** — `install.sh` und `install.bat` nutzen Bun, wenn verfügbar, sonst npm
+
+### Improved
+- **Auto-Import Runner-Auswahl** — nutzt zuerst lokales `toktrack`, dann `bunx`, dann `npx --yes toktrack`; Statusmeldungen zeigen den tatsächlich verwendeten Pfad
+- **Monatsprognose** — Forecast basiert jetzt auf Kalender-Tageskosten, geglätteter Run-Rate und defensiverer Volatilitätsbewertung statt einfacher linearer Regression
+- **Kumulative Monatsprojektion** — verwendet dieselbe Shared-Forecast-Logik wie die Prognose-Karte
+- **Animationen** — mehr Aufbauanimationen für Cards und Diagramme; beim Upload oder Auto-Import werden diese wieder in den Initialzustand zurückgesetzt
+- **Lokaler App-Start** — öffnet beim Start aus dem Terminal direkt den Browser
+
+### Fixed
+- **Heatmap-Tooltip** — Hover-Labels sitzen wieder direkt über der Zelle statt viewport-versetzt
+- **Dialog-A11y** — fehlende Beschreibungen für Radix-Dialoge ergänzt
+- **Favicon & Tab-Titel** — Branding auf `TTDash` aktualisiert
+- **Static Serving & Upload-Härtung** — Pfade und Upload-Validierung im Server robuster gemacht
+
 ## [5.3.1] - 2026-04-01
 
 ### Fixed
