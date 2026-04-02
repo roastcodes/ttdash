@@ -1,5 +1,5 @@
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
-import { ChartCard } from './ChartCard'
+import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_ANIMATION } from './chart-theme'
 import { formatTokens } from '@/lib/formatters'
@@ -37,36 +37,43 @@ export function TokenTypes({ data }: TokenTypesProps) {
 
   return (
     <ChartCard title="Token-Typen" subtitle="Verteilung der Token-Typen" info={CHART_HELP.tokenTypes} chartData={data as unknown as Record<string, unknown>[]} valueKey="value" valueFormatter={formatTokens}>
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={100}
-            paddingAngle={2}
-            dataKey="value"
-            nameKey="name"
-            animationDuration={CHART_ANIMATION.duration}
-            animationBegin={CHART_ANIMATION.stagger}
-            animationEasing={CHART_ANIMATION.easing}
-          >
-            {data.map((entry) => (
-              <Cell key={entry.name} fill={TOKEN_COLORS[entry.name] ?? CHART_COLORS.cost} />
-            ))}
-            <CenterLabel total={formatTokens(total)} />
-          </Pie>
-          <Tooltip content={<CustomTooltip formatter={(v) => formatTokens(v)} />} />
-          <Legend
-            wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
-            formatter={(value: string) => {
-              const entry = data.find(d => d.name === value)
-              return <span className="text-xs text-foreground">{value} ({entry ? formatTokens(entry.value) : ''})</span>
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+      <ChartAnimationAware>
+        {(animate) => (
+          <ChartReveal variant="radial" delay={0.04}>
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="57%"
+                  innerRadius={58}
+                  outerRadius={92}
+                  paddingAngle={2}
+                  dataKey="value"
+                  nameKey="name"
+                  isAnimationActive={animate}
+                  animationDuration={CHART_ANIMATION.duration}
+                  animationBegin={CHART_ANIMATION.stagger}
+                  animationEasing={CHART_ANIMATION.easing}
+                >
+                  {data.map((entry) => (
+                    <Cell key={entry.name} fill={TOKEN_COLORS[entry.name] ?? CHART_COLORS.cost} />
+                  ))}
+                  <CenterLabel total={formatTokens(total)} />
+                </Pie>
+                <Tooltip content={<CustomTooltip formatter={(v) => formatTokens(v)} />} />
+                <Legend
+                  wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
+                  formatter={(value: string) => {
+                    const entry = data.find(d => d.name === value)
+                    return <span className="text-xs text-foreground">{value} ({entry ? formatTokens(entry.value) : ''})</span>
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartReveal>
+        )}
+      </ChartAnimationAware>
     </ChartCard>
   )
 }

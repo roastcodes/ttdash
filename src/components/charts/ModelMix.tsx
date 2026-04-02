@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
-import { ChartCard } from './ChartCard'
+import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { getModelColor, normalizeModelName } from '@/lib/model-utils'
 import { formatDateAxis, formatPercent } from '@/lib/formatters'
@@ -69,8 +69,11 @@ export function ModelMix({ data }: ModelMixProps) {
       subtitle="Kostenanteil pro Modell über die Zeit"
       info="Zeigt wie sich die Modell-Nutzung über die Zeit verändert. Nützlich um Migrations-Muster zu erkennen."
     >
-      <ResponsiveContainer width="100%" height={250}>
-        <AreaChart data={chartData} margin={CHART_MARGIN} stackOffset="none">
+      <ChartAnimationAware>
+        {(animate) => (
+          <ChartReveal variant="line" delay={0.05}>
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={chartData} margin={CHART_MARGIN} stackOffset="none">
           <defs>
             {models.map(model => {
               const color = getModelColor(model)
@@ -91,24 +94,28 @@ export function ModelMix({ data }: ModelMixProps) {
             const color = getModelColor(model)
             const id = `mix-grad-${model.replace(/[\s.]/g, '-')}`
             return (
-              <Area
-                key={model}
-                type="monotone"
-                dataKey={model}
-                stackId="1"
-                stroke={color}
-                strokeWidth={0.5}
-                strokeOpacity={0.6}
-                fill={`url(#${id})`}
-                name={model}
-                animationBegin={CHART_ANIMATION.stagger * (models.indexOf(model) % 5)}
-                animationDuration={CHART_ANIMATION.duration}
-                animationEasing={CHART_ANIMATION.easing}
-              />
-            )
-          })}
-        </AreaChart>
-      </ResponsiveContainer>
+                <Area
+                  key={model}
+                  type="monotone"
+                  dataKey={model}
+                  stackId="1"
+                  stroke={color}
+                  strokeWidth={0.5}
+                  strokeOpacity={0.6}
+                  fill={`url(#${id})`}
+                  name={model}
+                  isAnimationActive={animate}
+                  animationBegin={CHART_ANIMATION.stagger * (models.indexOf(model) % 5)}
+                  animationDuration={CHART_ANIMATION.duration}
+                  animationEasing={CHART_ANIMATION.easing}
+                />
+              )
+            })}
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartReveal>
+        )}
+      </ChartAnimationAware>
     </ChartCard>
   )
 }

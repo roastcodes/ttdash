@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, type ReactNode } from 'react'
+import { createContext, useState, useMemo, useCallback, useContext, useRef, type ReactNode } from 'react'
+import { motion, useInView } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Maximize2 } from 'lucide-react'
@@ -20,8 +21,64 @@ interface ChartCardProps {
   expandedExtra?: ReactNode
 }
 
+const ChartAnimationContext = createContext(false)
+
+export function useChartAnimationActive() {
+  return useContext(ChartAnimationContext)
+}
+
+export function ChartAnimationAware({ children }: { children: (active: boolean) => ReactNode }) {
+  return <>{children(useChartAnimationActive())}</>
+}
+
+interface ChartRevealProps {
+  children: ReactNode
+  variant?: 'line' | 'bar' | 'radial'
+  delay?: number
+  duration?: number
+}
+
+export function ChartReveal({ children, variant = 'line', delay = 0, duration = 0.7 }: ChartRevealProps) {
+  const active = useChartAnimationActive()
+  const resolvedDuration = variant === 'radial' ? Math.max(duration, 0.95) : Math.max(duration, 0.9)
+
+  const hidden = variant === 'bar'
+    ? { opacity: 0, clipPath: 'inset(100% 0 0 0 round 16px)', y: 10 }
+    : variant === 'radial'
+      ? { opacity: 0, scale: 0.82, rotate: -18 }
+      : { opacity: 0, clipPath: 'inset(0 100% 0 0 round 16px)', x: -8 }
+
+  const visible = variant === 'bar'
+    ? { opacity: 1, clipPath: 'inset(0 0 0 0 round 16px)', y: 0 }
+    : variant === 'radial'
+      ? { opacity: 1, scale: 1, rotate: 0 }
+      : { opacity: 1, clipPath: 'inset(0 0 0 0 round 16px)', x: 0 }
+
+  return (
+    <motion.div
+      initial={hidden}
+      animate={active ? visible : hidden}
+      transition={{ duration: resolvedDuration, delay, ease: 'easeOut' }}
+      style={{
+        width: '100%',
+        height: '100%',
+        overflow: variant === 'radial' ? 'visible' : 'hidden',
+        transformOrigin: variant === 'bar' ? 'center bottom' : 'center center',
+        paddingTop: variant === 'radial' ? 8 : 0,
+        paddingBottom: variant === 'radial' ? 8 : 0,
+        boxSizing: 'border-box',
+      }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 export function ChartCard({ title, subtitle, summary, info, expandable = true, children, className, chartData, valueKey, valueFormatter, expandedExtra }: ChartCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const cardRef = useRef<HTMLDivElement | null>(null)
+  const isInView = useInView(cardRef, { once: true, amount: 0.25 })
+  const animationActive = isInView || expanded
 
   const stats = useMemo(() => {
     if (!chartData || !valueKey) return null
@@ -71,19 +128,21 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
 
   return (
     <>
-      <Card className={cn('group relative', className)}>
-        {header}
-        <CardContent>{children}</CardContent>
-        {expandable && (
-          <button
-            onClick={() => setExpanded(true)}
-            className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1.5 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-accent text-muted-foreground hover:text-foreground"
-            title="Vergrössern"
-          >
-            <Maximize2 className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </Card>
+      <ChartAnimationContext.Provider value={animationActive}>
+        <Card ref={cardRef} className={cn('group relative', className)}>
+          {header}
+          <CardContent>{children}</CardContent>
+          {expandable && (
+            <button
+              onClick={() => setExpanded(true)}
+              className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1.5 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-accent text-muted-foreground hover:text-foreground"
+              title="Vergrössern"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </Card>
+      </ChartAnimationContext.Provider>
 
       {expandable && (
         <Dialog open={expanded} onOpenChange={setExpanded}>
@@ -92,52 +151,54 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
             <DialogDescription className="sr-only">
               Vergrösserte Diagrammansicht mit Statistik-Zusammenfassung und optionalem CSV-Export.
             </DialogDescription>
-            <div className="relative h-full flex flex-col">
-              <div className="p-6 pb-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold">{title}</h2>
-                    {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+            <ChartAnimationContext.Provider value={expanded}>
+              <div className="relative h-full flex flex-col">
+                <div className="p-6 pb-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold">{title}</h2>
+                      {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+                    </div>
+                    {chartData && chartData.length > 0 && (
+                      <button
+                        onClick={handleExport}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-muted-foreground hover:text-foreground"
+                      >
+                        CSV Export
+                      </button>
+                    )}
                   </div>
-                  {chartData && chartData.length > 0 && (
-                    <button
-                      onClick={handleExport}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-muted-foreground hover:text-foreground"
-                    >
-                      CSV Export
-                    </button>
+                  {stats && (
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
+                      <div className="p-2.5 rounded-lg bg-muted/20 text-center">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Min</div>
+                        <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.min)}</div>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-muted/20 text-center">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Max</div>
+                        <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.max)}</div>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-muted/20 text-center">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Durchschnitt</div>
+                        <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.avg)}</div>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-muted/20 text-center">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</div>
+                        <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.total)}</div>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-muted/20 text-center">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Datenpunkte</div>
+                        <div className="font-mono font-medium text-sm mt-0.5">{stats.count}</div>
+                      </div>
+                    </div>
                   )}
                 </div>
-                {stats && (
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
-                    <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Min</div>
-                      <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.min)}</div>
-                    </div>
-                    <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Max</div>
-                      <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.max)}</div>
-                    </div>
-                    <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Durchschnitt</div>
-                      <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.avg)}</div>
-                    </div>
-                    <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</div>
-                      <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.total)}</div>
-                    </div>
-                    <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Datenpunkte</div>
-                      <div className="font-mono font-medium text-sm mt-0.5">{stats.count}</div>
-                    </div>
-                  </div>
-                )}
+                <div className="flex-1 p-6 pt-2 overflow-auto">
+                  {children}
+                  {expandedExtra}
+                </div>
               </div>
-              <div className="flex-1 p-6 pt-2 overflow-auto">
-                {children}
-                {expandedExtra}
-              </div>
-            </div>
+            </ChartAnimationContext.Provider>
           </DialogContent>
         </Dialog>
       )}

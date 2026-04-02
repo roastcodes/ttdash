@@ -1,6 +1,6 @@
 import { useMemo, useId } from 'react'
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts'
-import { ChartCard } from './ChartCard'
+import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { computeMovingAverage } from '@/lib/calculations'
@@ -45,42 +45,51 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
       valueKey="efficiency"
       valueFormatter={formatCurrency}
     >
-      <ResponsiveContainer width="100%" height={250}>
-        <ComposedChart data={chartData} margin={CHART_MARGIN}>
-          <defs>
-            <linearGradient id={`${uid}-effGrad`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_COLORS.input} stopOpacity={0.2} />
-              <stop offset="100%" stopColor={CHART_COLORS.input} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
-          <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-          <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
-          <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
-          <ReferenceLine y={avg} stroke={CHART_COLORS.axis} strokeDasharray="3 3" strokeOpacity={0.5} />
-          <Area
-            type="monotone"
-            dataKey="efficiency"
-            stroke={CHART_COLORS.input}
-            fill={`url(#${uid}-effGrad)`}
-            strokeWidth={1.5}
-            name="$/1M Tokens"
-            dot={false}
-            animationDuration={CHART_ANIMATION.duration}
-          />
-          <Line
-            type="monotone"
-            dataKey="effMA7"
-            stroke={CHART_COLORS.ma7}
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            dot={false}
-            connectNulls
-            name="7-Tage Ø"
-            isAnimationActive={false}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
+      <ChartAnimationAware>
+        {(animate) => (
+          <ChartReveal variant="line" delay={0.04}>
+            <ResponsiveContainer width="100%" height={250}>
+              <ComposedChart data={chartData} margin={CHART_MARGIN}>
+              <defs>
+                <linearGradient id={`${uid}-effGrad`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={CHART_COLORS.input} stopOpacity={0.2} />
+                  <stop offset="100%" stopColor={CHART_COLORS.input} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
+              <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
+              <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
+              <ReferenceLine y={avg} stroke={CHART_COLORS.axis} strokeDasharray="3 3" strokeOpacity={0.5} />
+              <Area
+                type="monotone"
+                dataKey="efficiency"
+                stroke={CHART_COLORS.input}
+                fill={`url(#${uid}-effGrad)`}
+                strokeWidth={1.5}
+                name="$/1M Tokens"
+                dot={false}
+                isAnimationActive={animate}
+                animationDuration={CHART_ANIMATION.duration}
+              />
+              <Line
+                type="monotone"
+                dataKey="effMA7"
+                stroke={CHART_COLORS.ma7}
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={false}
+                connectNulls
+                name="7-Tage Ø"
+                isAnimationActive={animate}
+                animationBegin={CHART_ANIMATION.stagger}
+                animationDuration={CHART_ANIMATION.slowDuration}
+              />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </ChartReveal>
+        )}
+      </ChartAnimationAware>
     </ChartCard>
   )
 }

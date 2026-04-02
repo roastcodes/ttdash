@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import { ChartCard } from './ChartCard'
+import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { formatCurrency, formatDateAxis } from '@/lib/formatters'
@@ -16,53 +16,61 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
   const uid = useId().replace(/:/g, '')
   return (
     <ChartCard title="Kosten im Zeitverlauf + 7-Tage Ø" subtitle="Tageskosten mit 7-Tage gleitendem Durchschnitt" info={CHART_HELP.costOverTime} chartData={data as unknown as Record<string, unknown>[]} valueKey="cost" valueFormatter={formatCurrency}>
-      <ResponsiveContainer width="100%" height={300}>
-        <ComposedChart data={data} margin={CHART_MARGIN} onClick={(e) => {
-          if (onClickDay && e?.activeTooltipIndex != null && typeof e.activeTooltipIndex === 'number') {
-            const point = data[e.activeTooltipIndex]
-            if (point?.date) {
-              onClickDay(point.date)
-            }
-          }
-        }}>
-          <defs>
-            <linearGradient id={`${uid}-gradCostLine`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.3} />
-              <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
-          <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-          <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
-          <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
-          <Legend />
-          <Area
-            type="monotone"
-            dataKey="cost"
-            stroke={CHART_COLORS.cost}
-            fill={`url(#${uid}-gradCostLine)`}
-            name="Kosten"
-            strokeWidth={1.5}
-            activeDot={{ r: 5, strokeWidth: 2, stroke: CHART_COLORS.cost, fill: 'hsl(var(--background))' }}
-            dot={false}
-            animationBegin={0}
-            animationDuration={CHART_ANIMATION.duration}
-            animationEasing={CHART_ANIMATION.easing}
-          />
-          <Line
-            type="monotone"
-            dataKey="ma7"
-            stroke={CHART_COLORS.ma7}
-            name="7-Tage Ø"
-            dot={false}
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            connectNulls
-            animationBegin={CHART_ANIMATION.stagger}
-            animationDuration={CHART_ANIMATION.slowDuration}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
+      <ChartAnimationAware>
+        {(animate) => (
+          <ChartReveal variant="line">
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={data} margin={CHART_MARGIN} onClick={(e) => {
+                if (onClickDay && e?.activeTooltipIndex != null && typeof e.activeTooltipIndex === 'number') {
+                  const point = data[e.activeTooltipIndex]
+                  if (point?.date) {
+                    onClickDay(point.date)
+                  }
+                }
+              }}>
+              <defs>
+                <linearGradient id={`${uid}-gradCostLine`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.3} />
+                  <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
+              <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
+              <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
+              <Legend />
+              <Area
+                type="monotone"
+                dataKey="cost"
+                stroke={CHART_COLORS.cost}
+                fill={`url(#${uid}-gradCostLine)`}
+                name="Kosten"
+                strokeWidth={1.5}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: CHART_COLORS.cost, fill: 'hsl(var(--background))' }}
+                dot={false}
+                isAnimationActive={animate}
+                animationBegin={0}
+                animationDuration={CHART_ANIMATION.duration}
+                animationEasing={CHART_ANIMATION.easing}
+              />
+              <Line
+                type="monotone"
+                dataKey="ma7"
+                stroke={CHART_COLORS.ma7}
+                name="7-Tage Ø"
+                dot={false}
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                connectNulls
+                isAnimationActive={animate}
+                animationBegin={CHART_ANIMATION.stagger}
+                animationDuration={CHART_ANIMATION.slowDuration}
+              />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </ChartReveal>
+        )}
+      </ChartAnimationAware>
     </ChartCard>
   )
 }

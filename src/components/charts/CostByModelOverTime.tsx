@@ -1,5 +1,5 @@
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import { ChartCard } from './ChartCard'
+import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { getModelColor } from '@/lib/model-utils'
@@ -15,35 +15,43 @@ interface CostByModelOverTimeProps {
 export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) {
   // Expanded extra: taller chart with per-model 7-day MA lines
   const expandedChart = (
-    <div className="mt-6">
-      <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">7-Tage Durchschnitt pro Modell</div>
-      <ResponsiveContainer width="100%" height={350}>
-        <LineChart data={data} margin={CHART_MARGIN}>
-          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
-          <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-          <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
-          <Tooltip
-            content={<CustomTooltip formatter={(v) => formatCurrency(v)} />}
-            cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
-          />
-          <Legend />
-          {models.map(model => (
-            <Line
-              key={`${model}_ma7`}
-              type="monotone"
-              dataKey={`${model}_ma7`}
-              stroke={getModelColor(model)}
-              name={`${model} Ø`}
-              dot={false}
-              strokeWidth={2}
-              strokeDasharray="5 4"
-              connectNulls
-              isAnimationActive={false}
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+    <ChartAnimationAware>
+      {(animate) => (
+        <div className="mt-6">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">7-Tage Durchschnitt pro Modell</div>
+          <ChartReveal variant="line" delay={0.08}>
+            <ResponsiveContainer width="100%" height={350}>
+              <LineChart data={data} margin={CHART_MARGIN}>
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
+              <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
+              <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip
+                content={<CustomTooltip formatter={(v) => formatCurrency(v)} />}
+                cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
+              />
+              <Legend />
+              {models.map(model => (
+                <Line
+                  key={`${model}_ma7`}
+                  type="monotone"
+                  dataKey={`${model}_ma7`}
+                  stroke={getModelColor(model)}
+                  name={`${model} Ø`}
+                  dot={false}
+                  strokeWidth={2}
+                  strokeDasharray="5 4"
+                  connectNulls
+                  isAnimationActive={animate}
+                  animationBegin={CHART_ANIMATION.stagger * (models.indexOf(model) % 5)}
+                  animationDuration={CHART_ANIMATION.slowDuration}
+                />
+              ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartReveal>
+        </div>
+      )}
+    </ChartAnimationAware>
   )
 
   return (
@@ -57,32 +65,39 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
       valueFormatter={formatCurrency}
       expandedExtra={expandedChart}
     >
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data} margin={CHART_MARGIN}>
-          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
-          <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-          <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
-          <Tooltip
-            content={<CustomTooltip formatter={(v) => formatCurrency(v)} />}
-            cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
-          />
-          <Legend />
-          {models.map(model => (
-            <Line
-              key={model}
-              type="monotone"
-              dataKey={model}
-              stroke={getModelColor(model)}
-              name={model}
-              dot={false}
-              strokeWidth={1.5}
-              animationBegin={CHART_ANIMATION.stagger * (models.indexOf(model) % 5)}
-              animationDuration={CHART_ANIMATION.duration}
-              animationEasing={CHART_ANIMATION.easing}
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+      <ChartAnimationAware>
+        {(animate) => (
+          <ChartReveal variant="line">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={data} margin={CHART_MARGIN}>
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
+              <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
+              <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip
+                content={<CustomTooltip formatter={(v) => formatCurrency(v)} />}
+                cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
+              />
+              <Legend />
+              {models.map(model => (
+                <Line
+                  key={model}
+                  type="monotone"
+                  dataKey={model}
+                  stroke={getModelColor(model)}
+                  name={model}
+                  dot={false}
+                  strokeWidth={1.5}
+                  isAnimationActive={animate}
+                  animationBegin={CHART_ANIMATION.stagger * (models.indexOf(model) % 5)}
+                  animationDuration={CHART_ANIMATION.duration}
+                  animationEasing={CHART_ANIMATION.easing}
+                />
+              ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartReveal>
+        )}
+      </ChartAnimationAware>
     </ChartCard>
   )
 }

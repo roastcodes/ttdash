@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import { ChartCard } from '@/components/charts/ChartCard'
+import { ChartCard, ChartAnimationAware, ChartReveal } from '@/components/charts/ChartCard'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from '@/components/charts/chart-theme'
 import { formatCurrency, formatDateAxis } from '@/lib/formatters'
@@ -159,28 +159,31 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
         valueKey="cost"
         valueFormatter={formatCurrency}
       >
-        <ResponsiveContainer width="100%" height={250}>
-          <ComposedChart data={chartData} margin={CHART_MARGIN}>
-            <defs>
-              <linearGradient id="forecast-cost-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.3} />
-                <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-            <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-            <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
-            <Legend />
-            {/* Confidence band */}
-            <Area type="monotone" dataKey="lower" stackId="forecast-band" stroke="none" fill="transparent" name="Untere Spanne" />
-            <Area type="monotone" dataKey="band" stackId="forecast-band" stroke="none" fill={CHART_COLORS.cumulative} fillOpacity={0.12} name="Unsicherheitsband" animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.duration} />
-            {/* Actual cost area with gradient fill */}
-            <Area type="monotone" dataKey="cost" stroke={CHART_COLORS.cost} fill="url(#forecast-cost-grad)" name="Ist-Kosten" strokeWidth={2} dot={false} connectNulls animationBegin={0} animationDuration={CHART_ANIMATION.duration} animationEasing={CHART_ANIMATION.easing} />
-            {/* Forecast dashed line */}
-            <Line type="monotone" dataKey="forecast" stroke={CHART_COLORS.cumulative} name="Prognose" dot={false} strokeWidth={2} strokeDasharray="6 3" connectNulls animationBegin={CHART_ANIMATION.stagger * 2} animationDuration={CHART_ANIMATION.slowDuration} />
-          </ComposedChart>
-        </ResponsiveContainer>
+        <ChartAnimationAware>
+          {(animate) => (
+            <ChartReveal variant="line" delay={0.05}>
+              <ResponsiveContainer width="100%" height={250}>
+                <ComposedChart data={chartData} margin={CHART_MARGIN}>
+                <defs>
+                  <linearGradient id="forecast-cost-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
+                <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
+                <Legend />
+                <Area type="monotone" dataKey="lower" stackId="forecast-band" stroke="none" fill="transparent" name="Untere Spanne" />
+                <Area type="monotone" dataKey="band" stackId="forecast-band" stroke="none" fill={CHART_COLORS.cumulative} fillOpacity={0.12} name="Unsicherheitsband" isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.duration} />
+                <Area type="monotone" dataKey="cost" stroke={CHART_COLORS.cost} fill="url(#forecast-cost-grad)" name="Ist-Kosten" strokeWidth={2} dot={false} connectNulls isAnimationActive={animate} animationBegin={0} animationDuration={CHART_ANIMATION.duration} animationEasing={CHART_ANIMATION.easing} />
+                <Line type="monotone" dataKey="forecast" stroke={CHART_COLORS.cumulative} name="Prognose" dot={false} strokeWidth={2} strokeDasharray="6 3" connectNulls isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 2} animationDuration={CHART_ANIMATION.slowDuration} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </ChartReveal>
+          )}
+        </ChartAnimationAware>
       </ChartCard>
     </div>
   )

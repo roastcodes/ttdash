@@ -1,5 +1,5 @@
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
-import { ChartCard } from './ChartCard'
+import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_ANIMATION } from './chart-theme'
 import { getModelColor } from '@/lib/model-utils'
@@ -30,37 +30,44 @@ export function CostByModel({ data }: CostByModelProps) {
 
   return (
     <ChartCard title="Kosten nach Modell" subtitle="Kostenverteilung nach Modell" info={CHART_HELP.costByModel} chartData={data as unknown as Record<string, unknown>[]} valueKey="value" valueFormatter={formatCurrency}>
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={100}
-            paddingAngle={2}
-            dataKey="value"
-            nameKey="name"
-            animationDuration={CHART_ANIMATION.duration}
-            animationBegin={CHART_ANIMATION.stagger}
-            animationEasing={CHART_ANIMATION.easing}
-            label={false}
-          >
-            {data.map((entry) => (
-              <Cell key={entry.name} fill={getModelColor(entry.name)} />
-            ))}
-            <CenterLabel total={formatCurrency(total)} />
-          </Pie>
-          <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
-          <Legend
-            wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
-            formatter={(value: string) => {
-              const entry = data.find(d => d.name === value)
-              return <span className="text-xs text-foreground">{value} ({entry ? formatCurrency(entry.value) : ''})</span>
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+      <ChartAnimationAware>
+        {(animate) => (
+          <ChartReveal variant="radial">
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="57%"
+                  innerRadius={58}
+                  outerRadius={92}
+                  paddingAngle={2}
+                  dataKey="value"
+                  nameKey="name"
+                  isAnimationActive={animate}
+                  animationDuration={CHART_ANIMATION.duration}
+                  animationBegin={CHART_ANIMATION.stagger}
+                  animationEasing={CHART_ANIMATION.easing}
+                  label={false}
+                >
+                  {data.map((entry) => (
+                    <Cell key={entry.name} fill={getModelColor(entry.name)} />
+                  ))}
+                  <CenterLabel total={formatCurrency(total)} />
+                </Pie>
+                <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
+                <Legend
+                  wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
+                  formatter={(value: string) => {
+                    const entry = data.find(d => d.name === value)
+                    return <span className="text-xs text-foreground">{value} ({entry ? formatCurrency(entry.value) : ''})</span>
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartReveal>
+        )}
+      </ChartAnimationAware>
     </ChartCard>
   )
 }
