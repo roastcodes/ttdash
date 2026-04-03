@@ -43,6 +43,8 @@ export function DrillDownModal({ day, open, onClose }: DrillDownModalProps) {
     : 0
 
   const pieData = modelData.map(m => ({ name: m.name, value: m.cost }))
+  const avgTokensPerRequest = day.requestCount > 0 ? day.totalTokens / day.requestCount : 0
+  const avgCostPerRequest = day.requestCount > 0 ? day.totalCost / day.requestCount : 0
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -78,6 +80,14 @@ export function DrillDownModal({ day, open, onClose }: DrillDownModalProps) {
           <div className="p-2 rounded-lg bg-muted/30">
             <div className="text-xs text-muted-foreground">Thinking</div>
             <div className="font-mono font-medium"><FormattedValue value={day.thinkingTokens} type="tokens" /></div>
+          </div>
+          <div className="p-2 rounded-lg bg-muted/30">
+            <div className="text-xs text-muted-foreground">Tokens / Req</div>
+            <div className="font-mono font-medium"><FormattedValue value={avgTokensPerRequest} type="tokens" /></div>
+          </div>
+          <div className="p-2 rounded-lg bg-muted/30">
+            <div className="text-xs text-muted-foreground">Kosten / Req</div>
+            <div className="font-mono font-medium"><FormattedValue value={avgCostPerRequest} type="currency" /></div>
           </div>
         </div>
 
@@ -137,9 +147,14 @@ export function DrillDownModal({ day, open, onClose }: DrillDownModalProps) {
                     <span className="text-[10px] text-muted-foreground">{formatPercent(share)}</span>
                   </div>
                   <div className="text-right font-mono">
-                    <span className="font-medium"><FormattedValue value={model.cost} type="currency" /></span>
-                    <span className="text-muted-foreground ml-2 text-xs"><FormattedValue value={model.tokens} type="tokens" /></span>
-                    <span className="text-muted-foreground ml-2 text-xs">{model.requests} Req</span>
+                    <div>
+                      <span className="font-medium"><FormattedValue value={model.cost} type="currency" /></span>
+                      <span className="text-muted-foreground ml-2 text-xs"><FormattedValue value={model.tokens} type="tokens" /></span>
+                      <span className="text-muted-foreground ml-2 text-xs">{model.requests} Req</span>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {model.requests > 0 ? `${formatCurrency(model.cost / model.requests)}/Req · ${formatTokens(model.tokens / model.requests)}/Req` : 'Keine Requests'}
+                    </div>
                   </div>
                 </div>
               )

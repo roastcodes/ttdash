@@ -1,4 +1,4 @@
-import type { DailyUsage, ChartDataPoint, TokenChartDataPoint, WeekdayData, ViewMode } from '@/types'
+import type { DailyUsage, ChartDataPoint, TokenChartDataPoint, RequestChartDataPoint, WeekdayData, ViewMode } from '@/types'
 import { computeMovingAverage } from './calculations'
 import { getModelProvider, normalizeModelName } from './model-utils'
 import { WEEKDAYS } from './constants'
@@ -194,6 +194,59 @@ export function toTokenChartData(data: DailyUsage[]): TokenChartDataPoint[] {
     cacheReadMA7: cacheReadMA7[i],
     thinkingMA7: thinkingMA7[i],
   }))
+}
+
+export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] {
+  const sorted = sortByDate(data)
+  const totals = sorted.map(d => d.requestCount)
+  const totalMA7 = computeMovingAverage(totals)
+
+  const allModels = new Set<string>()
+  for (const d of sorted) {
+    for (const mb of d.modelBreakdowns) {
+      allModels.add(normalizeModelName(mb.modelName))
+    }
+  }
+  const modelNames = Array.from(allModels).sort()
+
+  const modelRequestArrays: Record<string, number[]> = {}
+  for (const name of modelNames) modelRequestArrays[name] = []
+
+  for (const d of sorted) {
+    const dayRequests: Record<string, number> = {}
+    for (const mb of d.modelBreakdowns) {
+      const name = normalizeModelName(mb.modelName)
+      dayRequests[name] = (dayRequests[name] ?? 0) + mb.requestCount
+    }
+    for (const name of modelNames) {
+      modelRequestArrays[name].push(dayRequests[name] ?? 0)
+    }
+  }
+
+  const modelMA7: Record<string, (number | undefined)[]> = {}
+  for (const name of modelNames) {
+    modelMA7[name] = computeMovingAverage(modelRequestArrays[name])
+  }
+
+  return sorted.map((d, i) => {
+    const point: Record<string, unknown> = {
+      date: d.date,
+      totalRequests: d.requestCount,
+      totalRequestsMA7: totalMA7[i],
+    }
+
+    for (const mb of d.modelBreakdowns) {
+      const name = normalizeModelName(mb.modelName)
+      point[name] = ((point[name] as number) ?? 0) + mb.requestCount
+    }
+
+    for (const name of modelNames) {
+      if (!(name in point)) point[name] = 0
+      point[`${name}_ma7`] = modelMA7[name][i]
+    }
+
+    return point as RequestChartDataPoint
+  })
 }
 
 export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {

@@ -114,6 +114,13 @@ export interface TokenChartDataPoint {
   thinkingMA7?: number
 }
 
+export interface RequestChartDataPoint {
+  date: string
+  totalRequests: number
+  totalRequestsMA7?: number
+  [key: string]: unknown
+}
+
 export interface WeekdayData {
   day: string
   cost: number

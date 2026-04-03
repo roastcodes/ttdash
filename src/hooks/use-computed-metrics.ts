@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { DailyUsage, ViewMode } from '@/types'
 import { computeMetrics, computeModelCosts } from '@/lib/calculations'
-import { toCostChartData, toModelCostChartData, toTokenChartData, toWeekdayData } from '@/lib/data-transforms'
+import { toCostChartData, toModelCostChartData, toTokenChartData, toRequestChartData, toWeekdayData } from '@/lib/data-transforms'
 import { getUniqueModels } from '@/lib/model-utils'
 
 export function useComputedMetrics(data: DailyUsage[], viewMode: ViewMode = 'daily') {
@@ -10,6 +10,7 @@ export function useComputedMetrics(data: DailyUsage[], viewMode: ViewMode = 'dai
   const costChartData = useMemo(() => toCostChartData(data), [data])
   const modelCostChartData = useMemo(() => toModelCostChartData(data), [data])
   const tokenChartData = useMemo(() => toTokenChartData(data), [data])
+  const requestChartData = useMemo(() => toRequestChartData(data), [data])
   const weekdayData = useMemo(() => toWeekdayData(data), [data])
   const allModels = useMemo(() => getUniqueModels(data.map(d => d.modelsUsed)), [data])
 
@@ -33,6 +34,7 @@ export function useComputedMetrics(data: DailyUsage[], viewMode: ViewMode = 'dai
     costChartData,
     modelCostChartData,
     tokenChartData,
+    requestChartData,
     weekdayData,
     allModels,
     modelPieData,

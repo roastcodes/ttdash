@@ -16,12 +16,12 @@ interface MetricCardProps {
 export function MetricCard({ label, value, subtitle, icon, trend, info, className }: MetricCardProps) {
   return (
     <Card className={cn('p-4 flex flex-col gap-1 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg', className)}>
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 text-xs text-muted-foreground font-medium flex items-start gap-1 leading-tight">
           {label}
           {info && <InfoButton text={info} />}
         </span>
-        {icon && <span className="text-muted-foreground">{icon}</span>}
+        {icon && <span className="shrink-0 text-muted-foreground">{icon}</span>}
       </div>
       <div className="text-2xl font-bold tracking-tight">{value}</div>
       <div className="flex items-center gap-2">

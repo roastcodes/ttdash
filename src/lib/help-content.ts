@@ -23,6 +23,7 @@ export const CHART_HELP: Record<string, string> = {
   cumulativeCost: 'Kumulierte Gesamtkosten über den gewählten Zeitraum, inklusive Monatsend-Projektion auf Basis derselben geglätteten Tageslogik wie die Kostenprognose.',
   costByWeekday: 'Durchschnittliche Kosten pro Wochentag. Zeigt Nutzungsmuster über die Woche.',
   tokensOverTime: 'Token-Verbrauch über die Zeit, aufgeteilt nach Typ (Input, Output, Cache Write, Cache Read).',
+  requestsOverTime: 'Requests über die Zeit mit Gesamtverlauf, Modell-Linien und 7-Tage gleitendem Durchschnitt. Klicke auf einen Datenpunkt für Details.',
   tokenTypes: 'Verteilung der Token-Typen als Donut-Chart.',
   heatmap: 'Kalender-Heatmap der täglichen Kosten. Dunklere Felder = höhere Kosten.',
   forecast: 'Kostenprognose für den laufenden Monat auf Basis geglätteter Kalender-Tageskosten. Kombiniert Monats-Run-Rate, jüngste Entwicklung und ein Unsicherheitsband.',

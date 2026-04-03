@@ -11,6 +11,7 @@ import { CostByModel } from './charts/CostByModel'
 import { CostByModelOverTime } from './charts/CostByModelOverTime'
 import { CumulativeCost } from './charts/CumulativeCost'
 import { TokensOverTime } from './charts/TokensOverTime'
+import { RequestsOverTime } from './charts/RequestsOverTime'
 import { TokenTypes } from './charts/TokenTypes'
 import { CostByWeekday } from './charts/CostByWeekday'
 import { TokenEfficiency } from './charts/TokenEfficiency'
@@ -85,7 +86,7 @@ export function Dashboard() {
 
   const {
     metrics, modelCosts, costChartData, modelCostChartData,
-    tokenChartData, weekdayData, allModels, modelPieData, tokenPieData,
+    tokenChartData, requestChartData, weekdayData, allModels, modelPieData, tokenPieData,
   } = useComputedMetrics(filteredData, viewMode)
 
   // Full dataset with only model filter applied (no date/month filter) for PeriodComparison
@@ -336,6 +337,15 @@ export function Dashboard() {
             </div>
           </FadeIn>
         </div>
+
+        {metrics.hasRequestData && (
+          <div id="request-analysis">
+            <SectionHeader title="Request-Analyse" description="Requests gesamt, pro Modell und im Verlauf" />
+            <FadeIn delay={0.47}>
+              <RequestsOverTime data={requestChartData} viewMode={viewMode} onClickDay={setDrillDownDate} />
+            </FadeIn>
+          </div>
+        )}
 
         {/* Period Comparison + Anomaly Detection */}
         <div id="comparisons">
