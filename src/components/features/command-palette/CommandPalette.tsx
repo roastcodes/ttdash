@@ -16,8 +16,10 @@ interface CommandPaletteProps {
   selectedModels: string[]
   hasTodaySection: boolean
   hasMonthSection: boolean
+  reportGenerating: boolean
   onToggleTheme: () => void
   onExportCSV: () => void
+  onGenerateReport: () => void
   onDelete: () => void
   onUpload: () => void
   onAutoImport: () => void
@@ -116,8 +118,10 @@ export function CommandPalette({
   selectedModels,
   hasTodaySection,
   hasMonthSection,
+  reportGenerating,
   onToggleTheme,
   onExportCSV,
+  onGenerateReport,
   onDelete,
   onUpload,
   onAutoImport,
@@ -148,6 +152,7 @@ export function CommandPalette({
   const baseCommands: CommandItem[] = [
     { id: 'auto-import', label: 'Auto-Import starten', description: 'Lokalen toktrack Import ausführen', keywords: ['toktrack', 'import', 'load', 'sync'], aliases: ['auto import', 'daten importieren'], icon: <Zap className="h-4 w-4" />, action: onAutoImport, group: 'Aktionen' },
     { id: 'csv', label: 'CSV exportieren', description: 'Aktuell gefilterte Daten exportieren', keywords: ['download', 'export', 'csv'], aliases: ['csv download', 'daten exportieren'], shortcut: '⌘E', icon: <Download className="h-4 w-4" />, action: onExportCSV, group: 'Aktionen' },
+    { id: 'report', label: reportGenerating ? 'PDF-Report wird generiert' : 'PDF-Report generieren', description: 'Aktuell gefilterte Daten als PDF exportieren', keywords: ['pdf', 'report', 'bericht', 'export'], aliases: ['report export', 'pdf export', 'bericht generieren'], icon: <Download className="h-4 w-4" />, action: onGenerateReport, group: 'Aktionen' },
     { id: 'upload', label: 'JSON hochladen', description: 'toktrack oder Legacy JSON importieren', keywords: ['upload', 'file', 'json', 'import'], aliases: ['datei laden', 'json import'], shortcut: '⌘U', icon: <Upload className="h-4 w-4" />, action: onUpload, group: 'Aktionen' },
     { id: 'delete', label: 'Daten löschen', description: 'Lokalen Datensatz entfernen', keywords: ['reset data', 'clear data', 'delete'], aliases: ['daten reset', 'alles loeschen'], icon: <Trash2 className="h-4 w-4" />, action: onDelete, group: 'Aktionen' },
 

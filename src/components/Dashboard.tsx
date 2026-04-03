@@ -43,6 +43,7 @@ import { useTheme } from '@/hooks/use-theme'
 import { useToast } from '@/components/ui/toast'
 import { downloadCSV } from '@/lib/csv-export'
 import { SECTION_HELP } from '@/lib/help-content'
+import { generatePdfReport } from '@/lib/api'
 import { formatCurrency, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
 
 const DrillDownModal = lazy(() => import('./features/drill-down/DrillDownModal').then(module => ({ default: module.DrillDownModal })))
@@ -59,6 +60,7 @@ export function Dashboard() {
   const [drillDownDate, setDrillDownDate] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   const [autoImportOpen, setAutoImportOpen] = useState(false)
+  const [reportGenerating, setReportGenerating] = useState(false)
   const [dataSource, setDataSource] = useState<{ type: 'stored' | 'auto-import' | 'file'; label?: string; time?: string } | null>(null)
   const [animationSeed, setAnimationSeed] = useState(0)
 
@@ -159,6 +161,36 @@ export function Dashboard() {
     addToast('CSV exportiert', 'success')
   }, [filteredData, addToast])
 
+  const handleGenerateReport = useCallback(async () => {
+    if (reportGenerating) return
+    setReportGenerating(true)
+
+    try {
+      const blob = await generatePdfReport({
+        viewMode,
+        selectedMonth,
+        selectedProviders,
+        selectedModels,
+        startDate,
+        endDate,
+      })
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objectUrl
+      a.download = `ttdash-report-${new Date().toISOString().slice(0, 10)}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+      addToast('PDF Report exportiert', 'success')
+    } catch (error) {
+      console.error('PDF generation failed:', error)
+      addToast(`PDF-Export fehlgeschlagen: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`, 'error')
+    } finally {
+      setReportGenerating(false)
+    }
+  }, [reportGenerating, viewMode, selectedMonth, selectedProviders, selectedModels, startDate, endDate, addToast])
+
   const handleAutoImport = useCallback(() => {
     setAutoImportOpen(true)
   }, [])
@@ -209,12 +241,8 @@ export function Dashboard() {
         onAutoImport={handleAutoImport}
         pdfButton={(
           <PDFReportButton
-            viewMode={viewMode}
-            selectedMonth={selectedMonth}
-            selectedProviders={selectedProviders}
-            selectedModels={selectedModels}
-            startDate={startDate}
-            endDate={endDate}
+            generating={reportGenerating}
+            onGenerate={handleGenerateReport}
           />
         )}
       />
@@ -444,8 +472,10 @@ export function Dashboard() {
         selectedModels={selectedModels}
         hasTodaySection={Boolean(todayData)}
         hasMonthSection={hasCurrentMonthData}
+        reportGenerating={reportGenerating}
         onToggleTheme={toggleTheme}
         onExportCSV={handleExportCSV}
+        onGenerateReport={handleGenerateReport}
         onDelete={handleDelete}
         onUpload={handleUpload}
         onAutoImport={handleAutoImport}

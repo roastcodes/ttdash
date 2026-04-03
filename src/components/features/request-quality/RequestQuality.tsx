@@ -51,7 +51,7 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
   ]
 
   return (
-    <Card ref={sectionRef} className="overflow-hidden">
+    <Card ref={sectionRef} className="overflow-visible">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           Request-Qualität
