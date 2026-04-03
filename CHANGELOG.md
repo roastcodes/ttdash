@@ -1,5 +1,19 @@
 # Changelog
 
+## [6.0.0] - 2026-04-03
+
+### Added
+- **Typst-Report-Pipeline** — PDF-Reports werden jetzt serverseitig mit Typst kompiliert, inklusive sauberem Layout, eingebetteten SVG-Charts und filterkonsistenten Reportdaten statt DOM-Screenshot-Export
+- **Report-Smoke-Test** — neue Prüfmatrix deckt Tages-, Monats- und Jahresansicht sowie kombinierte Provider-, Modell-, Monats- und Datumsfilter für die PDF-Generierung ab
+
+### Improved
+- **Filtertreue im PDF** — Report-Downloads übernehmen jetzt dieselben aktiven UI-Filter wie das Dashboard, inklusive Monatsauswahl, Datumsbereich, Providern und Modellen
+- **Mobile/Responsive Report-Flow** — der Report-Button und der Downloadpfad funktionieren jetzt auch unter enger Viewport-Breite stabil
+
+### Fixed
+- **PDF-Layoutfehler** — Tabellenköpfe, Filterdarstellung und Einpunkt-Charts im Report verhalten sich jetzt robust auch bei extrem kleinen oder stark gefilterten Datensätzen
+- **Typst-CLI Fallback** — Systeme ohne installierte Typst-CLI erhalten eine klare macOS-Hinweismeldung mit `brew install typst`
+
 ## [5.3.6] - 2026-04-02
 
 ### Added
