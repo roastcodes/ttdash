@@ -1,5 +1,14 @@
 # Changelog
 
+## [6.0.4] - 2026-04-04
+
+### Added
+- **Globaler Filter-Reset** — der Filterstatus enthält jetzt einen `Reset all`-Button, und die Command Palette bietet eine direkte Aktion zum Zurücksetzen aller Filter auf den Default-Zustand
+
+### Improved
+- **Eigener Datums-Kalender** — der Zeitraumfilter nutzt jetzt einen dunklen, portalbasierten Kalender statt des nativen Browser-Datepickers, damit Darstellung und Stacking im Dark Mode konsistent bleiben
+- **Datepicker-Stabilität** — der Kalender liegt jetzt zuverlässig über dem Dashboard und wird nicht mehr von nachfolgenden Sektionen oder Animationen überlagert
+
 ## [6.0.3] - 2026-04-04
 
 ### Added

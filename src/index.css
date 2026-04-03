@@ -174,3 +174,20 @@ body {
   -webkit-backdrop-filter: none !important;
   background: hsl(var(--card)) !important;
 }
+
+.date-input-theme {
+  color-scheme: light;
+}
+
+.date-input-theme::-webkit-calendar-picker-indicator {
+  opacity: 0.85;
+}
+
+.dark .date-input-theme {
+  color-scheme: dark;
+}
+
+.dark .date-input-theme::-webkit-calendar-picker-indicator {
+  filter: invert(0.9) brightness(1.2);
+  opacity: 0.95;
+}

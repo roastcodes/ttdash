@@ -94,6 +94,7 @@ export function Dashboard() {
     selectedModels, toggleModel, clearModels,
     startDate, setStartDate,
     endDate, setEndDate,
+    resetAll,
     applyPreset,
     filteredDailyData,
     filteredData,
@@ -295,6 +296,7 @@ export function Dashboard() {
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onApplyPreset={applyPreset}
+          onResetAll={resetAll}
         />
       </div>
 
@@ -528,6 +530,7 @@ export function Dashboard() {
           setStartDate(undefined)
           setEndDate(undefined)
         }}
+        onResetAll={resetAll}
         onHelp={() => setHelpOpen(true)}
       />
 

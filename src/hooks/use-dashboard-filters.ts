@@ -32,6 +32,15 @@ export function useDashboardFilters(data: DailyUsage[]) {
 
   const clearModels = useCallback(() => setSelectedModels([]), [])
 
+  const resetAll = useCallback(() => {
+    setViewMode('daily')
+    setSelectedMonth(null)
+    setSelectedProviders([])
+    setSelectedModels([])
+    setStartDate(undefined)
+    setEndDate(undefined)
+  }, [])
+
   const applyPreset = useCallback((preset: string) => {
     setSelectedMonth(null)
     const today = new Date()
@@ -110,6 +119,7 @@ export function useDashboardFilters(data: DailyUsage[]) {
     selectedModels, toggleModel, clearModels,
     startDate, setStartDate,
     endDate, setEndDate,
+    resetAll,
     applyPreset,
     filteredDailyData,
     filteredData,

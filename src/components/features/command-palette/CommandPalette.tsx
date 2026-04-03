@@ -33,6 +33,7 @@ interface CommandPaletteProps {
   onClearProviders: () => void
   onClearModels: () => void
   onClearDateRange: () => void
+  onResetAll: () => void
   onHelp: () => void
 }
 
@@ -136,6 +137,7 @@ export function CommandPalette({
   onClearProviders,
   onClearModels,
   onClearDateRange,
+  onResetAll,
   onHelp,
 }: CommandPaletteProps) {
   const { t, i18n } = useTranslation()
@@ -172,6 +174,7 @@ export function CommandPalette({
     { id: 'clear-providers', label: t('commandPalette.commands.clearProviders.label'), description: t('commandPalette.commands.clearProviders.description'), keywords: ['provider', 'anbieter', 'clear'], icon: <Filter className="h-4 w-4" />, action: onClearProviders, group: t('commandPalette.groups.filters') },
     { id: 'clear-models', label: t('commandPalette.commands.clearModels.label'), description: t('commandPalette.commands.clearModels.description'), keywords: ['models', 'modelle', 'clear'], icon: <Filter className="h-4 w-4" />, action: onClearModels, group: t('commandPalette.groups.filters') },
     { id: 'clear-dates', label: t('commandPalette.commands.clearDates.label'), description: t('commandPalette.commands.clearDates.description'), keywords: ['date', 'datum', 'range', 'clear'], icon: <RefreshCcw className="h-4 w-4" />, action: onClearDateRange, group: t('commandPalette.groups.filters') },
+    { id: 'reset-all', label: t('commandPalette.commands.resetAll.label'), description: t('commandPalette.commands.resetAll.description'), keywords: ['reset all', 'alles zurücksetzen', 'default', 'clear filters'], aliases: ['reset dashboard', 'alles reset', 'filter reset'], icon: <RefreshCcw className="h-4 w-4" />, action: onResetAll, group: t('commandPalette.groups.filters') },
 
     { id: 'top', label: t('commandPalette.commands.scrollTop.label'), description: t('commandPalette.commands.scrollTop.description'), keywords: ['top', 'start', 'anfang'], shortcut: '⌘↑', icon: <ArrowUp className="h-4 w-4" />, action: () => window.scrollTo({ top: 0, behavior: 'smooth' }), group: t('commandPalette.groups.navigation') },
     { id: 'bottom', label: t('commandPalette.commands.scrollBottom.label'), description: t('commandPalette.commands.scrollBottom.description'), keywords: ['bottom', 'ende'], icon: <ArrowDown className="h-4 w-4" />, action: () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), group: t('commandPalette.groups.navigation') },

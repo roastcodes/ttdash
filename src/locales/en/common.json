@@ -99,6 +99,7 @@
     },
     "until": "to",
     "resetDateRange": "Reset date range",
+    "resetAll": "Reset all",
     "providers": "Providers",
     "models": "Models",
     "resetModels": "Reset models"
@@ -726,6 +727,10 @@
       "clearDates": {
         "label": "Reset date filter",
         "description": "Remove start and end date"
+      },
+      "resetAll": {
+        "label": "Reset all filters",
+        "description": "Restore the default dashboard filter state"
       },
       "scrollTop": {
         "label": "Scroll to top",

@@ -99,6 +99,7 @@
     },
     "until": "bis",
     "resetDateRange": "Zeitraum zurücksetzen",
+    "resetAll": "Alles zurücksetzen",
     "providers": "Anbieter",
     "models": "Modelle",
     "resetModels": "Modelle zurücksetzen"
@@ -726,6 +727,10 @@
       "clearDates": {
         "label": "Datumsfilter zurücksetzen",
         "description": "Start- und Enddatum entfernen"
+      },
+      "resetAll": {
+        "label": "Alle Filter zurücksetzen",
+        "description": "Den Standardzustand der Dashboard-Filter wiederherstellen"
       },
       "scrollTop": {
         "label": "Nach oben scrollen",
