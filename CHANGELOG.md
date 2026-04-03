@@ -1,5 +1,11 @@
 # Changelog
 
+## [6.0.5] - 2026-04-04
+
+### Improved
+- **Dependency-Updates** — `@tanstack/react-query`, `i18next` und `react-i18next` sind auf die jeweils aktuellen Registry-Versionen angehoben
+- **Kompatibilitätsprüfung** — Dashboard-Build sowie Browser-Smoketests für Jahresansicht, Filter, Datepicker, Command Palette und Sprachwechsel wurden nach dem Upgrade erneut verifiziert
+
 ## [6.0.4] - 2026-04-04
 
 ### Added

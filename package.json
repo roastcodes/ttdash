@@ -1,6 +1,6 @@
 {
   "name": "ttdash",
-  "version": "6.0.4",
+  "version": "6.0.5",
   "description": "Local dashboard for toktrack usage data",
   "main": "server.js",
   "bin": {
@@ -33,7 +33,7 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@radix-ui/react-tooltip": "^1.2.3",
     "@tailwindcss/vite": "^4.2.2",
-    "@tanstack/react-query": "^5.74.4",
+    "@tanstack/react-query": "^5.96.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
@@ -51,8 +51,8 @@
     "vite": "^8.0.3"
   },
   "dependencies": {
-    "i18next": "^25.5.2",
-    "react-i18next": "^15.7.3",
+    "i18next": "^26.0.3",
+    "react-i18next": "^17.0.2",
     "react-is": "^19.2.4"
   }
 }
