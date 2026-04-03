@@ -147,9 +147,16 @@ export function PDFReportButton({ containerRef }: PDFReportProps) {
   }
 
   return (
-    <Button variant="outline" size="sm" onClick={handleGenerate} disabled={generating} title="PDF Report">
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleGenerate}
+      disabled={generating}
+      title="PDF Report"
+      className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
+    >
       {generating ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-      <span className="hidden sm:inline">Report</span>
+      <span>Report</span>
     </Button>
   )
 }

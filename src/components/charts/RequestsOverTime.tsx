@@ -50,7 +50,14 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
     const modelTotals = new Map<string, number>()
     for (const point of data) {
       for (const [key, value] of Object.entries(point)) {
-        if (key === 'date' || key === 'totalRequests' || key === 'totalRequestsMA7' || key.endsWith('_ma7')) continue
+        if (
+          key === 'date' ||
+          key === 'totalRequests' ||
+          key === 'totalRequestsMA7' ||
+          key === 'totalRequestsPrev' ||
+          key.endsWith('_ma7') ||
+          key.endsWith('Prev')
+        ) continue
         if (typeof value === 'number') {
           modelTotals.set(key, (modelTotals.get(key) ?? 0) + value)
         }

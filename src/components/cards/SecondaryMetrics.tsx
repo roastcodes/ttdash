@@ -24,6 +24,9 @@ export function SecondaryMetrics({ metrics, dailyCosts, viewMode = 'daily' }: Se
     const mid = Math.floor(sorted.length / 2)
     return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
   })()
+  const requestLeader = metrics.topRequestModel
+    ? `${metrics.topRequestModel.name} · ${metrics.topRequestModel.requests.toLocaleString('de-CH')} Req`
+    : null
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -37,7 +40,7 @@ export function SecondaryMetrics({ metrics, dailyCosts, viewMode = 'daily' }: Se
       <MetricCard
         label="Dominanter Anbieter"
         value={metrics.topProvider?.name ?? '–'}
-        subtitle={metrics.topProvider ? `${formatPercent(metrics.topProvider.share, 0)} Anteil · ${formatCurrency(metrics.topProvider.cost)}` : undefined}
+        subtitle={metrics.topProvider ? `${formatPercent(metrics.topProvider.share, 0)} Anteil · ${formatCurrency(metrics.topProvider.cost)}${requestLeader ? ` · ${requestLeader}` : ''}` : undefined}
         icon={<Building2 className="h-4 w-4" />}
         info="Anbieter mit dem höchsten Kostenanteil im gewählten Zeitraum. Hilft Konzentrationsrisiken und Provider-Abhängigkeiten zu erkennen."
       />
@@ -54,7 +57,7 @@ export function SecondaryMetrics({ metrics, dailyCosts, viewMode = 'daily' }: Se
         label={`Median/${periodUnit(viewMode)}`}
         value={median !== null ? <FormattedValue value={median} type="currency" /> : '–'}
         subtitle={median !== null && metrics.avgDailyCost > 0
-          ? `${median < metrics.avgDailyCost ? '↓' : '↑'}${Math.abs(((median - metrics.avgDailyCost) / metrics.avgDailyCost) * 100).toFixed(0)}% vs. Ø`
+          ? `${median < metrics.avgDailyCost ? '↓' : '↑'}${Math.abs(((median - metrics.avgDailyCost) / metrics.avgDailyCost) * 100).toFixed(0)}% vs. Ø · σ Req ${Math.round(metrics.requestVolatility)}`
           : undefined}
         icon={<Sigma className="h-4 w-4" />}
         info="Der Median zeigt den typischen Tageswert – weniger anfällig für Ausreisser als der Durchschnitt."

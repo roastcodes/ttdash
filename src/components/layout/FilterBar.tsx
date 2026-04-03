@@ -45,6 +45,13 @@ export function FilterBar({
   return (
     <div className="rounded-2xl border border-border/50 bg-card/40 px-3 py-3 backdrop-blur-xl">
       <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          <span className="font-semibold uppercase tracking-[0.14em]">Filterstatus</span>
+          <span className="rounded-full bg-muted/30 px-2 py-0.5">{selectedProviders.length > 0 ? `${selectedProviders.length} Anbieter aktiv` : 'Alle Anbieter'}</span>
+          <span className="rounded-full bg-muted/30 px-2 py-0.5">{selectedModels.length > 0 ? `${selectedModels.length} Modelle aktiv` : 'Alle Modelle'}</span>
+          {(startDate || endDate) && <span className="rounded-full bg-muted/30 px-2 py-0.5">Datumsfilter aktiv</span>}
+        </div>
+
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[160px_190px_1fr]">
           <Select value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)}>
             <SelectTrigger className="w-full">
@@ -81,7 +88,7 @@ export function FilterBar({
                 key={p.key}
                 onClick={() => { setActivePreset(p.key); onApplyPreset(p.key) }}
                 className={cn(
-                  'rounded-full px-3 py-1.5 text-xs font-medium border transition-all duration-200',
+                  'rounded-full px-3 py-1.5 text-xs font-medium border transition-all duration-200 min-w-[48px]',
                   activePreset === p.key
                     ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_0_1px_rgba(255,255,255,0.06)]'
                     : 'border-border hover:bg-accent hover:border-accent'

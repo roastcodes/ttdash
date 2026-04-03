@@ -133,7 +133,7 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
           <MetricCard
             label="Requests"
             value={agg.requestCount > 0 ? <FormattedValue value={agg.requestCount} type="number" label="Requests im Monat" insight={`${formatCurrency(agg.totalCost / agg.requestCount)} pro Request`} /> : 'n/v'}
-            subtitle={agg.requestCount > 0 ? `Ø ${(agg.requestCount / agg.activeDays).toFixed(1)}/Tag` : 'Keine Request-Zähler'}
+            subtitle={agg.requestCount > 0 ? `Ø ${(agg.requestCount / agg.activeDays).toFixed(1)}/Tag · ${formatCurrency(agg.totalCost / agg.requestCount)}/Req` : 'Keine Request-Zähler'}
             icon={<Activity className="h-4 w-4" />}
           />
           <MetricCard

@@ -1,58 +1,71 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { formatPercent, formatTokens } from '@/lib/formatters'
+import { formatPercent, formatTokens, periodUnit, periodLabel } from '@/lib/formatters'
 import { getModelColor, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
+import type { ViewMode } from '@/types'
 
 interface ModelData {
   name: string
   cost: number
   tokens: number
   costPerMillion: number
+  costPerRequest: number
+  tokensPerRequest: number
   share: number
+  requestShare: number
+  cacheShare: number
+  thinkingShare: number
   days: number
   requests: number
   costPerDay: number
 }
 
-import { periodUnit, periodLabel } from '@/lib/formatters'
-import type { ViewMode } from '@/types'
-
 interface ModelEfficiencyProps {
-  modelCosts: Map<string, { cost: number; tokens: number; days: number; requests: number; costPerDay?: number }>
+  modelCosts: Map<string, { cost: number; tokens: number; input?: number; output?: number; cacheRead?: number; cacheCreate?: number; thinking?: number; days: number; requests: number; costPerDay?: number }>
   totalCost: number
   viewMode?: ViewMode
 }
 
-type SortKey = 'cost' | 'tokens' | 'costPerMillion' | 'share' | 'days' | 'requests' | 'costPerDay'
+type SortKey = 'cost' | 'tokens' | 'costPerMillion' | 'costPerRequest' | 'tokensPerRequest' | 'share' | 'requestShare' | 'cacheShare' | 'thinkingShare' | 'days' | 'requests' | 'costPerDay'
 
 export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: ModelEfficiencyProps) {
   const [sortKey, setSortKey] = useState<SortKey>('cost')
   const [sortAsc, setSortAsc] = useState(false)
 
-  const models: ModelData[] = Array.from(modelCosts.entries()).map(([name, v]) => ({
+  const models = useMemo<ModelData[]>(() => Array.from(modelCosts.entries()).map(([name, v]) => ({
     name,
     cost: v.cost,
     tokens: v.tokens,
     costPerMillion: v.tokens > 0 ? v.cost / (v.tokens / 1_000_000) : 0,
+    costPerRequest: v.requests > 0 ? v.cost / v.requests : 0,
+    tokensPerRequest: v.requests > 0 ? v.tokens / v.requests : 0,
     share: totalCost > 0 ? (v.cost / totalCost) * 100 : 0,
+    requestShare: 0,
+    cacheShare: v.tokens > 0 ? ((v.cacheRead ?? 0) / v.tokens) * 100 : 0,
+    thinkingShare: v.tokens > 0 ? ((v.thinking ?? 0) / v.tokens) * 100 : 0,
     days: v.days,
     requests: v.requests,
     costPerDay: v.days > 0 ? v.cost / v.days : 0,
-  }))
+  })), [modelCosts, totalCost])
 
-  const sorted = [...models].sort((a, b) => {
+  const totalRequests = useMemo(() => models.reduce((sum, model) => sum + model.requests, 0), [models])
+  const enrichedModels = useMemo(() => models.map(model => ({
+    ...model,
+    requestShare: totalRequests > 0 ? (model.requests / totalRequests) * 100 : 0,
+  })), [models, totalRequests])
+
+  const sorted = useMemo(() => [...enrichedModels].sort((a, b) => {
     const diff = a[sortKey] - b[sortKey]
     return sortAsc ? diff : -diff
-  })
+  }), [enrichedModels, sortAsc, sortKey])
 
   const topModel = sorted[0] ?? null
-  const mostEfficient = [...models]
+  const mostEfficient = useMemo(() => [...models]
     .filter(model => model.tokens > 0)
-    .sort((a, b) => a.costPerMillion - b.costPerMillion)[0] ?? null
-  const totalRequests = models.reduce((sum, model) => sum + model.requests, 0)
+    .sort((a, b) => a.costPerMillion - b.costPerMillion)[0] ?? null, [models])
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -143,8 +156,16 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
                   <div className="mt-1 font-mono">{model.requests.toLocaleString('de-CH')}</div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                  <div className="text-muted-foreground">Ø/{periodUnit(viewMode)}</div>
-                  <div className="mt-1 font-mono"><FormattedValue value={model.costPerDay} type="currency" /></div>
+                  <div className="text-muted-foreground">$/Req</div>
+                  <div className="mt-1 font-mono"><FormattedValue value={model.costPerRequest} type="currency" /></div>
+                </div>
+                <div className="rounded-lg bg-muted/20 px-2.5 py-2">
+                  <div className="text-muted-foreground">Tokens/Req</div>
+                  <div className="mt-1 font-mono">{formatTokens(model.tokensPerRequest)}</div>
+                </div>
+                <div className="rounded-lg bg-muted/20 px-2.5 py-2">
+                  <div className="text-muted-foreground">Cache %</div>
+                  <div className="mt-1 font-mono">{formatPercent(model.cacheShare, 1)}</div>
                 </div>
               </div>
             </div>
@@ -161,6 +182,11 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
                 <SortHeader label="$/1M" field="costPerMillion" />
                 <SortHeader label="Anteil" field="share" />
                 <SortHeader label="Req" field="requests" />
+                <SortHeader label="Req %" field="requestShare" />
+                <SortHeader label="$/Req" field="costPerRequest" />
+                <SortHeader label="Tokens/Req" field="tokensPerRequest" />
+                <SortHeader label="Cache %" field="cacheShare" />
+                <SortHeader label="Think %" field="thinkingShare" />
                 <SortHeader label={`Ø/${periodUnit(viewMode)}`} field="costPerDay" />
                 <SortHeader label={periodLabel(viewMode, true)} field="days" />
               </tr>
@@ -191,6 +217,13 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
                     <span className="relative">{formatPercent(model.share)}</span>
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums">{model.requests}</td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatPercent(model.requestShare, 1)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    <FormattedValue value={model.costPerRequest} type="currency" />
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatTokens(model.tokensPerRequest)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatPercent(model.cacheShare, 1)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatPercent(model.thinkingShare, 1)}</td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums">
                     <FormattedValue value={model.costPerDay} type="currency" />
                   </td>

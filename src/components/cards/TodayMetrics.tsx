@@ -69,7 +69,7 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
           <MetricCard
             label="Requests"
             value={today.requestCount > 0 ? <FormattedValue value={today.requestCount} type="number" label="Requests heute" insight={`${formatCurrency(today.totalCost / today.requestCount)} pro Request`} /> : 'n/v'}
-            subtitle={today.requestCount > 0 && today.modelsUsed?.length ? `${(today.requestCount / today.modelsUsed.length).toFixed(1)} / Modell` : 'Keine Request-Zähler'}
+            subtitle={today.requestCount > 0 && today.modelsUsed?.length ? `${(today.requestCount / today.modelsUsed.length).toFixed(1)} / Modell · ${formatCurrency(today.totalCost / today.requestCount)}/Req` : 'Keine Request-Zähler'}
             icon={<Activity className="h-4 w-4" />}
           />
           <MetricCard

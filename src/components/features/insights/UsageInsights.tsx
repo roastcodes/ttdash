@@ -66,7 +66,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
             icon={<Building2 className="h-5 w-5" />}
             value={metrics.topProvider ? formatPercent(metrics.topProvider.share, 0) : '–'}
             summary={metrics.topProvider
-              ? `${metrics.topProvider.name} ist aktuell der dominante Anbieter im gewählten Ausschnitt.`
+              ? `${metrics.topProvider.name} ist aktuell der dominante Anbieter im gewählten Ausschnitt, während ${metrics.topModel?.name ?? 'das Top-Modell'} den größten Einzelhebel setzt.`
               : 'Noch keine stabile Anbieter-Verteilung verfügbar.'}
             details={[
               { label: 'Top Anbieter', value: metrics.topProvider?.name ?? '–' },
@@ -83,7 +83,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
             icon={<Activity className="h-5 w-5" />}
             value={metrics.hasRequestData ? <FormattedValue value={metrics.avgCostPerRequest} type="currency" label="Ø Kosten pro Request" insight={`${formatTokens(metrics.avgTokensPerRequest)} Tokens pro Request im Mittel`} /> : 'n/v'}
             summary={metrics.hasRequestData
-              ? `Jede Anfrage kostet im Mittel ${formatCurrency(metrics.avgCostPerRequest)} und verarbeitet ${formatTokens(metrics.avgTokensPerRequest)}.`
+              ? `Jede Anfrage kostet im Mittel ${formatCurrency(metrics.avgCostPerRequest)} und verarbeitet ${formatTokens(metrics.avgTokensPerRequest)}. ${metrics.topRequestModel ? `${metrics.topRequestModel.name} führt aktuell beim Request-Volumen.` : ''}`
               : 'Der geladene Datensatz enthält keine verlässlichen Request-Zähler. Request-Ökonomie ist deshalb nicht verfügbar.'}
             details={[
               { label: `Ø Req/${periodUnit(viewMode)}`, value: metrics.hasRequestData ? metrics.avgRequestsPerDay.toFixed(1) : 'n/v' },
@@ -100,7 +100,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
             icon={<Layers3 className="h-5 w-5" />}
             value={coverageRate !== null ? formatPercent(coverageRate, 0) : formatNumber(metrics.activeDays)}
             summary={coverageRate !== null
-              ? `${metrics.activeDays} von ${totalCalendarDays} Kalendertagen enthalten Aktivität im gefilterten Zeitraum.`
+              ? `${metrics.activeDays} von ${totalCalendarDays} Kalendertagen enthalten Aktivität im gefilterten Zeitraum. Die Requests schwanken dabei um ${formatNumber(Math.round(metrics.requestVolatility))}.`
               : `${metrics.activeDays} aktive ${viewMode === 'yearly' ? 'Jahre' : viewMode === 'monthly' ? 'Monate' : 'Tage'} im gewählten Ausschnitt.`}
             details={[
               { label: 'Ø Modelle/Eintrag', value: metrics.avgModelsPerDay.toFixed(1) },
@@ -137,7 +137,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
           </span>
           <span className="ml-2">
             {metrics.topProvider
-              ? `${metrics.topProvider.name} trägt ${formatPercent(metrics.topProvider.share, 0)} der Kosten, während die Top-3-Modelle ${formatPercent(metrics.topThreeModelsShare, 0)} bündeln.`
+              ? `${metrics.topProvider.name} trägt ${formatPercent(metrics.topProvider.share, 0)} der Kosten, während die Top-3-Modelle ${formatPercent(metrics.topThreeModelsShare, 0)} bündeln. ${metrics.topRequestModel ? `${metrics.topRequestModel.name} führt bei den Requests, ${metrics.topTokenModel?.name ?? 'das Top-Modell'} beim Tokenvolumen.` : ''}`
               : 'Für den aktuellen Filterausschnitt sind noch nicht genug Daten für eine stabile Zusammenfassung vorhanden.'}
           </span>
         </div>

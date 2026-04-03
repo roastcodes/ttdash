@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { formatDate, formatPercent } from '@/lib/formatters'
+import { formatCurrency, formatDate, formatPercent } from '@/lib/formatters'
 import { normalizeModelName, getModelColor, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
@@ -40,6 +40,20 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
   }, [data, sortKey, sortAsc])
 
   const displayed = showAll ? sorted : sorted.slice(0, 30)
+  const chronological = useMemo(() => [...data].sort((a, b) => a.date.localeCompare(b.date)), [data])
+  const benchmarkMap = useMemo(() => {
+    const map = new Map<string, { prevCostDelta?: number; avgCost7?: number; avgRequests7?: number }>()
+    chronological.forEach((day, index) => {
+      const previous = index > 0 ? chronological[index - 1] : null
+      const window = chronological.slice(Math.max(0, index - 7), index)
+      map.set(day.date, {
+        prevCostDelta: previous && previous.totalCost > 0 ? ((day.totalCost - previous.totalCost) / previous.totalCost) * 100 : undefined,
+        avgCost7: window.length > 0 ? window.reduce((sum, item) => sum + item.totalCost, 0) / window.length : undefined,
+        avgRequests7: window.length > 0 ? window.reduce((sum, item) => sum + item.requestCount, 0) / window.length : undefined,
+      })
+    })
+    return map
+  }, [chronological])
 
   const maxCost = useMemo(
     () => Math.max(...data.map(d => d.totalCost), 0),
@@ -125,6 +139,11 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   <div className="text-right">
                     <div className="font-mono font-semibold"><FormattedValue value={day.totalCost} type="currency" /></div>
                     <div className="text-xs text-muted-foreground"><FormattedValue value={day.totalTokens} type="tokens" /></div>
+                    {viewMode === 'daily' && benchmarkMap.get(day.date)?.prevCostDelta !== undefined && (
+                      <div className="mt-1 text-[10px] text-muted-foreground">
+                        Vortag {benchmarkMap.get(day.date)!.prevCostDelta! >= 0 ? '↑' : '↓'}{Math.abs(benchmarkMap.get(day.date)!.prevCostDelta!).toFixed(0)}%
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
@@ -163,6 +182,11 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                     </span>
                   )}
                 </div>
+                {viewMode === 'daily' && benchmarkMap.get(day.date)?.avgCost7 !== undefined && (
+                  <div className="mt-3 text-[10px] text-muted-foreground">
+                    7T-Ø {formatCurrency(benchmarkMap.get(day.date)!.avgCost7!)} · Req-Ø {benchmarkMap.get(day.date)!.avgRequests7?.toFixed(0) ?? '–'}
+                  </div>
+                )}
               </button>
             )
           })}
@@ -254,6 +278,11 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                             </span>
                           ))}
                       </div>
+                      {viewMode === 'daily' && benchmarkMap.get(day.date)?.avgCost7 !== undefined && (
+                        <div className="mt-1 text-[10px] text-muted-foreground">
+                          Vortag {benchmarkMap.get(day.date)?.prevCostDelta !== undefined ? `${benchmarkMap.get(day.date)!.prevCostDelta! >= 0 ? '↑' : '↓'}${Math.abs(benchmarkMap.get(day.date)!.prevCostDelta!).toFixed(0)}%` : '–'} · 7T-Ø {formatCurrency(benchmarkMap.get(day.date)!.avgCost7!)}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )

@@ -10,11 +10,12 @@ import type { DailyUsage } from '@/types'
 
 interface DrillDownModalProps {
   day: DailyUsage | null
+  contextData?: DailyUsage[]
   open: boolean
   onClose: () => void
 }
 
-export function DrillDownModal({ day, open, onClose }: DrillDownModalProps) {
+export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDownModalProps) {
   const modelData = useMemo(() => {
     if (!day) return []
     const map = new Map<string, { cost: number; tokens: number; input: number; output: number; cacheRead: number; cacheCreate: number; thinking: number; requests: number }>()
@@ -45,6 +46,18 @@ export function DrillDownModal({ day, open, onClose }: DrillDownModalProps) {
   const pieData = modelData.map(m => ({ name: m.name, value: m.cost }))
   const avgTokensPerRequest = day.requestCount > 0 ? day.totalTokens / day.requestCount : 0
   const avgCostPerRequest = day.requestCount > 0 ? day.totalCost / day.requestCount : 0
+  const costRanking = [...contextData].sort((a, b) => b.totalCost - a.totalCost).findIndex(entry => entry.date === day.date) + 1
+  const requestRanking = [...contextData].sort((a, b) => b.requestCount - a.requestCount).findIndex(entry => entry.date === day.date) + 1
+  const previousSeven = [...contextData]
+    .filter(entry => entry.date < day.date)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-7)
+  const avgCost7 = previousSeven.length > 0 ? previousSeven.reduce((sum, entry) => sum + entry.totalCost, 0) / previousSeven.length : null
+  const avgRequests7 = previousSeven.length > 0 ? previousSeven.reduce((sum, entry) => sum + entry.requestCount, 0) / previousSeven.length : null
+  const topRequestModel = modelData.reduce((best, current) => {
+    if (!best || current.requests > best.requests) return current
+    return best
+  }, null as (typeof modelData)[number] | null)
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -88,6 +101,29 @@ export function DrillDownModal({ day, open, onClose }: DrillDownModalProps) {
           <div className="p-2 rounded-lg bg-muted/30">
             <div className="text-xs text-muted-foreground">Kosten / Req</div>
             <div className="font-mono font-medium"><FormattedValue value={avgCostPerRequest} type="currency" /></div>
+          </div>
+          <div className="p-2 rounded-lg bg-muted/30">
+            <div className="text-xs text-muted-foreground">Kosten-Rang</div>
+            <div className="font-mono font-medium">{costRanking > 0 ? `#${costRanking}` : '–'}</div>
+          </div>
+          <div className="p-2 rounded-lg bg-muted/30">
+            <div className="text-xs text-muted-foreground">Request-Rang</div>
+            <div className="font-mono font-medium">{requestRanking > 0 ? `#${requestRanking}` : '–'}</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
+            <div className="text-muted-foreground">Dominant nach Requests</div>
+            <div className="mt-1 font-medium">{topRequestModel?.name ?? '–'}</div>
+          </div>
+          <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
+            <div className="text-muted-foreground">Kosten vs. 7T-Ø</div>
+            <div className="mt-1 font-medium">{avgCost7 !== null ? `${day.totalCost >= avgCost7 ? '↑' : '↓'} ${formatCurrency(Math.abs(day.totalCost - avgCost7))}` : '–'}</div>
+          </div>
+          <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
+            <div className="text-muted-foreground">Requests vs. 7T-Ø</div>
+            <div className="mt-1 font-medium">{avgRequests7 !== null ? `${day.requestCount >= avgRequests7 ? '↑' : '↓'} ${Math.abs(day.requestCount - avgRequests7).toFixed(0)}` : '–'}</div>
           </div>
         </div>
 

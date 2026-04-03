@@ -48,7 +48,7 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
       <MetricCard
         label="Top Modell"
         value={metrics.topModel?.name ?? '–'}
-        subtitle={metrics.topModel ? `${formatCurrency(metrics.topModel.cost)} · ${formatPercent(metrics.topModelShare, 0)} Anteil` : undefined}
+        subtitle={metrics.topModel ? `${formatCurrency(metrics.topModel.cost)} · ${formatPercent(metrics.topModelShare, 0)} Anteil${metrics.topRequestModel ? ` · Req-Lead: ${metrics.topRequestModel.name}` : ''}` : undefined}
         icon={<Cpu className="h-4 w-4" />}
         info={METRIC_HELP.topModel}
       />
@@ -68,7 +68,7 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
       <MetricCard
         label="Requests"
         value={metrics.hasRequestData ? <FormattedValue value={metrics.totalRequests} type="number" label="Requests" insight={`${formatCurrency(metrics.avgCostPerRequest)} pro Request im Mittel`} /> : 'n/v'}
-        subtitle={metrics.hasRequestData ? `Ø ${metrics.avgRequestsPerDay.toFixed(1)}/${periodUnit(viewMode)} · ${formatCurrency(metrics.avgCostPerRequest)}/Req` : 'Keine Request-Zähler im Datensatz'}
+        subtitle={metrics.hasRequestData ? `Ø ${metrics.avgRequestsPerDay.toFixed(1)}/${periodUnit(viewMode)} · ${formatCurrency(metrics.avgCostPerRequest)}/Req · σ ${Math.round(metrics.requestVolatility)}` : 'Keine Request-Zähler im Datensatz'}
         icon={<Activity className="h-4 w-4" />}
       />
       <MetricCard

@@ -116,6 +116,7 @@ export function toCostChartData(data: DailyUsage[]): ChartDataPoint[] {
     return {
       date: d.date,
       cost: d.totalCost,
+      costPrev: i > 0 ? sorted[i - 1].totalCost : undefined,
       ma7: ma7[i],
       cumulative,
     }
@@ -187,6 +188,8 @@ export function toTokenChartData(data: DailyUsage[]): TokenChartDataPoint[] {
     'Cache Write': d.cacheCreationTokens,
     'Cache Read': d.cacheReadTokens,
     Thinking: d.thinkingTokens,
+    totalTokens: d.totalTokens,
+    totalTokensPrev: i > 0 ? sorted[i - 1].totalTokens : undefined,
     tokenMA7: ma7[i],
     inputMA7: inputMA7[i],
     outputMA7: outputMA7[i],
@@ -232,6 +235,7 @@ export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] 
     const point: Record<string, unknown> = {
       date: d.date,
       totalRequests: d.requestCount,
+      totalRequestsPrev: i > 0 ? sorted[i - 1].requestCount : undefined,
       totalRequestsMA7: totalMA7[i],
     }
 

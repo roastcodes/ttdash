@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { formatCurrency, localToday, toLocalDateStr } from '@/lib/formatters'
+import { formatCurrency, formatNumber, formatTokens, localToday, toLocalDateStr } from '@/lib/formatters'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface HeatmapCalendarProps {
   data: DailyUsage[]
   viewMode?: ViewMode
+  metric?: 'cost' | 'requests' | 'tokens'
 }
 
 const CELL_SIZE = 14
@@ -13,29 +14,37 @@ const CELL_GAP = 2
 const TOTAL = CELL_SIZE + CELL_GAP
 const DAY_LABELS = ['Mo', '', 'Mi', '', 'Fr', '', 'So']
 
-function getColor(cost: number, maxCost: number): string {
-  if (cost === 0) return 'hsl(224, 12%, 14%)'
-  const intensity = Math.min(cost / maxCost, 1)
-  if (intensity < 0.15) return 'hsl(215, 70%, 18%)'
-  if (intensity < 0.30) return 'hsl(215, 70%, 26%)'
-  if (intensity < 0.45) return 'hsl(215, 70%, 34%)'
-  if (intensity < 0.60) return 'hsl(215, 70%, 42%)'
-  if (intensity < 0.75) return 'hsl(215, 70%, 52%)'
-  if (intensity < 0.90) return 'hsl(215, 70%, 60%)'
-  return 'hsl(215, 70%, 70%)'
+function getColor(value: number, maxValue: number, hue: number): string {
+  if (value === 0) return 'hsl(224, 12%, 14%)'
+  const intensity = Math.min(value / maxValue, 1)
+  if (intensity < 0.15) return `hsl(${hue}, 70%, 18%)`
+  if (intensity < 0.30) return `hsl(${hue}, 70%, 26%)`
+  if (intensity < 0.45) return `hsl(${hue}, 70%, 34%)`
+  if (intensity < 0.60) return `hsl(${hue}, 70%, 42%)`
+  if (intensity < 0.75) return `hsl(${hue}, 70%, 52%)`
+  if (intensity < 0.90) return `hsl(${hue}, 70%, 60%)`
+  return `hsl(${hue}, 70%, 70%)`
 }
 
-export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarProps) {
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; date: string; cost: number } | null>(null)
+const HEATMAP_CONFIG = {
+  cost: { title: 'Kosten-Heatmap', empty: 'Kosten-Heatmap nur in der Tagesansicht verfügbar', formatter: formatCurrency, accessor: (entry: DailyUsage) => entry.totalCost, hue: 215 },
+  requests: { title: 'Request-Heatmap', empty: 'Request-Heatmap nur in der Tagesansicht verfügbar', formatter: formatNumber, accessor: (entry: DailyUsage) => entry.requestCount, hue: 160 },
+  tokens: { title: 'Token-Heatmap', empty: 'Token-Heatmap nur in der Tagesansicht verfügbar', formatter: formatTokens, accessor: (entry: DailyUsage) => entry.totalTokens, hue: 35 },
+} as const
 
-  const { cells, weeks, months, maxCost } = useMemo(() => {
-    if (data.length === 0) return { cells: [], weeks: 0, months: [], maxCost: 0 }
+export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: HeatmapCalendarProps) {
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; date: string; value: number } | null>(null)
+  const config = HEATMAP_CONFIG[metric]
 
-    const costMap = new Map<string, number>()
+  const { cells, weeks, months, maxValue } = useMemo(() => {
+    if (data.length === 0) return { cells: [], weeks: 0, months: [], maxValue: 0 }
+
+    const valueMap = new Map<string, number>()
     let max = 0
     for (const d of data) {
-      costMap.set(d.date, d.totalCost)
-      if (d.totalCost > max) max = d.totalCost
+      const value = config.accessor(d)
+      valueMap.set(d.date, value)
+      if (value > max) max = value
     }
 
     const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
@@ -56,7 +65,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
     while (currentDate <= endDate || week === 0) {
       const dateStr = toLocalDateStr(currentDate)
       const dow = (currentDate.getDay() + 6) % 7
-      const cost = costMap.get(dateStr) ?? 0
+      const value = valueMap.get(dateStr) ?? 0
 
       if (dow === 0) {
         const m = currentDate.getMonth()
@@ -69,15 +78,15 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
         }
       }
 
-      result.push({ date: dateStr, cost, week, day: dow })
+      result.push({ date: dateStr, value, week, day: dow })
 
       currentDate.setDate(currentDate.getDate() + 1)
       if (dow === 6) week++
       if (currentDate > endDate && dow === 6) break
     }
 
-    return { cells: result, weeks: week + 1, months: monthLabels, maxCost: max }
-  }, [data])
+    return { cells: result, weeks: week + 1, months: monthLabels, maxValue: max }
+  }, [data, config])
 
   const todayStr = localToday()
 
@@ -86,11 +95,11 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Kosten-Heatmap</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">{config.title}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-sm text-muted-foreground">Heatmap nur in der Tagesansicht verfügbar</p>
+            <p className="text-sm text-muted-foreground">{config.empty}</p>
             <p className="text-xs text-muted-foreground/60 mt-1">Wechsle zur Tagesansicht für die Kalender-Heatmap</p>
           </div>
         </CardContent>
@@ -104,9 +113,9 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
   const svgHeight = 7 * TOTAL + 25
 
   return (
-    <Card>
+      <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">Kosten-Heatmap</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{config.title}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="relative overflow-x-auto">
@@ -152,14 +161,14 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
                     width={CELL_SIZE}
                     height={CELL_SIZE}
                     rx={2}
-                    fill={getColor(cell.cost, maxCost)}
+                    fill={getColor(cell.value, maxValue, config.hue)}
                     className="transition-all duration-150 cursor-pointer"
                     onMouseEnter={() => {
                       setTooltip({
                         x: 30 + cell.week * TOTAL + CELL_SIZE / 2,
                         y: 18 + cell.day * TOTAL - 8,
                         date: cell.date,
-                        cost: cell.cost,
+                        value: cell.value,
                       })
                     }}
                     onMouseLeave={() => setTooltip(null)}
@@ -186,7 +195,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
               className="absolute z-20 -translate-x-1/2 -translate-y-full rounded-md border border-border bg-popover px-2 py-1 text-xs shadow-lg pointer-events-none whitespace-nowrap"
               style={{ left: tooltip.x, top: tooltip.y }}
             >
-              <span className="font-medium">{formatCurrency(tooltip.cost)}</span>
+              <span className="font-medium">{config.formatter(tooltip.value)}</span>
               <span className="text-muted-foreground ml-1">{tooltip.date}</span>
             </div>
           )}
@@ -198,7 +207,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily' }: HeatmapCalendarPro
               <div
                 key={i}
                 className="w-3 h-3 rounded-sm"
-                style={{ backgroundColor: getColor(level * maxCost, maxCost) }}
+                style={{ backgroundColor: getColor(level * maxValue, maxValue, config.hue) }}
               />
             ))}
             <span>Mehr</span>

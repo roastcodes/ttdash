@@ -31,9 +31,10 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
 
   // Total tokens per day for the expanded extra chart
   const totalPerDay = useMemo(() =>
-    data.map(d => ({
+    data.map((d, i) => ({
       date: d.date,
       total: d.Input + d.Output + d['Cache Write'] + d['Cache Read'] + d.Thinking,
+      totalPrev: i > 0 ? data[i - 1].Input + data[i - 1].Output + data[i - 1]['Cache Write'] + data[i - 1]['Cache Read'] + data[i - 1].Thinking : undefined,
       tokenMA7: d.tokenMA7,
     })),
     [data]

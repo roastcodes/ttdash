@@ -101,26 +101,26 @@ export function Header({ dateRange, isDark, helpOpen, streak, dataSource, onHelp
       </div>
 
       <div className="grid grid-cols-5 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
-        <Button variant="outline" size="sm" onClick={onAutoImport} title="Auto-Import" className="h-9 px-0 sm:px-3">
+        <Button variant="outline" size="sm" onClick={onAutoImport} title="Auto-Import" className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm">
           <Zap className="h-4 w-4" />
-          <span className="hidden sm:inline">Auto-Import</span>
+          <span>Import</span>
         </Button>
-        <Button variant="outline" size="sm" onClick={onUpload} title="Daten hochladen" className="h-9 px-0 sm:px-3">
+        <Button variant="outline" size="sm" onClick={onUpload} title="Daten hochladen" className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm">
           <Upload className="h-4 w-4" />
-          <span className="hidden sm:inline">Upload</span>
+          <span>Upload</span>
         </Button>
         <div className="contents sm:block sm:w-px sm:h-5 sm:bg-border/50" />
         <div className="contents sm:block">
           {pdfButton}
         </div>
-        <Button variant="outline" size="sm" onClick={onExportCSV} title="CSV Export" className="h-9 px-0 sm:px-3">
+        <Button variant="outline" size="sm" onClick={onExportCSV} title="CSV Export" className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm">
           <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">CSV</span>
+          <span>CSV</span>
         </Button>
         <div className="contents sm:block sm:w-px sm:h-5 sm:bg-border/50" />
-        <Button variant="ghost" size="sm" onClick={onDelete} title="Daten löschen" className="h-9 px-0 sm:px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+        <Button variant="ghost" size="sm" onClick={onDelete} title="Daten löschen" className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10">
           <Trash2 className="h-4 w-4" />
-          <span className="sr-only">Daten löschen</span>
+          <span className="sm:sr-only">Löschen</span>
         </Button>
       </div>
 

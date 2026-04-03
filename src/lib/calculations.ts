@@ -1,14 +1,16 @@
-import type { DailyUsage, DashboardMetrics } from '@/types'
+import type { AggregateMetrics, DailyUsage, DashboardMetrics } from '@/types'
 import { getModelProvider, normalizeModelName } from './model-utils'
 
 export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
   if (data.length === 0) {
     return {
       totalCost: 0, totalTokens: 0, activeDays: 0, topModel: null,
+      topRequestModel: null, topTokenModel: null,
       topModelShare: 0, topThreeModelsShare: 0, topProvider: null, providerCount: 0, hasRequestData: false,
       cacheHitRate: 0, costPerMillion: 0, avgTokensPerRequest: 0, avgCostPerRequest: 0, avgModelsPerDay: 0, avgDailyCost: 0, avgRequestsPerDay: 0,
       topDay: null, cheapestDay: null, busiestWeek: null, weekendCostShare: null, totalInput: 0, totalOutput: 0,
       totalCacheRead: 0, totalCacheCreate: 0, totalThinking: 0, totalRequests: 0, weekOverWeekChange: null,
+      requestVolatility: 0, modelConcentrationIndex: 0, providerConcentrationIndex: 0,
     }
   }
 
@@ -25,6 +27,8 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
   let activeDays = 0
   let hasRequestData = false
   const modelCosts = new Map<string, number>()
+  const modelTokens = new Map<string, number>()
+  const modelRequests = new Map<string, number>()
   const providerCosts = new Map<string, number>()
   let totalModelsUsed = 0
   let weekendCost = 0
@@ -54,6 +58,8 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
     for (const mb of d.modelBreakdowns) {
       const name = normalizeModelName(mb.modelName)
       modelCosts.set(name, (modelCosts.get(name) ?? 0) + mb.cost)
+      modelTokens.set(name, (modelTokens.get(name) ?? 0) + mb.inputTokens + mb.outputTokens + mb.cacheCreationTokens + mb.cacheReadTokens + mb.thinkingTokens)
+      modelRequests.set(name, (modelRequests.get(name) ?? 0) + mb.requestCount)
       const provider = getModelProvider(mb.modelName)
       providerCosts.set(provider, (providerCosts.get(provider) ?? 0) + mb.cost)
     }
@@ -72,6 +78,14 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
   for (const [name, cost] of modelCosts) {
     if (!topModel || cost > topModel.cost) topModel = { name, cost }
   }
+  let topRequestModel: { name: string; requests: number } | null = null
+  for (const [name, requests] of modelRequests) {
+    if (!topRequestModel || requests > topRequestModel.requests) topRequestModel = { name, requests }
+  }
+  let topTokenModel: { name: string; tokens: number } | null = null
+  for (const [name, tokens] of modelTokens) {
+    if (!topTokenModel || tokens > topTokenModel.tokens) topTokenModel = { name, tokens }
+  }
   const topModelShare = topModel && totalCost > 0 ? (topModel.cost / totalCost) * 100 : 0
   const topThreeModelsShare = totalCost > 0
     ? [...modelCosts.values()].sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0) / totalCost * 100
@@ -86,16 +100,31 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
 
   const busiestWeek = computeBusiestWeek(data)
   const weekendCostShare = weekendEligible > 0 ? (weekendCost / weekendEligible) * 100 : null
+  const requestValues = data.map(entry => entry.requestCount)
+  const requestVolatility = stdDev(requestValues)
+  const modelConcentrationIndex = totalCost > 0
+    ? [...modelCosts.values()].reduce((sum, cost) => {
+      const share = cost / totalCost
+      return sum + share * share
+    }, 0)
+    : 0
+  const providerConcentrationIndex = totalCost > 0
+    ? [...providerCosts.values()].reduce((sum, cost) => {
+      const share = cost / totalCost
+      return sum + share * share
+    }, 0)
+    : 0
 
   // Week-over-week change
   const weekOverWeekChange = computeWeekOverWeekChange(data)
 
   return {
-    totalCost, totalTokens, activeDays, topModel, topModelShare, topThreeModelsShare, topProvider, providerCount: providerCosts.size, hasRequestData, cacheHitRate,
+    totalCost, totalTokens, activeDays, topModel, topRequestModel, topTokenModel, topModelShare, topThreeModelsShare, topProvider, providerCount: providerCosts.size, hasRequestData, cacheHitRate,
     costPerMillion, avgTokensPerRequest, avgCostPerRequest, avgModelsPerDay, avgDailyCost, avgRequestsPerDay, topDay, cheapestDay, busiestWeek, weekendCostShare,
     totalInput, totalOutput, totalCacheRead, totalCacheCreate,
     totalThinking, totalRequests,
     weekOverWeekChange,
+    requestVolatility, modelConcentrationIndex, providerConcentrationIndex,
   }
 }
 
@@ -188,6 +217,42 @@ export function computeModelCosts(data: DailyUsage[]): Map<string, {
       map.set(name, existing)
     }
   }
+  return map
+}
+
+export function computeProviderMetrics(data: DailyUsage[]): Map<string, AggregateMetrics> {
+  const map = new Map<string, AggregateMetrics>()
+
+  for (const day of data) {
+    const entryDays = day._aggregatedDays ?? 1
+
+    for (const breakdown of day.modelBreakdowns) {
+      const provider = getModelProvider(breakdown.modelName)
+      const existing = map.get(provider) ?? {
+        cost: 0,
+        tokens: 0,
+        input: 0,
+        output: 0,
+        cacheRead: 0,
+        cacheCreate: 0,
+        thinking: 0,
+        requests: 0,
+        days: 0,
+      }
+
+      existing.cost += breakdown.cost
+      existing.input += breakdown.inputTokens
+      existing.output += breakdown.outputTokens
+      existing.cacheRead += breakdown.cacheReadTokens
+      existing.cacheCreate += breakdown.cacheCreationTokens
+      existing.thinking += breakdown.thinkingTokens
+      existing.requests += breakdown.requestCount
+      existing.tokens += breakdown.inputTokens + breakdown.outputTokens + breakdown.cacheReadTokens + breakdown.cacheCreationTokens + breakdown.thinkingTokens
+      existing.days += entryDays
+      map.set(provider, existing)
+    }
+  }
+
   return map
 }
 

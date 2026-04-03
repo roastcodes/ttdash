@@ -16,7 +16,10 @@ import { TokenTypes } from './charts/TokenTypes'
 import { CostByWeekday } from './charts/CostByWeekday'
 import { TokenEfficiency } from './charts/TokenEfficiency'
 import { ModelMix } from './charts/ModelMix'
+import { DistributionAnalysis } from './charts/DistributionAnalysis'
+import { CorrelationAnalysis } from './charts/CorrelationAnalysis'
 import { ModelEfficiency } from './tables/ModelEfficiency'
+import { ProviderEfficiency } from './tables/ProviderEfficiency'
 import { RecentDays } from './tables/RecentDays'
 import { EmptyState } from './EmptyState'
 import { HeatmapCalendar } from './features/heatmap/HeatmapCalendar'
@@ -25,6 +28,8 @@ import { CacheROI } from './features/cache-roi/CacheROI'
 import { PeriodComparison } from './features/comparison/PeriodComparison'
 import { AnomalyDetection } from './features/anomaly/AnomalyDetection'
 import { UsageInsights } from './features/insights/UsageInsights'
+import { ConcentrationRisk } from './features/risk/ConcentrationRisk'
+import { RequestQuality } from './features/request-quality/RequestQuality'
 import { PDFReportButton } from './features/pdf-report/PDFReport'
 import { CommandPalette } from './features/command-palette/CommandPalette'
 import { FadeIn } from './features/animations/FadeIn'
@@ -85,7 +90,7 @@ export function Dashboard() {
   } = useDashboardFilters(daily)
 
   const {
-    metrics, modelCosts, costChartData, modelCostChartData,
+    metrics, modelCosts, providerMetrics, costChartData, modelCostChartData,
     tokenChartData, requestChartData, weekdayData, allModels, modelPieData, tokenPieData,
   } = useComputedMetrics(filteredData, viewMode)
 
@@ -264,14 +269,11 @@ export function Dashboard() {
         <div id="activity">
           <SectionHeader title="Aktivität" description={viewMode === 'daily' ? 'Tägliche Nutzungsübersicht' : viewMode === 'monthly' ? 'Monatliche Nutzungsübersicht' : 'Jährliche Nutzungsübersicht'} />
           <FadeIn delay={0.2}>
-            <ExpandableCard title="Aktivitäts-Heatmap" stats={[
-              { label: 'Aktive Tage', value: String(metrics.activeDays) },
-              { label: 'Total', value: formatCurrency(metrics.totalCost) },
-              { label: `Ø/${periodUnit(viewMode)}`, value: formatCurrency(metrics.avgDailyCost) },
-              { label: 'Zeitraum', value: dateRange ? `${dateRange.start} – ${dateRange.end}` : '-' },
-            ]}>
-              <HeatmapCalendar data={filteredData} viewMode={viewMode} />
-            </ExpandableCard>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+              <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="cost" />
+              <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="requests" />
+              <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="tokens" />
+            </div>
           </FadeIn>
         </div>
 
@@ -344,8 +346,33 @@ export function Dashboard() {
             <FadeIn delay={0.47}>
               <RequestsOverTime data={requestChartData} viewMode={viewMode} onClickDay={setDrillDownDate} />
             </FadeIn>
+            <FadeIn delay={0.49}>
+              <div className="mt-4">
+                <RequestQuality metrics={metrics} viewMode={viewMode} />
+              </div>
+            </FadeIn>
           </div>
         )}
+
+        <div id="advanced-analysis">
+          <SectionHeader title="Verteilungen & Risiko" description="Zusätzliche Signale zu Streuung, Korrelation und Abhängigkeiten" />
+          <FadeIn delay={0.48}>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <DistributionAnalysis data={filteredData} viewMode={viewMode} />
+              <ConcentrationRisk
+                topModelShare={metrics.topModelShare}
+                topProviderShare={metrics.topProvider?.share ?? 0}
+                modelConcentrationIndex={metrics.modelConcentrationIndex}
+                providerConcentrationIndex={metrics.providerConcentrationIndex}
+              />
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.5}>
+            <div className="mt-4">
+              <CorrelationAnalysis data={filteredData} />
+            </div>
+          </FadeIn>
+        </div>
 
         {/* Period Comparison + Anomaly Detection */}
         <div id="comparisons">
@@ -376,6 +403,11 @@ export function Dashboard() {
           </FadeIn>
           <FadeIn delay={0.6}>
             <div className="mt-4">
+              <ProviderEfficiency providerMetrics={providerMetrics} totalCost={metrics.totalCost} viewMode={viewMode} />
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.65}>
+            <div className="mt-4">
               <RecentDays data={filteredData} onClickDay={setDrillDownDate} viewMode={viewMode} />
             </div>
           </FadeIn>
@@ -387,6 +419,7 @@ export function Dashboard() {
         {drillDownDate !== null && (
           <DrillDownModal
             day={drillDownDay}
+            contextData={filteredData}
             open={drillDownDate !== null}
             onClose={() => setDrillDownDate(null)}
           />

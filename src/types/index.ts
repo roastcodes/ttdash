@@ -51,6 +51,8 @@ export interface DashboardMetrics {
   totalTokens: number
   activeDays: number
   topModel: { name: string; cost: number } | null
+  topRequestModel: { name: string; requests: number } | null
+  topTokenModel: { name: string; tokens: number } | null
   topModelShare: number
   topThreeModelsShare: number
   topProvider: { name: string; cost: number; share: number } | null
@@ -74,6 +76,9 @@ export interface DashboardMetrics {
   totalThinking: number
   totalRequests: number
   weekOverWeekChange: number | null
+  requestVolatility: number
+  modelConcentrationIndex: number
+  providerConcentrationIndex: number
 }
 
 export interface AggregatedPeriod {
@@ -124,4 +129,16 @@ export interface RequestChartDataPoint {
 export interface WeekdayData {
   day: string
   cost: number
+}
+
+export interface AggregateMetrics {
+  cost: number
+  tokens: number
+  input: number
+  output: number
+  cacheRead: number
+  cacheCreate: number
+  thinking: number
+  requests: number
+  days: number
 }

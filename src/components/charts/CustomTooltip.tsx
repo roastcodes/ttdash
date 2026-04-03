@@ -3,6 +3,7 @@ interface TooltipPayloadEntry {
   value: number
   color: string
   dataKey: string
+  payload?: Record<string, unknown>
 }
 
 interface CustomTooltipProps {
@@ -31,6 +32,20 @@ export function CustomTooltip({ active, payload, label, formatter, pinnedEntryNa
 
   const total = actualEntries.reduce((sum, entry) => sum + (entry.value ?? 0), 0)
   const showTotal = showComputedTotal && actualEntries.length >= 2
+  const point = payload[0]?.payload ?? {}
+  const focusEntry = actualEntries.length === 1 ? actualEntries[0] : pinnedEntries.length === 1 ? pinnedEntries[0] : null
+  const prevValueRaw = focusEntry ? point[`${focusEntry.dataKey}Prev`] : undefined
+  const prevValue = typeof prevValueRaw === 'number' ? prevValueRaw : null
+  const matchingMA = focusEntry
+    ? maEntries.find(entry => entry.dataKey === `${focusEntry.dataKey}MA7` || entry.dataKey === `${focusEntry.dataKey.toString().toLowerCase()}MA7`)
+      ?? (maEntries.length === 1 ? maEntries[0] : null)
+    : null
+  const deltaVsPrevious = focusEntry && prevValue !== null
+    ? focusEntry.value - prevValue
+    : null
+  const deltaVsAverage = focusEntry && matchingMA
+    ? focusEntry.value - matchingMA.value
+    : null
 
   return (
     <div className="max-w-[280px] bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">
@@ -101,6 +116,29 @@ export function CustomTooltip({ active, payload, label, formatter, pinnedEntryNa
                 </span>
               </div>
             ))}
+          </>
+        )}
+        {(deltaVsPrevious !== null || deltaVsAverage !== null) && (
+          <>
+            <div className="border-t border-border/40 my-1" />
+            {deltaVsPrevious !== null && (
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 shrink-0" />
+                <span className="text-muted-foreground">vs. vorher:</span>
+                <span className="font-mono font-medium text-foreground ml-auto">
+                  {(deltaVsPrevious >= 0 ? '+' : '')}{formatter ? formatter(deltaVsPrevious, 'Delta') : deltaVsPrevious}
+                </span>
+              </div>
+            )}
+            {deltaVsAverage !== null && (
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 shrink-0" />
+                <span className="text-muted-foreground">vs. Ø:</span>
+                <span className="font-mono font-medium text-foreground ml-auto">
+                  {(deltaVsAverage >= 0 ? '+' : '')}{formatter ? formatter(deltaVsAverage, 'Delta') : deltaVsAverage}
+                </span>
+              </div>
+            )}
           </>
         )}
       </div>
