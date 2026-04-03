@@ -1,8 +1,7 @@
-import { useMemo, useRef } from 'react'
-import { useInView } from 'framer-motion'
+import { useMemo, useRef, useState } from 'react'
+import { motion, useInView } from 'framer-motion'
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ZAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { FadeIn } from '@/components/features/animations/FadeIn'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
@@ -79,13 +78,79 @@ function ScatterTooltip({ active, payload, mode }: { active?: boolean; payload?:
   )
 }
 
-export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
-  const sectionRef = useRef<HTMLDivElement | null>(null)
-  const inView = useInView(sectionRef, { once: true, amount: 0.2 })
+function CorrelationPanel({
+  title,
+  subtitle,
+  mode,
+  data,
+  color,
+  animationBegin = 0,
+  xAxisName,
+  xTickFormatter,
+  yAxisName,
+  footer,
+  delay,
+}: {
+  title: string
+  subtitle: string
+  mode: 'requestCost' | 'cacheEfficiency'
+  data: ScatterPoint[]
+  color: string
+  animationBegin?: number
+  xAxisName: string
+  xTickFormatter?: (value: number) => string
+  yAxisName: string
+  footer: string
+  delay: number
+}) {
+  const panelRef = useRef<HTMLDivElement | null>(null)
+  const panelInView = useInView(panelRef, { once: true, amount: 0.45 })
+  const [animatePoints, setAnimatePoints] = useState(false)
+  const chartData = animatePoints ? data : []
 
+  return (
+    <motion.div
+      ref={panelRef}
+      initial={{ opacity: 0, y: 20 }}
+      animate={panelInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+      transition={{ duration: 0.45, delay, ease: 'easeOut' }}
+      onAnimationComplete={() => {
+        if (panelInView) setAnimatePoints(true)
+      }}
+    >
+      <div>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{title}</div>
+          <div className="text-[10px] text-muted-foreground">{subtitle}</div>
+        </div>
+        <ResponsiveContainer width="100%" height={260}>
+          <ScatterChart margin={CHART_MARGIN}>
+            <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.25} />
+            <XAxis type="number" dataKey="x" stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} name={xAxisName} tickFormatter={xTickFormatter} />
+            <YAxis type="number" dataKey="y" stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} name={yAxisName} tickFormatter={formatCurrency} />
+            <ZAxis type="number" dataKey="z" range={[30, 180]} />
+            <Tooltip content={<ScatterTooltip mode={mode} />} cursor={{ strokeDasharray: '4 4' }} />
+            <Scatter
+              data={chartData}
+              fill={color}
+              stroke={color}
+              fillOpacity={0.72}
+              isAnimationActive={animatePoints}
+              animationBegin={animationBegin}
+              animationDuration={CHART_ANIMATION.duration}
+            />
+          </ScatterChart>
+        </ResponsiveContainer>
+        <div className="mt-2 text-xs text-muted-foreground">{footer}</div>
+      </div>
+    </motion.div>
+  )
+}
+
+export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   if (data.length < 2) {
     return (
-      <Card ref={sectionRef}>
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             Korrelationen
@@ -128,7 +193,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   const cacheEfficiencyCorrelation = correlation(cacheVsCostPerRequest.map(point => point.x), cacheVsCostPerRequest.map(point => point.y))
 
   return (
-    <Card ref={sectionRef}>
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           Korrelationen
@@ -136,64 +201,31 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <FadeIn delay={0.02} duration={0.45} direction="up">
-        <div>
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Requests vs. Kosten</div>
-            <div className="text-[10px] text-muted-foreground">r {requestCostCorrelation.toFixed(2)} · {requestVsCost.length} Punkte</div>
-          </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <ScatterChart margin={CHART_MARGIN}>
-              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.25} />
-              <XAxis type="number" dataKey="x" stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} name="Requests" />
-              <YAxis type="number" dataKey="y" stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} name="Kosten" tickFormatter={formatCurrency} />
-              <ZAxis type="number" dataKey="z" range={[30, 180]} />
-              <Tooltip content={<ScatterTooltip mode="requestCost" />} cursor={{ strokeDasharray: '4 4' }} />
-              <Scatter
-                data={requestVsCost}
-                fill={CHART_COLORS.cost}
-                stroke={CHART_COLORS.cost}
-                fillOpacity={0.72}
-                isAnimationActive={inView}
-                animationDuration={CHART_ANIMATION.duration}
-              />
-            </ScatterChart>
-          </ResponsiveContainer>
-          <div className="mt-2 text-xs text-muted-foreground">
-            {requestCostCorrelation >= 0.6 ? 'Starker Zusammenhang: Mehr Requests treiben die Kosten sichtbar.' : requestCostCorrelation >= 0.3 ? 'Moderater Zusammenhang zwischen Last und Kosten.' : 'Schwacher Zusammenhang: Kosten werden stärker von Modellmix und Tokenlast geprägt.'}
-          </div>
-        </div>
-        </FadeIn>
+        <CorrelationPanel
+          title="Requests vs. Kosten"
+          subtitle={`r ${requestCostCorrelation.toFixed(2)} · ${requestVsCost.length} Punkte`}
+          mode="requestCost"
+          data={requestVsCost}
+          color={CHART_COLORS.cost}
+          xAxisName="Requests"
+          yAxisName="Kosten"
+          footer={requestCostCorrelation >= 0.6 ? 'Starker Zusammenhang: Mehr Requests treiben die Kosten sichtbar.' : requestCostCorrelation >= 0.3 ? 'Moderater Zusammenhang zwischen Last und Kosten.' : 'Schwacher Zusammenhang: Kosten werden stärker von Modellmix und Tokenlast geprägt.'}
+          delay={0.02}
+        />
 
-        <FadeIn delay={0.08} duration={0.45} direction="up">
-        <div>
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Cache-Rate vs. $/Req</div>
-            <div className="text-[10px] text-muted-foreground">r {cacheEfficiencyCorrelation.toFixed(2)} · {cacheVsCostPerRequest.length} Punkte</div>
-          </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <ScatterChart margin={CHART_MARGIN}>
-              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.25} />
-              <XAxis type="number" dataKey="x" stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} name="Cache-Rate" tickFormatter={(value) => formatPercent(value, 0)} />
-              <YAxis type="number" dataKey="y" stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} name="$/Req" tickFormatter={formatCurrency} />
-              <ZAxis type="number" dataKey="z" range={[30, 180]} />
-              <Tooltip content={<ScatterTooltip mode="cacheEfficiency" />} cursor={{ strokeDasharray: '4 4' }} />
-              <Scatter
-                data={cacheVsCostPerRequest}
-                fill={CHART_COLORS.cumulative}
-                stroke={CHART_COLORS.cumulative}
-                fillOpacity={0.72}
-                isAnimationActive={inView}
-                animationBegin={CHART_ANIMATION.stagger}
-                animationDuration={CHART_ANIMATION.duration}
-              />
-            </ScatterChart>
-          </ResponsiveContainer>
-          <div className="mt-2 text-xs text-muted-foreground">
-            {cacheEfficiencyCorrelation <= -0.3 ? 'Negativer Zusammenhang: Höhere Cache-Rate senkt tendenziell die Kosten pro Request.' : cacheEfficiencyCorrelation < 0.2 ? 'Kaum linearer Effekt: Cache wirkt, aber nicht allein entscheidend.' : 'Positiver Zusammenhang: Hohe Cache-Raten fallen hier nicht automatisch mit niedrigen Kosten pro Request zusammen.'}
-          </div>
-        </div>
-        </FadeIn>
+        <CorrelationPanel
+          title="Cache-Rate vs. $/Req"
+          subtitle={`r ${cacheEfficiencyCorrelation.toFixed(2)} · ${cacheVsCostPerRequest.length} Punkte`}
+          mode="cacheEfficiency"
+          data={cacheVsCostPerRequest}
+          color={CHART_COLORS.cumulative}
+          animationBegin={CHART_ANIMATION.stagger}
+          xAxisName="Cache-Rate"
+          xTickFormatter={(value) => formatPercent(value, 0)}
+          yAxisName="$/Req"
+          footer={cacheEfficiencyCorrelation <= -0.3 ? 'Negativer Zusammenhang: Höhere Cache-Rate senkt tendenziell die Kosten pro Request.' : cacheEfficiencyCorrelation < 0.2 ? 'Kaum linearer Effekt: Cache wirkt, aber nicht allein entscheidend.' : 'Positiver Zusammenhang: Hohe Cache-Raten fallen hier nicht automatisch mit niedrigen Kosten pro Request zusammen.'}
+          delay={0.08}
+        />
       </CardContent>
     </Card>
   )

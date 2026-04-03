@@ -180,10 +180,10 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
     >
       {(expanded) => {
         const lineHeight = expanded ? 420 : 320
-        const donutHeight = expanded ? 420 : 320
-        const innerRadius = expanded ? 72 : 56
-        const outerRadius = expanded ? 116 : 88
-        const donutCenterY = expanded ? '46%' : '42%'
+        const donutHeight = expanded ? 440 : 340
+        const innerRadius = expanded ? 70 : 54
+        const outerRadius = expanded ? 112 : 82
+        const donutCenterY = expanded ? '48%' : '46%'
 
         return (
           <>
@@ -275,7 +275,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                 </ChartAnimationAware>
               </div>
 
-              <div className="min-w-0">
+              <div className="min-w-0 pt-1">
                 <ChartAnimationAware>
                   {(animate) => (
                     <ChartReveal variant="radial" delay={0.04}>
