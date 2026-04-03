@@ -1,4 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { InfoButton } from '@/components/features/help/InfoButton'
+import { FEATURE_HELP } from '@/lib/help-content'
 import { formatPercent } from '@/lib/formatters'
 
 interface ConcentrationRiskProps {
@@ -21,7 +23,10 @@ export function ConcentrationRisk({ topModelShare, topProviderShare, modelConcen
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm font-medium text-muted-foreground">Konzentrationsrisiko</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          Konzentrationsrisiko
+          <InfoButton text={FEATURE_HELP.concentrationRisk} />
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

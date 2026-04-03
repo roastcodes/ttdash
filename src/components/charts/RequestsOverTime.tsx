@@ -29,7 +29,7 @@ function RequestCenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: nu
   return (
     <g>
       <text x={cx} y={cy - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={11}>
-        Total
+        Gesamt
       </text>
       <text x={cx} y={cy + 14} textAnchor="middle" className="fill-foreground" fontSize={16} fontWeight={600}>
         {total}
@@ -111,7 +111,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                     type="monotone"
                     dataKey="totalRequestsMA7"
                     stroke={CHART_COLORS.ma7}
-                    name={`Total ${trendLabel}`}
+                    name={`Gesamt ${trendLabel}`}
                     dot={false}
                     strokeWidth={2.5}
                     strokeDasharray="6 4"
@@ -170,7 +170,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
   return (
     <ChartCard
       title="Requests im Zeitverlauf"
-      subtitle={summary ? `Total ${formatRequests(summary.totalRequests)} · Peak ${formatRequests(summary.peak.totalRequests)} am ${formatDateAxis(summary.peak.date)}` : 'Requests gesamt, nach Modell und mit 7-Tage Ø'}
+      subtitle={summary ? `Gesamt ${formatRequests(summary.totalRequests)} · Peak ${formatRequests(summary.peak.totalRequests)} am ${formatDateAxis(summary.peak.date)}` : 'Requests gesamt, nach Modell und mit 7-Tage-Ø'}
       info={CHART_HELP.requestsOverTime}
       summary={summary ? <FormattedValue value={summary.totalRequests} type="number" /> : undefined}
       chartData={data as unknown as Record<string, unknown>[]}
@@ -189,7 +189,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-center">
               <div className="rounded-lg bg-muted/20 p-2">
-                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Total</div>
+                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Gesamt</div>
                 <div className="text-sm font-semibold tabular-nums">{summary ? formatRequests(summary.totalRequests) : '0'}</div>
               </div>
               <div className="rounded-lg bg-muted/20 p-2">
@@ -225,7 +225,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                           <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
                           <YAxis tickFormatter={formatRequests} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
                           <Tooltip
-                            content={<CustomTooltip formatter={(v) => formatRequests(v)} pinnedEntryNames={['Total Requests']} showComputedTotal={false} />}
+                            content={<CustomTooltip formatter={(v) => formatRequests(v)} pinnedEntryNames={['Gesamt-Requests']} showComputedTotal={false} />}
                             cursor={{ fill: 'hsl(var(--muted))', opacity: 0.12 }}
                           />
                           <Legend />
@@ -234,7 +234,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                             dataKey="totalRequests"
                             stroke={CHART_COLORS.cumulative}
                             fill={`url(#${uid}-requests)`}
-                            name="Total Requests"
+                            name="Gesamt-Requests"
                             strokeWidth={1.8}
                             dot={false}
                             activeDot={{ r: 5, strokeWidth: 2, stroke: CHART_COLORS.cumulative, fill: 'hsl(var(--background))' }}

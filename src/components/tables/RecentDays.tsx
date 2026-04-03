@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FormattedValue } from '@/components/ui/formatted-value'
+import { InfoButton } from '@/components/features/help/InfoButton'
+import { FEATURE_HELP } from '@/lib/help-content'
 import { formatCurrency, formatDate, formatPercent } from '@/lib/formatters'
 import { normalizeModelName, getModelColor, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
@@ -80,7 +82,10 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex flex-col gap-0.5">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            {viewMode === 'monthly' ? 'Monate im Detail' : viewMode === 'yearly' ? 'Jahre im Detail' : 'Letzte Tage im Detail'}
+            <span className="inline-flex items-center gap-2">
+              {viewMode === 'monthly' ? 'Monate im Detail' : viewMode === 'yearly' ? 'Jahre im Detail' : 'Letzte Tage im Detail'}
+              <InfoButton text={FEATURE_HELP.recentDays} />
+            </span>
           </CardTitle>
           <span className="text-xs text-muted-foreground/70">
             Zeige {displayed.length} von {sorted.length} {periodLabel(viewMode, true)}
@@ -100,7 +105,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
               <div className="mt-1 text-sm font-medium"><FormattedValue value={summary.totalCost} type="currency" /></div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Total Tokens</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Gesamt-Tokens</div>
               <div className="mt-1 text-sm font-medium"><FormattedValue value={summary.totalTokens} type="tokens" /></div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">

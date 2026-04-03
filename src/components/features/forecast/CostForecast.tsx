@@ -8,6 +8,7 @@ import { computeCurrentMonthForecast } from '@/lib/calculations'
 import { MetricCard } from '@/components/cards/MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { TrendingUp } from 'lucide-react'
+import { CHART_HELP } from '@/lib/help-content'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface CostForecastProps {
@@ -38,7 +39,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
         <MetricCard
           label={viewMode === 'monthly' ? 'Ø Monatskosten' : 'Ø Jahreskosten'}
           value={<FormattedValue value={avg} type="currency" />}
-          subtitle={`Total: ${formatCurrency(total)} über ${data.length} ${viewMode === 'monthly' ? 'Monate' : 'Jahre'}`}
+          subtitle={`Gesamt: ${formatCurrency(total)} über ${data.length} ${viewMode === 'monthly' ? 'Monate' : 'Jahre'}`}
           icon={<TrendingUp className="h-4 w-4" />}
         />
       </div>
@@ -155,6 +156,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
         title="Kostenprognose aktueller Monat"
         subtitle="Monatsend-Prognose auf Basis geglätteter Kalender-Tageskosten"
         summary={<FormattedValue value={forecastTotal} type="currency" />}
+        info={CHART_HELP.forecast}
         chartData={chartData as unknown as Record<string, unknown>[]}
         valueKey="cost"
         valueFormatter={formatCurrency}

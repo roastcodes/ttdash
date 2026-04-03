@@ -76,9 +76,9 @@ export function CustomTooltip({ active, payload, label, formatter, pinnedEntryNa
             <div className="border-t border-border/40 my-1" />
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 shrink-0" />
-              <span className="text-muted-foreground font-medium">Total:</span>
+              <span className="text-muted-foreground font-medium">Gesamt:</span>
               <span className="font-mono font-medium text-foreground ml-auto">
-                {formatter ? formatter(total, 'Total') : total}
+                {formatter ? formatter(total, 'Gesamt') : total}
               </span>
               <span className="text-muted-foreground/60 font-mono w-10 text-right">100%</span>
             </div>

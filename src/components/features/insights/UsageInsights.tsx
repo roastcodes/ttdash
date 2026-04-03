@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card'
 import { SectionHeader } from '@/components/ui/section-header'
 import { FadeIn } from '@/components/features/animations/FadeIn'
 import { FormattedValue } from '@/components/ui/formatted-value'
+import { SECTION_HELP } from '@/lib/help-content'
 import { formatCurrency, formatDate, formatNumber, formatPercent, formatTokens, periodUnit } from '@/lib/formatters'
 import type { DashboardMetrics, ViewMode } from '@/types'
 
@@ -58,6 +59,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
         title="Insights"
         badge="Verdichtete Signale"
         description="Konzentrierte Aussagen aus Kosten-, Modell- und Request-Daten"
+        info={SECTION_HELP.insights}
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
         <FadeIn delay={0.03}>

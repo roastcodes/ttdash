@@ -3,7 +3,9 @@ import { useInView } from 'framer-motion'
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ZAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FadeIn } from '@/components/features/animations/FadeIn'
+import { InfoButton } from '@/components/features/help/InfoButton'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatDate, formatPercent, formatTokens } from '@/lib/formatters'
 import type { DailyUsage } from '@/types'
 
@@ -85,7 +87,10 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
     return (
       <Card ref={sectionRef}>
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-muted-foreground">Korrelationen</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            Korrelationen
+            <InfoButton text={CHART_HELP.correlationAnalysis} />
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-sm text-muted-foreground">
@@ -125,7 +130,10 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   return (
     <Card ref={sectionRef}>
       <CardHeader>
-        <CardTitle className="text-sm font-medium text-muted-foreground">Korrelationen</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          Korrelationen
+          <InfoButton text={CHART_HELP.correlationAnalysis} />
+        </CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <FadeIn delay={0.02} duration={0.45} direction="up">

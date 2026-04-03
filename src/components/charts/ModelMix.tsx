@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import { CHART_HELP } from '@/lib/help-content'
 import { getModelColor, normalizeModelName } from '@/lib/model-utils'
 import { formatDateAxis, formatPercent } from '@/lib/formatters'
 import type { DailyUsage } from '@/types'
@@ -67,7 +68,7 @@ export function ModelMix({ data }: ModelMixProps) {
     <ChartCard
       title="Modell-Mix"
       subtitle="Kostenanteil pro Modell über die Zeit"
-      info="Zeigt wie sich die Modell-Nutzung über die Zeit verändert. Nützlich um Migrations-Muster zu erkennen."
+      info={CHART_HELP.modelMix}
     >
       <ChartAnimationAware>
         {(animate) => (

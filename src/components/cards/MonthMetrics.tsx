@@ -4,6 +4,7 @@ import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
 import { FadeIn } from '@/components/features/animations/FadeIn'
+import { SECTION_HELP } from '@/lib/help-content'
 import { formatCurrency, formatMonthYear, localMonth } from '@/lib/formatters'
 import { normalizeModelName } from '@/lib/model-utils'
 import type { DailyUsage, DashboardMetrics } from '@/types'
@@ -88,6 +89,7 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
         title={`Monat — ${formatMonthYear(currentMonth)}`}
         badge={`${agg.activeDays} Tage`}
         description="KPIs des laufenden Monats"
+        info={SECTION_HELP.currentMonth}
       />
       <FadeIn delay={0.08}>
         <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">

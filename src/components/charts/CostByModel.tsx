@@ -16,7 +16,7 @@ function CenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number };
   return (
     <g>
       <text x={cx} y={cy - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={11}>
-        Total
+        Gesamt
       </text>
       <text x={cx} y={cy + 14} textAnchor="middle" className="fill-foreground" fontSize={16} fontWeight={600}>
         {total}

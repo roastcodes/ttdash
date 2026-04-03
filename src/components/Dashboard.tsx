@@ -42,6 +42,7 @@ import { useComputedMetrics } from '@/hooks/use-computed-metrics'
 import { useTheme } from '@/hooks/use-theme'
 import { useToast } from '@/components/ui/toast'
 import { downloadCSV } from '@/lib/csv-export'
+import { SECTION_HELP } from '@/lib/help-content'
 import { formatCurrency, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
 
 const DrillDownModal = lazy(() => import('./features/drill-down/DrillDownModal').then(module => ({ default: module.DrillDownModal })))
@@ -240,7 +241,7 @@ export function Dashboard() {
 
         {/* Primary Metrics */}
         <div id="metrics">
-          <SectionHeader title="Metriken" badge="10 Kennzahlen" description="Wichtigste KPIs im Überblick" />
+          <SectionHeader title="Metriken" badge="10 Kennzahlen" description="Wichtigste KPIs im Überblick" info={SECTION_HELP.metrics} />
           <FadeIn delay={0}>
             <PrimaryMetrics metrics={metrics} totalCalendarDays={totalCalendarDays} viewMode={viewMode} />
           </FadeIn>
@@ -267,7 +268,7 @@ export function Dashboard() {
 
         {/* Heatmap Calendar */}
         <div id="activity">
-          <SectionHeader title="Aktivität" description={viewMode === 'daily' ? 'Tägliche Nutzungsübersicht' : viewMode === 'monthly' ? 'Monatliche Nutzungsübersicht' : 'Jährliche Nutzungsübersicht'} />
+          <SectionHeader title="Aktivität" description={viewMode === 'daily' ? 'Tägliche Nutzungsübersicht' : viewMode === 'monthly' ? 'Monatliche Nutzungsübersicht' : 'Jährliche Nutzungsübersicht'} info={SECTION_HELP.activity} />
           <FadeIn delay={0.2}>
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="cost" />
@@ -279,7 +280,7 @@ export function Dashboard() {
 
         {/* Cost Forecast + Cache ROI */}
         <div id="forecast-cache">
-          <SectionHeader title="Prognose & Cache" description="Kostenprognose und Cache-Effizienz" />
+          <SectionHeader title="Prognose & Cache" description="Kostenprognose und Cache-Effizienz" info={SECTION_HELP.forecastCache} />
           <FadeIn delay={0.25}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ExpandableCard title="Kostenprognose">
@@ -287,7 +288,7 @@ export function Dashboard() {
               </ExpandableCard>
               <ExpandableCard title="Cache ROI" stats={[
                 { label: 'Cache-Hit-Rate', value: formatPercent(metrics.cacheHitRate) },
-                { label: 'Total Tokens', value: formatTokens(metrics.totalTokens) },
+                { label: 'Gesamt-Tokens', value: formatTokens(metrics.totalTokens) },
                 { label: 'Cache Read', value: formatTokens(metrics.totalCacheRead) },
               ]}>
                 <CacheROI data={filteredData} viewMode={viewMode} />
@@ -298,7 +299,7 @@ export function Dashboard() {
 
         {/* Charts */}
         <div id="charts">
-          <SectionHeader title="Kostenanalyse" badge={`${allModels.length} Modelle`} description="Detaillierte Kostenaufschlüsselung" />
+          <SectionHeader title="Kostenanalyse" badge={`${allModels.length} Modelle`} description="Detaillierte Kostenaufschlüsselung" info={SECTION_HELP.costAnalysis} />
           <FadeIn delay={0.3}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
@@ -331,7 +332,7 @@ export function Dashboard() {
 
         {/* Token Analysis */}
         <div id="token-analysis">
-          <SectionHeader title="Token-Analyse" description="Verbrauch nach Token-Typ" />
+          <SectionHeader title="Token-Analyse" description="Verbrauch nach Token-Typ" info={SECTION_HELP.tokenAnalysis} />
           <FadeIn delay={0.45}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <TokensOverTime data={tokenChartData} onClickDay={setDrillDownDate} />
@@ -342,7 +343,7 @@ export function Dashboard() {
 
         {metrics.hasRequestData && (
           <div id="request-analysis">
-            <SectionHeader title="Request-Analyse" description="Requests gesamt, pro Modell und im Verlauf" />
+            <SectionHeader title="Request-Analyse" description="Requests gesamt, pro Modell und im Verlauf" info={SECTION_HELP.requestAnalysis} />
             <FadeIn delay={0.47}>
               <RequestsOverTime data={requestChartData} viewMode={viewMode} onClickDay={setDrillDownDate} />
             </FadeIn>
@@ -355,7 +356,7 @@ export function Dashboard() {
         )}
 
         <div id="advanced-analysis">
-          <SectionHeader title="Verteilungen & Risiko" description="Zusätzliche Signale zu Streuung, Korrelation und Abhängigkeiten" />
+          <SectionHeader title="Verteilungen & Risiko" description="Zusätzliche Signale zu Streuung, Korrelation und Abhängigkeiten" info={SECTION_HELP.advancedAnalysis} />
           <FadeIn delay={0.48}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <DistributionAnalysis data={filteredData} viewMode={viewMode} />
@@ -376,7 +377,7 @@ export function Dashboard() {
 
         {/* Period Comparison + Anomaly Detection */}
         <div id="comparisons">
-          <SectionHeader title="Vergleiche & Anomalien" description="Periodenvergleich und Ausreisser" />
+          <SectionHeader title="Vergleiche & Anomalien" description="Periodenvergleich und Ausreisser" info={SECTION_HELP.comparisons} />
           <FadeIn delay={0.5}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ExpandableCard title="Periodenvergleich" stats={[
@@ -386,8 +387,8 @@ export function Dashboard() {
                 <PeriodComparison data={comparisonData} />
               </ExpandableCard>
               <ExpandableCard title="Anomalie-Erkennung" stats={[
-                { label: 'Total', value: formatCurrency(metrics.totalCost) },
-                { label: `Ø/${periodUnit(viewMode)}`, value: formatCurrency(metrics.avgDailyCost) },
+                { label: 'Gesamt', value: formatCurrency(metrics.totalCost) },
+                { label: `Ø / ${periodUnit(viewMode)}`, value: formatCurrency(metrics.avgDailyCost) },
               ]}>
                 <AnomalyDetection data={filteredData} onClickDay={setDrillDownDate} viewMode={viewMode} />
               </ExpandableCard>
@@ -397,7 +398,7 @@ export function Dashboard() {
 
         {/* Tables */}
         <div id="tables">
-          <SectionHeader title="Tabellen" description="Detaillierte Aufschlüsselungen" />
+          <SectionHeader title="Tabellen" description="Detaillierte Aufschlüsselungen" info={SECTION_HELP.tables} />
           <FadeIn delay={0.55}>
             <ModelEfficiency modelCosts={modelCosts} totalCost={metrics.totalCost} viewMode={viewMode} />
           </FadeIn>

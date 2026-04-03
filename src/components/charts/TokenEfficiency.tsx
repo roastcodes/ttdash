@@ -4,6 +4,7 @@ import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { computeMovingAverage } from '@/lib/calculations'
+import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatDateAxis } from '@/lib/formatters'
 import type { DailyUsage } from '@/types'
 
@@ -40,7 +41,7 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
     <ChartCard
       title="Token-Effizienz ($/1M)"
       subtitle={`Ø ${formatCurrency(avg)}/1M Tokens`}
-      info="Kosten pro 1 Million Tokens über die Zeit. Sinkende Werte zeigen bessere Cache-Nutzung oder günstigere Modell-Wahl."
+      info={CHART_HELP.tokenEfficiency}
       chartData={chartData as unknown as Record<string, unknown>[]}
       valueKey="efficiency"
       valueFormatter={formatCurrency}

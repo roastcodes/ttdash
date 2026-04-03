@@ -187,7 +187,7 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
                         <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.avg)}</div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Gesamt</div>
                         <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.total)}</div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">

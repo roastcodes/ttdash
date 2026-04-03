@@ -3,7 +3,9 @@ import { useInView } from 'framer-motion'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FadeIn } from '@/components/features/animations/FadeIn'
+import { InfoButton } from '@/components/features/help/InfoButton'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatTokens, periodLabel } from '@/lib/formatters'
 import type { DailyUsage, ViewMode } from '@/types'
 
@@ -78,7 +80,10 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-muted-foreground">Verteilungen</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            Verteilungen
+            <InfoButton text={CHART_HELP.distributionAnalysis} />
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-sm text-muted-foreground">
@@ -102,9 +107,12 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
   }, [data, viewMode])
 
   return (
-    <Card ref={sectionRef}>
+      <Card ref={sectionRef}>
       <CardHeader>
-        <CardTitle className="text-sm font-medium text-muted-foreground">Verteilungen</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          Verteilungen
+          <InfoButton text={CHART_HELP.distributionAnalysis} />
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         {distributions.map((distribution, index) => (

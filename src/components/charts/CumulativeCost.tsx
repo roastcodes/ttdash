@@ -45,7 +45,7 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
   const lastCumulative = data[data.length - 1]?.cumulative ?? 0
 
   return (
-    <ChartCard title="Kumulative Kosten" subtitle={`Total: ${formatCurrency(lastCumulative)}`} info={CHART_HELP.cumulativeCost} chartData={data as unknown as Record<string, unknown>[]} valueKey="cumulative" valueFormatter={formatCurrency}>
+    <ChartCard title="Kumulative Kosten" subtitle={`Gesamt: ${formatCurrency(lastCumulative)}`} info={CHART_HELP.cumulativeCost} chartData={data as unknown as Record<string, unknown>[]} valueKey="cumulative" valueFormatter={formatCurrency}>
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="line" delay={0.05}>

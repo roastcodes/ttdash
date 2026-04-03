@@ -32,9 +32,9 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
         info={METRIC_HELP.totalCost}
       />
       <MetricCard
-        label="Total Tokens"
-        value={<FormattedValue value={metrics.totalTokens} type="tokens" label="Total Tokens" insight={`${formatTokens(metrics.avgTokensPerRequest)} pro Request im Mittel`} />}
-        subtitle={ioRatio ? `I/O ${ioRatio}:1 · ${formatTokens(metrics.avgTokensPerRequest)}/Req` : `${formatTokens(metrics.avgTokensPerRequest)}/Req`}
+        label="Gesamt-Tokens"
+        value={<FormattedValue value={metrics.totalTokens} type="tokens" label="Gesamt-Tokens" insight={`${formatTokens(metrics.avgTokensPerRequest)} pro Request im Mittel`} />}
+        subtitle={ioRatio ? `I/O ${ioRatio}:1 · ${formatTokens(metrics.avgTokensPerRequest)} / Request` : `${formatTokens(metrics.avgTokensPerRequest)} / Request`}
         icon={<Coins className="h-4 w-4" />}
         info={METRIC_HELP.totalTokens}
       />
@@ -68,13 +68,13 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
       <MetricCard
         label="Requests"
         value={metrics.hasRequestData ? <FormattedValue value={metrics.totalRequests} type="number" label="Requests" insight={`${formatCurrency(metrics.avgCostPerRequest)} pro Request im Mittel`} /> : 'n/v'}
-        subtitle={metrics.hasRequestData ? `Ø ${metrics.avgRequestsPerDay.toFixed(1)}/${periodUnit(viewMode)} · ${formatCurrency(metrics.avgCostPerRequest)}/Req · σ ${Math.round(metrics.requestVolatility)}` : 'Keine Request-Zähler im Datensatz'}
+        subtitle={metrics.hasRequestData ? `Ø ${metrics.avgRequestsPerDay.toFixed(1)} / ${periodUnit(viewMode)} · ${formatCurrency(metrics.avgCostPerRequest)} / Request · σ ${Math.round(metrics.requestVolatility)}` : 'Keine Request-Zähler im Datensatz'}
         icon={<Activity className="h-4 w-4" />}
       />
       <MetricCard
         label="Thinking"
         value={<FormattedValue value={metrics.totalThinking} type="tokens" label="Thinking Tokens" insight={metrics.totalTokens > 0 ? `${formatPercent((metrics.totalThinking / metrics.totalTokens) * 100)} des gesamten Tokenvolumens` : undefined} />}
-        subtitle={metrics.totalTokens > 0 ? `${formatPercent((metrics.totalThinking / metrics.totalTokens) * 100)} Anteil · ${formatTokens(metrics.totalThinking / Math.max(metrics.totalRequests, 1))}/Req` : undefined}
+        subtitle={metrics.totalTokens > 0 ? `${formatPercent((metrics.totalThinking / metrics.totalTokens) * 100)} Anteil · ${formatTokens(metrics.totalThinking / Math.max(metrics.totalRequests, 1))} / Request` : undefined}
         icon={<BrainCircuit className="h-4 w-4" />}
       />
     </div>

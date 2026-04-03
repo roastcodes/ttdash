@@ -51,7 +51,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
     <ChartAnimationAware>
       {(animate) => (
         <div className="mt-4">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total Tokens (alle Typen)</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Gesamt-Tokens (alle Typen)</div>
           <ChartReveal variant="line" delay={0.06}>
             <ResponsiveContainer width="100%" height={180}>
               <ComposedChart data={totalPerDay} margin={CHART_MARGIN}>
@@ -65,7 +65,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
               <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} />
               <YAxis tickFormatter={formatTokens} stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} width={55} />
               <Tooltip content={<CustomTooltip formatter={formatTokens} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
-              <Area type="monotone" dataKey="total" stroke={CHART_COLORS.cost} fill={`url(#${gid('total')})`} strokeWidth={1.5} name="Total Tokens" isAnimationActive={animate} animationDuration={CHART_ANIMATION.duration} />
+              <Area type="monotone" dataKey="total" stroke={CHART_COLORS.cost} fill={`url(#${gid('total')})`} strokeWidth={1.5} name="Gesamt-Tokens" isAnimationActive={animate} animationDuration={CHART_ANIMATION.duration} />
               <Line type="monotone" dataKey="tokenMA7" stroke={CHART_COLORS.ma7} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="7-Tage Ø" isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.slowDuration} />
               </ComposedChart>
             </ResponsiveContainer>

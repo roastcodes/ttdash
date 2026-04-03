@@ -6,6 +6,7 @@ import { MODEL_PRICES } from '@/lib/constants'
 import { Zap } from 'lucide-react'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { InfoButton } from '@/components/features/help/InfoButton'
+import { CHART_HELP } from '@/lib/help-content'
 import { periodUnit } from '@/lib/formatters'
 import type { DailyUsage, ViewMode } from '@/types'
 
@@ -71,7 +72,7 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           <Zap className="h-4 w-4 text-yellow-500" />
           Cache-Ersparnis (ROI)
-          <InfoButton text="Vergleicht hypothetische Kosten ohne Cache mit den tatsächlichen Kosten. Cache-Read-Tokens werden zu regulären Input-Token-Preisen berechnet." />
+          <InfoButton text={CHART_HELP.cacheROI} />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

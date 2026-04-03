@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { InfoButton } from '@/components/features/help/InfoButton'
+import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatTokens, localToday, toLocalDateStr } from '@/lib/formatters'
 import type { DailyUsage, ViewMode } from '@/types'
 
@@ -35,6 +37,11 @@ const HEATMAP_CONFIG = {
 export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: HeatmapCalendarProps) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; date: string; value: number } | null>(null)
   const config = HEATMAP_CONFIG[metric]
+  const infoText = metric === 'cost'
+    ? CHART_HELP.heatmap
+    : metric === 'requests'
+      ? CHART_HELP.requestHeatmap
+      : CHART_HELP.tokenHeatmap
 
   const { cells, weeks, months, maxValue } = useMemo(() => {
     if (data.length === 0) return { cells: [], weeks: 0, months: [], maxValue: 0 }
@@ -95,7 +102,10 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{config.title}</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            {config.title}
+            <InfoButton text={infoText} />
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -115,7 +125,10 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
   return (
       <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{config.title}</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          {config.title}
+          <InfoButton text={infoText} />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="relative overflow-x-auto">

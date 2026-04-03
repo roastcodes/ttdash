@@ -1,6 +1,8 @@
 import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { InfoButton } from '@/components/features/help/InfoButton'
+import { FEATURE_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatPercent, formatTokens } from '@/lib/formatters'
 import type { DashboardMetrics, ViewMode } from '@/types'
 
@@ -19,28 +21,28 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
 
   const qualityMetrics = [
     {
-      label: 'Tokens / Req',
+      label: 'Tokens / Request',
       value: metrics.hasRequestData ? formatTokens(metrics.avgTokensPerRequest) : 'n/v',
       accent: 'var(--chart-2)',
       hint: 'Durchschnittliche Tokenlast pro Anfrage',
       progress: Math.min(metrics.avgTokensPerRequest / 200_000, 1),
     },
     {
-      label: 'Kosten / Req',
+      label: 'Kosten / Request',
       value: metrics.hasRequestData ? formatCurrency(metrics.avgCostPerRequest) : 'n/v',
       accent: 'var(--chart-4)',
       hint: 'Direkte Kosten pro Anfrage',
       progress: Math.min(metrics.avgCostPerRequest / 0.25, 1),
     },
     {
-      label: 'Cache / Req',
+      label: 'Cache / Request',
       value: metrics.hasRequestData ? formatTokens(cachePerRequest) : 'n/v',
       accent: 'var(--chart-1)',
       hint: 'Gelesene Cache-Tokens pro Anfrage',
       progress: Math.min(cachePerRequest / 200_000, 1),
     },
     {
-      label: 'Thinking / Req',
+      label: 'Thinking / Request',
       value: metrics.hasRequestData ? formatTokens(thinkingPerRequest) : 'n/v',
       accent: 'var(--chart-5)',
       hint: 'Thinking-Tokens pro Anfrage',
@@ -51,7 +53,10 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
   return (
     <Card ref={sectionRef} className="overflow-hidden">
       <CardHeader>
-        <CardTitle className="text-sm font-medium text-muted-foreground">Request-Qualität</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          Request-Qualität
+          <InfoButton text={FEATURE_HELP.requestQuality} />
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">

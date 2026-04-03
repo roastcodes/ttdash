@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FormattedValue } from '@/components/ui/formatted-value'
+import { InfoButton } from '@/components/features/help/InfoButton'
+import { FEATURE_HELP } from '@/lib/help-content'
 import { formatPercent, formatTokens, periodLabel, periodUnit } from '@/lib/formatters'
 import { getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
@@ -68,7 +70,10 @@ export function ProviderEfficiency({ providerMetrics, totalCost, viewMode = 'dai
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Provider-Effizienz</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            Provider-Effizienz
+            <InfoButton text={FEATURE_HELP.providerEfficiency} />
+          </CardTitle>
           <span className="text-xs text-muted-foreground">{rows.length} Anbieter</span>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -83,7 +88,7 @@ export function ProviderEfficiency({ providerMetrics, totalCost, viewMode = 'dai
             <div className="text-xs text-muted-foreground">{efficient ? `${efficient.costPerMillion.toFixed(2)} $/1M` : '–'}</div>
           </div>
           <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Total Requests</div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Gesamt-Requests</div>
             <div className="mt-1 text-sm font-medium">{totalRequests.toLocaleString('de-CH')}</div>
             <div className="text-xs text-muted-foreground">{rows.length > 0 ? `${(totalRequests / rows.length).toFixed(0)} / Anbieter` : '–'}</div>
           </div>
@@ -141,7 +146,7 @@ export function ProviderEfficiency({ providerMetrics, totalCost, viewMode = 'dai
                 <SortHeader label="Anteil" field="share" />
                 <SortHeader label="Req" field="requests" />
                 <SortHeader label="Tokens" field="tokens" />
-                <SortHeader label="$/Req" field="costPerRequest" />
+                <SortHeader label="$ / Req" field="costPerRequest" />
                 <SortHeader label="$/1M" field="costPerMillion" />
                 <SortHeader label="Cache %" field="cacheShare" />
               </tr>

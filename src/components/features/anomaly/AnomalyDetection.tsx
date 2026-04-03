@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { InfoButton } from '@/components/features/help/InfoButton'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { computeAnomalies } from '@/lib/calculations'
+import { CHART_HELP } from '@/lib/help-content'
 import { TriangleAlert } from 'lucide-react'
 import { periodLabel } from '@/lib/formatters'
 import type { DailyUsage, ViewMode } from '@/types'
@@ -25,7 +27,10 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Auffällige {periodLabel(viewMode, true)}</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            Auffällige {periodLabel(viewMode, true)}
+            <InfoButton text={CHART_HELP.anomalyDetection} />
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -43,6 +48,7 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           <TriangleAlert className="h-4 w-4 text-yellow-500" />
           Auffällige {periodLabel(viewMode, true)} ({anomalies.length})
+          <InfoButton text={CHART_HELP.anomalyDetection} />
         </CardTitle>
       </CardHeader>
       <CardContent>

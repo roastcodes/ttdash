@@ -3,6 +3,7 @@ import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
 import { FadeIn } from '@/components/features/animations/FadeIn'
+import { SECTION_HELP } from '@/lib/help-content'
 import { formatCurrency, formatPercent, formatDate, formatTokens } from '@/lib/formatters'
 import { normalizeModelName } from '@/lib/model-utils'
 import type { DailyUsage, DashboardMetrics } from '@/types'
@@ -30,6 +31,7 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
       <SectionHeader
         title={`Heute — ${formatDate(today.date, 'long')}`}
         description="KPIs des aktuellen Tages"
+        info={SECTION_HELP.today}
       />
       <FadeIn delay={0.05}>
         <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">

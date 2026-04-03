@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { FormattedValue } from '@/components/ui/formatted-value'
+import { InfoButton } from '@/components/features/help/InfoButton'
+import { FEATURE_HELP } from '@/lib/help-content'
 import { formatPercent, formatTokens, periodUnit, periodLabel } from '@/lib/formatters'
 import { getModelColor, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
@@ -96,7 +98,10 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
       <CardHeader>
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Modell-Effizienz</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              Modell-Effizienz
+              <InfoButton text={FEATURE_HELP.modelEfficiency} />
+            </CardTitle>
             <span className="text-xs text-muted-foreground">{models.length} Modelle</span>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -111,7 +116,7 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
               <div className="text-xs text-muted-foreground">{mostEfficient ? `${formatPercent(mostEfficient.share, 0)} Anteil` : '–'}</div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Total Requests</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Gesamt-Requests</div>
               <div className="mt-1 text-sm font-medium">{totalRequests.toLocaleString('de-CH')}</div>
               <div className="text-xs text-muted-foreground">{models.length > 0 ? `${(totalRequests / models.length).toFixed(0)} / Modell` : '–'}</div>
             </div>
@@ -183,8 +188,8 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
                 <SortHeader label="Anteil" field="share" />
                 <SortHeader label="Req" field="requests" />
                 <SortHeader label="Req %" field="requestShare" />
-                <SortHeader label="$/Req" field="costPerRequest" />
-                <SortHeader label="Tokens/Req" field="tokensPerRequest" />
+                <SortHeader label="$ / Req" field="costPerRequest" />
+                <SortHeader label="Tokens / Req" field="tokensPerRequest" />
                 <SortHeader label="Cache %" field="cacheShare" />
                 <SortHeader label="Think %" field="thinkingShare" />
                 <SortHeader label={`Ø/${periodUnit(viewMode)}`} field="costPerDay" />
