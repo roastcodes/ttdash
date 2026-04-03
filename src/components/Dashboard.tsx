@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { SlidersHorizontal } from 'lucide-react'
 import { Header } from './layout/Header'
 import { FilterBar } from './layout/FilterBar'
 import { PrimaryMetrics } from './cards/PrimaryMetrics'
@@ -36,15 +37,20 @@ import { FadeIn } from './features/animations/FadeIn'
 import { SectionHeader } from './ui/section-header'
 import { ExpandableCard } from './ui/expandable-card'
 import { DashboardSkeleton } from './ui/skeleton'
+import { Button } from './ui/button'
 import { useUsageData, useUploadData, useDeleteData } from '@/hooks/use-usage-data'
 import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
 import { useComputedMetrics } from '@/hooks/use-computed-metrics'
+import { useProviderLimits } from '@/hooks/use-provider-limits'
 import { useTheme } from '@/hooks/use-theme'
 import { useToast } from '@/components/ui/toast'
 import { downloadCSV } from '@/lib/csv-export'
 import { SECTION_HELP } from '@/lib/help-content'
 import { generatePdfReport } from '@/lib/api'
 import { formatCurrency, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
+import { getUniqueProviders } from '@/lib/model-utils'
+import { LimitsModal } from './features/limits/LimitsModal'
+import { ProviderLimitsSection } from './features/limits/ProviderLimitsSection'
 
 const DrillDownModal = lazy(() => import('./features/drill-down/DrillDownModal').then(module => ({ default: module.DrillDownModal })))
 const AutoImportModal = lazy(() => import('./features/auto-import/AutoImportModal').then(module => ({ default: module.AutoImportModal })))
@@ -60,12 +66,15 @@ export function Dashboard() {
   const [drillDownDate, setDrillDownDate] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   const [autoImportOpen, setAutoImportOpen] = useState(false)
+  const [limitsOpen, setLimitsOpen] = useState(false)
   const [reportGenerating, setReportGenerating] = useState(false)
   const [dataSource, setDataSource] = useState<{ type: 'stored' | 'auto-import' | 'file'; label?: string; time?: string } | null>(null)
   const [animationSeed, setAnimationSeed] = useState(0)
 
   const daily = usageData?.daily ?? []
   const hasData = daily.length > 0
+  const allProviders = useMemo(() => getUniqueProviders(daily.map(d => d.modelsUsed)), [daily])
+  const { limits: providerLimits, setLimits: setProviderLimits } = useProviderLimits(allProviders)
 
   const initialSourceSet = useRef(false)
   useEffect(() => {
@@ -110,6 +119,9 @@ export function Dashboard() {
   const todayStr = localToday()
   const todayData = useMemo(() => filteredDailyData.find(d => d.date === todayStr) ?? null, [filteredDailyData, todayStr])
   const hasCurrentMonthData = useMemo(() => filteredDailyData.some(d => d.date.startsWith(todayStr.slice(0, 7))), [filteredDailyData, todayStr])
+  const visibleLimitProviders = useMemo(() => (
+    selectedProviders.length > 0 ? selectedProviders : allProviders
+  ), [selectedProviders, allProviders])
 
   // Compute active streak (consecutive days from today backwards)
   const streak = useMemo(() => {
@@ -239,6 +251,18 @@ export function Dashboard() {
         onDelete={handleDelete}
         onUpload={handleUpload}
         onAutoImport={handleAutoImport}
+        limitsButton={(
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLimitsOpen(true)}
+            title="Provider Limits"
+            className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            <span>Limits</span>
+          </Button>
+        )}
         pdfButton={(
           <PDFReportButton
             generating={reportGenerating}
@@ -332,6 +356,15 @@ export function Dashboard() {
             </div>
           </FadeIn>
         </div>
+
+        <FadeIn delay={0.27}>
+          <ProviderLimitsSection
+            data={filteredDailyData}
+            providers={visibleLimitProviders}
+            limits={providerLimits}
+            selectedMonth={selectedMonth}
+          />
+        </FadeIn>
 
         {/* Charts */}
         <div id="charts">
@@ -479,6 +512,7 @@ export function Dashboard() {
         onDelete={handleDelete}
         onUpload={handleUpload}
         onAutoImport={handleAutoImport}
+        onOpenLimits={() => setLimitsOpen(true)}
         onScrollTo={handleScrollTo}
         onViewModeChange={setViewMode}
         onApplyPreset={applyPreset}
@@ -496,6 +530,14 @@ export function Dashboard() {
       <Suspense fallback={null}>
         {autoImportOpen && <AutoImportModal open={autoImportOpen} onOpenChange={setAutoImportOpen} onSuccess={handleAutoImportSuccess} />}
       </Suspense>
+
+      <LimitsModal
+        open={limitsOpen}
+        onOpenChange={setLimitsOpen}
+        providers={allProviders}
+        limits={providerLimits}
+        onSave={setProviderLimits}
+      />
     </div>
   )
 }

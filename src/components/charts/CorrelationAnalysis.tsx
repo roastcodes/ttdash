@@ -148,24 +148,6 @@ function CorrelationPanel({
 }
 
 export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
-  if (data.length < 2) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            Korrelationen
-            <InfoButton text={CHART_HELP.correlationAnalysis} />
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-sm text-muted-foreground">
-            Für Korrelationen werden mindestens 2 Datenpunkte im aktuellen Filter benötigt.
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
   const requestVsCost = useMemo<ScatterPoint[]>(() => data.map(entry => ({
     x: entry.requestCount,
     y: entry.totalCost,
@@ -191,6 +173,24 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
 
   const requestCostCorrelation = correlation(requestVsCost.map(point => point.x), requestVsCost.map(point => point.y))
   const cacheEfficiencyCorrelation = correlation(cacheVsCostPerRequest.map(point => point.x), cacheVsCostPerRequest.map(point => point.y))
+
+  if (data.length < 2) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            Korrelationen
+            <InfoButton text={CHART_HELP.correlationAnalysis} />
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-sm text-muted-foreground">
+            Für Korrelationen werden mindestens 2 Datenpunkte im aktuellen Filter benötigt.
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>

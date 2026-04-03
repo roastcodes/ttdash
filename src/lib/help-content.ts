@@ -34,6 +34,9 @@ export const CHART_HELP: Record<string, string> = {
   tokenHeatmap: 'Zeigt eine Kalender-Heatmap des Tokenvolumens pro Tag. So lassen sich volumenstarke und kostenstarke Tage besser unterscheiden.',
   forecast: 'Zeigt die Kostenprognose für den laufenden Monat auf Basis geglätteter Kalendertageskosten. Ergänzt wird sie durch Trend und Unsicherheitsband.',
   cacheROI: 'Zeigt den Effekt der Cache-Nutzung, indem hypothetische Kosten ohne Cache mit den tatsächlichen Kosten verglichen werden.',
+  providerLimitProgress: 'Zeigt pro Anbieter, wie stark das konfigurierte Monatslimit bereits verbraucht ist. Überschreitungen werden separat markiert.',
+  providerSubscriptionMix: 'Vergleicht pro Anbieter die fixe Subscription mit den variablen API-Kosten und blendet optional das gesetzte Monatslimit ein.',
+  providerLimitTimeline: 'Zeigt im Monatsverlauf die Summe der aktuellen Provider-Kosten gegen die Summe aller konfigurierten Limits. So werden Engpässe früh sichtbar.',
   periodComparison: 'Zeigt den Vergleich zweier Zeiträume, etwa Woche gegen Vorwoche oder Monat gegen Vormonat, anhand zentraler Kennzahlen.',
   anomalyDetection: 'Zeigt auffällige Zeitraumspunkte mit ungewöhnlich hohen oder niedrigen Kosten. Grundlage ist die Abweichung vom Mittelwert in Standardabweichungen.',
 }
@@ -45,6 +48,7 @@ export const SECTION_HELP: Record<string, string> = {
   currentMonth: 'Zeigt die KPIs des laufenden Monats. So werden Fortschritt, Abdeckung und der Vergleich mit dem Vormonat sichtbar.',
   activity: 'Zeigt Kalenderansichten für Kosten, Requests und Tokens. So werden Lastspitzen, Lücken und saisonale Muster sichtbar.',
   forecastCache: 'Zeigt Monatsprognose, Cache-Ersparnis und operative Request-Qualität in einem Block. So entsteht ein gemeinsamer Blick auf Ausblick und Effizienz.',
+  limits: 'Zeigt pro Anbieter konfigurierte Subscriptions und Monatslimits. Die Sektion macht sichtbar, wie weit Kostenbudgets im aktuellen Ausschnitt ausgereizt sind.',
   costAnalysis: 'Zeigt Kostenverlauf und Kostenverteilung nach Modell. So wird sichtbar, wo Geld ausgegeben wurde und welche Modelle die Haupttreiber sind.',
   tokenAnalysis: 'Zeigt Tokenvolumen, Token-Typen, Wochentagsmuster und Effizienz. So lässt sich besser einordnen, ob Kosten eher aus Menge oder Preisniveau entstehen.',
   requestAnalysis: 'Zeigt Requests gesamt, nach Modell und im Verlauf. Im Zoom kommen zusätzliche Trends und Verteilungen hinzu.',
@@ -55,6 +59,7 @@ export const SECTION_HELP: Record<string, string> = {
 
 export const FEATURE_HELP: Record<string, string> = {
   requestQuality: 'Zeigt verdichtete Request-Signale wie Tokens pro Request, Kosten pro Request sowie Cache- und Thinking-Anteil. So lässt sich die operative Anfragequalität schneller einordnen.',
+  providerLimits: 'Hier werden fixe Subscription-Kosten und variable Monatslimits pro Anbieter gepflegt. Die Eingaben bleiben lokal im Browser gespeichert und gelten nur für Anbieter, die im geladenen Report vorkommen.',
   concentrationRisk: 'Zeigt die Abhängigkeit von einzelnen Modellen und Providern. Hohe Werte bedeuten, dass wenige Akteure einen grossen Teil der Kosten tragen.',
   providerEfficiency: 'Zeigt den Vergleich der Anbieter nach Kosten, Requests, Tokens und Effizienzkennzahlen wie $/Req oder $/1M Tokens.',
   modelEfficiency: 'Zeigt den Vergleich der Modelle nach Kosten, Volumen und Effizienz. So lassen sich teure oder ineffiziente Kandidaten schnell erkennen.',

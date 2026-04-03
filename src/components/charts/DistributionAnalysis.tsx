@@ -1,5 +1,5 @@
-import { useId, useMemo, useRef, useState } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { useId, useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { InfoButton } from '@/components/features/help/InfoButton'
@@ -69,101 +69,22 @@ function DistributionTooltip({ active, payload }: { active?: boolean; payload?: 
   )
 }
 
-function DistributionPanel({
-  distribution,
-  index,
-  uid,
-  activeIndex,
-  onActiveIndexChange,
-}: {
-  distribution: { title: string; data: DistributionBin[] }
-  index: number
-  uid: string
-  activeIndex: number | null
-  onActiveIndexChange: (index: number | null) => void
-}) {
-  const panelRef = useRef<HTMLDivElement | null>(null)
-  const panelInView = useInView(panelRef, { once: true, amount: 0.45 })
-  const [animateBars, setAnimateBars] = useState(false)
-  const chartData = animateBars
-    ? distribution.data
-    : distribution.data.map((bin) => ({ ...bin, count: 0 }))
-
-  return (
-    <motion.div
-      ref={panelRef}
-      initial={{ opacity: 0, y: 20 }}
-      animate={panelInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-      transition={{ duration: 0.45, delay: 0.04 * index, ease: 'easeOut' }}
-      onAnimationComplete={() => {
-        if (panelInView) setAnimateBars(true)
-      }}
-    >
-      <div>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{distribution.title}</div>
-          <div className="text-[10px] text-muted-foreground">{distribution.data.length} Buckets</div>
-        </div>
-        <ResponsiveContainer width="100%" height={160}>
-          <BarChart
-            data={chartData}
-            margin={CHART_MARGIN}
-            onMouseMove={(state) => {
-              onActiveIndexChange(typeof state?.activeTooltipIndex === 'number' ? state.activeTooltipIndex : null)
-            }}
-            onMouseLeave={() => {
-              onActiveIndexChange(null)
-            }}
-          >
-            <defs>
-              <linearGradient id={`${uid}-distribution-${index}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.9} />
-                <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0.4} />
-              </linearGradient>
-              <linearGradient id={`${uid}-distribution-active-${index}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={1} />
-                <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0.65} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.25} />
-            <XAxis
-              dataKey="label"
-              stroke={CHART_COLORS.axis}
-              fontSize={10}
-              tickLine={false}
-              interval={0}
-              angle={distribution.data.length > 5 ? -16 : 0}
-              textAnchor={distribution.data.length > 5 ? 'end' : 'middle'}
-              height={distribution.data.length > 5 ? 48 : 30}
-            />
-            <YAxis stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
-            <Tooltip content={<DistributionTooltip />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
-            <Bar
-              dataKey="count"
-              radius={[6, 6, 0, 0]}
-              isAnimationActive={animateBars}
-              animationBegin={0}
-              animationDuration={CHART_ANIMATION.duration}
-            >
-              {distribution.data.map((bin, binIndex) => {
-                const intensity = distribution.data.length > 1 ? binIndex / (distribution.data.length - 1) : 0
-                const opacity = 0.45 + intensity * 0.35
-                const fill = activeIndex === binIndex
-                  ? `url(#${uid}-distribution-active-${index})`
-                  : `hsla(215, 70%, 55%, ${opacity.toFixed(2)})`
-                return <Cell key={`${distribution.title}-${binIndex}`} fill={fill} />
-              })}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </motion.div>
-  )
-}
-
 export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionAnalysisProps) {
-  const [activeIndices, setActiveIndices] = useState<Record<number, number | null>>({})
   const uid = useId().replace(/:/g, '')
+
+  const distributions = useMemo(() => {
+    if (data.length < 2) return []
+
+    const costs = data.map(entry => entry.totalCost)
+    const requests = data.map(entry => entry.requestCount)
+    const tokensPerRequest = data.map(entry => entry.requestCount > 0 ? entry.totalTokens / entry.requestCount : 0)
+
+    return [
+      { title: `Kosten je ${periodLabel(viewMode)}`, data: toBins(costs, formatCurrency) },
+      { title: `Requests je ${periodLabel(viewMode)}`, data: toBins(requests, formatNumber) },
+      { title: 'Tokens pro Request', data: toBins(tokensPerRequest, formatTokens) },
+    ]
+  }, [data, viewMode])
 
   if (data.length < 2) {
     return (
@@ -183,18 +104,6 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
     )
   }
 
-  const distributions = useMemo(() => {
-    const costs = data.map(entry => entry.totalCost)
-    const requests = data.map(entry => entry.requestCount)
-    const tokensPerRequest = data.map(entry => entry.requestCount > 0 ? entry.totalTokens / entry.requestCount : 0)
-
-    return [
-      { title: `Kosten je ${periodLabel(viewMode)}`, data: toBins(costs, formatCurrency) },
-      { title: `Requests je ${periodLabel(viewMode)}`, data: toBins(requests, formatNumber) },
-      { title: 'Tokens pro Request', data: toBins(tokensPerRequest, formatTokens) },
-    ]
-  }, [data, viewMode])
-
   return (
       <Card>
       <CardHeader>
@@ -205,19 +114,57 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
       </CardHeader>
       <CardContent className="space-y-5">
         {distributions.map((distribution, index) => (
-          <DistributionPanel
+          <motion.div
             key={distribution.title}
-            distribution={distribution}
-            index={index}
-            uid={uid}
-            activeIndex={activeIndices[index] ?? null}
-            onActiveIndexChange={(activeIndex) => {
-              setActiveIndices((current) => ({
-                ...current,
-                [index]: activeIndex,
-              }))
-            }}
-          />
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.45 }}
+            transition={{ duration: 0.45, delay: 0.04 * index, ease: 'easeOut' }}
+          >
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{distribution.title}</div>
+                <div className="text-[10px] text-muted-foreground">{distribution.data.length} Buckets</div>
+              </div>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={distribution.data} margin={CHART_MARGIN}>
+                  <defs>
+                    <linearGradient id={`${uid}-distribution-${index}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.9} />
+                      <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0.4} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.25} />
+                  <XAxis
+                    dataKey="label"
+                    stroke={CHART_COLORS.axis}
+                    fontSize={10}
+                    tickLine={false}
+                    interval={0}
+                    angle={distribution.data.length > 5 ? -16 : 0}
+                    textAnchor={distribution.data.length > 5 ? 'end' : 'middle'}
+                    height={distribution.data.length > 5 ? 48 : 30}
+                  />
+                  <YAxis stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip content={<DistributionTooltip />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
+                  <Bar
+                    dataKey="count"
+                    radius={[6, 6, 0, 0]}
+                    fill={`url(#${uid}-distribution-${index})`}
+                    isAnimationActive
+                    animationBegin={CHART_ANIMATION.stagger * index}
+                    animationDuration={CHART_ANIMATION.duration}
+                  >
+                    {distribution.data.map((_, binIndex) => {
+                      const intensity = distribution.data.length > 1 ? binIndex / (distribution.data.length - 1) : 0
+                      const opacity = 0.45 + intensity * 0.35
+                      return <Cell key={`${distribution.title}-${binIndex}`} fill={`hsla(215, 70%, 55%, ${opacity.toFixed(2)})`} />
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
         ))}
       </CardContent>
     </Card>

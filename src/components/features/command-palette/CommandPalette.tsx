@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import {
   Download, Trash2, Upload, Sun, Moon, Calendar, ChartBar,
   Table, Search, ArrowUp, CircleHelp, Zap, Filter, BarChart3,
-  LineChart, Sigma, CalendarRange, Layers3, ArrowDown, RefreshCcw
+  LineChart, Sigma, CalendarRange, Layers3, ArrowDown, RefreshCcw, SlidersHorizontal
 } from 'lucide-react'
 import type { ViewMode } from '@/types'
 
@@ -23,6 +23,7 @@ interface CommandPaletteProps {
   onDelete: () => void
   onUpload: () => void
   onAutoImport: () => void
+  onOpenLimits: () => void
   onScrollTo: (section: string) => void
   onViewModeChange: (mode: ViewMode) => void
   onApplyPreset: (preset: string) => void
@@ -125,6 +126,7 @@ export function CommandPalette({
   onDelete,
   onUpload,
   onAutoImport,
+  onOpenLimits,
   onScrollTo,
   onViewModeChange,
   onApplyPreset,
@@ -151,6 +153,7 @@ export function CommandPalette({
 
   const baseCommands: CommandItem[] = [
     { id: 'auto-import', label: 'Auto-Import starten', description: 'Lokalen toktrack Import ausführen', keywords: ['toktrack', 'import', 'load', 'sync'], aliases: ['auto import', 'daten importieren'], icon: <Zap className="h-4 w-4" />, action: onAutoImport, group: 'Aktionen' },
+    { id: 'limits-open', label: 'Limits öffnen', description: 'Provider Limits und Subscriptions konfigurieren', keywords: ['limits', 'subscription', 'anbieter limit', 'budget'], aliases: ['limits dialog', 'subscriptions öffnen', 'provider limits'], icon: <SlidersHorizontal className="h-4 w-4" />, action: onOpenLimits, group: 'Aktionen' },
     { id: 'csv', label: 'CSV exportieren', description: 'Aktuell gefilterte Daten exportieren', keywords: ['download', 'export', 'csv'], aliases: ['csv download', 'daten exportieren'], shortcut: '⌘E', icon: <Download className="h-4 w-4" />, action: onExportCSV, group: 'Aktionen' },
     { id: 'report', label: reportGenerating ? 'PDF-Report wird generiert' : 'PDF-Report generieren', description: 'Aktuell gefilterte Daten als PDF exportieren', keywords: ['pdf', 'report', 'bericht', 'export'], aliases: ['report export', 'pdf export', 'bericht generieren'], icon: <Download className="h-4 w-4" />, action: onGenerateReport, group: 'Aktionen' },
     { id: 'upload', label: 'JSON hochladen', description: 'toktrack oder Legacy JSON importieren', keywords: ['upload', 'file', 'json', 'import'], aliases: ['datei laden', 'json import'], shortcut: '⌘U', icon: <Upload className="h-4 w-4" />, action: onUpload, group: 'Aktionen' },
@@ -177,6 +180,7 @@ export function CommandPalette({
     ...(hasMonthSection ? [{ id: 'month', label: 'Zu Monat', description: 'Springt zu den KPIs des aktuellen Monats', keywords: ['monat', 'current month'], icon: <CalendarRange className="h-4 w-4" />, action: () => onScrollTo('current-month'), group: 'Navigation' } satisfies CommandItem] : []),
     { id: 'activity', label: 'Zu Aktivität', description: 'Springt zur Aktivitäts-Heatmap', keywords: ['heatmap', 'aktivität'], icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('activity'), group: 'Navigation' },
     { id: 'forecast-cache', label: 'Zu Prognose & Cache', description: 'Springt zu Forecast und Cache ROI', keywords: ['forecast', 'cache', 'roi'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('forecast-cache'), group: 'Navigation' },
+    { id: 'limits', label: 'Zu Limits & Subscriptions', description: 'Springt zur Limits-Sektion', keywords: ['limits', 'subscriptions', 'budget', 'anbieter limits'], aliases: ['limits sektion', 'subscriptions sektion'], icon: <SlidersHorizontal className="h-4 w-4" />, action: () => onScrollTo('limits'), group: 'Navigation' },
     { id: 'charts', label: 'Zu Kostenanalyse', description: 'Springt zu den Kostencharts', keywords: ['charts', 'kostenanalyse'], icon: <BarChart3 className="h-4 w-4" />, action: () => onScrollTo('charts'), group: 'Navigation' },
     { id: 'token-analysis', label: 'Zu Token-Analyse', description: 'Springt zu Token-Charts und Verteilungen', keywords: ['tokens', 'token analyse'], aliases: ['token chart'], icon: <Layers3 className="h-4 w-4" />, action: () => onScrollTo('token-analysis'), group: 'Navigation' },
     { id: 'request-analysis', label: 'Zu Request-Analyse', description: 'Springt zu Requests im Zeitverlauf und Request-Verteilung', keywords: ['requests', 'request analyse', 'anfragen'], aliases: ['request chart', 'request donut'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('request-analysis'), group: 'Navigation' },

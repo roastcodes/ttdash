@@ -142,3 +142,11 @@ export interface AggregateMetrics {
   requests: number
   days: number
 }
+
+export interface ProviderLimitConfig {
+  hasSubscription: boolean
+  subscriptionPrice: number
+  monthlyLimit: number
+}
+
+export type ProviderLimits = Record<string, ProviderLimitConfig>

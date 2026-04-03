@@ -1,5 +1,17 @@
 # Changelog
 
+## [6.0.2] - 2026-04-03
+
+### Added
+- **Limits & Subscriptions** — neues Provider-Limits-Modal mit lokaler Persistenz, Limits-Button im Header, eigener Dashboard-Sektion und Command-Palette-Einträgen für Konfiguration und Navigation
+
+### Improved
+- **Provider-Limits Visualisierung** — Budget- und Subscription-Status werden jetzt pro Anbieter in klar getrennten, animierten Tracks mit Break-even- bzw. Limit-Markierung dargestellt
+
+### Fixed
+- **Jahresansicht & Filterwechsel** — Tages-, Monats- und Jahresansicht bleiben bei Presets sowie Anbieter-, Modell- und Datumsfiltern stabil; Hook-Reihenfolgen in Analyse- und Forecast-Komponenten sind konsistent
+- **Provider-Limits Tooltip-Clipping** — Info-Labels im Limits-Dialog werden am oberen Rand nicht mehr abgeschnitten
+
 ## [6.0.1] - 2026-04-03
 
 ### Added

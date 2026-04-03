@@ -21,6 +21,7 @@ interface HeaderProps {
   onDelete: () => void
   onUpload: () => void
   onAutoImport: () => void
+  limitsButton?: React.ReactNode
   pdfButton?: React.ReactNode
 }
 
@@ -51,7 +52,7 @@ function DataSourceBadge({ source }: { source: DataSource }) {
   )
 }
 
-export function Header({ dateRange, isDark, helpOpen, streak, dataSource, onHelpOpenChange, onToggleTheme, onExportCSV, onDelete, onUpload, onAutoImport, pdfButton }: HeaderProps) {
+export function Header({ dateRange, isDark, helpOpen, streak, dataSource, onHelpOpenChange, onToggleTheme, onExportCSV, onDelete, onUpload, onAutoImport, limitsButton, pdfButton }: HeaderProps) {
   return (
     <header className="py-4 px-1 space-y-3">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -100,7 +101,7 @@ export function Header({ dateRange, isDark, helpOpen, streak, dataSource, onHelp
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+      <div className="grid grid-cols-6 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
         <Button variant="outline" size="sm" onClick={onAutoImport} title="Auto-Import" className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm">
           <Zap className="h-4 w-4" />
           <span>Import</span>
@@ -110,6 +111,9 @@ export function Header({ dateRange, isDark, helpOpen, streak, dataSource, onHelp
           <span>Upload</span>
         </Button>
         <div className="contents sm:block sm:w-px sm:h-5 sm:bg-border/50" />
+        <div className="contents sm:block">
+          {limitsButton}
+        </div>
         <div className="contents sm:block">
           {pdfButton}
         </div>

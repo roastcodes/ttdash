@@ -17,6 +17,81 @@ interface CostForecastProps {
 }
 
 export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
+  const { chartData, forecastTotal, currentMonthTotal, dailyAvgTrend, projectedDailyBurn, remainingDays, confidence, confidenceColor } = useMemo(() => {
+    const forecast = computeCurrentMonthForecast(data)
+
+    if (!forecast) {
+      return {
+        chartData: [],
+        forecastTotal: 0,
+        currentMonthTotal: 0,
+        dailyAvgTrend: null,
+        projectedDailyBurn: 0,
+        remainingDays: 0,
+        confidence: 'niedrig',
+        confidenceColor: 'text-red-400 bg-red-400/10',
+      }
+    }
+
+    const {
+      currentMonth,
+      currentMonthTotal,
+      remainingDays,
+      projectedDailyBurn,
+      volatility,
+      lowerDaily,
+      upperDaily,
+      forecastTotal,
+      dailyAvgTrend,
+      confidence,
+      elapsedCalendarSeries,
+      daysInMonth,
+    } = forecast
+
+    const confidenceColor = confidence === 'hoch'
+      ? 'text-green-400 bg-green-400/10'
+      : confidence === 'mittel'
+        ? 'text-yellow-400 bg-yellow-400/10'
+        : 'text-red-400 bg-red-400/10'
+
+    const points: { date: string; cost?: number; forecast?: number; lower?: number; upper?: number; band?: number }[] = []
+
+    for (const point of elapsedCalendarSeries) {
+      points.push({ date: point.date, cost: point.cost })
+    }
+
+    const lastActualCost = elapsedCalendarSeries[elapsedCalendarSeries.length - 1]?.cost ?? 0
+    if (points.length > 0) {
+      const lastPoint = points[points.length - 1]
+      lastPoint.forecast = lastActualCost
+      lastPoint.lower = Math.max(0, lastActualCost - volatility)
+      lastPoint.upper = lastActualCost + volatility
+      lastPoint.band = (lastPoint.upper ?? 0) - (lastPoint.lower ?? 0)
+    }
+
+    for (let day = elapsedCalendarSeries.length + 1; day <= daysInMonth; day++) {
+      const forecastDate = `${currentMonth}-${String(day).padStart(2, '0')}`
+      points.push({
+        date: forecastDate,
+        forecast: projectedDailyBurn,
+        lower: lowerDaily,
+        upper: upperDaily,
+        band: upperDaily - lowerDaily,
+      })
+    }
+
+    return {
+      chartData: points,
+      forecastTotal,
+      currentMonthTotal,
+      dailyAvgTrend,
+      projectedDailyBurn,
+      remainingDays,
+      confidence,
+      confidenceColor,
+    }
+  }, [data])
+
   // For monthly/yearly views, show a summary instead of a forecast
   if (viewMode !== 'daily') {
     const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
@@ -45,89 +120,6 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
       </div>
     )
   }
-
-  // Daily view: full forecast with chart
-  const { chartData, forecastTotal, currentMonthTotal, monthData, dailyAvgTrend, projectedDailyBurn, remainingDays, confidence, confidenceColor } = useMemo(() => {
-    const forecast = computeCurrentMonthForecast(data)
-
-    if (!forecast) {
-      return {
-        chartData: [],
-        forecastTotal: 0,
-        currentMonthTotal: 0,
-        monthData: [],
-        dailyAvgTrend: null,
-        projectedDailyBurn: 0,
-        remainingDays: 0,
-        confidence: 'niedrig',
-        confidenceColor: 'text-red-400 bg-red-400/10',
-      }
-    }
-
-    const {
-      currentMonth,
-      currentMonthTotal,
-      monthData,
-      remainingDays,
-      projectedDailyBurn,
-      volatility,
-      lowerDaily,
-      upperDaily,
-      forecastTotal,
-      dailyAvgTrend,
-      confidence,
-      elapsedCalendarSeries,
-      daysInMonth,
-    } = forecast
-
-    const confidenceColor = confidence === 'hoch'
-      ? 'text-green-400 bg-green-400/10'
-      : confidence === 'mittel'
-        ? 'text-yellow-400 bg-yellow-400/10'
-        : 'text-red-400 bg-red-400/10'
-
-    // Build chart data: actual + forecast
-    const points: { date: string; cost?: number; forecast?: number; lower?: number; upper?: number; band?: number }[] = []
-
-    // Actual data points
-    for (const point of elapsedCalendarSeries) {
-      points.push({ date: point.date, cost: point.cost })
-    }
-
-    // Bridge point: last actual day also gets forecast+upper so the lines connect
-    const lastActualCost = elapsedCalendarSeries[elapsedCalendarSeries.length - 1]?.cost ?? 0
-    if (points.length > 0) {
-      const lastPoint = points[points.length - 1]
-      lastPoint.forecast = lastActualCost
-      lastPoint.lower = Math.max(0, lastActualCost - volatility)
-      lastPoint.upper = lastActualCost + volatility
-      lastPoint.band = (lastPoint.upper ?? 0) - (lastPoint.lower ?? 0)
-    }
-
-    // Forecast to end of month
-    for (let day = elapsedCalendarSeries.length + 1; day <= daysInMonth; day++) {
-      const forecastDate = `${currentMonth}-${String(day).padStart(2, '0')}`
-      points.push({
-        date: forecastDate,
-        forecast: projectedDailyBurn,
-        lower: lowerDaily,
-        upper: upperDaily,
-        band: upperDaily - lowerDaily,
-      })
-    }
-
-    return {
-      chartData: points,
-      forecastTotal,
-      currentMonthTotal,
-      monthData,
-      dailyAvgTrend,
-      projectedDailyBurn,
-      remainingDays,
-      confidence,
-      confidenceColor,
-    }
-  }, [data])
 
   if (chartData.length === 0) {
     return (
