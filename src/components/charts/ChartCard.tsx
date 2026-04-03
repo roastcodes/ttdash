@@ -1,4 +1,5 @@
 import { createContext, useState, useMemo, useCallback, useContext, useRef, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, useInView } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -75,6 +76,7 @@ export function ChartReveal({ children, variant = 'line', delay = 0, duration = 
 }
 
 export function ChartCard({ title, subtitle, summary, info, expandable = true, children, className, chartData, valueKey, valueFormatter, expandedExtra }: ChartCardProps) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
   const isInView = useInView(cardRef, { once: true, amount: 0.25 })
@@ -139,8 +141,8 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
             <button
               onClick={() => setExpanded(true)}
               className="absolute top-3 right-3 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 p-1.5 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-accent text-muted-foreground hover:text-foreground"
-              title="Vergrössern"
-              aria-label={`${title} vergrössern`}
+              title={t('common.expand')}
+              aria-label={`${title} ${t('common.expand').toLowerCase()}`}
             >
               <Maximize2 className="h-3.5 w-3.5" />
             </button>
@@ -153,7 +155,7 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
           <DialogContent className="max-w-[96vw] w-[96vw] sm:max-w-[95vw] sm:w-[95vw] max-h-[92vh] h-[92vh] sm:max-h-[90vh] sm:h-[90vh] overflow-auto p-0">
             <DialogTitle className="sr-only">{title}</DialogTitle>
             <DialogDescription className="sr-only">
-              Vergrösserte Diagrammansicht mit Statistik-Zusammenfassung und optionalem CSV-Export.
+              Expanded chart view with metric summary and optional CSV export.
             </DialogDescription>
             <ChartAnimationContext.Provider value={expanded}>
               <div className="relative h-full flex flex-col">
@@ -183,7 +185,7 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
                         <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.max)}</div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Durchschnitt</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg</div>
                         <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.avg)}</div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">

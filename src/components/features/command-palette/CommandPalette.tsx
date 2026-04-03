@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Command } from 'cmdk'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import {
   Download, Trash2, Upload, Sun, Moon, Calendar, ChartBar,
   Table, Search, ArrowUp, CircleHelp, Zap, Filter, BarChart3,
-  LineChart, Sigma, CalendarRange, Layers3, ArrowDown, RefreshCcw, SlidersHorizontal
+  LineChart, Sigma, CalendarRange, Layers3, ArrowDown, RefreshCcw, SlidersHorizontal, Languages
 } from 'lucide-react'
 import type { ViewMode } from '@/types'
 
@@ -137,6 +138,7 @@ export function CommandPalette({
   onClearDateRange,
   onHelp,
 }: CommandPaletteProps) {
+  const { t, i18n } = useTranslation()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -152,43 +154,45 @@ export function CommandPalette({
   }, [])
 
   const baseCommands: CommandItem[] = [
-    { id: 'auto-import', label: 'Auto-Import starten', description: 'Lokalen toktrack Import ausführen', keywords: ['toktrack', 'import', 'load', 'sync'], aliases: ['auto import', 'daten importieren'], icon: <Zap className="h-4 w-4" />, action: onAutoImport, group: 'Aktionen' },
-    { id: 'limits-open', label: 'Limits öffnen', description: 'Provider Limits und Subscriptions konfigurieren', keywords: ['limits', 'subscription', 'anbieter limit', 'budget'], aliases: ['limits dialog', 'subscriptions öffnen', 'provider limits'], icon: <SlidersHorizontal className="h-4 w-4" />, action: onOpenLimits, group: 'Aktionen' },
-    { id: 'csv', label: 'CSV exportieren', description: 'Aktuell gefilterte Daten exportieren', keywords: ['download', 'export', 'csv'], aliases: ['csv download', 'daten exportieren'], shortcut: '⌘E', icon: <Download className="h-4 w-4" />, action: onExportCSV, group: 'Aktionen' },
-    { id: 'report', label: reportGenerating ? 'PDF-Report wird generiert' : 'PDF-Report generieren', description: 'Aktuell gefilterte Daten als PDF exportieren', keywords: ['pdf', 'report', 'bericht', 'export'], aliases: ['report export', 'pdf export', 'bericht generieren'], icon: <Download className="h-4 w-4" />, action: onGenerateReport, group: 'Aktionen' },
-    { id: 'upload', label: 'JSON hochladen', description: 'toktrack oder Legacy JSON importieren', keywords: ['upload', 'file', 'json', 'import'], aliases: ['datei laden', 'json import'], shortcut: '⌘U', icon: <Upload className="h-4 w-4" />, action: onUpload, group: 'Aktionen' },
-    { id: 'delete', label: 'Daten löschen', description: 'Lokalen Datensatz entfernen', keywords: ['reset data', 'clear data', 'delete'], aliases: ['daten reset', 'alles loeschen'], icon: <Trash2 className="h-4 w-4" />, action: onDelete, group: 'Aktionen' },
+    { id: 'auto-import', label: t('commandPalette.commands.autoImport.label'), description: t('commandPalette.commands.autoImport.description'), keywords: ['toktrack', 'import', 'load', 'sync'], aliases: ['auto import', 'daten importieren'], icon: <Zap className="h-4 w-4" />, action: onAutoImport, group: t('commandPalette.groups.actions') },
+    { id: 'limits-open', label: t('commandPalette.commands.openLimits.label'), description: t('commandPalette.commands.openLimits.description'), keywords: ['limits', 'subscription', 'anbieter limit', 'budget'], aliases: ['limits dialog', 'subscriptions öffnen', 'provider limits'], icon: <SlidersHorizontal className="h-4 w-4" />, action: onOpenLimits, group: t('commandPalette.groups.actions') },
+    { id: 'csv', label: t('commandPalette.commands.exportCsv.label'), description: t('commandPalette.commands.exportCsv.description'), keywords: ['download', 'export', 'csv'], aliases: ['csv download', 'daten exportieren'], shortcut: '⌘E', icon: <Download className="h-4 w-4" />, action: onExportCSV, group: t('commandPalette.groups.actions') },
+    { id: 'report', label: reportGenerating ? t('commandPalette.commands.generateReport.labelLoading') : t('commandPalette.commands.generateReport.label'), description: t('commandPalette.commands.generateReport.description'), keywords: ['pdf', 'report', 'bericht', 'export'], aliases: ['report export', 'pdf export', 'bericht generieren'], icon: <Download className="h-4 w-4" />, action: onGenerateReport, group: t('commandPalette.groups.actions') },
+    { id: 'upload', label: t('commandPalette.commands.upload.label'), description: t('commandPalette.commands.upload.description'), keywords: ['upload', 'file', 'json', 'import'], aliases: ['datei laden', 'json import'], shortcut: '⌘U', icon: <Upload className="h-4 w-4" />, action: onUpload, group: t('commandPalette.groups.actions') },
+    { id: 'delete', label: t('commandPalette.commands.delete.label'), description: t('commandPalette.commands.delete.description'), keywords: ['reset data', 'clear data', 'delete'], aliases: ['daten reset', 'alles loeschen'], icon: <Trash2 className="h-4 w-4" />, action: onDelete, group: t('commandPalette.groups.actions') },
 
-    { id: 'view-daily', label: 'Zur Tagesansicht wechseln', description: 'Daten pro Tag anzeigen', keywords: ['daily', 'tage', 'tag', 'tagesansicht'], aliases: ['daily view'], icon: <Calendar className="h-4 w-4" />, action: () => onViewModeChange('daily'), group: 'Filter & Ansicht' },
-    { id: 'view-monthly', label: 'Zur Monatsansicht wechseln', description: 'Daten pro Monat anzeigen', keywords: ['monthly', 'monate', 'monat', 'monatsansicht'], aliases: ['monthly view'], icon: <BarChart3 className="h-4 w-4" />, action: () => onViewModeChange('monthly'), group: 'Filter & Ansicht' },
-    { id: 'view-yearly', label: 'Zur Jahresansicht wechseln', description: 'Daten pro Jahr anzeigen', keywords: ['yearly', 'jahre', 'jahr', 'jahresansicht'], aliases: ['yearly view'], icon: <Layers3 className="h-4 w-4" />, action: () => onViewModeChange('yearly'), group: 'Filter & Ansicht' },
-    { id: 'preset-7d', label: 'Zeitraum: letzte 7 Tage', description: 'Setzt den Datumsfilter auf 7 Tage', keywords: ['7d', '7 tage'], icon: <CalendarRange className="h-4 w-4" />, action: () => onApplyPreset('7d'), group: 'Filter & Ansicht' },
-    { id: 'preset-30d', label: 'Zeitraum: letzte 30 Tage', description: 'Setzt den Datumsfilter auf 30 Tage', keywords: ['30d', '30 tage'], icon: <CalendarRange className="h-4 w-4" />, action: () => onApplyPreset('30d'), group: 'Filter & Ansicht' },
-    { id: 'preset-month', label: 'Zeitraum: aktueller Monat', description: 'Setzt den Datumsfilter auf den laufenden Monat', keywords: ['current month', 'monat'], icon: <CalendarRange className="h-4 w-4" />, action: () => onApplyPreset('month'), group: 'Filter & Ansicht' },
-    { id: 'preset-year', label: 'Zeitraum: aktuelles Jahr', description: 'Setzt den Datumsfilter auf das laufende Jahr', keywords: ['current year', 'jahr'], icon: <CalendarRange className="h-4 w-4" />, action: () => onApplyPreset('year'), group: 'Filter & Ansicht' },
-    { id: 'preset-all', label: 'Zeitraum: alle Daten', description: 'Entfernt Preset-Zeitraumfilter', keywords: ['all', 'alles'], icon: <RefreshCcw className="h-4 w-4" />, action: () => onApplyPreset('all'), group: 'Filter & Ansicht' },
-    { id: 'clear-providers', label: 'Anbieterfilter zurücksetzen', description: 'Alle aktiven Anbieterfilter entfernen', keywords: ['provider', 'anbieter', 'clear'], icon: <Filter className="h-4 w-4" />, action: onClearProviders, group: 'Filter & Ansicht' },
-    { id: 'clear-models', label: 'Modellfilter zurücksetzen', description: 'Alle aktiven Modellfilter entfernen', keywords: ['models', 'modelle', 'clear'], icon: <Filter className="h-4 w-4" />, action: onClearModels, group: 'Filter & Ansicht' },
-    { id: 'clear-dates', label: 'Datumsfilter zurücksetzen', description: 'Start- und Enddatum entfernen', keywords: ['date', 'datum', 'range', 'clear'], icon: <RefreshCcw className="h-4 w-4" />, action: onClearDateRange, group: 'Filter & Ansicht' },
+    { id: 'view-daily', label: t('commandPalette.commands.viewDaily.label'), description: t('commandPalette.commands.viewDaily.description'), keywords: ['daily', 'tage', 'tag', 'tagesansicht'], aliases: ['daily view'], icon: <Calendar className="h-4 w-4" />, action: () => onViewModeChange('daily'), group: t('commandPalette.groups.filters') },
+    { id: 'view-monthly', label: t('commandPalette.commands.viewMonthly.label'), description: t('commandPalette.commands.viewMonthly.description'), keywords: ['monthly', 'monate', 'monat', 'monatsansicht'], aliases: ['monthly view'], icon: <BarChart3 className="h-4 w-4" />, action: () => onViewModeChange('monthly'), group: t('commandPalette.groups.filters') },
+    { id: 'view-yearly', label: t('commandPalette.commands.viewYearly.label'), description: t('commandPalette.commands.viewYearly.description'), keywords: ['yearly', 'jahre', 'jahr', 'jahresansicht'], aliases: ['yearly view'], icon: <Layers3 className="h-4 w-4" />, action: () => onViewModeChange('yearly'), group: t('commandPalette.groups.filters') },
+    { id: 'preset-7d', label: t('commandPalette.commands.preset7d.label'), description: t('commandPalette.commands.preset7d.description'), keywords: ['7d', '7 tage'], icon: <CalendarRange className="h-4 w-4" />, action: () => onApplyPreset('7d'), group: t('commandPalette.groups.filters') },
+    { id: 'preset-30d', label: t('commandPalette.commands.preset30d.label'), description: t('commandPalette.commands.preset30d.description'), keywords: ['30d', '30 tage'], icon: <CalendarRange className="h-4 w-4" />, action: () => onApplyPreset('30d'), group: t('commandPalette.groups.filters') },
+    { id: 'preset-month', label: t('commandPalette.commands.presetMonth.label'), description: t('commandPalette.commands.presetMonth.description'), keywords: ['current month', 'monat'], icon: <CalendarRange className="h-4 w-4" />, action: () => onApplyPreset('month'), group: t('commandPalette.groups.filters') },
+    { id: 'preset-year', label: t('commandPalette.commands.presetYear.label'), description: t('commandPalette.commands.presetYear.description'), keywords: ['current year', 'jahr'], icon: <CalendarRange className="h-4 w-4" />, action: () => onApplyPreset('year'), group: t('commandPalette.groups.filters') },
+    { id: 'preset-all', label: t('commandPalette.commands.presetAll.label'), description: t('commandPalette.commands.presetAll.description'), keywords: ['all', 'alles'], icon: <RefreshCcw className="h-4 w-4" />, action: () => onApplyPreset('all'), group: t('commandPalette.groups.filters') },
+    { id: 'clear-providers', label: t('commandPalette.commands.clearProviders.label'), description: t('commandPalette.commands.clearProviders.description'), keywords: ['provider', 'anbieter', 'clear'], icon: <Filter className="h-4 w-4" />, action: onClearProviders, group: t('commandPalette.groups.filters') },
+    { id: 'clear-models', label: t('commandPalette.commands.clearModels.label'), description: t('commandPalette.commands.clearModels.description'), keywords: ['models', 'modelle', 'clear'], icon: <Filter className="h-4 w-4" />, action: onClearModels, group: t('commandPalette.groups.filters') },
+    { id: 'clear-dates', label: t('commandPalette.commands.clearDates.label'), description: t('commandPalette.commands.clearDates.description'), keywords: ['date', 'datum', 'range', 'clear'], icon: <RefreshCcw className="h-4 w-4" />, action: onClearDateRange, group: t('commandPalette.groups.filters') },
 
-    { id: 'top', label: 'Nach oben scrollen', description: 'Zum Seitenanfang springen', keywords: ['top', 'start', 'anfang'], shortcut: '⌘↑', icon: <ArrowUp className="h-4 w-4" />, action: () => window.scrollTo({ top: 0, behavior: 'smooth' }), group: 'Navigation' },
-    { id: 'bottom', label: 'Nach unten scrollen', description: 'Zum Seitenende springen', keywords: ['bottom', 'ende'], icon: <ArrowDown className="h-4 w-4" />, action: () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), group: 'Navigation' },
-    { id: 'filters', label: 'Zu Filtern', description: 'Springt zur Filterleiste', keywords: ['filterbar', 'filter'], icon: <Filter className="h-4 w-4" />, action: () => onScrollTo('filters'), group: 'Navigation' },
-    { id: 'insights', label: 'Zu Insights', description: 'Springt zur Executive Summary', keywords: ['summary', 'insight'], icon: <Sigma className="h-4 w-4" />, action: () => onScrollTo('insights'), group: 'Navigation' },
-    { id: 'metrics', label: 'Zu Metriken', description: 'Springt zu den KPI-Karten', keywords: ['kpi', 'zahlen'], icon: <ChartBar className="h-4 w-4" />, action: () => onScrollTo('metrics'), group: 'Navigation' },
-    ...(hasTodaySection ? [{ id: 'today', label: 'Zu Heute', description: 'Springt zu den KPIs des aktuellen Tages', keywords: ['today', 'heute'], icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('today'), group: 'Navigation' } satisfies CommandItem] : []),
-    ...(hasMonthSection ? [{ id: 'month', label: 'Zu Monat', description: 'Springt zu den KPIs des aktuellen Monats', keywords: ['monat', 'current month'], icon: <CalendarRange className="h-4 w-4" />, action: () => onScrollTo('current-month'), group: 'Navigation' } satisfies CommandItem] : []),
-    { id: 'activity', label: 'Zu Aktivität', description: 'Springt zur Aktivitäts-Heatmap', keywords: ['heatmap', 'aktivität'], icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('activity'), group: 'Navigation' },
-    { id: 'forecast-cache', label: 'Zu Prognose & Cache', description: 'Springt zu Forecast und Cache ROI', keywords: ['forecast', 'cache', 'roi'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('forecast-cache'), group: 'Navigation' },
-    { id: 'limits', label: 'Zu Limits & Subscriptions', description: 'Springt zur Limits-Sektion', keywords: ['limits', 'subscriptions', 'budget', 'anbieter limits'], aliases: ['limits sektion', 'subscriptions sektion'], icon: <SlidersHorizontal className="h-4 w-4" />, action: () => onScrollTo('limits'), group: 'Navigation' },
-    { id: 'charts', label: 'Zu Kostenanalyse', description: 'Springt zu den Kostencharts', keywords: ['charts', 'kostenanalyse'], icon: <BarChart3 className="h-4 w-4" />, action: () => onScrollTo('charts'), group: 'Navigation' },
-    { id: 'token-analysis', label: 'Zu Token-Analyse', description: 'Springt zu Token-Charts und Verteilungen', keywords: ['tokens', 'token analyse'], aliases: ['token chart'], icon: <Layers3 className="h-4 w-4" />, action: () => onScrollTo('token-analysis'), group: 'Navigation' },
-    { id: 'request-analysis', label: 'Zu Request-Analyse', description: 'Springt zu Requests im Zeitverlauf und Request-Verteilung', keywords: ['requests', 'request analyse', 'anfragen'], aliases: ['request chart', 'request donut'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('request-analysis'), group: 'Navigation' },
-    { id: 'comparisons', label: 'Zu Vergleiche & Anomalien', description: 'Springt zu Periodenvergleich und Auffälligkeiten', keywords: ['anomalie', 'vergleich'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('comparisons'), group: 'Navigation' },
-    { id: 'tables', label: 'Zu Tabellen', description: 'Springt zu den Detailtabellen', keywords: ['table', 'details'], icon: <Table className="h-4 w-4" />, action: () => onScrollTo('tables'), group: 'Navigation' },
+    { id: 'top', label: t('commandPalette.commands.scrollTop.label'), description: t('commandPalette.commands.scrollTop.description'), keywords: ['top', 'start', 'anfang'], shortcut: '⌘↑', icon: <ArrowUp className="h-4 w-4" />, action: () => window.scrollTo({ top: 0, behavior: 'smooth' }), group: t('commandPalette.groups.navigation') },
+    { id: 'bottom', label: t('commandPalette.commands.scrollBottom.label'), description: t('commandPalette.commands.scrollBottom.description'), keywords: ['bottom', 'ende'], icon: <ArrowDown className="h-4 w-4" />, action: () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), group: t('commandPalette.groups.navigation') },
+    { id: 'filters', label: t('commandPalette.commands.filters.label'), description: t('commandPalette.commands.filters.description'), keywords: ['filterbar', 'filter'], icon: <Filter className="h-4 w-4" />, action: () => onScrollTo('filters'), group: t('commandPalette.groups.navigation') },
+    { id: 'insights', label: t('commandPalette.commands.insights.label'), description: t('commandPalette.commands.insights.description'), keywords: ['summary', 'insight'], icon: <Sigma className="h-4 w-4" />, action: () => onScrollTo('insights'), group: t('commandPalette.groups.navigation') },
+    { id: 'metrics', label: t('commandPalette.commands.metrics.label'), description: t('commandPalette.commands.metrics.description'), keywords: ['kpi', 'zahlen'], icon: <ChartBar className="h-4 w-4" />, action: () => onScrollTo('metrics'), group: t('commandPalette.groups.navigation') },
+    ...(hasTodaySection ? [{ id: 'today', label: t('commandPalette.commands.today.label'), description: t('commandPalette.commands.today.description'), keywords: ['today', 'heute'], icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('today'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(hasMonthSection ? [{ id: 'month', label: t('commandPalette.commands.month.label'), description: t('commandPalette.commands.month.description'), keywords: ['monat', 'current month'], icon: <CalendarRange className="h-4 w-4" />, action: () => onScrollTo('current-month'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    { id: 'activity', label: t('commandPalette.commands.activity.label'), description: t('commandPalette.commands.activity.description'), keywords: ['heatmap', 'aktivität'], icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('activity'), group: t('commandPalette.groups.navigation') },
+    { id: 'forecast-cache', label: t('commandPalette.commands.forecastCache.label'), description: t('commandPalette.commands.forecastCache.description'), keywords: ['forecast', 'cache', 'roi'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('forecast-cache'), group: t('commandPalette.groups.navigation') },
+    { id: 'limits', label: t('commandPalette.commands.limits.label'), description: t('commandPalette.commands.limits.description'), keywords: ['limits', 'subscriptions', 'budget', 'anbieter limits'], aliases: ['limits sektion', 'subscriptions sektion'], icon: <SlidersHorizontal className="h-4 w-4" />, action: () => onScrollTo('limits'), group: t('commandPalette.groups.navigation') },
+    { id: 'charts', label: t('commandPalette.commands.charts.label'), description: t('commandPalette.commands.charts.description'), keywords: ['charts', 'kostenanalyse'], icon: <BarChart3 className="h-4 w-4" />, action: () => onScrollTo('charts'), group: t('commandPalette.groups.navigation') },
+    { id: 'token-analysis', label: t('commandPalette.commands.tokenAnalysis.label'), description: t('commandPalette.commands.tokenAnalysis.description'), keywords: ['tokens', 'token analyse'], aliases: ['token chart'], icon: <Layers3 className="h-4 w-4" />, action: () => onScrollTo('token-analysis'), group: t('commandPalette.groups.navigation') },
+    { id: 'request-analysis', label: t('commandPalette.commands.requestAnalysis.label'), description: t('commandPalette.commands.requestAnalysis.description'), keywords: ['requests', 'request analyse', 'anfragen'], aliases: ['request chart', 'request donut'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('request-analysis'), group: t('commandPalette.groups.navigation') },
+    { id: 'comparisons', label: t('commandPalette.commands.comparisons.label'), description: t('commandPalette.commands.comparisons.description'), keywords: ['anomalie', 'vergleich'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('comparisons'), group: t('commandPalette.groups.navigation') },
+    { id: 'tables', label: t('commandPalette.commands.tables.label'), description: t('commandPalette.commands.tables.description'), keywords: ['table', 'details'], icon: <Table className="h-4 w-4" />, action: () => onScrollTo('tables'), group: t('commandPalette.groups.navigation') },
 
-    { id: 'theme', label: isDark ? 'Light Mode aktivieren' : 'Dark Mode aktivieren', description: 'Zwischen hellem und dunklem Theme wechseln', keywords: ['theme', 'dark', 'light'], shortcut: '⌘D', icon: isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />, action: onToggleTheme, group: 'Ansicht' },
-    { id: 'help', label: 'Hilfe & Tastenkürzel öffnen', description: 'Öffnet die Hilfeübersicht', keywords: ['shortcut', 'hilfe'], shortcut: '?', icon: <CircleHelp className="h-4 w-4" />, action: onHelp, group: 'Hilfe' },
+    { id: 'theme', label: isDark ? t('commandPalette.commands.themeLight.label') : t('commandPalette.commands.themeDark.label'), description: t('commandPalette.commands.themeDark.description'), keywords: ['theme', 'dark', 'light'], shortcut: '⌘D', icon: isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />, action: onToggleTheme, group: t('commandPalette.groups.view') },
+    { id: 'language-de', label: t('commandPalette.commands.languageGerman.label'), description: t('commandPalette.commands.languageGerman.description'), keywords: ['language', 'sprache', 'deutsch', 'german', 'locale'], aliases: ['switch german', 'auf deutsch', 'sprache deutsch'], icon: <Languages className="h-4 w-4" />, action: () => void i18n.changeLanguage('de'), group: t('commandPalette.groups.language') },
+    { id: 'language-en', label: t('commandPalette.commands.languageEnglish.label'), description: t('commandPalette.commands.languageEnglish.description'), keywords: ['language', 'sprache', 'english', 'englisch', 'locale'], aliases: ['switch english', 'auf englisch', 'sprache english'], icon: <Languages className="h-4 w-4" />, action: () => void i18n.changeLanguage('en'), group: t('commandPalette.groups.language') },
+    { id: 'help', label: t('commandPalette.commands.help.label'), description: t('commandPalette.commands.help.description'), keywords: ['shortcut', 'hilfe'], shortcut: '?', icon: <CircleHelp className="h-4 w-4" />, action: onHelp, group: t('commandPalette.groups.help') },
   ]
 
   const providerCommands = useMemo<CommandItem[]>(() => (
@@ -196,32 +200,32 @@ export function CommandPalette({
       const selected = selectedProviders.includes(provider)
       return {
         id: `provider-${provider}`,
-        label: `${selected ? 'Anbieter deaktivieren' : 'Anbieter filtern'}: ${provider}`,
-        description: selected ? `Entfernt den aktiven Filter für ${provider}` : `Filtert das Dashboard nach ${provider}`,
+        label: `${selected ? t('commandPalette.commands.clearProviders.label') : t('common.provider')}: ${provider}`,
+        description: selected ? `${t('commandPalette.commands.clearProviders.description')}: ${provider}` : `${t('common.provider')} ${provider}`,
         keywords: ['anbieter', 'provider', provider.toLowerCase()],
         aliases: [`filter ${provider.toLowerCase()}`, `${provider.toLowerCase()} daten`],
         icon: <Filter className="h-4 w-4" />,
         action: () => onToggleProvider(provider),
-        group: 'Anbieter',
+        group: t('commandPalette.groups.providers'),
       }
     })
-  ), [availableProviders, selectedProviders, onToggleProvider])
+  ), [availableProviders, selectedProviders, onToggleProvider, t])
 
   const modelCommands = useMemo<CommandItem[]>(() => (
     availableModels.map(model => {
       const selected = selectedModels.includes(model)
       return {
         id: `model-${model}`,
-        label: `${selected ? 'Modell deaktivieren' : 'Modell filtern'}: ${model}`,
-        description: selected ? `Entfernt den aktiven Filter für ${model}` : `Filtert das Dashboard nach ${model}`,
+        label: `${selected ? t('commandPalette.commands.clearModels.label') : t('common.model')}: ${model}`,
+        description: selected ? `${t('commandPalette.commands.clearModels.description')}: ${model}` : `${t('common.model')} ${model}`,
         keywords: ['modell', 'model', model.toLowerCase()],
         aliases: [`filter ${model.toLowerCase()}`, `${model.toLowerCase()} requests`, `${model.toLowerCase()} kosten`],
         icon: <Layers3 className="h-4 w-4" />,
         action: () => onToggleModel(model),
-        group: 'Modelle',
+        group: t('commandPalette.groups.models'),
       }
     })
-  ), [availableModels, selectedModels, onToggleModel])
+  ), [availableModels, selectedModels, onToggleModel, t])
 
   const commands = useMemo(() => [
     ...baseCommands,
@@ -274,15 +278,15 @@ export function CommandPalette({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="p-0 max-w-md overflow-hidden">
-        <DialogTitle className="sr-only">Command Palette</DialogTitle>
+        <DialogTitle className="sr-only">{t('commandPalette.title')}</DialogTitle>
         <DialogDescription className="sr-only">
-          Tastaturgesteuerte Befehlsauswahl für Navigation und Aktionen im ttdash Dashboard.
+          {t('commandPalette.description')}
         </DialogDescription>
         <Command className="bg-transparent" shouldFilter={false}>
           <div className="flex items-center gap-2 border-b border-border px-3">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <Command.Input
-              placeholder="Befehl suchen..."
+              placeholder={t('commandPalette.placeholder')}
               value={search}
               onValueChange={setSearch}
               className="flex h-11 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
@@ -290,7 +294,7 @@ export function CommandPalette({
           </div>
           <Command.List className="max-h-[300px] overflow-y-auto p-2">
             <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
-              Kein Befehl gefunden.
+              {t('commandPalette.empty')}
             </Command.Empty>
             {groups.map(group => (
               <Command.Group key={group} heading={group} className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground">

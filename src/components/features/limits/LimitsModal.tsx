@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { InfoButton } from '@/components/features/help/InfoButton'
@@ -25,6 +26,7 @@ function parseNumberInput(value: string): number {
 }
 
 export function LimitsModal({ open, onOpenChange, providers, limits, onSave }: LimitsModalProps) {
+  const { t } = useTranslation()
   const [draft, setDraft] = useState<ProviderLimits>(() => syncProviderLimits(providers, limits))
 
   useEffect(() => {
@@ -52,17 +54,17 @@ export function LimitsModal({ open, onOpenChange, providers, limits, onSave }: L
       <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto overflow-x-visible">
         <DialogHeader className="overflow-visible">
           <DialogTitle className="flex items-center gap-2">
-            Provider Limits
+            {t('limits.modal.title')}
             <InfoButton text={FEATURE_HELP.providerLimits} />
           </DialogTitle>
           <DialogDescription>
-            Definiere pro Anbieter Subscription und Monatslimit. Nur Anbieter aus dem aktuell geladenen Report sind editierbar. Ein Limit von <code>0</code> bedeutet kein Limit.
+            {t('limits.modal.description')}
           </DialogDescription>
         </DialogHeader>
 
         {providers.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-8 text-sm text-muted-foreground text-center">
-            Keine Anbieter im geladenen Report gefunden.
+            {t('limits.modal.noProviders')}
           </div>
         ) : (
           <div className="space-y-3">
@@ -87,17 +89,14 @@ export function LimitsModal({ open, onOpenChange, providers, limits, onSave }: L
                               : 'border-border bg-muted/20 text-muted-foreground hover:bg-accent'
                           )}
                         >
-                          {config.hasSubscription ? 'Subscription aktiv' : 'Keine Subscription'}
+                          {config.hasSubscription ? t('common.enabled') : t('limits.statuses.noSubscription')}
                         </button>
-                      </div>
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        Die Eingaben werden lokal gespeichert und beim nächsten Dashboard-Start wiederhergestellt.
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:w-[420px]">
                       <label className="space-y-1.5">
-                        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Subscription $/Monat</span>
+                        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{t('limits.modal.subscriptionPerMonth')}</span>
                         <input
                           type="number"
                           min="0"
@@ -110,7 +109,7 @@ export function LimitsModal({ open, onOpenChange, providers, limits, onSave }: L
                       </label>
 
                       <label className="space-y-1.5">
-                        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Monatslimit $</span>
+                        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{t('limits.modal.monthlyLimit')}</span>
                         <input
                           type="number"
                           min="0"
@@ -133,11 +132,11 @@ export function LimitsModal({ open, onOpenChange, providers, limits, onSave }: L
             variant="ghost"
             onClick={() => setDraft(syncProviderLimits(providers, {}))}
           >
-            Alles zurücksetzen
+            {t('common.reset')}
           </Button>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>Abbrechen</Button>
-            <Button onClick={handleSave}>Speichern</Button>
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>{t('limits.modal.close')}</Button>
+            <Button onClick={handleSave}>{t('limits.modal.save')}</Button>
           </div>
         </div>
       </DialogContent>

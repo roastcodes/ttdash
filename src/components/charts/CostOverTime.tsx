@@ -1,4 +1,5 @@
 import { useId, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
@@ -13,6 +14,7 @@ interface CostOverTimeProps {
 }
 
 export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
+  const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
   const summary = useMemo(() => {
     if (data.length === 0) return null
@@ -27,8 +29,8 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
 
   return (
     <ChartCard
-      title="Kosten im Zeitverlauf + 7-Tage Ø"
-      subtitle={summary ? `Letzter Wert ${formatCurrency(summary.latest)} · Peak ${formatCurrency(summary.peak)} am ${formatDateAxis(summary.peakDate)}` : 'Tageskosten mit 7-Tage gleitendem Durchschnitt'}
+      title={t('charts.costOverTime.title')}
+      subtitle={summary ? t('charts.costOverTime.summary', { latest: formatCurrency(summary.latest), peak: formatCurrency(summary.peak), date: formatDateAxis(summary.peakDate) }) : t('charts.costOverTime.subtitle')}
       info={CHART_HELP.costOverTime}
       chartData={data as unknown as Record<string, unknown>[]}
       valueKey="cost"
@@ -62,7 +64,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
                 dataKey="cost"
                 stroke={CHART_COLORS.cost}
                 fill={`url(#${uid}-gradCostLine)`}
-                name="Kosten"
+                name={t('charts.costOverTime.cost')}
                 strokeWidth={1.5}
                 activeDot={{ r: 5, strokeWidth: 2, stroke: CHART_COLORS.cost, fill: 'hsl(var(--background))' }}
                 dot={false}
@@ -75,7 +77,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
                 type="monotone"
                 dataKey="ma7"
                 stroke={CHART_COLORS.ma7}
-                name="7-Tage Ø"
+                name={t('charts.costOverTime.movingAverage')}
                 dot={false}
                 strokeWidth={2}
                 strokeDasharray="5 5"

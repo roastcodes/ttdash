@@ -1,78 +1,81 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Keyboard, ChartBar, LineChart } from 'lucide-react'
-import { KEYBOARD_SHORTCUTS, METRIC_HELP, CHART_HELP, SECTION_HELP, FEATURE_HELP } from '@/lib/help-content'
+import { getKeyboardShortcuts, METRIC_HELP, CHART_HELP, SECTION_HELP, FEATURE_HELP } from '@/lib/help-content'
 
 interface HelpPanelProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const metricLabels: Record<string, string> = {
-  totalCost: 'Gesamtkosten',
-  totalTokens: 'Tokens gesamt',
-  activeDays: 'Aktive Tage',
-  topModel: 'Top-Modell',
-  cacheHitRate: 'Cache-Hit-Rate',
-  costPerMillion: 'Kosten / 1M Tokens',
-  mostExpensiveDay: 'Teuerster Tag',
-  cheapestDay: 'Günstigster Tag',
-  avgCostPerDay: 'Ø Kosten / Tag',
-  outputTokens: 'Output-Tokens',
-}
-
-const chartLabels: Record<string, string> = {
-  costOverTime: 'Kosten über Zeit',
-  costByModel: 'Kosten nach Modell',
-  costByModelOverTime: 'Kosten/Modell über Zeit',
-  cumulativeCost: 'Kumulative Kosten',
-  costByWeekday: 'Kosten nach Wochentag',
-  tokensOverTime: 'Tokens über Zeit',
-  requestsOverTime: 'Requests im Zeitverlauf',
-  tokenTypes: 'Token-Typen',
-  tokenEfficiency: 'Token-Effizienz',
-  modelMix: 'Modell-Mix',
-  distributionAnalysis: 'Verteilungen',
-  correlationAnalysis: 'Korrelationen',
-  heatmap: 'Kosten-Heatmap',
-  requestHeatmap: 'Request-Heatmap',
-  tokenHeatmap: 'Token-Heatmap',
-  forecast: 'Prognose',
-  cacheROI: 'Cache-ROI',
-  periodComparison: 'Periodenvergleich',
-  anomalyDetection: 'Anomalie-Erkennung',
-}
-
-const sectionLabels: Record<string, string> = {
-  insights: 'Insights',
-  metrics: 'Metriken',
-  today: 'Heute',
-  currentMonth: 'Monat',
-  activity: 'Aktivität',
-  forecastCache: 'Prognose & Cache',
-  costAnalysis: 'Kostenanalyse',
-  tokenAnalysis: 'Token-Analyse',
-  requestAnalysis: 'Request-Analyse',
-  advancedAnalysis: 'Verteilungen & Risiko',
-  comparisons: 'Vergleiche & Anomalien',
-  tables: 'Tabellen',
-}
-
-const featureLabels: Record<string, string> = {
-  requestQuality: 'Request-Qualität',
-  concentrationRisk: 'Konzentrationsrisiko',
-  providerEfficiency: 'Provider-Effizienz',
-  modelEfficiency: 'Modell-Effizienz',
-  recentDays: 'Zeiträume im Detail',
-}
-
 export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
+  const { t } = useTranslation()
+  const shortcuts = getKeyboardShortcuts()
+  const metricLabels = useMemo<Record<string, string>>(() => ({
+    totalCost: t('helpPanel.metricLabels.totalCost'),
+    totalTokens: t('helpPanel.metricLabels.totalTokens'),
+    activeDays: t('helpPanel.metricLabels.activeDays'),
+    topModel: t('helpPanel.metricLabels.topModel'),
+    cacheHitRate: t('helpPanel.metricLabels.cacheHitRate'),
+    costPerMillion: t('helpPanel.metricLabels.costPerMillion'),
+    mostExpensiveDay: t('helpPanel.metricLabels.mostExpensiveDay'),
+    cheapestDay: t('helpPanel.metricLabels.cheapestDay'),
+    avgCostPerDay: t('helpPanel.metricLabels.avgCostPerDay'),
+    outputTokens: t('helpPanel.metricLabels.outputTokens'),
+  }), [t])
+  const chartLabels = useMemo<Record<string, string>>(() => ({
+    costOverTime: t('helpPanel.chartLabels.costOverTime'),
+    costByModel: t('helpPanel.chartLabels.costByModel'),
+    costByModelOverTime: t('helpPanel.chartLabels.costByModelOverTime'),
+    cumulativeCost: t('helpPanel.chartLabels.cumulativeCost'),
+    costByWeekday: t('helpPanel.chartLabels.costByWeekday'),
+    tokensOverTime: t('helpPanel.chartLabels.tokensOverTime'),
+    requestsOverTime: t('helpPanel.chartLabels.requestsOverTime'),
+    tokenTypes: t('helpPanel.chartLabels.tokenTypes'),
+    tokenEfficiency: t('helpPanel.chartLabels.tokenEfficiency'),
+    modelMix: t('helpPanel.chartLabels.modelMix'),
+    distributionAnalysis: t('helpPanel.chartLabels.distributionAnalysis'),
+    correlationAnalysis: t('helpPanel.chartLabels.correlationAnalysis'),
+    heatmap: t('helpPanel.chartLabels.heatmap'),
+    requestHeatmap: t('helpPanel.chartLabels.requestHeatmap'),
+    tokenHeatmap: t('helpPanel.chartLabels.tokenHeatmap'),
+    forecast: t('helpPanel.chartLabels.forecast'),
+    cacheROI: t('helpPanel.chartLabels.cacheROI'),
+    periodComparison: t('helpPanel.chartLabels.periodComparison'),
+    anomalyDetection: t('helpPanel.chartLabels.anomalyDetection'),
+  }), [t])
+  const sectionLabels = useMemo<Record<string, string>>(() => ({
+    insights: t('helpPanel.sectionLabels.insights'),
+    metrics: t('helpPanel.sectionLabels.metrics'),
+    today: t('helpPanel.sectionLabels.today'),
+    currentMonth: t('helpPanel.sectionLabels.currentMonth'),
+    activity: t('helpPanel.sectionLabels.activity'),
+    forecastCache: t('helpPanel.sectionLabels.forecastCache'),
+    costAnalysis: t('helpPanel.sectionLabels.costAnalysis'),
+    tokenAnalysis: t('helpPanel.sectionLabels.tokenAnalysis'),
+    requestAnalysis: t('helpPanel.sectionLabels.requestAnalysis'),
+    advancedAnalysis: t('helpPanel.sectionLabels.advancedAnalysis'),
+    comparisons: t('helpPanel.sectionLabels.comparisons'),
+    tables: t('helpPanel.sectionLabels.tables'),
+    limits: t('helpPanel.sectionLabels.limits'),
+  }), [t])
+  const featureLabels = useMemo<Record<string, string>>(() => ({
+    requestQuality: t('helpPanel.featureLabels.requestQuality'),
+    providerLimits: t('helpPanel.featureLabels.providerLimits'),
+    concentrationRisk: t('helpPanel.featureLabels.concentrationRisk'),
+    providerEfficiency: t('helpPanel.featureLabels.providerEfficiency'),
+    modelEfficiency: t('helpPanel.featureLabels.modelEfficiency'),
+    recentDays: t('helpPanel.featureLabels.recentDays'),
+  }), [t])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">Hilfe & Tastenkürzel</DialogTitle>
+          <DialogTitle className="text-lg font-semibold">{t('header.help')}</DialogTitle>
           <DialogDescription>
-            Referenz für Tastenkürzel, Kennzahlen und Diagramm-Erklärungen im ttdash Dashboard.
+            {t('commandPalette.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -80,10 +83,10 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
         <section>
           <div className="flex items-center gap-2 mb-3">
             <Keyboard className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold">Tastenkürzel</h3>
+            <h3 className="text-sm font-semibold">{t('header.help')}</h3>
           </div>
           <div className="grid grid-cols-1 gap-1.5">
-            {KEYBOARD_SHORTCUTS.map((shortcut) => (
+            {shortcuts.map((shortcut) => (
               <div
                 key={shortcut.keys}
                 className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2"
@@ -103,7 +106,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
         <section>
           <div className="flex items-center gap-2 mb-3">
             <ChartBar className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold">Metriken</h3>
+            <h3 className="text-sm font-semibold">{t('dashboard.metrics.title')}</h3>
           </div>
           <div className="space-y-2">
             {Object.entries(METRIC_HELP).map(([key, description]) => (
@@ -121,7 +124,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
         <section>
           <div className="flex items-center gap-2 mb-3">
             <LineChart className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold">Charts & Features</h3>
+            <h3 className="text-sm font-semibold">{t('helpPanel.chartsAndFeatures')}</h3>
           </div>
           <div className="space-y-2">
             {Object.entries(CHART_HELP).map(([key, description]) => (
@@ -138,7 +141,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
         <section>
           <div className="flex items-center gap-2 mb-3">
             <ChartBar className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold">Bereiche & Tabellen</h3>
+            <h3 className="text-sm font-semibold">{t('dashboard.tables.title')}</h3>
           </div>
           <div className="space-y-2">
             {Object.entries(SECTION_HELP).map(([key, description]) => (

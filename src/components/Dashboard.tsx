@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { SlidersHorizontal } from 'lucide-react'
 import { Header } from './layout/Header'
@@ -48,6 +49,7 @@ import { downloadCSV } from '@/lib/csv-export'
 import { SECTION_HELP } from '@/lib/help-content'
 import { generatePdfReport } from '@/lib/api'
 import { formatCurrency, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
+import { getCurrentLocale } from '@/lib/i18n'
 import { getUniqueProviders } from '@/lib/model-utils'
 import { LimitsModal } from './features/limits/LimitsModal'
 import { ProviderLimitsSection } from './features/limits/ProviderLimitsSection'
@@ -56,6 +58,7 @@ const DrillDownModal = lazy(() => import('./features/drill-down/DrillDownModal')
 const AutoImportModal = lazy(() => import('./features/auto-import/AutoImportModal').then(module => ({ default: module.AutoImportModal })))
 
 export function Dashboard() {
+  const { t, i18n } = useTranslation()
   const { data: usageData, isLoading } = useUsageData()
   const uploadMutation = useUploadData()
   const deleteMutation = useDeleteData()
@@ -152,26 +155,26 @@ export function Dashboard() {
       const json = JSON.parse(text)
       await uploadMutation.mutateAsync(json)
       setAnimationSeed(prev => prev + 1)
-      setDataSource({ type: 'file', label: file.name, time: new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) })
-      addToast(`Datei ${file.name} erfolgreich geladen`, 'success')
+      setDataSource({ type: 'file', label: file.name, time: new Date().toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' }) })
+      addToast(t('toasts.fileLoaded', { name: file.name }), 'success')
     } catch {
-      addToast('Datei konnte nicht gelesen werden', 'error')
+      addToast(t('toasts.fileReadFailed'), 'error')
     }
     e.target.value = ''
-  }, [uploadMutation, addToast])
+  }, [uploadMutation, addToast, t])
 
   const handleDelete = useCallback(async () => {
     await deleteMutation.mutateAsync()
     setAnimationSeed(prev => prev + 1)
     setDataSource(null)
     initialSourceSet.current = false
-    addToast('Daten gelöscht', 'info')
-  }, [deleteMutation, addToast])
+    addToast(t('toasts.dataDeleted'), 'info')
+  }, [deleteMutation, addToast, t])
 
   const handleExportCSV = useCallback(() => {
     downloadCSV(filteredData)
-    addToast('CSV exportiert', 'success')
-  }, [filteredData, addToast])
+    addToast(t('toasts.csvExported'), 'success')
+  }, [filteredData, addToast, t])
 
   const handleGenerateReport = useCallback(async () => {
     if (reportGenerating) return
@@ -185,6 +188,7 @@ export function Dashboard() {
         selectedModels,
         startDate,
         endDate,
+        language: i18n.language === 'en' ? 'en' : 'de',
       })
       const objectUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -194,10 +198,10 @@ export function Dashboard() {
       a.click()
       a.remove()
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
-      addToast('PDF Report exportiert', 'success')
+      addToast(t('commandPalette.commands.generateReport.label'), 'success')
     } catch (error) {
       console.error('PDF generation failed:', error)
-      addToast(`PDF-Export fehlgeschlagen: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`, 'error')
+      addToast(`${t('api.pdfFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error')
     } finally {
       setReportGenerating(false)
     }
@@ -210,9 +214,9 @@ export function Dashboard() {
   const handleAutoImportSuccess = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['usage'] })
     setAnimationSeed(prev => prev + 1)
-    setDataSource({ type: 'auto-import', time: new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) })
-    addToast('Daten erfolgreich importiert', 'success')
-  }, [queryClient, addToast])
+    setDataSource({ type: 'auto-import', time: new Date().toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' }) })
+    addToast(t('toasts.dataImported'), 'success')
+  }, [queryClient, addToast, t])
 
   const handleScrollTo = useCallback((section: string) => {
     const el = document.getElementById(section)
@@ -260,7 +264,7 @@ export function Dashboard() {
             className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
           >
             <SlidersHorizontal className="h-4 w-4" />
-            <span>Limits</span>
+            <span>{t('header.limits')}</span>
           </Button>
         )}
         pdfButton={(
@@ -301,7 +305,7 @@ export function Dashboard() {
 
         {/* Primary Metrics */}
         <div id="metrics">
-          <SectionHeader title="Metriken" badge="10 Kennzahlen" description="Wichtigste KPIs im Überblick" info={SECTION_HELP.metrics} />
+          <SectionHeader title={t('dashboard.metrics.title')} badge={t('dashboard.metrics.badge')} description={t('dashboard.metrics.description')} info={SECTION_HELP.metrics} />
           <FadeIn delay={0}>
             <PrimaryMetrics metrics={metrics} totalCalendarDays={totalCalendarDays} viewMode={viewMode} />
           </FadeIn>
@@ -328,7 +332,7 @@ export function Dashboard() {
 
         {/* Heatmap Calendar */}
         <div id="activity">
-          <SectionHeader title="Aktivität" description={viewMode === 'daily' ? 'Tägliche Nutzungsübersicht' : viewMode === 'monthly' ? 'Monatliche Nutzungsübersicht' : 'Jährliche Nutzungsübersicht'} info={SECTION_HELP.activity} />
+          <SectionHeader title={t('dashboard.activity.title')} description={viewMode === 'daily' ? t('dashboard.activity.dailyDescription') : viewMode === 'monthly' ? t('dashboard.activity.monthlyDescription') : t('dashboard.activity.yearlyDescription')} info={SECTION_HELP.activity} />
           <FadeIn delay={0.2}>
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="cost" />
@@ -340,16 +344,16 @@ export function Dashboard() {
 
         {/* Cost Forecast + Cache ROI */}
         <div id="forecast-cache">
-          <SectionHeader title="Prognose & Cache" description="Kostenprognose und Cache-Effizienz" info={SECTION_HELP.forecastCache} />
+          <SectionHeader title={t('dashboard.forecastCache.title')} description={t('dashboard.forecastCache.description')} info={SECTION_HELP.forecastCache} />
           <FadeIn delay={0.25}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <ExpandableCard title="Kostenprognose">
+              <ExpandableCard title={t('dashboard.cards.costForecast')}>
                 <CostForecast data={filteredData} viewMode={viewMode} />
               </ExpandableCard>
-              <ExpandableCard title="Cache ROI" stats={[
-                { label: 'Cache-Hit-Rate', value: formatPercent(metrics.cacheHitRate) },
-                { label: 'Gesamt-Tokens', value: formatTokens(metrics.totalTokens) },
-                { label: 'Cache Read', value: formatTokens(metrics.totalCacheRead) },
+              <ExpandableCard title={t('dashboard.cards.cacheRoi')} stats={[
+                { label: t('dashboard.stats.cacheHitRate'), value: formatPercent(metrics.cacheHitRate) },
+                { label: t('dashboard.stats.totalTokens'), value: formatTokens(metrics.totalTokens) },
+                { label: t('dashboard.stats.cacheRead'), value: formatTokens(metrics.totalCacheRead) },
               ]}>
                 <CacheROI data={filteredData} viewMode={viewMode} />
               </ExpandableCard>
@@ -368,7 +372,7 @@ export function Dashboard() {
 
         {/* Charts */}
         <div id="charts">
-          <SectionHeader title="Kostenanalyse" badge={`${allModels.length} Modelle`} description="Detaillierte Kostenaufschlüsselung" info={SECTION_HELP.costAnalysis} />
+          <SectionHeader title={t('dashboard.costAnalysis.title')} badge={`${allModels.length} ${t('common.models')}`} description={t('dashboard.costAnalysis.description')} info={SECTION_HELP.costAnalysis} />
           <FadeIn delay={0.3}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
@@ -401,7 +405,7 @@ export function Dashboard() {
 
         {/* Token Analysis */}
         <div id="token-analysis">
-          <SectionHeader title="Token-Analyse" description="Verbrauch nach Token-Typ" info={SECTION_HELP.tokenAnalysis} />
+          <SectionHeader title={t('dashboard.tokenAnalysis.title')} description={t('dashboard.tokenAnalysis.description')} info={SECTION_HELP.tokenAnalysis} />
           <FadeIn delay={0.45}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <TokensOverTime data={tokenChartData} onClickDay={setDrillDownDate} />
@@ -412,7 +416,7 @@ export function Dashboard() {
 
         {metrics.hasRequestData && (
           <div id="request-analysis">
-            <SectionHeader title="Request-Analyse" description="Requests gesamt, pro Modell und im Verlauf" info={SECTION_HELP.requestAnalysis} />
+            <SectionHeader title={t('dashboard.requestAnalysis.title')} description={t('dashboard.requestAnalysis.description')} info={SECTION_HELP.requestAnalysis} />
             <FadeIn delay={0.47}>
               <RequestsOverTime data={requestChartData} viewMode={viewMode} onClickDay={setDrillDownDate} />
             </FadeIn>
@@ -425,7 +429,7 @@ export function Dashboard() {
         )}
 
         <div id="advanced-analysis">
-          <SectionHeader title="Verteilungen & Risiko" description="Zusätzliche Signale zu Streuung, Korrelation und Abhängigkeiten" info={SECTION_HELP.advancedAnalysis} />
+          <SectionHeader title={t('dashboard.advancedAnalysis.title')} description={t('dashboard.advancedAnalysis.description')} info={SECTION_HELP.advancedAnalysis} />
           <FadeIn delay={0.48}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <DistributionAnalysis data={filteredData} viewMode={viewMode} />
@@ -446,18 +450,18 @@ export function Dashboard() {
 
         {/* Period Comparison + Anomaly Detection */}
         <div id="comparisons">
-          <SectionHeader title="Vergleiche & Anomalien" description="Periodenvergleich und Ausreisser" info={SECTION_HELP.comparisons} />
+          <SectionHeader title={t('dashboard.comparisons.title')} description={t('dashboard.comparisons.description')} info={SECTION_HELP.comparisons} />
           <FadeIn delay={0.5}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <ExpandableCard title="Periodenvergleich" stats={[
-                { label: 'Datenpunkte', value: String(filteredData.length) },
-                { label: `Ø Kosten/${periodUnit(viewMode)}`, value: formatCurrency(metrics.avgDailyCost) },
+              <ExpandableCard title={t('dashboard.cards.periodComparison')} stats={[
+                { label: t('dashboard.stats.dataPoints'), value: String(filteredData.length) },
+                { label: t('dashboard.stats.avgCostPerUnit', { unit: periodUnit(viewMode) }), value: formatCurrency(metrics.avgDailyCost) },
               ]}>
                 <PeriodComparison data={comparisonData} />
               </ExpandableCard>
-              <ExpandableCard title="Anomalie-Erkennung" stats={[
-                { label: 'Gesamt', value: formatCurrency(metrics.totalCost) },
-                { label: `Ø / ${periodUnit(viewMode)}`, value: formatCurrency(metrics.avgDailyCost) },
+              <ExpandableCard title={t('dashboard.cards.anomalyDetection')} stats={[
+                { label: t('dashboard.stats.total'), value: formatCurrency(metrics.totalCost) },
+                { label: t('dashboard.stats.avgPerUnit', { unit: periodUnit(viewMode) }), value: formatCurrency(metrics.avgDailyCost) },
               ]}>
                 <AnomalyDetection data={filteredData} onClickDay={setDrillDownDate} viewMode={viewMode} />
               </ExpandableCard>
@@ -467,7 +471,7 @@ export function Dashboard() {
 
         {/* Tables */}
         <div id="tables">
-          <SectionHeader title="Tabellen" description="Detaillierte Aufschlüsselungen" info={SECTION_HELP.tables} />
+          <SectionHeader title={t('dashboard.tables.title')} description={t('dashboard.tables.description')} info={SECTION_HELP.tables} />
           <FadeIn delay={0.55}>
             <ModelEfficiency modelCosts={modelCosts} totalCost={metrics.totalCost} viewMode={viewMode} />
           </FadeIn>

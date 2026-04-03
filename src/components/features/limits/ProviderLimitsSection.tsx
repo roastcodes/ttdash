@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, useInView } from 'framer-motion'
 import {
   Area,
@@ -21,6 +22,7 @@ import { SectionHeader } from '@/components/ui/section-header'
 import { ChartAnimationAware, ChartCard, ChartReveal } from '@/components/charts/ChartCard'
 import { CHART_ANIMATION, CHART_COLORS, CHART_MARGIN } from '@/components/charts/chart-theme'
 import { buildProviderMonthlyCosts, getLatestMonth } from '@/lib/provider-limits'
+import i18n from '@/lib/i18n'
 import { CHART_HELP, SECTION_HELP } from '@/lib/help-content'
 import { formatCurrency, formatCurrencyExact, formatMonthYear } from '@/lib/formatters'
 import { getProviderBadgeStyle } from '@/lib/model-utils'
@@ -51,16 +53,16 @@ interface ProviderLimitRow {
 }
 
 function riskLabel(row: ProviderLimitRow) {
-  if (row.riskStatus === 'limit') return 'Limit überschritten'
-  if (row.riskStatus === 'warning') return 'Budget angespannt'
-  if (row.riskStatus === 'ok') return 'Budget stabil'
-  return 'Kein Limit gesetzt'
+  if (row.riskStatus === 'limit') return i18n.t('limits.statuses.limitExceeded')
+  if (row.riskStatus === 'warning') return i18n.t('limits.statuses.budgetTight')
+  if (row.riskStatus === 'ok') return i18n.t('limits.statuses.budgetStable')
+  return i18n.t('limits.statuses.noLimit')
 }
 
 function subscriptionLabel(row: ProviderLimitRow) {
-  if (!row.hasSubscription) return 'Keine Subscription'
-  if (row.subscriptionStatus === 'gain') return 'Subscription zahlt sich aus'
-  return 'Noch unter Subscription'
+  if (!row.hasSubscription) return i18n.t('limits.statuses.noSubscription')
+  if (row.subscriptionStatus === 'gain') return i18n.t('limits.statuses.subscriptionPaysOff')
+  return i18n.t('limits.statuses.belowSubscription')
 }
 
 function RiskTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ payload: ProviderLimitRow }>; label?: string }) {
@@ -72,21 +74,21 @@ function RiskTooltip({ active, payload, label }: { active?: boolean; payload?: A
       <div className="font-medium text-muted-foreground">{label}</div>
       <div className="mt-2 space-y-1.5">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">Kosten</span>
+          <span className="text-muted-foreground">{i18n.t('common.cost')}</span>
           <span className="font-mono font-medium">{formatCurrencyExact(row.cost)}</span>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">Monatslimit</span>
-          <span className="font-mono font-medium">{row.monthlyLimit > 0 ? formatCurrencyExact(row.monthlyLimit) : 'Kein Limit'}</span>
+          <span className="text-muted-foreground">{i18n.t('limits.modal.monthlyLimit')}</span>
+          <span className="font-mono font-medium">{row.monthlyLimit > 0 ? formatCurrencyExact(row.monthlyLimit) : i18n.t('limits.statuses.noLimit')}</span>
         </div>
         {row.monthlyLimit > 0 && (
           <>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Auslastung</span>
+              <span className="text-muted-foreground">Utilization</span>
               <span className="font-mono font-medium">{row.utilization?.toFixed(1)}%</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">{row.overrun > 0 ? 'Überzug' : 'Restbudget'}</span>
+              <span className="text-muted-foreground">{row.overrun > 0 ? 'Overrun' : 'Remaining budget'}</span>
               <span className={row.overrun > 0 ? 'font-mono font-medium text-red-300' : 'font-mono font-medium'}>
                 {formatCurrencyExact(row.overrun > 0 ? row.overrun : row.remaining ?? 0)}
               </span>
@@ -107,16 +109,16 @@ function SubscriptionTooltip({ active, payload, label }: { active?: boolean; pay
       <div className="font-medium text-muted-foreground">{label}</div>
       <div className="mt-2 space-y-1.5">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">Usage-Kosten</span>
+          <span className="text-muted-foreground">{i18n.t('limits.tracks.usage')}</span>
           <span className="font-mono font-medium">{formatCurrencyExact(row.cost)}</span>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">Subscription</span>
-          <span className="font-mono font-medium">{row.hasSubscription ? formatCurrencyExact(row.subscriptionPrice) : 'Nicht gesetzt'}</span>
+          <span className="text-muted-foreground">{i18n.t('limits.tracks.subscription')}</span>
+          <span className="font-mono font-medium">{row.hasSubscription ? formatCurrencyExact(row.subscriptionPrice) : i18n.t('common.notAvailable')}</span>
         </div>
         {row.hasSubscription && (
           <div className="flex items-center justify-between gap-3">
-            <span className="text-muted-foreground">{row.subscriptionStatus === 'gain' ? 'Mehrwert' : 'Fehlbetrag bis Break-even'}</span>
+            <span className="text-muted-foreground">{row.subscriptionStatus === 'gain' ? i18n.t('limits.cards.subscriptionValue') : i18n.t('limits.tracks.remainingToBreakEven')}</span>
             <span className={row.subscriptionStatus === 'gain' ? 'font-mono font-medium text-emerald-300' : 'font-mono font-medium text-amber-200'}>
               {formatCurrencyExact(row.subscriptionStatus === 'gain' ? row.subscriptionGain : row.subscriptionGap)}
             </span>
@@ -128,6 +130,7 @@ function SubscriptionTooltip({ active, payload, label }: { active?: boolean; pay
 }
 
 export function ProviderLimitsSection({ data, providers, limits, selectedMonth }: ProviderLimitsSectionProps) {
+  const { t } = useTranslation()
   const sectionRef = useRef<HTMLDivElement | null>(null)
   const inView = useInView(sectionRef, { once: true, amount: 0.2 })
 
@@ -260,9 +263,9 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
   return (
     <div id="limits" ref={sectionRef}>
       <SectionHeader
-        title="Limits & Subscriptions"
-        badge={`${providers.length} Anbieter`}
-        description="Budget-Risiko getrennt von Subscription-Wirkung im aktuellen Filterkontext"
+        title={t('limits.sectionTitle')}
+        badge={t('limits.providersBadge', { count: providers.length })}
+        description={t('limits.sectionDescription')}
         info={SECTION_HELP.limits}
       />
 
@@ -275,17 +278,17 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
         >
           <div className="flex items-center gap-2 font-medium">
             <AlertTriangle className="h-4 w-4" />
-            {atLimitCount} Anbieter haben ihr Monatslimit im aktuellen Ausschnitt erreicht oder überschritten.
+            {t('limits.warningBanner', { count: atLimitCount })}
           </div>
         </motion.div>
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
         {[
-          { label: 'Anbieter am Limit', value: String(atLimitCount), hint: focusMonth ? formatMonthYear(focusMonth) : 'Kein Monat', icon: <AlertTriangle className="h-4 w-4" /> },
-          { label: 'Nahe am Limit', value: String(nearLimitCount), hint: 'ab 80% Auslastung', icon: <ShieldCheck className="h-4 w-4" /> },
-          { label: 'Subscription-Volumen', value: formatCurrency(subscriptionTotal), hint: 'fixe Kosten / Monat', icon: <CreditCard className="h-4 w-4" /> },
-          { label: 'Subscription-Mehrwert', value: formatCurrency(subscriptionGainTotal), hint: 'Usage über Subscription', icon: <TrendingUp className="h-4 w-4" /> },
+          { label: t('limits.cards.atLimit'), value: String(atLimitCount), hint: focusMonth ? formatMonthYear(focusMonth) : t('limits.cards.noMonth'), icon: <AlertTriangle className="h-4 w-4" /> },
+          { label: t('limits.cards.nearLimit'), value: String(nearLimitCount), hint: t('limits.cards.nearLimitHint'), icon: <ShieldCheck className="h-4 w-4" /> },
+          { label: t('limits.cards.subscriptionVolume'), value: formatCurrency(subscriptionTotal), hint: t('limits.cards.subscriptionVolumeHint'), icon: <CreditCard className="h-4 w-4" /> },
+          { label: t('limits.cards.subscriptionValue'), value: formatCurrency(subscriptionGainTotal), hint: t('limits.cards.subscriptionValueHint'), icon: <TrendingUp className="h-4 w-4" /> },
         ].map((item, index) => (
           <motion.div
             key={item.label}
@@ -344,13 +347,13 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <div>
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Kosten Fokusmonat</div>
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('limits.tracks.usageFocusMonth')}</div>
                       <div className="mt-1 text-xl font-semibold tabular-nums">{formatCurrency(row.cost)}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Limit / Subscription</div>
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('limits.tracks.limitSubscription')}</div>
                       <div className="mt-1 text-sm font-medium tabular-nums">
-                        {row.monthlyLimit > 0 ? formatCurrency(row.monthlyLimit) : 'Kein Limit'} / {row.hasSubscription ? formatCurrency(row.subscriptionPrice) : '–'}
+                        {row.monthlyLimit > 0 ? formatCurrency(row.monthlyLimit) : t('limits.statuses.noLimit')} / {row.hasSubscription ? formatCurrency(row.subscriptionPrice) : '–'}
                       </div>
                     </div>
                   </div>
@@ -358,8 +361,8 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
                   <div className="mt-4 space-y-3">
                     <div>
                       <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>Budget-Risiko</span>
-                        <span>{row.monthlyLimit > 0 ? (row.overrun > 0 ? `+${formatCurrency(row.overrun)}` : formatCurrency(row.remaining ?? 0)) : 'Kein Limit'}</span>
+                        <span>{t('limits.tracks.budgetRisk')}</span>
+                        <span>{row.monthlyLimit > 0 ? (row.overrun > 0 ? `+${formatCurrency(row.overrun)}` : formatCurrency(row.remaining ?? 0)) : t('limits.statuses.noLimit')}</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-muted/30">
                         {row.monthlyLimit > 0 ? (
@@ -378,9 +381,9 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
 
                     <div>
                       <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>Subscription-Wirkung</span>
+                        <span>{t('limits.tracks.subscriptionEffect')}</span>
                         <span className={row.subscriptionStatus === 'gain' ? 'text-emerald-300' : row.subscriptionStatus === 'gap' ? 'text-amber-200' : ''}>
-                          {!row.hasSubscription ? 'Keine Subscription' : row.subscriptionStatus === 'gain' ? `+${formatCurrency(row.subscriptionGain)}` : formatCurrency(row.subscriptionGap)}
+                          {!row.hasSubscription ? t('limits.statuses.noSubscription') : row.subscriptionStatus === 'gain' ? `+${formatCurrency(row.subscriptionGain)}` : formatCurrency(row.subscriptionGap)}
                         </span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-muted/30">
@@ -406,8 +409,8 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
 
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ChartCard
-          title="Budget-Status je Anbieter"
-          subtitle={focusMonth ? 'Jeder Track zeigt pro Anbieter direkt den Abstand bis zum Limit oder den bereits eingetretenen Überzug' : 'Kein Monat im aktuellen Ausschnitt'}
+          title={t('limits.tracks.budgetTitle')}
+          subtitle={focusMonth ? t('limits.tracks.budgetSubtitle') : t('limits.tracks.budgetNoMonth')}
           info={CHART_HELP.providerLimitProgress}
           chartData={rows as unknown as Record<string, unknown>[]}
           valueKey="cost"
@@ -439,15 +442,15 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
                       <div className="text-sm font-semibold">{row.provider}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {row.monthlyLimit <= 0
-                          ? 'Kein Limit gesetzt'
+                          ? t('limits.statuses.noLimit')
                           : row.overrun > 0
-                            ? `Schon ${formatCurrency(row.overrun)} über Limit`
-                            : `Noch ${formatCurrency(row.remaining ?? 0)} bis zum Limit`}
+                            ? t('limits.tracks.alreadyAboveLimit', { value: formatCurrency(row.overrun) })
+                            : t('limits.tracks.stillToLimit', { value: formatCurrency(row.remaining ?? 0) })}
                       </div>
                     </div>
                     <div className="text-right text-xs">
-                      <div className="text-muted-foreground">Usage {formatCurrency(row.cost)}</div>
-                      <div className="mt-1 text-muted-foreground">Limit {row.monthlyLimit > 0 ? formatCurrency(row.monthlyLimit) : '–'}</div>
+                      <div className="text-muted-foreground">{t('limits.tracks.usage')} {formatCurrency(row.cost)}</div>
+                      <div className="mt-1 text-muted-foreground">{t('limits.tracks.limit')} {row.monthlyLimit > 0 ? formatCurrency(row.monthlyLimit) : '–'}</div>
                     </div>
                   </div>
 
@@ -479,7 +482,7 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
 
                           <div className="absolute top-2 h-10 w-px bg-border" style={{ left: limitPosition }} />
                           <div className="absolute top-0 -translate-x-1/2 rounded-full border border-border/70 bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground" style={{ left: limitPosition }}>
-                            Limit
+                            {t('limits.tracks.limit')}
                           </div>
                         </>
                       ) : (
@@ -498,17 +501,17 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
 
                   <div className="mt-2 grid grid-cols-1 gap-2 text-xs md:grid-cols-3">
                     <div className="rounded-lg border border-border/40 bg-background/40 px-3 py-2">
-                      <div className="text-muted-foreground">Aktuell verbraucht</div>
+                      <div className="text-muted-foreground">{t('limits.tracks.currentlyUsed')}</div>
                       <div className="mt-1 font-medium text-foreground">{formatCurrency(row.cost)}</div>
                     </div>
                     <div className="rounded-lg border border-border/40 bg-background/40 px-3 py-2">
-                      <div className="text-muted-foreground">Bis Limit offen</div>
+                      <div className="text-muted-foreground">{t('limits.tracks.remainingToLimit')}</div>
                       <div className={row.monthlyLimit > 0 && row.overrun === 0 ? 'mt-1 font-medium text-sky-300' : 'mt-1 font-medium text-muted-foreground'}>
                         {row.monthlyLimit > 0 ? (row.overrun === 0 ? formatCurrency(row.remaining ?? 0) : '$0.00') : '–'}
                       </div>
                     </div>
                     <div className="rounded-lg border border-border/40 bg-background/40 px-3 py-2">
-                      <div className="text-muted-foreground">Schon darüber</div>
+                      <div className="text-muted-foreground">{t('limits.tracks.alreadyOverLimit')}</div>
                       <div className={row.overrun > 0 ? 'mt-1 font-medium text-red-300' : 'mt-1 font-medium text-muted-foreground'}>
                         {row.monthlyLimit > 0 ? (row.overrun > 0 ? formatCurrency(row.overrun) : '$0.00') : '–'}
                       </div>
@@ -521,8 +524,8 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
         </ChartCard>
 
         <ChartCard
-          title="Subscription-Status je Anbieter"
-          subtitle={focusMonth ? 'Jeder Track zeigt pro Anbieter direkt den Abstand zum Break-even oder den bereits erreichten Mehrwert' : 'Kein Monat im aktuellen Ausschnitt'}
+          title={t('limits.tracks.subscriptionTitle')}
+          subtitle={focusMonth ? t('limits.tracks.subscriptionSubtitle') : t('limits.tracks.subscriptionNoMonth')}
           info={CHART_HELP.providerSubscriptionMix}
           chartData={rows as unknown as Record<string, unknown>[]}
           valueKey="cost"
@@ -554,15 +557,15 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
                       <div className="text-sm font-semibold">{row.provider}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {!row.hasSubscription
-                          ? 'Keine Subscription gesetzt'
+                          ? t('limits.tracks.noSubscriptionSet')
                           : row.subscriptionStatus === 'gain'
-                            ? `Schon ${formatCurrency(row.subscriptionGain)} über Break-even`
-                            : `Noch ${formatCurrency(row.subscriptionGap)} bis Break-even`}
+                            ? t('limits.tracks.alreadyAboveBreakEvenText', { value: formatCurrency(row.subscriptionGain) })
+                            : t('limits.tracks.stillToBreakEven', { value: formatCurrency(row.subscriptionGap) })}
                       </div>
                     </div>
                     <div className="text-right text-xs">
-                      <div className="text-muted-foreground">Usage {formatCurrency(row.cost)}</div>
-                      <div className="mt-1 text-muted-foreground">Subscription {row.hasSubscription ? formatCurrency(row.subscriptionPrice) : '–'}</div>
+                      <div className="text-muted-foreground">{t('limits.tracks.usage')} {formatCurrency(row.cost)}</div>
+                      <div className="mt-1 text-muted-foreground">{t('limits.tracks.subscription')} {row.hasSubscription ? formatCurrency(row.subscriptionPrice) : '–'}</div>
                     </div>
                   </div>
 
@@ -594,7 +597,7 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
 
                           <div className="absolute top-2 h-10 w-px bg-border" style={{ left: subPosition }} />
                           <div className="absolute top-0 -translate-x-1/2 rounded-full border border-border/70 bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground" style={{ left: subPosition }}>
-                            Break-even
+                            {t('limits.tracks.breakEven')}
                           </div>
                         </>
                       ) : (
@@ -613,17 +616,17 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
 
                   <div className="mt-2 grid grid-cols-1 gap-2 text-xs md:grid-cols-3">
                     <div className="rounded-lg border border-border/40 bg-background/40 px-3 py-2">
-                      <div className="text-muted-foreground">Aktuell verbraucht</div>
+                      <div className="text-muted-foreground">{t('limits.tracks.currentlyUsed')}</div>
                       <div className="mt-1 font-medium text-foreground">{formatCurrency(row.cost)}</div>
                     </div>
                     <div className="rounded-lg border border-border/40 bg-background/40 px-3 py-2">
-                      <div className="text-muted-foreground">Bis Break-even offen</div>
+                      <div className="text-muted-foreground">{t('limits.tracks.remainingToBreakEven')}</div>
                       <div className={row.hasSubscription && row.subscriptionGap > 0 ? 'mt-1 font-medium text-amber-200' : 'mt-1 font-medium text-muted-foreground'}>
                         {row.hasSubscription ? (row.subscriptionGap > 0 ? formatCurrency(row.subscriptionGap) : '$0.00') : '–'}
                       </div>
                     </div>
                     <div className="rounded-lg border border-border/40 bg-background/40 px-3 py-2">
-                      <div className="text-muted-foreground">Schon darüber</div>
+                      <div className="text-muted-foreground">{t('limits.tracks.alreadyAboveBreakEven')}</div>
                       <div className={row.subscriptionGain > 0 ? 'mt-1 font-medium text-emerald-300' : 'mt-1 font-medium text-muted-foreground'}>
                         {row.hasSubscription ? (row.subscriptionGain > 0 ? formatCurrency(row.subscriptionGain) : '$0.00') : '–'}
                       </div>
@@ -638,8 +641,8 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
 
       <div className="mt-4">
         <ChartCard
-          title="Portfolio-Entwicklung"
-          subtitle="Rot zeigt negatives Budget-Risiko, Grün positiven Subscription-Mehrwert im Zeitverlauf"
+          title={t('limits.tracks.portfolioTitle')}
+          subtitle={t('limits.tracks.portfolioSubtitle')}
           info={CHART_HELP.providerLimitTimeline}
           chartData={timelineData as unknown as Record<string, unknown>[]}
           valueKey="totalCost"
@@ -670,11 +673,11 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
                     />
                     <Legend />
                     <ReferenceLine y={0} stroke="hsl(var(--border))" strokeDasharray="4 4" />
-                    <Area type="monotone" dataKey="totalSubscriptionGain" name="Subscription-Mehrwert" stroke="rgb(74 222 128)" fill="url(#limits-gain-area)" strokeWidth={2} isAnimationActive={animate} animationBegin={0} animationDuration={CHART_ANIMATION.duration} />
-                    <Area type="monotone" dataKey="totalOverrun" name="Budget-Überzug" stroke="rgb(248 113 113)" fill="url(#limits-risk-area)" strokeWidth={2} isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 1.2} animationDuration={CHART_ANIMATION.duration} />
-                    <Line type="monotone" dataKey="totalCost" name="Usage gesamt" stroke={CHART_COLORS.cost} strokeWidth={2} dot={false} isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 1.6} animationDuration={CHART_ANIMATION.slowDuration} />
-                    <Line type="monotone" dataKey="totalLimit" name="Limits gesamt" stroke="rgb(251 146 60)" strokeDasharray="6 3" strokeWidth={2} dot={false} connectNulls isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 2} animationDuration={CHART_ANIMATION.slowDuration} />
-                    <Line type="monotone" dataKey="totalSubscriptions" name="Subscriptions gesamt" stroke="rgb(125 211 252)" strokeDasharray="3 3" strokeWidth={2} dot={false} connectNulls isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 2.3} animationDuration={CHART_ANIMATION.slowDuration} />
+                    <Area type="monotone" dataKey="totalSubscriptionGain" name={t('limits.cards.subscriptionValue')} stroke="rgb(74 222 128)" fill="url(#limits-gain-area)" strokeWidth={2} isAnimationActive={animate} animationBegin={0} animationDuration={CHART_ANIMATION.duration} />
+                    <Area type="monotone" dataKey="totalOverrun" name={t('limits.tracks.alreadyOverLimit')} stroke="rgb(248 113 113)" fill="url(#limits-risk-area)" strokeWidth={2} isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 1.2} animationDuration={CHART_ANIMATION.duration} />
+                    <Line type="monotone" dataKey="totalCost" name={`${t('limits.tracks.usage')} ${t('common.costs').toLowerCase()}`} stroke={CHART_COLORS.cost} strokeWidth={2} dot={false} isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 1.6} animationDuration={CHART_ANIMATION.slowDuration} />
+                    <Line type="monotone" dataKey="totalLimit" name={`${t('limits.tracks.limit')}s`} stroke="rgb(251 146 60)" strokeDasharray="6 3" strokeWidth={2} dot={false} connectNulls isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 2} animationDuration={CHART_ANIMATION.slowDuration} />
+                    <Line type="monotone" dataKey="totalSubscriptions" name={`${t('limits.tracks.subscription')}s`} stroke="rgb(125 211 252)" strokeDasharray="3 3" strokeWidth={2} dot={false} connectNulls isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 2.3} animationDuration={CHART_ANIMATION.slowDuration} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </ChartReveal>

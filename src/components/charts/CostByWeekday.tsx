@@ -1,5 +1,6 @@
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts'
 import { useState, useId } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
@@ -12,6 +13,7 @@ interface CostByWeekdayProps {
 }
 
 export function CostByWeekday({ data }: CostByWeekdayProps) {
+  const { t } = useTranslation()
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const uid = useId()
   const gid = (n: string) => `${uid}-${n}`.replace(/:/g, '')
@@ -27,8 +29,12 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
 
   return (
     <ChartCard
-      title="Kosten nach Wochentag"
-      subtitle={`Peak: ${data[peakIndex]?.day ?? '–'} · Low: ${data[lowIndex]?.day ?? '–'} · Wochenende ${(weekTotal > 0 ? (weekendCost / weekTotal) * 100 : 0).toFixed(0)}%`}
+      title={t('charts.costByWeekday.title')}
+      subtitle={t('charts.costByWeekday.subtitle', {
+        peak: data[peakIndex]?.day ?? '–',
+        low: data[lowIndex]?.day ?? '–',
+        share: `${(weekTotal > 0 ? (weekendCost / weekTotal) * 100 : 0).toFixed(0)}%`,
+      })}
       info={CHART_HELP.costByWeekday}
       chartData={data as unknown as Record<string, unknown>[]}
       valueKey="cost"
@@ -76,7 +82,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
               <Bar
                 dataKey="cost"
                 radius={[4, 4, 0, 0]}
-                name="Ø Kosten"
+                name={t('charts.costByWeekday.averageCost')}
                 isAnimationActive={animate}
                 animationBegin={CHART_ANIMATION.stagger}
                 animationDuration={CHART_ANIMATION.duration}

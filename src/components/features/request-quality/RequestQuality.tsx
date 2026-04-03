@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, useInView } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { InfoButton } from '@/components/features/help/InfoButton'
@@ -12,6 +13,7 @@ interface RequestQualityProps {
 }
 
 export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
+  const { t } = useTranslation()
   const sectionRef = useRef<HTMLDivElement | null>(null)
   const inView = useInView(sectionRef, { once: true, amount: 0.25 })
   const cachePerRequest = metrics.totalRequests > 0 ? metrics.totalCacheRead / metrics.totalRequests : 0
@@ -21,31 +23,31 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
 
   const qualityMetrics = [
     {
-      label: 'Tokens / Request',
-      value: metrics.hasRequestData ? formatTokens(metrics.avgTokensPerRequest) : 'n/v',
+      label: t('requestQuality.tokensPerRequest'),
+      value: metrics.hasRequestData ? formatTokens(metrics.avgTokensPerRequest) : t('common.notAvailable'),
       accent: 'var(--chart-2)',
-      hint: 'Durchschnittliche Tokenlast pro Anfrage',
+      hint: t('requestQuality.tokensHint'),
       progress: Math.min(metrics.avgTokensPerRequest / 200_000, 1),
     },
     {
-      label: 'Kosten / Request',
-      value: metrics.hasRequestData ? formatCurrency(metrics.avgCostPerRequest) : 'n/v',
+      label: t('requestQuality.costPerRequest'),
+      value: metrics.hasRequestData ? formatCurrency(metrics.avgCostPerRequest) : t('common.notAvailable'),
       accent: 'var(--chart-4)',
-      hint: 'Direkte Kosten pro Anfrage',
+      hint: t('requestQuality.costHint'),
       progress: Math.min(metrics.avgCostPerRequest / 0.25, 1),
     },
     {
-      label: 'Cache / Request',
-      value: metrics.hasRequestData ? formatTokens(cachePerRequest) : 'n/v',
+      label: t('requestQuality.cachePerRequest'),
+      value: metrics.hasRequestData ? formatTokens(cachePerRequest) : t('common.notAvailable'),
       accent: 'var(--chart-1)',
-      hint: 'Gelesene Cache-Tokens pro Anfrage',
+      hint: t('requestQuality.cacheHint'),
       progress: Math.min(cachePerRequest / 200_000, 1),
     },
     {
-      label: 'Thinking / Request',
-      value: metrics.hasRequestData ? formatTokens(thinkingPerRequest) : 'n/v',
+      label: t('requestQuality.thinkingPerRequest'),
+      value: metrics.hasRequestData ? formatTokens(thinkingPerRequest) : t('common.notAvailable'),
       accent: 'var(--chart-5)',
-      hint: 'Thinking-Tokens pro Anfrage',
+      hint: t('requestQuality.thinkingHint'),
       progress: Math.min(thinkingPerRequest / 10_000, 1),
     },
   ]
@@ -54,7 +56,7 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
     <Card ref={sectionRef} className="overflow-visible">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          Request-Qualität
+          {t('requestQuality.title')}
           <InfoButton text={FEATURE_HELP.requestQuality} />
         </CardTitle>
       </CardHeader>
@@ -86,25 +88,25 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <motion.div className="rounded-xl border border-border/50 bg-gradient-to-br from-primary/[0.12] via-transparent to-transparent p-4" initial={{ opacity: 0, y: 12 }} animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }} transition={{ duration: 0.35, delay: 0.1 }}>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Request-Dichte</div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('requestQuality.requestDensity')}</div>
             <div className="mt-1 text-xl font-semibold tabular-nums">{formatNumber(Math.round(requestDensity))}</div>
-            <div className="text-xs text-muted-foreground">Ø pro aktivem {viewMode === 'yearly' ? 'Jahr' : viewMode === 'monthly' ? 'Monat' : 'Tag'}</div>
+            <div className="text-xs text-muted-foreground">{t('requestQuality.averagePerActiveUnit', { unit: viewMode === 'yearly' ? t('periods.year') : viewMode === 'monthly' ? t('periods.month') : t('periods.day') })}</div>
           </motion.div>
           <motion.div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-3/[0.12] via-transparent to-transparent p-4" initial={{ opacity: 0, y: 12 }} animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }} transition={{ duration: 0.35, delay: 0.14 }}>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Cache-Hit-Rate</div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('requestQuality.cacheHitRate')}</div>
             <div className="mt-1 text-xl font-semibold tabular-nums">{formatPercent(metrics.cacheHitRate, 1)}</div>
-            <div className="text-xs text-muted-foreground">Direkt aus Cache-Read relativ zu allen Tokens</div>
+            <div className="text-xs text-muted-foreground">{t('requestQuality.cacheHitHint')}</div>
           </motion.div>
           <motion.div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-4/[0.12] via-transparent to-transparent p-4" initial={{ opacity: 0, y: 12 }} animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }} transition={{ duration: 0.35, delay: 0.18 }}>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Input / Output</div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('requestQuality.inputOutput')}</div>
             <div className="mt-1 text-xl font-semibold tabular-nums">{inputOutputRatio.toFixed(2)}:1</div>
-            <div className="text-xs text-muted-foreground">Drift zwischen eingehenden und erzeugten Tokens</div>
+            <div className="text-xs text-muted-foreground">{t('requestQuality.inputOutputHint')}</div>
           </motion.div>
           <motion.div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-5/[0.12] via-transparent to-transparent p-4" initial={{ opacity: 0, y: 12 }} animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }} transition={{ duration: 0.35, delay: 0.22 }}>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Top Request-Modell</div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('requestQuality.topRequestModel')}</div>
             <div className="mt-1 text-lg font-semibold truncate">{metrics.topRequestModel?.name ?? '–'}</div>
             <div className="text-xs text-muted-foreground">
-              {metrics.topRequestModel ? `${formatNumber(metrics.topRequestModel.requests)} Requests` : 'Kein Request-Leader'}
+              {metrics.topRequestModel ? `${formatNumber(metrics.topRequestModel.requests)} ${t('common.requests')}` : t('requestQuality.noRequestLeader')}
             </div>
           </motion.div>
         </div>

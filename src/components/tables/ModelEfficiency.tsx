@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { FEATURE_HELP } from '@/lib/help-content'
-import { formatPercent, formatTokens, periodUnit, periodLabel } from '@/lib/formatters'
+import { formatPercent, formatTokens, periodUnit, periodLabel, formatNumber } from '@/lib/formatters'
 import { getModelColor, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
@@ -34,6 +35,7 @@ interface ModelEfficiencyProps {
 type SortKey = 'cost' | 'tokens' | 'costPerMillion' | 'costPerRequest' | 'tokensPerRequest' | 'share' | 'requestShare' | 'cacheShare' | 'thinkingShare' | 'days' | 'requests' | 'costPerDay'
 
 export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: ModelEfficiencyProps) {
+  const { t } = useTranslation()
   const [sortKey, setSortKey] = useState<SortKey>('cost')
   const [sortAsc, setSortAsc] = useState(false)
 
@@ -99,29 +101,29 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              Modell-Effizienz
+              {t('tables.modelEfficiency.title')}
               <InfoButton text={FEATURE_HELP.modelEfficiency} />
             </CardTitle>
-            <span className="text-xs text-muted-foreground">{models.length} Modelle</span>
+            <span className="text-xs text-muted-foreground">{t('tables.modelEfficiency.count', { count: models.length })}</span>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Top Modell</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.modelEfficiency.topModel')}</div>
               <div className="mt-1 text-sm font-medium">{topModel?.name ?? '–'}</div>
-              <div className="text-xs text-muted-foreground">{topModel ? `${formatPercent(topModel.share, 0)} Anteil` : '–'}</div>
+              <div className="text-xs text-muted-foreground">{topModel ? t('tables.modelEfficiency.share', { value: formatPercent(topModel.share, 0) }) : '–'}</div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Effizientestes Modell</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.modelEfficiency.mostEfficient')}</div>
               <div className="mt-1 text-sm font-medium">{mostEfficient?.name ?? '–'}</div>
-              <div className="text-xs text-muted-foreground">{mostEfficient ? `${formatPercent(mostEfficient.share, 0)} Anteil` : '–'}</div>
+              <div className="text-xs text-muted-foreground">{mostEfficient ? t('tables.modelEfficiency.share', { value: formatPercent(mostEfficient.share, 0) }) : '–'}</div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Gesamt-Requests</div>
-              <div className="mt-1 text-sm font-medium">{totalRequests.toLocaleString('de-CH')}</div>
-              <div className="text-xs text-muted-foreground">{models.length > 0 ? `${(totalRequests / models.length).toFixed(0)} / Modell` : '–'}</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.modelEfficiency.totalRequests')}</div>
+              <div className="mt-1 text-sm font-medium">{formatNumber(totalRequests)}</div>
+              <div className="text-xs text-muted-foreground">{models.length > 0 ? t('tables.modelEfficiency.perModel', { value: (totalRequests / models.length).toFixed(0) }) : '–'}</div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Top Modell Tokens</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.modelEfficiency.topModelTokens')}</div>
               <div className="mt-1 text-sm font-medium">{topModel ? formatTokens(topModel.tokens) : '–'}</div>
               <div className="text-xs text-muted-foreground">{topModel ? `${topModel.days} ${periodLabel(viewMode, true)}` : '–'}</div>
             </div>
@@ -144,12 +146,12 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
                 </div>
                 <div className="text-right">
                   <div className="font-mono font-semibold"><FormattedValue value={model.cost} type="currency" /></div>
-                  <div className="text-xs text-muted-foreground">{formatPercent(model.share, 1)} Anteil</div>
+                  <div className="text-xs text-muted-foreground">{t('tables.modelEfficiency.share', { value: formatPercent(model.share, 1) })}</div>
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                  <div className="text-muted-foreground">Tokens</div>
+                  <div className="text-muted-foreground">{t('tables.modelEfficiency.tokens')}</div>
                   <div className="mt-1 font-mono">{formatTokens(model.tokens)}</div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
@@ -157,8 +159,8 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
                   <div className="mt-1 font-mono"><FormattedValue value={model.costPerMillion} type="currency" /></div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                  <div className="text-muted-foreground">Requests</div>
-                  <div className="mt-1 font-mono">{model.requests.toLocaleString('de-CH')}</div>
+                  <div className="text-muted-foreground">{t('common.requests')}</div>
+                  <div className="mt-1 font-mono">{formatNumber(model.requests)}</div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
                   <div className="text-muted-foreground">$/Req</div>
@@ -181,18 +183,18 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border">
-                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Modell</th>
-                <SortHeader label="Kosten" field="cost" />
-                <SortHeader label="Tokens" field="tokens" />
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t('tables.modelEfficiency.model')}</th>
+                <SortHeader label={t('tables.modelEfficiency.cost')} field="cost" />
+                <SortHeader label={t('tables.modelEfficiency.tokens')} field="tokens" />
                 <SortHeader label="$/1M" field="costPerMillion" />
-                <SortHeader label="Anteil" field="share" />
-                <SortHeader label="Req" field="requests" />
-                <SortHeader label="Req %" field="requestShare" />
-                <SortHeader label="$ / Req" field="costPerRequest" />
-                <SortHeader label="Tokens / Req" field="tokensPerRequest" />
-                <SortHeader label="Cache %" field="cacheShare" />
-                <SortHeader label="Think %" field="thinkingShare" />
-                <SortHeader label={`Ø/${periodUnit(viewMode)}`} field="costPerDay" />
+                <SortHeader label={t('tables.modelEfficiency.shareShort')} field="share" />
+                <SortHeader label={t('tables.modelEfficiency.req')} field="requests" />
+                <SortHeader label={t('tables.modelEfficiency.reqShare')} field="requestShare" />
+                <SortHeader label={t('tables.modelEfficiency.costPerReq')} field="costPerRequest" />
+                <SortHeader label={t('tables.modelEfficiency.tokensPerReq')} field="tokensPerRequest" />
+                <SortHeader label={t('tables.modelEfficiency.cacheShare')} field="cacheShare" />
+                <SortHeader label={t('tables.modelEfficiency.thinkingShare')} field="thinkingShare" />
+                <SortHeader label={t('tables.modelEfficiency.avgPerUnit', { unit: periodUnit(viewMode) })} field="costPerDay" />
                 <SortHeader label={periodLabel(viewMode, true)} field="days" />
               </tr>
             </thead>
@@ -221,7 +223,7 @@ export function ModelEfficiency({ modelCosts, totalCost, viewMode = 'daily' }: M
                     <div className="absolute inset-y-1 left-0 rounded-sm transition-all duration-500" style={{ width: `${model.share}%`, backgroundColor: `${getModelColor(model.name)}20` }} />
                     <span className="relative">{formatPercent(model.share)}</span>
                   </td>
-                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{model.requests}</td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatNumber(model.requests)}</td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatPercent(model.requestShare, 1)}</td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums">
                     <FormattedValue value={model.costPerRequest} type="currency" />

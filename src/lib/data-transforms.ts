@@ -1,7 +1,7 @@
 import type { DailyUsage, ChartDataPoint, TokenChartDataPoint, RequestChartDataPoint, WeekdayData, ViewMode } from '@/types'
 import { computeMovingAverage } from './calculations'
 import { getModelProvider, normalizeModelName } from './model-utils'
-import { WEEKDAYS } from './constants'
+import { getCurrentLocale } from './i18n'
 
 function recalculateDayFromBreakdowns(day: DailyUsage, filteredBreakdowns: DailyUsage['modelBreakdowns']): DailyUsage {
   let totalCost = 0
@@ -255,6 +255,12 @@ export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] 
 
 export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {
   const weekdayCosts: Record<number, number[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
+  const weekdayLabels = Array.from({ length: 7 }, (_, index) =>
+    new Intl.DateTimeFormat(getCurrentLocale(), { weekday: 'short' })
+      .format(new Date(Date.UTC(2024, 0, 1 + index)))
+      .replace('.', '')
+      .slice(0, 2)
+  )
   for (const d of data) {
     // Skip non-daily entries (monthly "2026-03" or yearly "2026")
     if (d.date.length !== 10) continue
@@ -262,7 +268,7 @@ export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {
     const dow = (date.getDay() + 6) % 7 // Monday = 0
     weekdayCosts[dow].push(d.totalCost)
   }
-  return WEEKDAYS.map((day, i) => {
+  return weekdayLabels.map((day, i) => {
     const costs = weekdayCosts[i]
     const avg = costs.length > 0 ? costs.reduce((s, v) => s + v, 0) / costs.length : 0
     return { day, cost: avg }

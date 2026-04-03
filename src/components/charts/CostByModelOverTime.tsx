@@ -1,4 +1,5 @@
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
@@ -13,6 +14,7 @@ interface CostByModelOverTimeProps {
 }
 
 export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) {
+  const { t } = useTranslation()
   const topModel = models
     .map(model => ({
       model,
@@ -25,7 +27,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
     <ChartAnimationAware>
       {(animate) => (
         <div className="mt-6">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">7-Tage Durchschnitt pro Modell</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">{t('charts.costByModelOverTime.movingAverageHeading')}</div>
           <ChartReveal variant="line" delay={0.08}>
             <ResponsiveContainer width="100%" height={350}>
               <LineChart data={data} margin={CHART_MARGIN}>
@@ -43,7 +45,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                   type="monotone"
                   dataKey={`${model}_ma7`}
                   stroke={getModelColor(model)}
-                  name={`${model} Ø`}
+                  name={`${model} ${t('charts.costByModelOverTime.movingAverageSuffix')}`}
                   dot={false}
                   strokeWidth={2}
                   strokeDasharray="5 4"
@@ -63,8 +65,8 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
 
   return (
     <ChartCard
-      title="Kosten nach Modell im Zeitverlauf"
-      subtitle={topModel ? `Top Treiber: ${topModel.model} · ${formatCurrency(topModel.total)} kumuliert` : 'Pro Modell über die Zeit'}
+      title={t('charts.costByModelOverTime.title')}
+      subtitle={topModel ? t('charts.costByModelOverTime.topDriver', { model: topModel.model, total: formatCurrency(topModel.total) }) : t('charts.costByModelOverTime.subtitle')}
       info={CHART_HELP.costByModelOverTime}
       className="lg:col-span-2"
       chartData={data as unknown as Record<string, unknown>[]}

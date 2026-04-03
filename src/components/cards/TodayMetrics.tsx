@@ -1,4 +1,5 @@
 import { TrendingDown, DollarSign, Coins, Cpu, Database, Activity, BrainCircuit } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
@@ -14,6 +15,7 @@ interface TodayMetricsProps {
 }
 
 export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
+  const { t } = useTranslation()
   const cacheHitRate = (today.cacheReadTokens + today.cacheCreationTokens) > 0
     ? (today.cacheReadTokens / (today.cacheReadTokens + today.cacheCreationTokens + today.inputTokens + today.outputTokens + today.thinkingTokens)) * 100
     : 0
@@ -29,55 +31,57 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
   return (
     <div>
       <SectionHeader
-        title={`Heute — ${formatDate(today.date, 'long')}`}
-        description="KPIs des aktuellen Tages"
+        title={t('metricCards.today.title', { date: formatDate(today.date, 'long') })}
+        description={t('metricCards.today.description')}
         info={SECTION_HELP.today}
       />
       <FadeIn delay={0.05}>
         <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
           <MetricCard
-            label="Kosten heute"
+            label={t('metricCards.today.costToday')}
             value={<FormattedValue value={today.totalCost} type="currency" />}
-            subtitle={diffToAvg !== null ? `Ø ${formatCurrency(metrics.avgDailyCost)}/Tag` : undefined}
+            subtitle={diffToAvg !== null ? t('metricCards.today.avgPerDay', { value: formatCurrency(metrics.avgDailyCost) }) : undefined}
             icon={<DollarSign className="h-4 w-4" />}
-            trend={diffToAvg !== null ? { value: diffToAvg, label: 'vs. Ø' } : null}
+            trend={diffToAvg !== null ? { value: diffToAvg, label: t('metricCards.today.vsAverageShort') } : null}
           />
           <MetricCard
-            label="Tokens heute"
-            value={<FormattedValue value={today.totalTokens} type="tokens" label="Tokens heute" insight={`${formatTokens(today.requestCount > 0 ? today.totalTokens / today.requestCount : 0)} pro Request`} />}
+            label={t('metricCards.today.tokensToday')}
+            value={<FormattedValue value={today.totalTokens} type="tokens" label={t('metricCards.today.tokensToday')} insight={`${formatTokens(today.requestCount > 0 ? today.totalTokens / today.requestCount : 0)} / Request`} />}
             subtitle={today.inputTokens > 0 && today.outputTokens > 0
-              ? `I/O Ratio: ${(today.inputTokens / today.outputTokens).toFixed(1)}:1`
+              ? t('metricCards.today.ioRatio', { value: (today.inputTokens / today.outputTokens).toFixed(1) })
               : undefined}
             icon={<Coins className="h-4 w-4" />}
           />
           <MetricCard
-            label="Modelle"
+            label={t('metricCards.today.models')}
             value={String(today.modelsUsed?.length ?? 0)}
-            subtitle={topModel ? `Top: ${normalizeModelName(topModel.modelName)}` : undefined}
+            subtitle={topModel ? t('metricCards.today.topModel', { value: normalizeModelName(topModel.modelName) }) : undefined}
             icon={<Cpu className="h-4 w-4" />}
           />
           <MetricCard
-            label="$/1M Tokens"
+            label={t('metricCards.today.costPerMillion')}
             value={<FormattedValue value={today.totalTokens > 0 ? today.totalCost / (today.totalTokens / 1_000_000) : 0} type="currency" />}
-            subtitle={metrics.costPerMillion > 0 ? `Gesamt-Ø: ${formatCurrency(metrics.costPerMillion)}` : undefined}
+            subtitle={metrics.costPerMillion > 0 ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) }) : undefined}
             icon={<TrendingDown className="h-4 w-4" />}
           />
           <MetricCard
-            label="Cache-Hit-Rate"
+            label={t('metricCards.today.cacheHitRate')}
             value={<FormattedValue value={cacheHitRate} type="percent" />}
-            subtitle={`${formatPercent((today.cacheReadTokens / (today.totalTokens || 1)) * 100)} Cache-Anteil`}
+            subtitle={t('metricCards.today.cacheShare', { value: formatPercent((today.cacheReadTokens / (today.totalTokens || 1)) * 100) })}
             icon={<Database className="h-4 w-4" />}
           />
           <MetricCard
-            label="Requests"
-            value={today.requestCount > 0 ? <FormattedValue value={today.requestCount} type="number" label="Requests heute" insight={`${formatCurrency(today.totalCost / today.requestCount)} pro Request`} /> : 'n/v'}
-            subtitle={today.requestCount > 0 && today.modelsUsed?.length ? `${(today.requestCount / today.modelsUsed.length).toFixed(1)} / Modell · ${formatCurrency(today.totalCost / today.requestCount)}/Req` : 'Keine Request-Zähler'}
+            label={t('metricCards.today.requests')}
+            value={today.requestCount > 0 ? <FormattedValue value={today.requestCount} type="number" label={t('metricCards.today.requestsToday')} insight={`${formatCurrency(today.totalCost / today.requestCount)} / Request`} /> : t('common.notAvailable')}
+            subtitle={today.requestCount > 0 && today.modelsUsed?.length
+              ? t('metricCards.today.requestsSubtitle', { value: (today.requestCount / today.modelsUsed.length).toFixed(1), cost: formatCurrency(today.totalCost / today.requestCount) })
+              : t('metricCards.today.requestCountersMissing')}
             icon={<Activity className="h-4 w-4" />}
           />
           <MetricCard
-            label="Thinking"
+            label={t('metricCards.today.thinking')}
             value={<FormattedValue value={today.thinkingTokens} type="tokens" />}
-            subtitle={today.totalTokens > 0 ? `${formatPercent((today.thinkingTokens / today.totalTokens) * 100)} Anteil` : undefined}
+            subtitle={today.totalTokens > 0 ? t('metricCards.today.thinkingSubtitle', { value: formatPercent((today.thinkingTokens / today.totalTokens) * 100) }) : undefined}
             icon={<BrainCircuit className="h-4 w-4" />}
           />
         </div>

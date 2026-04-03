@@ -1,10 +1,12 @@
 import { useMemo, useId } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { formatDateAxis, periodUnit } from '@/lib/formatters'
+import { getCurrentLocale } from '@/lib/i18n'
 import { getModelColor } from '@/lib/model-utils'
 import { CHART_HELP } from '@/lib/help-content'
 import type { RequestChartDataPoint, ViewMode } from '@/types'
@@ -16,20 +18,21 @@ interface RequestsOverTimeProps {
 }
 
 function formatRequests(value: number) {
-  return new Intl.NumberFormat('de-CH', {
+  return new Intl.NumberFormat(getCurrentLocale(), {
     notation: value >= 10_000 ? 'compact' : 'standard',
     maximumFractionDigits: value >= 10_000 ? 1 : 0,
   }).format(value)
 }
 
 function RequestCenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number }; total: string }) {
+  const { t } = useTranslation()
   if (!viewBox) return null
   const { cx, cy } = viewBox
 
   return (
     <g>
       <text x={cx} y={cy - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={11}>
-        Gesamt
+        {t('charts.requestsOverTime.total')}
       </text>
       <text x={cx} y={cy + 14} textAnchor="middle" className="fill-foreground" fontSize={16} fontWeight={600}>
         {total}
@@ -39,10 +42,11 @@ function RequestCenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: nu
 }
 
 export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: RequestsOverTimeProps) {
+  const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
-  const averageLabel = `Ø / ${periodUnit(viewMode)}`
-  const trendLabel = viewMode === 'daily' ? '7-Tage Ø' : 'Trend Ø'
-  const trendHeading = viewMode === 'daily' ? '7-Tage Durchschnitt pro Modell' : 'Gleitender Durchschnitt pro Modell'
+  const averageLabel = t('charts.requestsOverTime.averagePerUnit', { unit: periodUnit(viewMode) })
+  const trendLabel = viewMode === 'daily' ? t('charts.requestsOverTime.movingAverage') : t('charts.requestsOverTime.trend')
+  const trendHeading = viewMode === 'daily' ? t('charts.requestsOverTime.movingAverageHeading') : t('charts.requestsOverTime.trendHeading')
 
   const summary = useMemo(() => {
     if (data.length === 0) return null
@@ -111,7 +115,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                     type="monotone"
                     dataKey="totalRequestsMA7"
                     stroke={CHART_COLORS.ma7}
-                    name={`Gesamt ${trendLabel}`}
+                    name={t('charts.requestsOverTime.totalMovingAverage', { label: trendLabel })}
                     dot={false}
                     strokeWidth={2.5}
                     strokeDasharray="6 4"
@@ -142,7 +146,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
           </div>
 
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Requests nach Modell gesamt</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">{t('charts.requestsOverTime.requestsByModelTotal')}</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {(summary?.topModels ?? []).map(([model, total]) => {
                 const share = summary && summary.totalRequests > 0 ? (total / summary.totalRequests) * 100 : 0
@@ -156,7 +160,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                       <div className="text-xs text-muted-foreground">{share.toFixed(1)}%</div>
                     </div>
                     <div className="mt-2 text-lg font-semibold tabular-nums">{formatRequests(total)}</div>
-                    <div className="text-xs text-muted-foreground">Requests im gewählten Zeitraum</div>
+                    <div className="text-xs text-muted-foreground">{t('charts.requestsOverTime.requestsInRange')}</div>
                   </div>
                 )
               })}
@@ -169,8 +173,8 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
 
   return (
     <ChartCard
-      title="Requests im Zeitverlauf"
-      subtitle={summary ? `Gesamt ${formatRequests(summary.totalRequests)} · Peak ${formatRequests(summary.peak.totalRequests)} am ${formatDateAxis(summary.peak.date)}` : 'Requests gesamt, nach Modell und mit 7-Tage-Ø'}
+      title={t('charts.requestsOverTime.title')}
+      subtitle={summary ? t('charts.requestsOverTime.summary', { total: formatRequests(summary.totalRequests), peak: formatRequests(summary.peak.totalRequests), date: formatDateAxis(summary.peak.date) }) : t('charts.requestsOverTime.subtitle')}
       info={CHART_HELP.requestsOverTime}
       summary={summary ? <FormattedValue value={summary.totalRequests} type="number" /> : undefined}
       chartData={data as unknown as Record<string, unknown>[]}
@@ -189,7 +193,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-center">
               <div className="rounded-lg bg-muted/20 p-2">
-                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Gesamt</div>
+                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">{t('charts.requestsOverTime.total')}</div>
                 <div className="text-sm font-semibold tabular-nums">{summary ? formatRequests(summary.totalRequests) : '0'}</div>
               </div>
               <div className="rounded-lg bg-muted/20 p-2">
@@ -197,11 +201,11 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                 <div className="text-sm font-semibold tabular-nums">{summary && data.length > 0 ? formatRequests(summary.totalRequests / data.length) : '0'}</div>
               </div>
               <div className="rounded-lg bg-muted/20 p-2">
-                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Top Modell</div>
+                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">{t('charts.requestsOverTime.topModel')}</div>
                 <div className="text-sm font-semibold truncate">{summary?.topModels[0]?.[0] ?? '–'}</div>
               </div>
               <div className="rounded-lg bg-muted/20 p-2">
-                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Top Share</div>
+                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">{t('charts.requestsOverTime.topShare')}</div>
                 <div className="text-sm font-semibold tabular-nums">
                   {summary && summary.totalRequests > 0 && summary.topModels[0] ? `${((summary.topModels[0][1] / summary.totalRequests) * 100).toFixed(1)}%` : '–'}
                 </div>
@@ -225,7 +229,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                           <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
                           <YAxis tickFormatter={formatRequests} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
                           <Tooltip
-                            content={<CustomTooltip formatter={(v) => formatRequests(v)} pinnedEntryNames={['Gesamt-Requests']} showComputedTotal={false} />}
+                            content={<CustomTooltip formatter={(v) => formatRequests(v)} pinnedEntryNames={[t('charts.requestsOverTime.totalRequestsSeries')]} showComputedTotal={false} />}
                             cursor={{ fill: 'hsl(var(--muted))', opacity: 0.12 }}
                           />
                           <Legend />
@@ -234,7 +238,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                             dataKey="totalRequests"
                             stroke={CHART_COLORS.cumulative}
                             fill={`url(#${uid}-requests)`}
-                            name="Gesamt-Requests"
+                            name={t('charts.requestsOverTime.totalRequestsSeries')}
                             strokeWidth={1.8}
                             dot={false}
                             activeDot={{ r: 5, strokeWidth: 2, stroke: CHART_COLORS.cumulative, fill: 'hsl(var(--background))' }}

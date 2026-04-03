@@ -1,8 +1,9 @@
 import type { UsageData, ViewMode } from '@/types'
+import i18n from '@/lib/i18n'
 
 export async function fetchUsage(): Promise<UsageData> {
   const res = await fetch('/api/usage')
-  if (!res.ok) throw new Error('Fehler beim Laden der Daten')
+  if (!res.ok) throw new Error(i18n.t('api.fetchUsageFailed'))
   return res.json()
 }
 
@@ -13,7 +14,7 @@ export async function uploadData(data: unknown): Promise<{ days: number; totalCo
     body: JSON.stringify(data),
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Upload fehlgeschlagen' }))
+    const err = await res.json().catch(() => ({ message: i18n.t('api.uploadFailed') }))
     throw new Error(err.message)
   }
   return res.json()
@@ -21,7 +22,7 @@ export async function uploadData(data: unknown): Promise<{ days: number; totalCo
 
 export async function deleteUsage(): Promise<void> {
   const res = await fetch('/api/usage', { method: 'DELETE' })
-  if (!res.ok) throw new Error('Löschen fehlgeschlagen')
+  if (!res.ok) throw new Error(i18n.t('api.deleteFailed'))
 }
 
 export interface PdfReportRequest {
@@ -31,6 +32,7 @@ export interface PdfReportRequest {
   selectedModels: string[]
   startDate?: string
   endDate?: string
+  language?: 'de' | 'en'
 }
 
 export async function generatePdfReport(request: PdfReportRequest): Promise<Blob> {
@@ -41,7 +43,7 @@ export async function generatePdfReport(request: PdfReportRequest): Promise<Blob
   })
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'PDF-Generierung fehlgeschlagen' }))
+    const err = await res.json().catch(() => ({ message: i18n.t('api.pdfFailed') }))
     throw new Error(err.message)
   }
 

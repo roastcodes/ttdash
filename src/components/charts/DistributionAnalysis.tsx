@@ -1,4 +1,5 @@
 import { useId, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -48,6 +49,7 @@ function toBins(values: number[], formatter: (value: number) => string): Distrib
 }
 
 function DistributionTooltip({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: DistributionBin }> }) {
+  const { t } = useTranslation()
   if (!active || !payload?.length) return null
 
   const entry = payload[0]
@@ -57,11 +59,11 @@ function DistributionTooltip({ active, payload }: { active?: boolean; payload?: 
       <p className="font-medium text-muted-foreground mb-1.5">{entry.payload.label}</p>
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">Intervall</span>
+          <span className="text-muted-foreground">{t('charts.distribution.interval')}</span>
           <span className="font-mono font-medium">{entry.payload.label}</span>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">Datenpunkte</span>
+          <span className="text-muted-foreground">{t('charts.distribution.dataPoints')}</span>
           <span className="font-mono font-medium">{formatNumber(entry.value)}</span>
         </div>
       </div>
@@ -70,6 +72,7 @@ function DistributionTooltip({ active, payload }: { active?: boolean; payload?: 
 }
 
 export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionAnalysisProps) {
+  const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
 
   const distributions = useMemo(() => {
@@ -80,24 +83,24 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
     const tokensPerRequest = data.map(entry => entry.requestCount > 0 ? entry.totalTokens / entry.requestCount : 0)
 
     return [
-      { title: `Kosten je ${periodLabel(viewMode)}`, data: toBins(costs, formatCurrency) },
-      { title: `Requests je ${periodLabel(viewMode)}`, data: toBins(requests, formatNumber) },
-      { title: 'Tokens pro Request', data: toBins(tokensPerRequest, formatTokens) },
+      { title: t('charts.distribution.costPerPeriod', { period: periodLabel(viewMode) }), data: toBins(costs, formatCurrency) },
+      { title: t('charts.distribution.requestsPerPeriod', { period: periodLabel(viewMode) }), data: toBins(requests, formatNumber) },
+      { title: t('charts.distribution.tokensPerRequest'), data: toBins(tokensPerRequest, formatTokens) },
     ]
-  }, [data, viewMode])
+  }, [data, viewMode, t])
 
   if (data.length < 2) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            Verteilungen
+            {t('charts.distribution.title')}
             <InfoButton text={CHART_HELP.distributionAnalysis} />
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-sm text-muted-foreground">
-            Für Verteilungen werden mindestens 2 Datenpunkte im aktuellen Filter benötigt.
+            {t('charts.distribution.requiresData')}
           </div>
         </CardContent>
       </Card>
@@ -108,7 +111,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
       <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          Verteilungen
+          {t('charts.distribution.title')}
           <InfoButton text={CHART_HELP.distributionAnalysis} />
         </CardTitle>
       </CardHeader>
@@ -124,7 +127,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{distribution.title}</div>
-                <div className="text-[10px] text-muted-foreground">{distribution.data.length} Buckets</div>
+                <div className="text-[10px] text-muted-foreground">{distribution.data.length} {t('charts.distribution.buckets')}</div>
               </div>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={distribution.data} margin={CHART_MARGIN}>

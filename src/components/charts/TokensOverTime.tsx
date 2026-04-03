@@ -1,4 +1,5 @@
 import { useMemo, useId } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ResponsiveContainer, ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Line } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
@@ -14,6 +15,7 @@ interface TokensOverTimeProps {
 }
 
 export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
+  const { t } = useTranslation()
   const uid = useId()
   const gid = (name: string) => `${uid}-${name}`.replace(/:/g, '')
 
@@ -51,7 +53,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
     <ChartAnimationAware>
       {(animate) => (
         <div className="mt-4">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Gesamt-Tokens (alle Typen)</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{t('charts.tokensOverTime.allTypes')}</div>
           <ChartReveal variant="line" delay={0.06}>
             <ResponsiveContainer width="100%" height={180}>
               <ComposedChart data={totalPerDay} margin={CHART_MARGIN}>
@@ -65,8 +67,8 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
               <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} />
               <YAxis tickFormatter={formatTokens} stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} width={55} />
               <Tooltip content={<CustomTooltip formatter={formatTokens} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
-              <Area type="monotone" dataKey="total" stroke={CHART_COLORS.cost} fill={`url(#${gid('total')})`} strokeWidth={1.5} name="Gesamt-Tokens" isAnimationActive={animate} animationDuration={CHART_ANIMATION.duration} />
-              <Line type="monotone" dataKey="tokenMA7" stroke={CHART_COLORS.ma7} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="7-Tage Ø" isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.slowDuration} />
+              <Area type="monotone" dataKey="total" stroke={CHART_COLORS.cost} fill={`url(#${gid('total')})`} strokeWidth={1.5} name={t('charts.tokensOverTime.totalTokens')} isAnimationActive={animate} animationDuration={CHART_ANIMATION.duration} />
+              <Line type="monotone" dataKey="tokenMA7" stroke={CHART_COLORS.ma7} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name={t('charts.tokensOverTime.movingAverage')} isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.slowDuration} />
               </ComposedChart>
             </ResponsiveContainer>
           </ChartReveal>
@@ -77,8 +79,8 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
 
   return (
     <ChartCard
-      title="Tokens im Zeitverlauf"
-      subtitle="Alle Token-Typen mit 7-Tage Ø"
+      title={t('charts.tokensOverTime.title')}
+      subtitle={t('charts.tokensOverTime.subtitle')}
       info={CHART_HELP.tokensOverTime}
       summary={<FormattedValue value={totals.total} type="tokens" />}
       className="lg:col-span-2"
@@ -108,7 +110,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
 
       {/* Chart 1: Cache Tokens (large scale) with per-type MA7 */}
       <div className="mb-2">
-        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Cache Tokens</div>
+        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{t('charts.tokensOverTime.cacheTokens')}</div>
         <ChartAnimationAware>
           {(animate) => (
             <ChartReveal variant="line">
@@ -130,8 +132,8 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
             <Tooltip content={<CustomTooltip formatter={formatTokens} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
                 <Area type="monotone" dataKey="Cache Read" stroke={CHART_COLORS.cacheRead} fill={`url(#${gid('cacheRead')})`} strokeWidth={1.5} name="Cache Read" isAnimationActive={animate} animationDuration={CHART_ANIMATION.duration} />
                 <Area type="monotone" dataKey="Cache Write" stroke={CHART_COLORS.cacheWrite} fill={`url(#${gid('cacheWrite')})`} strokeWidth={1.5} name="Cache Write" isAnimationActive={animate} animationDuration={CHART_ANIMATION.duration} />
-                <Line type="monotone" dataKey="cacheReadMA7" stroke={CHART_COLORS.cacheRead} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Cache Read Ø" isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.slowDuration} />
-                <Line type="monotone" dataKey="cacheWriteMA7" stroke={CHART_COLORS.cacheWrite} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Cache Write Ø" isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 2} animationDuration={CHART_ANIMATION.slowDuration} />
+                <Line type="monotone" dataKey="cacheReadMA7" stroke={CHART_COLORS.cacheRead} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name={`Cache Read ${t('charts.tokensOverTime.averageSuffix')}`} isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.slowDuration} />
+                <Line type="monotone" dataKey="cacheWriteMA7" stroke={CHART_COLORS.cacheWrite} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name={`Cache Write ${t('charts.tokensOverTime.averageSuffix')}`} isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 2} animationDuration={CHART_ANIMATION.slowDuration} />
                 </ComposedChart>
               </ResponsiveContainer>
             </ChartReveal>
@@ -141,7 +143,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
 
       {/* Chart 2: I/O Tokens (small scale) with per-type MA7 */}
       <div>
-        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Input / Output Tokens</div>
+        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{t('charts.tokensOverTime.inputOutputTokens')}</div>
         <ChartAnimationAware>
           {(animate) => (
             <ChartReveal variant="line" delay={0.04}>
@@ -163,8 +165,8 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
             <Tooltip content={<CustomTooltip formatter={formatTokens} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
                 <Area type="monotone" dataKey="Output" stroke={CHART_COLORS.output} fill={`url(#${gid('output')})`} strokeWidth={1.5} name="Output" isAnimationActive={animate} animationDuration={CHART_ANIMATION.duration} />
                 <Area type="monotone" dataKey="Input" stroke={CHART_COLORS.input} fill={`url(#${gid('input')})`} strokeWidth={1.5} name="Input" isAnimationActive={animate} animationDuration={CHART_ANIMATION.duration} />
-                <Line type="monotone" dataKey="outputMA7" stroke={CHART_COLORS.output} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Output Ø" isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.slowDuration} />
-                <Line type="monotone" dataKey="inputMA7" stroke={CHART_COLORS.input} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Input Ø" isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 2} animationDuration={CHART_ANIMATION.slowDuration} />
+                <Line type="monotone" dataKey="outputMA7" stroke={CHART_COLORS.output} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name={`Output ${t('charts.tokensOverTime.averageSuffix')}`} isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.slowDuration} />
+                <Line type="monotone" dataKey="inputMA7" stroke={CHART_COLORS.input} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name={`Input ${t('charts.tokensOverTime.averageSuffix')}`} isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 2} animationDuration={CHART_ANIMATION.slowDuration} />
                 </ComposedChart>
               </ResponsiveContainer>
             </ChartReveal>
@@ -173,7 +175,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
       </div>
 
       <div className="mt-3">
-        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Thinking Tokens</div>
+        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{t('charts.tokensOverTime.thinkingTokens')}</div>
         <ChartAnimationAware>
           {(animate) => (
             <ChartReveal variant="line" delay={0.08}>
@@ -190,7 +192,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
             <YAxis tickFormatter={formatTokens} stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} width={55} />
             <Tooltip content={<CustomTooltip formatter={formatTokens} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
                 <Area type="monotone" dataKey="Thinking" stroke={CHART_COLORS.cost} fill={`url(#${gid('thinking')})`} strokeWidth={1.5} name="Thinking" isAnimationActive={animate} animationDuration={CHART_ANIMATION.duration} />
-                <Line type="monotone" dataKey="thinkingMA7" stroke={CHART_COLORS.cost} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name="Thinking Ø" isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.slowDuration} />
+                <Line type="monotone" dataKey="thinkingMA7" stroke={CHART_COLORS.cost} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls name={`Thinking ${t('charts.tokensOverTime.averageSuffix')}`} isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.slowDuration} />
                 </ComposedChart>
               </ResponsiveContainer>
             </ChartReveal>

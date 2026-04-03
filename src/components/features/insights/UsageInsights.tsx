@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Activity, Building2, Layers3, Sparkles, TrendingUp } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { SectionHeader } from '@/components/ui/section-header'
@@ -49,83 +50,95 @@ function InsightCard({ title, icon, value, summary, details }: InsightCardProps)
 }
 
 export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageInsightsProps) {
+  const { t } = useTranslation()
   const coverageRate = totalCalendarDays && viewMode === 'daily'
     ? (metrics.activeDays / totalCalendarDays) * 100
     : null
 
+  const usageUnit = viewMode === 'yearly' ? t('periods.years') : viewMode === 'monthly' ? t('periods.months') : t('periods.days')
+  const peakSignal = metrics.topThreeModelsShare >= 80
+    ? t('insights.peakWindow.signalStrong')
+    : metrics.topThreeModelsShare >= 55
+      ? t('insights.peakWindow.signalModerate')
+      : t('insights.peakWindow.signalWide')
+
   return (
     <div>
       <SectionHeader
-        title="Insights"
-        badge="Verdichtete Signale"
-        description="Konzentrierte Aussagen aus Kosten-, Modell- und Request-Daten"
+        title={t('dashboard.insights.title')}
+        badge={t('dashboard.insights.badge')}
+        description={t('dashboard.insights.description')}
         info={SECTION_HELP.insights}
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
         <FadeIn delay={0.03}>
           <InsightCard
-            title="Kostenkonzentration"
+            title={t('insights.concentration.title')}
             icon={<Building2 className="h-5 w-5" />}
             value={metrics.topProvider ? formatPercent(metrics.topProvider.share, 0) : '–'}
             summary={metrics.topProvider
-              ? `${metrics.topProvider.name} ist aktuell der dominante Anbieter im gewählten Ausschnitt, während ${metrics.topModel?.name ?? 'das Top-Modell'} den größten Einzelhebel setzt.`
-              : 'Noch keine stabile Anbieter-Verteilung verfügbar.'}
+              ? t('insights.concentration.summary', { provider: metrics.topProvider.name, model: metrics.topModel?.name ?? t('metricCards.primary.topModel') })
+              : t('insights.concentration.fallback')}
             details={[
-              { label: 'Top Anbieter', value: metrics.topProvider?.name ?? '–' },
-              { label: 'Top Modell', value: metrics.topModel?.name ?? '–' },
-              { label: 'Top Modell Anteil', value: formatPercent(metrics.topModelShare, 0) },
-              { label: 'Top 3 Modelle', value: formatPercent(metrics.topThreeModelsShare, 0) },
+              { label: t('insights.concentration.topProvider'), value: metrics.topProvider?.name ?? '–' },
+              { label: t('insights.concentration.topModel'), value: metrics.topModel?.name ?? '–' },
+              { label: t('insights.concentration.topModelShare'), value: formatPercent(metrics.topModelShare, 0) },
+              { label: t('insights.concentration.topThreeModels'), value: formatPercent(metrics.topThreeModelsShare, 0) },
             ]}
           />
         </FadeIn>
 
         <FadeIn delay={0.08}>
           <InsightCard
-            title="Request-Ökonomie"
+            title={t('insights.requestEconomy.title')}
             icon={<Activity className="h-5 w-5" />}
-            value={metrics.hasRequestData ? <FormattedValue value={metrics.avgCostPerRequest} type="currency" label="Ø Kosten pro Request" insight={`${formatTokens(metrics.avgTokensPerRequest)} Tokens pro Request im Mittel`} /> : 'n/v'}
+            value={metrics.hasRequestData ? <FormattedValue value={metrics.avgCostPerRequest} type="currency" label={t('insights.requestEconomy.valueLabel')} insight={t('metricCards.primary.tokensPerRequestAvg', { value: formatTokens(metrics.avgTokensPerRequest) })} /> : t('common.notAvailable')}
             summary={metrics.hasRequestData
-              ? `Jede Anfrage kostet im Mittel ${formatCurrency(metrics.avgCostPerRequest)} und verarbeitet ${formatTokens(metrics.avgTokensPerRequest)}. ${metrics.topRequestModel ? `${metrics.topRequestModel.name} führt aktuell beim Request-Volumen.` : ''}`
-              : 'Der geladene Datensatz enthält keine verlässlichen Request-Zähler. Request-Ökonomie ist deshalb nicht verfügbar.'}
+              ? t('insights.requestEconomy.summary', {
+                cost: formatCurrency(metrics.avgCostPerRequest),
+                tokens: formatTokens(metrics.avgTokensPerRequest),
+                leader: metrics.topRequestModel ? t('insights.requestEconomy.leader', { model: metrics.topRequestModel.name }) : '',
+              }).trim()
+              : t('insights.requestEconomy.fallback')}
             details={[
-              { label: `Ø Req/${periodUnit(viewMode)}`, value: metrics.hasRequestData ? metrics.avgRequestsPerDay.toFixed(1) : 'n/v' },
-              { label: 'Ø Tokens/Req', value: metrics.hasRequestData ? formatTokens(metrics.avgTokensPerRequest) : 'n/v' },
-              { label: '$/1M Tokens', value: formatCurrency(metrics.costPerMillion) },
-              { label: 'Gesamt Requests', value: metrics.hasRequestData ? formatNumber(metrics.totalRequests) : 'n/v' },
+              { label: t('insights.requestEconomy.avgRequests', { unit: periodUnit(viewMode) }), value: metrics.hasRequestData ? metrics.avgRequestsPerDay.toFixed(1) : t('common.notAvailable') },
+              { label: t('insights.requestEconomy.avgTokensPerRequest'), value: metrics.hasRequestData ? formatTokens(metrics.avgTokensPerRequest) : t('common.notAvailable') },
+              { label: t('insights.requestEconomy.costPerMillion'), value: formatCurrency(metrics.costPerMillion) },
+              { label: t('insights.requestEconomy.totalRequests'), value: metrics.hasRequestData ? formatNumber(metrics.totalRequests) : t('common.notAvailable') },
             ]}
           />
         </FadeIn>
 
         <FadeIn delay={0.13}>
           <InsightCard
-            title="Nutzungsmuster"
+            title={t('insights.usagePatterns.title')}
             icon={<Layers3 className="h-5 w-5" />}
             value={coverageRate !== null ? formatPercent(coverageRate, 0) : formatNumber(metrics.activeDays)}
             summary={coverageRate !== null
-              ? `${metrics.activeDays} von ${totalCalendarDays} Kalendertagen enthalten Aktivität im gefilterten Zeitraum. Die Requests schwanken dabei um ${formatNumber(Math.round(metrics.requestVolatility))}.`
-              : `${metrics.activeDays} aktive ${viewMode === 'yearly' ? 'Jahre' : viewMode === 'monthly' ? 'Monate' : 'Tage'} im gewählten Ausschnitt.`}
+              ? t('insights.usagePatterns.summaryWithCoverage', { activeDays: metrics.activeDays, totalDays: totalCalendarDays, volatility: formatNumber(Math.round(metrics.requestVolatility)) })
+              : t('insights.usagePatterns.summaryWithoutCoverage', { activeDays: metrics.activeDays, unit: usageUnit })}
             details={[
-              { label: 'Ø Modelle/Eintrag', value: metrics.avgModelsPerDay.toFixed(1) },
-              { label: 'Anbieter aktiv', value: formatNumber(metrics.providerCount) },
-              { label: 'Wochenend-Anteil', value: metrics.weekendCostShare !== null ? formatPercent(metrics.weekendCostShare, 0) : '–' },
-              { label: 'Thinking Anteil', value: metrics.totalTokens > 0 ? formatPercent((metrics.totalThinking / metrics.totalTokens) * 100, 1) : '–' },
+              { label: t('insights.usagePatterns.avgModels'), value: metrics.avgModelsPerDay.toFixed(1) },
+              { label: t('insights.usagePatterns.providersActive'), value: formatNumber(metrics.providerCount) },
+              { label: t('insights.usagePatterns.weekendShare'), value: metrics.weekendCostShare !== null ? formatPercent(metrics.weekendCostShare, 0) : '–' },
+              { label: t('insights.usagePatterns.thinkingShare'), value: metrics.totalTokens > 0 ? formatPercent((metrics.totalThinking / metrics.totalTokens) * 100, 1) : '–' },
             ]}
           />
         </FadeIn>
 
         <FadeIn delay={0.18}>
           <InsightCard
-            title="Peak-Fenster"
+            title={t('insights.peakWindow.title')}
             icon={<TrendingUp className="h-5 w-5" />}
             value={metrics.busiestWeek ? formatCurrency(metrics.busiestWeek.cost) : formatCurrency(metrics.topDay?.cost ?? 0)}
             summary={metrics.busiestWeek
-              ? `Stärkste 7-Tage-Phase von ${formatDate(metrics.busiestWeek.start)} bis ${formatDate(metrics.busiestWeek.end)}.`
-              : 'Kein 7-Tage-Fenster verfügbar, daher Fokus auf den teuersten Einzelwert.'}
+              ? t('insights.peakWindow.summary', { start: formatDate(metrics.busiestWeek.start), end: formatDate(metrics.busiestWeek.end) })
+              : t('insights.peakWindow.fallback')}
             details={[
-              { label: 'Peak Tag', value: metrics.topDay ? `${formatDate(metrics.topDay.date)} · ${formatCurrency(metrics.topDay.cost)}` : '–' },
-              { label: `Ø/${periodUnit(viewMode)}`, value: formatCurrency(metrics.avgDailyCost) },
-              { label: 'Peak 7T Ø/Tag', value: metrics.busiestWeek ? formatCurrency(metrics.busiestWeek.cost / 7) : '–' },
-              { label: 'Signal', value: metrics.topThreeModelsShare >= 80 ? 'stark konzentriert' : metrics.topThreeModelsShare >= 55 ? 'moderat konzentriert' : 'breit verteilt' },
+              { label: t('insights.peakWindow.peakDay'), value: metrics.topDay ? `${formatDate(metrics.topDay.date)} · ${formatCurrency(metrics.topDay.cost)}` : '–' },
+              { label: t('insights.peakWindow.avgPerUnit', { unit: periodUnit(viewMode) }), value: formatCurrency(metrics.avgDailyCost) },
+              { label: t('insights.peakWindow.peak7DayAverage'), value: metrics.busiestWeek ? formatCurrency(metrics.busiestWeek.cost / 7) : '–' },
+              { label: t('insights.peakWindow.signal'), value: peakSignal },
             ]}
           />
         </FadeIn>
@@ -135,12 +148,19 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
         <div className="mt-4 rounded-2xl border border-border/60 bg-gradient-to-r from-primary/[0.08] via-transparent to-chart-3/[0.08] px-4 py-3 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-2 text-foreground font-medium">
             <Sparkles className="h-4 w-4 text-primary" />
-            Quick Read
+            {t('dashboard.insights.quickRead')}
           </span>
           <span className="ml-2">
             {metrics.topProvider
-              ? `${metrics.topProvider.name} trägt ${formatPercent(metrics.topProvider.share, 0)} der Kosten, während die Top-3-Modelle ${formatPercent(metrics.topThreeModelsShare, 0)} bündeln. ${metrics.topRequestModel ? `${metrics.topRequestModel.name} führt bei den Requests, ${metrics.topTokenModel?.name ?? 'das Top-Modell'} beim Tokenvolumen.` : ''}`
-              : 'Für den aktuellen Filterausschnitt sind noch nicht genug Daten für eine stabile Zusammenfassung vorhanden.'}
+              ? t('insights.quickRead.summary', {
+                provider: metrics.topProvider.name,
+                providerShare: formatPercent(metrics.topProvider.share, 0),
+                topThreeShare: formatPercent(metrics.topThreeModelsShare, 0),
+                requestLeader: metrics.topRequestModel
+                  ? t('insights.quickRead.requestLeader', { requestModel: metrics.topRequestModel.name, tokenModel: metrics.topTokenModel?.name ?? t('metricCards.primary.topModel') })
+                  : '',
+              }).trim()
+              : t('insights.quickRead.fallback')}
           </span>
         </div>
       </FadeIn>

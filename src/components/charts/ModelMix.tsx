@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
@@ -37,6 +38,7 @@ function MixTooltip({ active, payload, label }: MixTooltipProps) {
 }
 
 export function ModelMix({ data }: ModelMixProps) {
+  const { t } = useTranslation()
   const { chartData, models } = useMemo(() => {
     const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
     const modelSet = new Set<string>()
@@ -66,8 +68,8 @@ export function ModelMix({ data }: ModelMixProps) {
 
   return (
     <ChartCard
-      title="Modell-Mix"
-      subtitle="Kostenanteil pro Modell über die Zeit"
+      title={t('charts.modelMix.title')}
+      subtitle={t('charts.modelMix.subtitle')}
       info={CHART_HELP.modelMix}
     >
       <ChartAnimationAware>

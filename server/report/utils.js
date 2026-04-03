@@ -1,4 +1,5 @@
 const { version: APP_VERSION } = require('../../package.json');
+const { getLanguage, getLocale, translate } = require('./i18n');
 
 const MODEL_COLORS = {
   'Opus 4.6': 'rgb(175, 92, 224)',
@@ -471,67 +472,70 @@ function getDateRange(data) {
   return { start, end };
 }
 
-function formatDate(dateStr, mode = 'short') {
+function formatDate(dateStr, mode = 'short', language = 'de') {
+  const locale = getLocale(language);
   if (/^\d{4}$/.test(dateStr)) return dateStr;
   if (/^\d{4}-\d{2}$/.test(dateStr)) {
     const [year, month] = dateStr.split('-');
     const date = new Date(Number(year), Number(month) - 1);
     return mode === 'short'
-      ? date.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' })
-      : date.toLocaleDateString('de-CH', { month: 'long', year: 'numeric' });
+      ? date.toLocaleDateString(locale, { month: 'short', year: '2-digit' })
+      : date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   }
   const date = new Date(`${dateStr}T00:00:00`);
   if (mode === 'long') {
-    return date.toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    return date.toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
   }
-  return date.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' });
+  return date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
 }
 
-function formatDateAxis(dateStr) {
+function formatDateAxis(dateStr, language = 'de') {
+  const locale = getLocale(language);
   if (/^\d{4}$/.test(dateStr)) return dateStr;
   if (/^\d{4}-\d{2}$/.test(dateStr)) {
     const [year, month] = dateStr.split('-');
     const date = new Date(Number(year), Number(month) - 1);
-    return date.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' });
+    return date.toLocaleDateString(locale, { month: 'short', year: '2-digit' });
   }
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' });
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
 }
 
-function formatFilterValue(value) {
+function formatFilterValue(value, language = 'de') {
   if (!value) return null;
-  if (/^\d{4}-\d{2}$/.test(value)) return formatDate(value, 'long');
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return formatDate(value, 'long');
+  if (/^\d{4}-\d{2}$/.test(value)) return formatDate(value, 'long', language);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return formatDate(value, 'long', language);
   return value;
 }
 
-function formatCurrency(value) {
+function formatCurrency(value, language = 'de') {
+  const locale = getLocale(language);
   if (!Number.isFinite(value)) return '$0.00';
   if (Math.abs(value) >= 100) {
-    return `$${Math.round(value).toLocaleString('de-CH')}`;
+    return `$${Math.round(value).toLocaleString(locale)}`;
   }
-  return `$${value.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `$${value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function formatInteger(value) {
-  return Math.round(value || 0).toLocaleString('de-CH');
+function formatInteger(value, language = 'de') {
+  return Math.round(value || 0).toLocaleString(getLocale(language));
 }
 
-function formatCompact(value) {
+function formatCompact(value, language = 'de') {
   if (!Number.isFinite(value)) return '0';
   if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
   if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
   if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`;
-  return formatInteger(value);
+  return formatInteger(value, language);
 }
 
 function formatPercent(value) {
   return `${(value || 0).toFixed(1)}%`;
 }
 
-function periodUnit(viewMode) {
-  if (viewMode === 'monthly') return 'Monat';
-  if (viewMode === 'yearly') return 'Jahr';
-  return 'Tag';
+function periodUnit(viewMode, language = 'de') {
+  if (viewMode === 'monthly') return translate(language, 'periods.month');
+  if (viewMode === 'yearly') return translate(language, 'periods.year');
+  return translate(language, 'periods.day');
 }
 
 function applyReportFilters(allDailyData, filters) {
@@ -548,6 +552,7 @@ function applyReportFilters(allDailyData, filters) {
 }
 
 function buildReportData(allDailyData, options = {}) {
+  const language = getLanguage(options.language);
   const filters = {
     viewMode: options.viewMode || 'daily',
     selectedMonth: options.selectedMonth || null,
@@ -563,51 +568,52 @@ function buildReportData(allDailyData, options = {}) {
   const providerRows = computeProviderRows(filtered).slice(0, 8);
   const recentRows = sortByDate(filtered).slice(-12).reverse().map((entry) => ({
     period: entry.date,
-    label: formatDate(entry.date, 'long'),
+    label: formatDate(entry.date, 'long', language),
     cost: entry.totalCost,
-    costLabel: formatCurrency(entry.totalCost),
+    costLabel: formatCurrency(entry.totalCost, language),
     tokens: entry.totalTokens,
-    tokensLabel: formatCompact(entry.totalTokens),
+    tokensLabel: formatCompact(entry.totalTokens, language),
     requests: entry.requestCount,
-    requestsLabel: formatInteger(entry.requestCount),
+    requestsLabel: formatInteger(entry.requestCount, language),
   }));
 
   const summaryCards = [
-    { label: 'Kosten gesamt', value: formatCurrency(metrics.totalCost), note: metrics.topProvider ? `${metrics.topProvider.name} ${formatPercent(metrics.topProvider.share)}` : 'n/a', tone: 'accent' },
-    { label: 'Tokens gesamt', value: formatCompact(metrics.totalTokens), note: `CPM ${formatCurrency(metrics.costPerMillion)}`, tone: 'accent' },
-    { label: 'Requests gesamt', value: formatInteger(metrics.totalRequests), note: metrics.hasRequestData ? `${formatPercent(metrics.cacheHitRate)} Cache-Hit-Rate` : 'Keine Request-Daten', tone: 'good' },
-    { label: `Ø Kosten / ${periodUnit(filters.viewMode)}`, value: formatCurrency(metrics.avgDailyCost), note: `${reportDataLabel(filters.viewMode)}-Aggregation`, tone: 'accent' },
-    { label: 'Top-Modell', value: metrics.topModel ? metrics.topModel.name : 'n/a', note: metrics.topModel ? formatPercent(metrics.topModelShare) : 'n/a', tone: 'warn' },
-    { label: 'Stärkster Zeitraum', value: metrics.topDay ? metrics.topDay.date : 'n/a', note: metrics.topDay ? formatCurrency(metrics.topDay.cost) : 'n/a', tone: 'warn' },
+    { label: translate(language, 'common.costs'), value: formatCurrency(metrics.totalCost, language), note: metrics.topProvider ? `${metrics.topProvider.name} ${formatPercent(metrics.topProvider.share)}` : 'n/a', tone: 'accent' },
+    { label: translate(language, 'common.tokens'), value: formatCompact(metrics.totalTokens, language), note: `CPM ${formatCurrency(metrics.costPerMillion, language)}`, tone: 'accent' },
+    { label: translate(language, 'common.requests'), value: formatInteger(metrics.totalRequests, language), note: metrics.hasRequestData ? `${formatPercent(metrics.cacheHitRate)} Cache` : 'n/a', tone: 'good' },
+    { label: `Ø ${translate(language, 'common.cost')} / ${periodUnit(filters.viewMode, language)}`, value: formatCurrency(metrics.avgDailyCost, language), note: `${reportDataLabel(filters.viewMode, language)}`, tone: 'accent' },
+    { label: translate(language, 'common.model'), value: metrics.topModel ? metrics.topModel.name : 'n/a', note: metrics.topModel ? formatPercent(metrics.topModelShare) : 'n/a', tone: 'warn' },
+    { label: translate(language, 'common.dateRange'), value: metrics.topDay ? metrics.topDay.date : 'n/a', note: metrics.topDay ? formatCurrency(metrics.topDay.cost, language) : 'n/a', tone: 'warn' },
   ];
 
   return {
     meta: {
+      language,
       appVersion: APP_VERSION,
       generatedAt: new Date().toISOString(),
-      generatedAtLabel: new Date().toLocaleString('de-CH', {
+      generatedAtLabel: new Date().toLocaleString(getLocale(language), {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
       }),
-      reportTitle: options.reportTitle || 'TTDash Report',
+      reportTitle: options.reportTitle || translate(language, 'report.title'),
       filterSummary: {
-        viewMode: filters.viewMode,
+        viewMode: translate(language, `viewModes.${filters.viewMode}`),
         selectedMonth: filters.selectedMonth,
-        selectedMonthLabel: formatFilterValue(filters.selectedMonth),
+        selectedMonthLabel: formatFilterValue(filters.selectedMonth, language),
         selectedProviders: filters.selectedProviders,
         selectedModels: filters.selectedModels,
         startDate: filters.startDate || null,
-        startDateLabel: formatFilterValue(filters.startDate || null),
+        startDateLabel: formatFilterValue(filters.startDate || null, language),
         endDate: filters.endDate || null,
-        endDateLabel: formatFilterValue(filters.endDate || null),
+        endDateLabel: formatFilterValue(filters.endDate || null, language),
       },
       dateRange,
       periods: filtered.length,
       days: filteredDaily.length,
-      periodUnit: periodUnit(filters.viewMode),
+      periodUnit: periodUnit(filters.viewMode, language),
     },
     metrics,
     summaryCards,
@@ -618,33 +624,38 @@ function buildReportData(allDailyData, options = {}) {
     },
     topModels: modelRows.map((entry) => ({
       ...entry,
-      costLabel: formatCurrency(entry.cost),
-      requestsLabel: formatInteger(entry.requests),
-      tokensLabel: formatCompact(entry.tokens),
+      costLabel: formatCurrency(entry.cost, language),
+      requestsLabel: formatInteger(entry.requests, language),
+      tokensLabel: formatCompact(entry.tokens, language),
     })),
     providers: providerRows.map((entry) => ({
       ...entry,
-      costLabel: formatCurrency(entry.cost),
-      requestsLabel: formatInteger(entry.requests),
-      tokensLabel: formatCompact(entry.tokens),
+      costLabel: formatCurrency(entry.cost, language),
+      requestsLabel: formatInteger(entry.requests, language),
+      tokensLabel: formatCompact(entry.tokens, language),
     })),
     recentPeriods: recentRows,
     labels: {
-      dateRangeText: dateRange ? `${formatDate(dateRange.start, 'long')} bis ${formatDate(dateRange.end, 'long')}` : 'Keine Daten',
+      dateRangeText: dateRange ? `${formatDate(dateRange.start, 'long', language)} - ${formatDate(dateRange.end, 'long', language)}` : translate(language, 'common.noData'),
       topModel: metrics.topModel ? `${metrics.topModel.name} (${metrics.topModelShare.toFixed(1)}%)` : 'n/a',
       topProvider: metrics.topProvider ? `${metrics.topProvider.name} (${metrics.topProvider.share.toFixed(1)}%)` : 'n/a',
-      topDay: metrics.topDay ? `${formatDate(metrics.topDay.date, 'long')} (${metrics.topDay.cost.toFixed(2)} USD)` : 'n/a',
+      topDay: metrics.topDay ? `${formatDate(metrics.topDay.date, 'long', language)} (${metrics.topDay.cost.toFixed(2)} USD)` : 'n/a',
     },
     formatting: {
-      axisDates: filtered.map((entry) => ({ date: entry.date, label: formatDateAxis(entry.date) })),
+      axisDates: filtered.map((entry) => ({ date: entry.date, label: formatDateAxis(entry.date, language) })),
     },
   };
 }
 
-function reportDataLabel(viewMode) {
-  if (viewMode === 'monthly') return 'Monats';
-  if (viewMode === 'yearly') return 'Jahres';
-  return 'Tages';
+function reportDataLabel(viewMode, language = 'de') {
+  if (language === 'en') {
+    if (viewMode === 'monthly') return 'monthly aggregation';
+    if (viewMode === 'yearly') return 'yearly aggregation';
+    return 'daily aggregation';
+  }
+  if (viewMode === 'monthly') return 'Monats-Aggregation';
+  if (viewMode === 'yearly') return 'Jahres-Aggregation';
+  return 'Tages-Aggregation';
 }
 
 module.exports = {

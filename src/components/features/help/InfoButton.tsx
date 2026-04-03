@@ -1,4 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useTranslation } from 'react-i18next'
 import { Info } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
@@ -8,12 +9,13 @@ interface InfoButtonProps {
 }
 
 export function InfoButton({ text, className }: InfoButtonProps) {
+  const { t } = useTranslation()
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
           type="button"
-          aria-label="Info anzeigen"
+          aria-label={t('common.showInfo')}
           data-info-button="true"
           className={cn('inline-flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground transition-colors', className)}
         >

@@ -1,11 +1,12 @@
 import { useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, useInView } from 'framer-motion'
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ZAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
-import { formatCurrency, formatDate, formatPercent, formatTokens } from '@/lib/formatters'
+import { formatCurrency, formatDate, formatNumber, formatPercent, formatTokens } from '@/lib/formatters'
 import type { DailyUsage } from '@/types'
 
 interface CorrelationAnalysisProps {
@@ -34,6 +35,7 @@ function correlation(valuesA: number[], valuesB: number[]) {
 }
 
 function ScatterTooltip({ active, payload, mode }: { active?: boolean; payload?: Array<{ payload: ScatterPoint }>; mode: 'requestCost' | 'cacheEfficiency' }) {
+  const { t } = useTranslation()
   if (!active || !payload?.length) return null
 
   const point = payload[0].payload
@@ -45,31 +47,31 @@ function ScatterTooltip({ active, payload, mode }: { active?: boolean; payload?:
         {mode === 'requestCost' ? (
           <>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Requests</span>
-              <span className="font-mono font-medium">{point.requests?.toLocaleString('de-CH') ?? '–'}</span>
+              <span className="text-muted-foreground">{t('charts.correlation.requestsLabel')}</span>
+              <span className="font-mono font-medium">{point.requests !== undefined ? formatNumber(point.requests) : '–'}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Kosten</span>
+              <span className="text-muted-foreground">{t('charts.correlation.cost')}</span>
               <span className="font-mono font-medium">{formatCurrency(point.y)}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Tokens</span>
+              <span className="text-muted-foreground">{t('charts.correlation.tokensLabel')}</span>
               <span className="font-mono font-medium">{point.tokens ? formatTokens(point.tokens) : '–'}</span>
             </div>
           </>
         ) : (
           <>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Cache-Rate</span>
+              <span className="text-muted-foreground">{t('charts.correlation.cacheRate')}</span>
               <span className="font-mono font-medium">{point.cacheRate !== undefined ? formatPercent(point.cacheRate, 1) : '–'}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Kosten / Req</span>
+              <span className="text-muted-foreground">{t('charts.correlation.costPerRequest')}</span>
               <span className="font-mono font-medium">{formatCurrency(point.y)}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Requests</span>
-              <span className="font-mono font-medium">{point.requests?.toLocaleString('de-CH') ?? '–'}</span>
+              <span className="text-muted-foreground">{t('charts.correlation.requestsLabel')}</span>
+              <span className="font-mono font-medium">{point.requests !== undefined ? formatNumber(point.requests) : '–'}</span>
             </div>
           </>
         )}
@@ -148,6 +150,7 @@ function CorrelationPanel({
 }
 
 export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
+  const { t } = useTranslation()
   const requestVsCost = useMemo<ScatterPoint[]>(() => data.map(entry => ({
     x: entry.requestCount,
     y: entry.totalCost,
@@ -179,13 +182,13 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            Korrelationen
+            {t('charts.correlation.title')}
             <InfoButton text={CHART_HELP.correlationAnalysis} />
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-sm text-muted-foreground">
-            Für Korrelationen werden mindestens 2 Datenpunkte im aktuellen Filter benötigt.
+            {t('charts.correlation.requiresData')}
           </div>
         </CardContent>
       </Card>
@@ -196,34 +199,34 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          Korrelationen
+          {t('charts.correlation.title')}
           <InfoButton text={CHART_HELP.correlationAnalysis} />
         </CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <CorrelationPanel
-          title="Requests vs. Kosten"
-          subtitle={`r ${requestCostCorrelation.toFixed(2)} · ${requestVsCost.length} Punkte`}
+          title={t('charts.correlation.requestsVsCost')}
+          subtitle={`r ${requestCostCorrelation.toFixed(2)} · ${t('charts.correlation.points', { count: requestVsCost.length })}`}
           mode="requestCost"
           data={requestVsCost}
           color={CHART_COLORS.cost}
-          xAxisName="Requests"
-          yAxisName="Kosten"
-          footer={requestCostCorrelation >= 0.6 ? 'Starker Zusammenhang: Mehr Requests treiben die Kosten sichtbar.' : requestCostCorrelation >= 0.3 ? 'Moderater Zusammenhang zwischen Last und Kosten.' : 'Schwacher Zusammenhang: Kosten werden stärker von Modellmix und Tokenlast geprägt.'}
+          xAxisName={t('charts.correlation.requestsAxis')}
+          yAxisName={t('charts.correlation.cost')}
+          footer={requestCostCorrelation >= 0.6 ? t('charts.correlation.strongRequestCost') : requestCostCorrelation >= 0.3 ? t('charts.correlation.mediumRequestCost') : t('charts.correlation.weakRequestCost')}
           delay={0.02}
         />
 
         <CorrelationPanel
-          title="Cache-Rate vs. $/Req"
-          subtitle={`r ${cacheEfficiencyCorrelation.toFixed(2)} · ${cacheVsCostPerRequest.length} Punkte`}
+          title={t('charts.correlation.cacheVsCostPerRequest')}
+          subtitle={`r ${cacheEfficiencyCorrelation.toFixed(2)} · ${t('charts.correlation.points', { count: cacheVsCostPerRequest.length })}`}
           mode="cacheEfficiency"
           data={cacheVsCostPerRequest}
           color={CHART_COLORS.cumulative}
           animationBegin={CHART_ANIMATION.stagger}
-          xAxisName="Cache-Rate"
+          xAxisName={t('charts.correlation.cacheRate')}
           xTickFormatter={(value) => formatPercent(value, 0)}
-          yAxisName="$/Req"
-          footer={cacheEfficiencyCorrelation <= -0.3 ? 'Negativer Zusammenhang: Höhere Cache-Rate senkt tendenziell die Kosten pro Request.' : cacheEfficiencyCorrelation < 0.2 ? 'Kaum linearer Effekt: Cache wirkt, aber nicht allein entscheidend.' : 'Positiver Zusammenhang: Hohe Cache-Raten fallen hier nicht automatisch mit niedrigen Kosten pro Request zusammen.'}
+          yAxisName={t('charts.correlation.costPerRequestAxis')}
+          footer={cacheEfficiencyCorrelation <= -0.3 ? t('charts.correlation.negativeCache') : cacheEfficiencyCorrelation < 0.2 ? t('charts.correlation.neutralCache') : t('charts.correlation.positiveCache')}
           delay={0.08}
         />
       </CardContent>

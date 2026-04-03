@@ -1,3 +1,5 @@
+import i18n, { getCurrentLocale } from '@/lib/i18n'
+
 /** Formats a Date as YYYY-MM-DD in local timezone */
 export function toLocalDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -21,7 +23,7 @@ export function formatCurrency(value: number): string {
 }
 
 export function formatCurrencyExact(value: number): string {
-  return `$${value.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `$${value.toLocaleString(getCurrentLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 export function formatTokens(value: number): string {
@@ -37,11 +39,11 @@ export function formatTokens(value: number): string {
 }
 
 export function formatNumber(value: number): string {
-  return value.toLocaleString('de-CH')
+  return value.toLocaleString(getCurrentLocale())
 }
 
 export function formatTokensExact(value: number): string {
-  return `${value.toLocaleString('de-CH')} Tokens`
+  return `${value.toLocaleString(getCurrentLocale())} ${i18n.t('common.tokens')}`
 }
 
 export function formatPercent(value: number, decimals = 1): string {
@@ -56,14 +58,14 @@ export function formatDate(dateStr: string, mode: 'short' | 'long' | 'weekday' =
   if (/^\d{4}-\d{2}$/.test(dateStr)) {
     const [y, m] = dateStr.split('-')
     const d = new Date(parseInt(y), parseInt(m) - 1)
-    if (mode === 'short') return d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' })
-    return d.toLocaleDateString('de-CH', { month: 'long', year: 'numeric' })
+    if (mode === 'short') return d.toLocaleDateString(getCurrentLocale(), { month: 'short', year: '2-digit' })
+    return d.toLocaleDateString(getCurrentLocale(), { month: 'long', year: 'numeric' })
   }
 
   // Daily: "2026-03-31"
   const date = new Date(dateStr + 'T00:00:00')
   if (mode === 'long') {
-    return date.toLocaleDateString('de-CH', {
+    return date.toLocaleDateString(getCurrentLocale(), {
       weekday: 'short',
       day: '2-digit',
       month: '2-digit',
@@ -71,9 +73,9 @@ export function formatDate(dateStr: string, mode: 'short' | 'long' | 'weekday' =
     })
   }
   if (mode === 'weekday') {
-    return date.toLocaleDateString('de-CH', { weekday: 'short' })
+    return date.toLocaleDateString(getCurrentLocale(), { weekday: 'short' })
   }
-  return date.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' })
+  return date.toLocaleDateString(getCurrentLocale(), { day: '2-digit', month: '2-digit' })
 }
 
 export function formatDateAxis(dateStr: string): string {
@@ -84,29 +86,29 @@ export function formatDateAxis(dateStr: string): string {
   if (/^\d{4}-\d{2}$/.test(dateStr)) {
     const [y, m] = dateStr.split('-')
     const d = new Date(parseInt(y), parseInt(m) - 1)
-    return d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' })
+    return d.toLocaleDateString(getCurrentLocale(), { month: 'short', year: '2-digit' })
   }
 
   const date = new Date(dateStr + 'T00:00:00')
-  return date.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' })
+  return date.toLocaleDateString(getCurrentLocale(), { day: '2-digit', month: '2-digit' })
 }
 
 /** Returns the period noun for the given view mode */
 export function periodLabel(viewMode: 'daily' | 'monthly' | 'yearly', plural = false): string {
-  if (viewMode === 'monthly') return plural ? 'Monate' : 'Monat'
-  if (viewMode === 'yearly') return plural ? 'Jahre' : 'Jahr'
-  return plural ? 'Tage' : 'Tag'
+  if (viewMode === 'monthly') return i18n.t(plural ? 'periods.months' : 'periods.month')
+  if (viewMode === 'yearly') return i18n.t(plural ? 'periods.years' : 'periods.year')
+  return i18n.t(plural ? 'periods.days' : 'periods.day')
 }
 
 /** Returns the period noun for the given view mode (singular, for compound words like "Ø/Tag") */
 export function periodUnit(viewMode: 'daily' | 'monthly' | 'yearly'): string {
-  if (viewMode === 'monthly') return 'Mt.'
-  if (viewMode === 'yearly') return 'Jahr'
-  return 'Tag'
+  if (viewMode === 'monthly') return i18n.t('periods.unitMonth')
+  if (viewMode === 'yearly') return i18n.t('periods.unitYear')
+  return i18n.t('periods.unitDay')
 }
 
 export function formatMonthYear(dateStr: string): string {
   const [year, month] = dateStr.split('-')
   const date = new Date(parseInt(year), parseInt(month) - 1)
-  return date.toLocaleDateString('de-CH', { month: 'long', year: 'numeric' })
+  return date.toLocaleDateString(getCurrentLocale(), { month: 'long', year: 'numeric' })
 }

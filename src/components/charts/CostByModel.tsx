@@ -1,4 +1,5 @@
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
+import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_ANIMATION } from './chart-theme'
@@ -11,12 +12,13 @@ interface CostByModelProps {
 }
 
 function CenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number }; total: string }) {
+  const { t } = useTranslation()
   if (!viewBox) return null
   const { cx, cy } = viewBox
   return (
     <g>
       <text x={cx} y={cy - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={11}>
-        Gesamt
+        {t('charts.costByModel.total')}
       </text>
       <text x={cx} y={cy + 14} textAnchor="middle" className="fill-foreground" fontSize={16} fontWeight={600}>
         {total}
@@ -26,10 +28,11 @@ function CenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number };
 }
 
 export function CostByModel({ data }: CostByModelProps) {
+  const { t } = useTranslation()
   const total = data.reduce((sum, d) => sum + d.value, 0)
 
   return (
-    <ChartCard title="Kosten nach Modell" subtitle="Kostenverteilung nach Modell" info={CHART_HELP.costByModel} chartData={data as unknown as Record<string, unknown>[]} valueKey="value" valueFormatter={formatCurrency}>
+    <ChartCard title={t('charts.costByModel.title')} subtitle={t('charts.costByModel.subtitle')} info={CHART_HELP.costByModel} chartData={data as unknown as Record<string, unknown>[]} valueKey="value" valueFormatter={formatCurrency}>
       {(expanded) => {
         const chartHeight = expanded ? 560 : 320
         const pieCenterY = expanded ? '66%' : '57%'

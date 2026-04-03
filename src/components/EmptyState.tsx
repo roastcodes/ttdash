@@ -1,4 +1,5 @@
 import { Upload, ChartBar, Zap } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { FadeIn } from '@/components/features/animations/FadeIn'
@@ -10,6 +11,8 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ onUpload, onAutoImport }: EmptyStateProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <FadeIn delay={0} duration={0.45}>
@@ -24,16 +27,16 @@ export function EmptyState({ onUpload, onAutoImport }: EmptyStateProps) {
           <p className="text-xs text-muted-foreground font-mono">v{VERSION}</p>
         </div>
         <p className="text-muted-foreground text-sm leading-relaxed">
-          Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, <code className="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">bunx toktrack daily --json</code> oder <code className="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">npx --yes toktrack daily --json</code>.
+          {t('emptyState.description')}
         </p>
         <Button onClick={onAutoImport} size="lg" className="gap-2 w-full">
           <Zap className="h-4 w-4" />
-          Auto-Import
+          {t('emptyState.autoImport')}
         </Button>
-        <p className="text-muted-foreground text-xs">oder</p>
+        <p className="text-muted-foreground text-xs">{t('emptyState.or')}</p>
         <Button onClick={onUpload} variant="outline" size="lg" className="gap-2 w-full">
           <Upload className="h-4 w-4" />
-          Datei hochladen
+          {t('emptyState.uploadFile')}
         </Button>
       </Card>
       </FadeIn>

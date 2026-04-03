@@ -1,5 +1,15 @@
 # Changelog
 
+## [6.0.3] - 2026-04-04
+
+### Added
+- **Dashboard-Mehrsprachigkeit** — das Dashboard und der PDF-Report unterstützen jetzt Deutsch und Englisch auf Basis von `i18next` und `react-i18next`
+- **Sprachwechsel in der Command Palette** — `cmd+k` enthält jetzt direkte Aktionen zum Wechseln zwischen Deutsch und Englisch
+
+### Improved
+- **Vollständige EN-Abdeckung** — Forecast, Cache-ROI, Vergleiche, Anomalien, Tabellen, Help-Panel, Auto-Import und ergänzende Dashboard-Stat-Karten sind vollständig in die neue Übersetzungsstruktur migriert
+- **Locale-sensitive UI-Formate** — Datums-, Zahlen- und Wochentagsdarstellungen reagieren jetzt konsistent auf die aktive Sprache
+
 ## [6.0.2] - 2026-04-03
 
 ### Added

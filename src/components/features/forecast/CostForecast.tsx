@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from '@/components/charts/ChartCard'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
@@ -17,6 +18,7 @@ interface CostForecastProps {
 }
 
 export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
+  const { t } = useTranslation()
   const { chartData, forecastTotal, currentMonthTotal, dailyAvgTrend, projectedDailyBurn, remainingDays, confidence, confidenceColor } = useMemo(() => {
     const forecast = computeCurrentMonthForecast(data)
 
@@ -28,7 +30,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
         dailyAvgTrend: null,
         projectedDailyBurn: 0,
         remainingDays: 0,
-        confidence: 'niedrig',
+        confidence: 'low',
         confidenceColor: 'text-red-400 bg-red-400/10',
       }
     }
@@ -48,9 +50,9 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
       daysInMonth,
     } = forecast
 
-    const confidenceColor = confidence === 'hoch'
+    const confidenceColor = confidence === 'high'
       ? 'text-green-400 bg-green-400/10'
-      : confidence === 'mittel'
+      : confidence === 'medium'
         ? 'text-yellow-400 bg-yellow-400/10'
         : 'text-red-400 bg-red-400/10'
 
@@ -103,7 +105,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
         <div className="space-y-4">
           <div className="rounded-xl border border-border/50 bg-card/80 p-6 flex flex-col items-center justify-center text-center">
             <TrendingUp className="h-8 w-8 text-muted-foreground/20 mb-3" />
-            <p className="text-sm text-muted-foreground font-medium">Keine Daten verfügbar</p>
+            <p className="text-sm text-muted-foreground font-medium">{t('forecast.noData')}</p>
           </div>
         </div>
       )
@@ -112,9 +114,9 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
     return (
       <div className="space-y-4">
         <MetricCard
-          label={viewMode === 'monthly' ? 'Ø Monatskosten' : 'Ø Jahreskosten'}
+          label={viewMode === 'monthly' ? t('forecast.avgMonthlyCost') : t('forecast.avgYearlyCost')}
           value={<FormattedValue value={avg} type="currency" />}
-          subtitle={`Gesamt: ${formatCurrency(total)} über ${data.length} ${viewMode === 'monthly' ? 'Monate' : 'Jahre'}`}
+          subtitle={t('forecast.totalOverPeriods', { total: formatCurrency(total), count: data.length, unit: viewMode === 'monthly' ? t('periods.months') : t('periods.years') })}
           icon={<TrendingUp className="h-4 w-4" />}
         />
       </div>
@@ -126,9 +128,9 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
       <div className="space-y-4">
         <div className="rounded-xl border border-border/50 bg-card/80 p-6 flex flex-col items-center justify-center text-center">
           <TrendingUp className="h-8 w-8 text-muted-foreground/20 mb-3" />
-          <p className="text-sm text-muted-foreground font-medium">Keine Prognose verfügbar</p>
+          <p className="text-sm text-muted-foreground font-medium">{t('forecast.noForecast')}</p>
           <p className="text-xs text-muted-foreground/60 mt-1">
-            Mindestens 2 Tage mit Daten benötigt
+            {t('forecast.requiresTwoDays')}
           </p>
         </div>
       </div>
@@ -138,15 +140,15 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
   return (
     <div className="space-y-4">
       <MetricCard
-        label={<span className="flex items-center gap-2">Prognose Monatsende <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${confidenceColor}`}>{confidence}</span></span>}
+        label={<span className="flex items-center gap-2">{t('forecast.monthEndForecast')} <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${confidenceColor}`}>{t(`forecast.${confidence}`)}</span></span>}
         value={<>~<FormattedValue value={forecastTotal} type="currency" /></>}
-        subtitle={`Bisher: ${formatCurrency(currentMonthTotal)} · Resttage: ${remainingDays}${dailyAvgTrend ? ` · Prognose ${formatCurrency(projectedDailyBurn)}/Tag` : ''}`}
+        subtitle={`${t('forecast.soFar', { value: formatCurrency(currentMonthTotal) })} · ${t('forecast.remainingDays', { count: remainingDays })}${dailyAvgTrend ? ` · ${t('forecast.projectedPerDay', { value: formatCurrency(projectedDailyBurn) })}` : ''}`}
         icon={<TrendingUp className="h-4 w-4" />}
-        trend={dailyAvgTrend && dailyAvgTrend.change !== 0 ? { value: dailyAvgTrend.change, label: 'vs. Vorwoche' } : null}
+        trend={dailyAvgTrend && dailyAvgTrend.change !== 0 ? { value: dailyAvgTrend.change, label: t('forecast.vsLastWeek') } : null}
       />
       <ChartCard
-        title="Kostenprognose aktueller Monat"
-        subtitle="Monatsend-Prognose auf Basis geglätteter Kalender-Tageskosten"
+        title={t('forecast.chartTitle')}
+        subtitle={t('forecast.chartSubtitle')}
         summary={<FormattedValue value={forecastTotal} type="currency" />}
         info={CHART_HELP.forecast}
         chartData={chartData as unknown as Record<string, unknown>[]}
@@ -169,10 +171,10 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
                 <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
                 <Legend />
-                <Area type="monotone" dataKey="lower" stackId="forecast-band" stroke="none" fill="transparent" name="Untere Spanne" />
-                <Area type="monotone" dataKey="band" stackId="forecast-band" stroke="none" fill={CHART_COLORS.cumulative} fillOpacity={0.12} name="Unsicherheitsband" isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.duration} />
-                <Area type="monotone" dataKey="cost" stroke={CHART_COLORS.cost} fill="url(#forecast-cost-grad)" name="Ist-Kosten" strokeWidth={2} dot={false} connectNulls isAnimationActive={animate} animationBegin={0} animationDuration={CHART_ANIMATION.duration} animationEasing={CHART_ANIMATION.easing} />
-                <Line type="monotone" dataKey="forecast" stroke={CHART_COLORS.cumulative} name="Prognose" dot={false} strokeWidth={2} strokeDasharray="6 3" connectNulls isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 2} animationDuration={CHART_ANIMATION.slowDuration} />
+                <Area type="monotone" dataKey="lower" stackId="forecast-band" stroke="none" fill="transparent" name={t('forecast.lowerBound')} />
+                <Area type="monotone" dataKey="band" stackId="forecast-band" stroke="none" fill={CHART_COLORS.cumulative} fillOpacity={0.12} name={t('forecast.uncertaintyBand')} isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger} animationDuration={CHART_ANIMATION.duration} />
+                <Area type="monotone" dataKey="cost" stroke={CHART_COLORS.cost} fill="url(#forecast-cost-grad)" name={t('forecast.actualCost')} strokeWidth={2} dot={false} connectNulls isAnimationActive={animate} animationBegin={0} animationDuration={CHART_ANIMATION.duration} animationEasing={CHART_ANIMATION.easing} />
+                <Line type="monotone" dataKey="forecast" stroke={CHART_COLORS.cumulative} name={t('forecast.projection')} dot={false} strokeWidth={2} strokeDasharray="6 3" connectNulls isAnimationActive={animate} animationBegin={CHART_ANIMATION.stagger * 2} animationDuration={CHART_ANIMATION.slowDuration} />
                 </ComposedChart>
               </ResponsiveContainer>
             </ChartReveal>

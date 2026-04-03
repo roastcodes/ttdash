@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TrendingDown, DollarSign, Coins, Cpu, Database, CalendarDays, Activity, BrainCircuit } from 'lucide-react'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
@@ -15,6 +16,7 @@ interface MonthMetricsProps {
 }
 
 export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
+  const { t } = useTranslation()
   const currentMonth = localMonth()
 
   const monthData = useMemo(
@@ -86,62 +88,67 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
   return (
     <div>
       <SectionHeader
-        title={`Monat — ${formatMonthYear(currentMonth)}`}
-        badge={`${agg.activeDays} Tage`}
-        description="KPIs des laufenden Monats"
+        title={t('metricCards.month.title', { date: formatMonthYear(currentMonth) })}
+        badge={t('metricCards.month.badge', { count: agg.activeDays })}
+        description={t('metricCards.month.description')}
         info={SECTION_HELP.currentMonth}
       />
       <FadeIn delay={0.08}>
         <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
           <MetricCard
-            label="Kosten Monat"
+            label={t('metricCards.month.costMonth')}
             value={<FormattedValue value={agg.totalCost} type="currency" />}
-            subtitle={`Ø ${formatCurrency(agg.totalCost / agg.activeDays)}/Tag`}
+            subtitle={t('metricCards.month.avgPerDay', { value: formatCurrency(agg.totalCost / agg.activeDays) })}
             icon={<DollarSign className="h-4 w-4" />}
-            trend={diffToPrev !== null ? { value: diffToPrev, label: 'vs. Vormonat' } : null}
+            trend={diffToPrev !== null ? { value: diffToPrev, label: t('metricCards.month.vsPreviousMonth') } : null}
           />
           <MetricCard
-            label="Tokens Monat"
+            label={t('metricCards.month.tokensMonth')}
             value={<FormattedValue value={agg.totalTokens} type="tokens" />}
             subtitle={agg.inputTokens > 0 && agg.outputTokens > 0
-              ? `I/O Ratio: ${(agg.inputTokens / agg.outputTokens).toFixed(1)}:1`
+              ? t('metricCards.month.ioRatio', { value: (agg.inputTokens / agg.outputTokens).toFixed(1) })
               : undefined}
             icon={<Coins className="h-4 w-4" />}
           />
           <MetricCard
-            label="Aktive Tage"
+            label={t('metricCards.month.activeDays')}
             value={`${agg.activeDays} / ${agg.dayOfMonth}`}
-            subtitle={`${((agg.activeDays / agg.dayOfMonth) * 100).toFixed(0)}% Abdeckung`}
+            subtitle={t('metricCards.month.coverage', { value: `${((agg.activeDays / agg.dayOfMonth) * 100).toFixed(0)}%` })}
             icon={<CalendarDays className="h-4 w-4" />}
           />
           <MetricCard
-            label="Modelle"
+            label={t('metricCards.month.models')}
             value={String(agg.modelCount)}
-            subtitle={agg.topModel ? `Top: ${agg.topModel.name}` : undefined}
+            subtitle={agg.topModel ? t('metricCards.month.topModel', { value: agg.topModel.name }) : undefined}
             icon={<Cpu className="h-4 w-4" />}
           />
           <MetricCard
-            label="$/1M Tokens"
+            label={t('metricCards.month.costPerMillion')}
             value={<FormattedValue value={agg.costPerMillion} type="currency" />}
-            subtitle={metrics.costPerMillion > 0 ? `Gesamt-Ø: ${formatCurrency(metrics.costPerMillion)}` : undefined}
+            subtitle={metrics.costPerMillion > 0 ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) }) : undefined}
             icon={<TrendingDown className="h-4 w-4" />}
           />
           <MetricCard
-            label="Cache-Hit-Rate"
+            label={t('metricCards.month.cacheHitRate')}
             value={<FormattedValue value={agg.cacheHitRate} type="percent" />}
-            subtitle={`In: ${ioTotal > 0 ? ((agg.inputTokens / ioTotal) * 100).toFixed(0) : 0}% / Out: ${ioTotal > 0 ? ((agg.outputTokens / ioTotal) * 100).toFixed(0) : 0}%`}
+            subtitle={t('metricCards.month.cacheMix', {
+              input: `${ioTotal > 0 ? ((agg.inputTokens / ioTotal) * 100).toFixed(0) : 0}%`,
+              output: `${ioTotal > 0 ? ((agg.outputTokens / ioTotal) * 100).toFixed(0) : 0}%`,
+            })}
             icon={<Database className="h-4 w-4" />}
           />
           <MetricCard
-            label="Requests"
-            value={agg.requestCount > 0 ? <FormattedValue value={agg.requestCount} type="number" label="Requests im Monat" insight={`${formatCurrency(agg.totalCost / agg.requestCount)} pro Request`} /> : 'n/v'}
-            subtitle={agg.requestCount > 0 ? `Ø ${(agg.requestCount / agg.activeDays).toFixed(1)}/Tag · ${formatCurrency(agg.totalCost / agg.requestCount)}/Req` : 'Keine Request-Zähler'}
+            label={t('metricCards.month.requests')}
+            value={agg.requestCount > 0 ? <FormattedValue value={agg.requestCount} type="number" label={t('metricCards.month.requestsInMonth')} insight={`${formatCurrency(agg.totalCost / agg.requestCount)} / Request`} /> : t('common.notAvailable')}
+            subtitle={agg.requestCount > 0
+              ? t('metricCards.month.requestsSubtitle', { value: (agg.requestCount / agg.activeDays).toFixed(1), cost: formatCurrency(agg.totalCost / agg.requestCount) })
+              : t('metricCards.month.requestCountersMissing')}
             icon={<Activity className="h-4 w-4" />}
           />
           <MetricCard
-            label="Thinking"
+            label={t('metricCards.month.thinking')}
             value={<FormattedValue value={agg.thinkingTokens} type="tokens" />}
-            subtitle={agg.totalTokens > 0 ? `${((agg.thinkingTokens / agg.totalTokens) * 100).toFixed(1)}% Anteil` : undefined}
+            subtitle={agg.totalTokens > 0 ? t('metricCards.month.thinkingSubtitle', { value: `${((agg.thinkingTokens / agg.totalTokens) * 100).toFixed(1)}%` }) : undefined}
             icon={<BrainCircuit className="h-4 w-4" />}
           />
         </div>

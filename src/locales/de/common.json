@@ -1,0 +1,891 @@
+{
+  "app": {
+    "name": "TTDash",
+    "language": "Sprache",
+    "languages": {
+      "de": "Deutsch",
+      "en": "Englisch"
+    }
+  },
+  "header": {
+    "import": "Import",
+    "upload": "Upload",
+    "limits": "Limits",
+    "report": "Report",
+    "csv": "CSV",
+    "delete": "Löschen",
+    "help": "Hilfe & Tastenkürzel"
+  },
+  "emptyState": {
+    "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx toktrack daily --json` oder `npx --yes toktrack daily --json`.",
+    "autoImport": "Auto-Import",
+    "uploadFile": "Datei hochladen",
+    "or": "oder"
+  },
+  "viewModes": {
+    "daily": "Tagesansicht",
+    "monthly": "Monatsansicht",
+    "yearly": "Jahresansicht"
+  },
+  "periods": {
+    "day": "Tag",
+    "days": "Tage",
+    "month": "Monat",
+    "months": "Monate",
+    "year": "Jahr",
+    "years": "Jahre",
+    "unitDay": "Tag",
+    "unitMonth": "Mt.",
+    "unitYear": "Jahr"
+  },
+  "common": {
+    "all": "Alle",
+    "none": "Keine",
+    "reset": "Reset",
+    "notAvailable": "n/v",
+    "noData": "Keine Daten",
+    "generated": "Generiert",
+    "view": "Ansicht",
+    "dateRange": "Zeitraum",
+    "month": "Monat",
+    "provider": "Anbieter",
+    "providers": "Anbieter",
+    "model": "Modell",
+    "models": "Modelle",
+    "cost": "Kosten",
+    "costs": "Kosten",
+    "tokens": "Tokens",
+    "requests": "Requests",
+    "today": "Heute",
+    "currentMonth": "Monat",
+    "yes": "Ja",
+    "no": "Nein",
+    "enabled": "Aktiv",
+    "disabled": "Inaktiv",
+    "open": "Öffnen",
+    "close": "Schliessen",
+    "startDate": "Startdatum",
+    "endDate": "Enddatum",
+    "selectedProviders": "Ausgewählte Provider",
+    "selectedModels": "Ausgewählte Modelle",
+    "allProviders": "Alle Anbieter",
+    "allModels": "Alle Modelle",
+    "allMonths": "Alle Monate",
+    "noFilter": "Kein Filter",
+    "focusMonth": "Fokusmonat",
+    "showInfo": "Info anzeigen",
+    "expand": "Vergrössern",
+    "input": "Input",
+    "output": "Output",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "thinking": "Thinking",
+    "requestsShort": "Req",
+    "request": "Request",
+    "share": "Anteil",
+    "top": "Top"
+  },
+  "filterBar": {
+    "status": "Filterstatus",
+    "providersActive": "{{count}} Anbieter aktiv",
+    "modelsActive": "{{count}} Modelle aktiv",
+    "dateFilterActive": "Datumsfilter aktiv",
+    "presets": {
+      "7d": "7T",
+      "30d": "30T",
+      "month": "Monat",
+      "year": "Jahr",
+      "all": "Alle"
+    },
+    "until": "bis",
+    "resetDateRange": "Zeitraum zurücksetzen",
+    "providers": "Anbieter",
+    "models": "Modelle",
+    "resetModels": "Modelle zurücksetzen"
+  },
+  "dashboard": {
+    "insights": {
+      "title": "Insights",
+      "badge": "Verdichtete Signale",
+      "description": "Konzentrierte Aussagen aus Kosten-, Modell- und Request-Daten",
+      "quickRead": "Quick Read"
+    },
+    "metrics": {
+      "title": "Metriken",
+      "badge": "10 Kennzahlen",
+      "description": "Wichtigste KPIs im Überblick"
+    },
+    "activity": {
+      "title": "Aktivität",
+      "dailyDescription": "Tägliche Nutzungsübersicht",
+      "monthlyDescription": "Monatliche Nutzungsübersicht",
+      "yearlyDescription": "Jährliche Nutzungsübersicht"
+    },
+    "forecastCache": {
+      "title": "Prognose & Cache",
+      "description": "Kostenprognose und Cache-Effizienz"
+    },
+    "costAnalysis": {
+      "title": "Kostenanalyse",
+      "description": "Detaillierte Kostenaufschlüsselung"
+    },
+    "tokenAnalysis": {
+      "title": "Token-Analyse",
+      "description": "Verbrauch nach Token-Typ"
+    },
+    "requestAnalysis": {
+      "title": "Request-Analyse",
+      "description": "Requests gesamt, pro Modell und im Verlauf"
+    },
+    "advancedAnalysis": {
+      "title": "Verteilungen & Risiko",
+      "description": "Zusätzliche Signale zu Streuung, Korrelation und Abhängigkeiten"
+    },
+    "comparisons": {
+      "title": "Vergleiche & Anomalien",
+      "description": "Periodenvergleich und Ausreisser"
+    },
+    "tables": {
+      "title": "Tabellen",
+      "description": "Detaillierte Aufschlüsselungen"
+    },
+    "cards": {
+      "periodComparison": "Periodenvergleich",
+      "anomalyDetection": "Anomalie-Erkennung",
+      "costForecast": "Kostenprognose",
+      "cacheRoi": "Cache ROI"
+    },
+    "stats": {
+      "cacheHitRate": "Cache-Hit-Rate",
+      "totalTokens": "Gesamt-Tokens",
+      "cacheRead": "Cache Read",
+      "dataPoints": "Datenpunkte",
+      "avgCostPerUnit": "Ø Kosten/{{unit}}",
+      "total": "Gesamt",
+      "avgPerUnit": "Ø / {{unit}}"
+    }
+  },
+  "metricCards": {
+    "primary": {
+      "totalCost": "Gesamtkosten",
+      "totalTokens": "Gesamt-Tokens",
+      "activeDays": "Aktive Tage",
+      "topModel": "Top Modell",
+      "cacheHitRate": "Cache-Hit-Rate",
+      "costPerMillion": "$/1M Tokens",
+      "requests": "Requests",
+      "thinking": "Thinking",
+      "avgPerPeriod": "{{value}}/{{unit}} im Mittel",
+      "tokensPerRequestAvg": "{{value}} pro Request im Mittel",
+      "coverageOfDays": "{{coverage}} Abdeckung von {{days}} Tagen",
+      "providersActive": "{{count}} Anbieter aktiv",
+      "share": "{{value}} Anteil",
+      "requestLead": "Req-Lead: {{value}}",
+      "allTokensViaCacheRead": "{{value}} aller Tokens via Cache Read",
+      "requestCountersMissing": "Keine Request-Zähler im Datensatz",
+      "thinkingShareOfVolume": "{{value}} des gesamten Tokenvolumens",
+      "requestsSubtitle": "Ø {{requests}} / {{unit}} · {{cost}} / Req · σ {{volatility}}",
+      "thinkingSubtitle": "{{share}} Anteil · {{tokens}} / Request"
+    },
+    "secondary": {
+      "mostExpensiveDay": "Teuerster Tag",
+      "mostExpensiveMonth": "Teuerster Monat",
+      "mostExpensiveYear": "Teuerstes Jahr",
+      "dominantProvider": "Dominanter Anbieter",
+      "peak7Days": "Peak 7 Tage",
+      "avgCostPerUnit": "Ø Kosten/{{unit}}",
+      "spread": "Spanne: {{value}}",
+      "medianPerUnit": "Median/{{unit}}",
+      "vsAverage": "{{direction}}{{value}}% vs. Ø",
+      "medianInfo": "Der Median zeigt den typischen Wert und ist weniger anfällig für Ausreisser als der Durchschnitt.",
+      "requestLeader": "{{model}} · {{requests}} Req",
+      "dominantProviderSubtitle": "{{share}} Anteil · {{cost}}{{requestLeader}}"
+    },
+    "today": {
+      "title": "Heute — {{date}}",
+      "description": "KPIs des aktuellen Tages",
+      "costToday": "Kosten heute",
+      "tokensToday": "Tokens heute",
+      "models": "Modelle",
+      "costPerMillion": "$/1M Tokens",
+      "cacheHitRate": "Cache-Hit-Rate",
+      "requests": "Requests",
+      "thinking": "Thinking",
+      "vsAverageShort": "vs. Ø",
+      "overallAverage": "Gesamt-Ø: {{value}}",
+      "cacheShare": "{{value}} Cache-Anteil",
+      "requestsToday": "Requests heute",
+      "avgPerDay": "Ø {{value}}/Tag",
+      "ioRatio": "I/O Ratio: {{value}}:1",
+      "topModel": "Top: {{value}}",
+      "requestsSubtitle": "{{value}} / Modell · {{cost}}/Req",
+      "requestCountersMissing": "Keine Request-Zähler",
+      "thinkingSubtitle": "{{value}} Anteil"
+    },
+    "month": {
+      "title": "Monat — {{date}}",
+      "badge": "{{count}} Tage",
+      "description": "KPIs des laufenden Monats",
+      "costMonth": "Kosten Monat",
+      "tokensMonth": "Tokens Monat",
+      "activeDays": "Aktive Tage",
+      "models": "Modelle",
+      "costPerMillion": "$/1M Tokens",
+      "cacheHitRate": "Cache-Hit-Rate",
+      "requests": "Requests",
+      "thinking": "Thinking",
+      "vsPreviousMonth": "vs. Vormonat",
+      "coverage": "{{value}} Abdeckung",
+      "requestsInMonth": "Requests im Monat",
+      "avgPerDay": "Ø {{value}}/Tag",
+      "ioRatio": "I/O Ratio: {{value}}:1",
+      "topModel": "Top: {{value}}",
+      "cacheMix": "In: {{input}} / Out: {{output}}",
+      "requestsSubtitle": "Ø {{value}}/Tag · {{cost}}/Req",
+      "requestCountersMissing": "Keine Request-Zähler",
+      "thinkingSubtitle": "{{value}} Anteil"
+    }
+  },
+  "insights": {
+    "concentration": {
+      "title": "Kostenkonzentration",
+      "summary": "{{provider}} ist aktuell der dominante Anbieter im gewählten Ausschnitt, während {{model}} den grössten Einzelhebel setzt.",
+      "fallback": "Noch keine stabile Anbieter-Verteilung verfügbar.",
+      "topProvider": "Top Anbieter",
+      "topModel": "Top Modell",
+      "topModelShare": "Top Modell Anteil",
+      "topThreeModels": "Top 3 Modelle"
+    },
+    "requestEconomy": {
+      "title": "Request-Ökonomie",
+      "valueLabel": "Ø Kosten pro Request",
+      "summary": "Jede Anfrage kostet im Mittel {{cost}} und verarbeitet {{tokens}}. {{leader}}",
+      "leader": "{{model}} führt aktuell beim Request-Volumen.",
+      "fallback": "Der geladene Datensatz enthält keine verlässlichen Request-Zähler. Request-Ökonomie ist deshalb nicht verfügbar.",
+      "avgRequests": "Ø Req/{{unit}}",
+      "avgTokensPerRequest": "Ø Tokens/Req",
+      "costPerMillion": "$/1M Tokens",
+      "totalRequests": "Gesamt Requests"
+    },
+    "usagePatterns": {
+      "title": "Nutzungsmuster",
+      "summaryWithCoverage": "{{activeDays}} von {{totalDays}} Kalendertagen enthalten Aktivität im gefilterten Zeitraum. Die Requests schwanken dabei um {{volatility}}.",
+      "summaryWithoutCoverage": "{{activeDays}} aktive {{unit}} im gewählten Ausschnitt.",
+      "avgModels": "Ø Modelle/Eintrag",
+      "providersActive": "Anbieter aktiv",
+      "weekendShare": "Wochenend-Anteil",
+      "thinkingShare": "Thinking Anteil"
+    },
+    "peakWindow": {
+      "title": "Peak-Fenster",
+      "summary": "Stärkste 7-Tage-Phase von {{start}} bis {{end}}.",
+      "fallback": "Kein 7-Tage-Fenster verfügbar, daher Fokus auf den teuersten Einzelwert.",
+      "peakDay": "Peak Tag",
+      "avgPerUnit": "Ø/{{unit}}",
+      "peak7DayAverage": "Peak 7T Ø/Tag",
+      "signal": "Signal",
+      "signalStrong": "stark konzentriert",
+      "signalModerate": "moderat konzentriert",
+      "signalWide": "breit verteilt"
+    },
+    "quickRead": {
+      "summary": "{{provider}} trägt {{providerShare}} der Kosten, während die Top-3-Modelle {{topThreeShare}} bündeln. {{requestLeader}}",
+      "requestLeader": "{{requestModel}} führt bei den Requests, {{tokenModel}} beim Tokenvolumen.",
+      "fallback": "Für den aktuellen Filterausschnitt sind noch nicht genug Daten für eine stabile Zusammenfassung vorhanden."
+    }
+  },
+  "charts": {
+    "costOverTime": {
+      "title": "Kosten im Zeitverlauf + 7-Tage Ø",
+      "subtitle": "Tageskosten mit 7-Tage gleitendem Durchschnitt",
+      "summary": "Letzter Wert {{latest}} · Peak {{peak}} am {{date}}",
+      "cost": "Kosten",
+      "movingAverage": "7-Tage Ø"
+    },
+    "costByModel": {
+      "title": "Kosten nach Modell",
+      "subtitle": "Kostenverteilung nach Modell",
+      "total": "Gesamt"
+    },
+    "costByModelOverTime": {
+      "title": "Kosten nach Modell im Zeitverlauf",
+      "subtitle": "Pro Modell über die Zeit",
+      "topDriver": "Top Treiber: {{model}} · {{total}} kumuliert",
+      "movingAverageHeading": "7-Tage Durchschnitt pro Modell",
+      "movingAverageSuffix": "Ø"
+    },
+    "cumulativeCost": {
+      "title": "Kumulative Kosten",
+      "total": "Gesamt: {{value}}",
+      "cumulative": "Kumulativ",
+      "projection": "Projektion"
+    },
+    "tokensOverTime": {
+      "title": "Tokens im Zeitverlauf",
+      "subtitle": "Alle Token-Typen mit 7-Tage Ø",
+      "allTypes": "Gesamt-Tokens (alle Typen)",
+      "totalTokens": "Gesamt-Tokens",
+      "movingAverage": "7-Tage Ø",
+      "cacheTokens": "Cache Tokens",
+      "inputOutputTokens": "Input / Output Tokens",
+      "thinkingTokens": "Thinking Tokens",
+      "averageSuffix": "Ø"
+    },
+    "requestsOverTime": {
+      "title": "Requests im Zeitverlauf",
+      "subtitle": "Requests gesamt, nach Modell und mit 7-Tage-Ø",
+      "summary": "Gesamt {{total}} · Peak {{peak}} am {{date}}",
+      "averagePerUnit": "Ø / {{unit}}",
+      "trend": "Trend Ø",
+      "movingAverage": "7-Tage Ø",
+      "trendHeading": "Gleitender Durchschnitt pro Modell",
+      "movingAverageHeading": "7-Tage Durchschnitt pro Modell",
+      "totalMovingAverage": "Gesamt {{label}}",
+      "requestsByModelTotal": "Requests nach Modell gesamt",
+      "requestsInRange": "Requests im gewählten Zeitraum",
+      "total": "Gesamt",
+      "topModel": "Top Modell",
+      "topShare": "Top Share",
+      "totalRequestsSeries": "Gesamt-Requests"
+    },
+    "heatmap": {
+      "costTitle": "Kosten-Heatmap",
+      "requestsTitle": "Request-Heatmap",
+      "tokensTitle": "Token-Heatmap",
+      "costEmpty": "Kosten-Heatmap nur in der Tagesansicht verfügbar",
+      "requestsEmpty": "Request-Heatmap nur in der Tagesansicht verfügbar",
+      "tokensEmpty": "Token-Heatmap nur in der Tagesansicht verfügbar",
+      "switchToDaily": "Wechsle zur Tagesansicht für die Kalender-Heatmap",
+      "less": "Weniger",
+      "more": "Mehr"
+    },
+    "tokenTypes": {
+      "title": "Token-Typen",
+      "subtitle": "Verteilung der Token-Typen",
+      "total": "Gesamt"
+    },
+    "modelMix": {
+      "title": "Modell-Mix",
+      "subtitle": "Kostenanteil pro Modell über die Zeit"
+    },
+    "distribution": {
+      "title": "Verteilungen",
+      "requiresData": "Für Verteilungen werden mindestens 2 Datenpunkte im aktuellen Filter benötigt.",
+      "costPerPeriod": "Kosten je {{period}}",
+      "requestsPerPeriod": "Requests je {{period}}",
+      "tokensPerRequest": "Tokens pro Request",
+      "interval": "Intervall",
+      "dataPoints": "Datenpunkte",
+      "buckets": "Buckets"
+    },
+    "correlation": {
+      "title": "Korrelationen",
+      "requiresData": "Für Korrelationen werden mindestens 2 Datenpunkte im aktuellen Filter benötigt.",
+      "points": "{{count}} Punkte",
+      "requestsVsCost": "Requests vs. Kosten",
+      "cacheVsCostPerRequest": "Cache-Rate vs. $/Req",
+      "requestsAxis": "Requests",
+      "requestsLabel": "Requests",
+      "tokensLabel": "Tokens",
+      "costPerRequestAxis": "$/Req",
+      "cost": "Kosten",
+      "costPerRequest": "Kosten / Req",
+      "cacheRate": "Cache-Rate",
+      "strongRequestCost": "Starker Zusammenhang: Mehr Requests treiben die Kosten sichtbar.",
+      "mediumRequestCost": "Moderater Zusammenhang zwischen Last und Kosten.",
+      "weakRequestCost": "Schwacher Zusammenhang: Kosten werden stärker von Modellmix und Tokenlast geprägt.",
+      "negativeCache": "Negativer Zusammenhang: Höhere Cache-Rate senkt tendenziell die Kosten pro Request.",
+      "neutralCache": "Kaum linearer Effekt: Cache wirkt, aber nicht allein entscheidend.",
+      "positiveCache": "Positiver Zusammenhang: Hohe Cache-Raten fallen hier nicht automatisch mit niedrigen Kosten pro Request zusammen."
+    },
+    "costByWeekday": {
+      "title": "Kosten nach Wochentag",
+      "subtitle": "Peak: {{peak}} · Low: {{low}} · Wochenende {{share}}",
+      "averageCost": "Ø Kosten"
+    },
+    "tokenEfficiency": {
+      "title": "Token-Effizienz ($/1M)",
+      "subtitle": "Ø {{value}}/1M Tokens",
+      "series": "$/1M Tokens",
+      "movingAverage": "7T-Ø"
+    }
+  },
+  "risk": {
+    "title": "Konzentrationsrisiko",
+    "modelDependency": "Modell-Abhängigkeit",
+    "providerDependency": "Provider-Abhängigkeit",
+    "high": "hoch",
+    "medium": "mittel",
+    "low": "niedrig",
+    "modelHint": "HHI {{value}} · Hohe Werte sprechen für wenige dominante Modelle.",
+    "providerHint": "HHI {{value}} · Zeigt die Abhängigkeit von einzelnen Anbietern."
+  },
+  "requestQuality": {
+    "title": "Request-Qualität",
+    "tokensPerRequest": "Tokens / Request",
+    "costPerRequest": "Kosten / Request",
+    "cachePerRequest": "Cache / Request",
+    "thinkingPerRequest": "Thinking / Request",
+    "tokensHint": "Durchschnittliche Tokenlast pro Anfrage",
+    "costHint": "Direkte Kosten pro Anfrage",
+    "cacheHint": "Gelesene Cache-Tokens pro Anfrage",
+    "thinkingHint": "Thinking-Tokens pro Anfrage",
+    "requestDensity": "Request-Dichte",
+    "averagePerActiveUnit": "Ø pro aktivem {{unit}}",
+    "cacheHitRate": "Cache-Hit-Rate",
+    "cacheHitHint": "Direkt aus Cache-Read relativ zu allen Tokens",
+    "inputOutput": "Input / Output",
+    "inputOutputHint": "Drift zwischen eingehenden und erzeugten Tokens",
+    "topRequestModel": "Top Request-Modell",
+    "noRequestLeader": "Kein Request-Leader"
+  },
+  "forecast": {
+    "noData": "Keine Daten verfügbar",
+    "noForecast": "Keine Prognose verfügbar",
+    "requiresTwoDays": "Mindestens 2 Tage mit Daten benötigt",
+    "avgMonthlyCost": "Ø Monatskosten",
+    "avgYearlyCost": "Ø Jahreskosten",
+    "totalOverPeriods": "Gesamt: {{total}} über {{count}} {{unit}}",
+    "monthEndForecast": "Prognose Monatsende",
+    "low": "niedrig",
+    "medium": "mittel",
+    "high": "hoch",
+    "soFar": "Bisher: {{value}}",
+    "remainingDays": "Resttage: {{count}}",
+    "projectedPerDay": "Prognose {{value}}/Tag",
+    "vsLastWeek": "vs. Vorwoche",
+    "chartTitle": "Kostenprognose aktueller Monat",
+    "chartSubtitle": "Monatsend-Prognose auf Basis geglätteter Kalender-Tageskosten",
+    "lowerBound": "Untere Spanne",
+    "uncertaintyBand": "Unsicherheitsband",
+    "actualCost": "Ist-Kosten",
+    "projection": "Prognose"
+  },
+  "cacheRoi": {
+    "title": "Cache-Ersparnis (ROI)",
+    "noData": "Keine Daten verfügbar",
+    "heuristicFallback": "Für {{count}} {{modelsLabel}} ohne hinterlegte Preistabelle nutzt die ROI-Schätzung einen Heuristik-Fallback.",
+    "model": "Modell",
+    "models": "Modelle",
+    "withoutCache": "Ohne Cache",
+    "withCache": "Mit Cache",
+    "withCacheActual": "Mit Cache (tatsächlich)",
+    "savings": "Ersparnis",
+    "avgCostPerUnit": "Ø Kosten/{{unit}}",
+    "paid": "Bezahlt",
+    "saved": "Gespart"
+  },
+  "comparison": {
+    "title": "Perioden-Vergleich",
+    "notEnoughData": "Nicht genügend Daten für einen Vergleich",
+    "requiresDays": "Mindestens 7 Tage benötigt (aktuell: {{count}})",
+    "thisWeek": "Diese Woche",
+    "lastWeek": "Letzte Woche",
+    "thisMonth": "Dieser Monat",
+    "lastMonth": "Letzter Monat",
+    "week": "Woche",
+    "month": "Monat",
+    "metric": "Metrik",
+    "delta": "Delta",
+    "cost": "Kosten",
+    "tokens": "Tokens",
+    "avgPerDay": "Ø/Tag",
+    "cacheRate": "Cache-Rate",
+    "days": "Tage"
+  },
+  "anomaly": {
+    "title": "Auffällige {{period}}",
+    "none": "Keine Anomalien erkannt",
+    "withinStdDev": "Alle Kosten liegen innerhalb von 2 Standardabweichungen",
+    "description": "{{period}} mit Kosten >2 Standardabweichungen vom Mittelwert ({{mean}} ± {{stdDev}})",
+    "critical": "kritisch"
+  },
+  "tables": {
+    "modelEfficiency": {
+      "title": "Modell-Effizienz",
+      "count": "{{count}} Modelle",
+      "topModel": "Top Modell",
+      "mostEfficient": "Effizientestes Modell",
+      "totalRequests": "Gesamt-Requests",
+      "topModelTokens": "Top Modell Tokens",
+      "share": "{{value}} Anteil",
+      "perModel": "{{value}} / Modell",
+      "more": "+{{count}} weitere",
+      "model": "Modell",
+      "cost": "Kosten",
+      "tokens": "Tokens",
+      "shareShort": "Anteil",
+      "req": "Req",
+      "reqShare": "Req %",
+      "costPerReq": "$ / Req",
+      "tokensPerReq": "Tokens / Req",
+      "cacheShare": "Cache %",
+      "thinkingShare": "Think %",
+      "avgPerUnit": "Ø/{{unit}}"
+    },
+    "providerEfficiency": {
+      "title": "Provider-Effizienz",
+      "count": "{{count}} Anbieter",
+      "leadProvider": "Lead Provider",
+      "mostEfficient": "Effizientester Provider",
+      "totalRequests": "Gesamt-Requests",
+      "share": "{{value}} Anteil",
+      "perProvider": "{{value}} / Anbieter",
+      "avgPerUnit": "Ø/{{unit}}",
+      "provider": "Provider",
+      "cost": "Kosten",
+      "shareShort": "Anteil",
+      "req": "Req",
+      "tokens": "Tokens",
+      "costPerReq": "$ / Req",
+      "costPerMillion": "$/1M",
+      "cacheShare": "Cache %"
+    },
+    "recentDays": {
+      "daysDetail": "Letzte Tage im Detail",
+      "monthsDetail": "Monate im Detail",
+      "yearsDetail": "Jahre im Detail",
+      "showing": "Zeige {{shown}} von {{total}} {{unit}}",
+      "showLess": "Weniger anzeigen",
+      "showAll": "Alle anzeigen",
+      "totalCost": "Gesamtkosten",
+      "totalTokens": "Gesamt-Tokens",
+      "requests": "Requests",
+      "cacheReadShare": "Cache Read Anteil",
+      "peak": "Peak",
+      "previousDay": "Vortag",
+      "avg7d": "7T-Ø",
+      "reqAvg": "Req-Ø",
+      "date": "Datum",
+      "cost": "Kosten",
+      "tokens": "Tokens",
+      "models": "Modelle"
+    }
+  },
+  "helpPanel": {
+    "chartsAndFeatures": "Charts & Features",
+    "metricLabels": {
+      "totalCost": "Gesamtkosten",
+      "totalTokens": "Tokens gesamt",
+      "activeDays": "Aktive Tage",
+      "topModel": "Top-Modell",
+      "cacheHitRate": "Cache-Hit-Rate",
+      "costPerMillion": "Kosten / 1M Tokens",
+      "mostExpensiveDay": "Teuerster Tag",
+      "cheapestDay": "Günstigster Tag",
+      "avgCostPerDay": "Ø Kosten / Tag",
+      "outputTokens": "Output-Tokens"
+    },
+    "chartLabels": {
+      "costOverTime": "Kosten über Zeit",
+      "costByModel": "Kosten nach Modell",
+      "costByModelOverTime": "Kosten/Modell über Zeit",
+      "cumulativeCost": "Kumulative Kosten",
+      "costByWeekday": "Kosten nach Wochentag",
+      "tokensOverTime": "Tokens über Zeit",
+      "requestsOverTime": "Requests im Zeitverlauf",
+      "tokenTypes": "Token-Typen",
+      "tokenEfficiency": "Token-Effizienz",
+      "modelMix": "Modell-Mix",
+      "distributionAnalysis": "Verteilungen",
+      "correlationAnalysis": "Korrelationen",
+      "heatmap": "Kosten-Heatmap",
+      "requestHeatmap": "Request-Heatmap",
+      "tokenHeatmap": "Token-Heatmap",
+      "forecast": "Prognose",
+      "cacheROI": "Cache-ROI",
+      "periodComparison": "Periodenvergleich",
+      "anomalyDetection": "Anomalie-Erkennung"
+    },
+    "sectionLabels": {
+      "insights": "Insights",
+      "metrics": "Metriken",
+      "today": "Heute",
+      "currentMonth": "Monat",
+      "activity": "Aktivität",
+      "forecastCache": "Prognose & Cache",
+      "costAnalysis": "Kostenanalyse",
+      "tokenAnalysis": "Token-Analyse",
+      "requestAnalysis": "Request-Analyse",
+      "advancedAnalysis": "Verteilungen & Risiko",
+      "comparisons": "Vergleiche & Anomalien",
+      "tables": "Tabellen",
+      "limits": "Limits & Subscriptions"
+    },
+    "featureLabels": {
+      "requestQuality": "Request-Qualität",
+      "providerLimits": "Limits & Subscriptions",
+      "concentrationRisk": "Konzentrationsrisiko",
+      "providerEfficiency": "Provider-Effizienz",
+      "modelEfficiency": "Modell-Effizienz",
+      "recentDays": "Zeiträume im Detail"
+    }
+  },
+  "autoImportModal": {
+    "title": "Toktrack Auto-Import",
+    "description": "Importiert lokale Nutzungsdaten automatisch via lokalem `toktrack`, `bunx` oder `npm exec` und speichert sie nur auf diesem Gerät.",
+    "connecting": "Verbinde...",
+    "checkingTool": "Prüfe {{tool}}...",
+    "toolFound": "{{tool}} gefunden ({{method}}, v{{version}})",
+    "toolNotFound": "{{tool}} nicht gefunden",
+    "importedDays": "{{days}} Tage importiert ({{cost}} USD)",
+    "checkingPrerequisites": "Prüfe Voraussetzungen...",
+    "importingData": "Importiere Daten...",
+    "startingLocalImport": "Starte lokalen toktrack-Import...",
+    "loadingUsageData": "Lade Nutzungsdaten via {{command}}...",
+    "processingUsageData": "Verarbeite Nutzungsdaten... ({{seconds}}s)",
+    "serverConnectionLost": "Verbindung zum Server verloren.",
+    "autoImportRunning": "Ein Auto-Import läuft bereits. Bitte warten.",
+    "noRunnerFound": "Kein lokales toktrack, Bun oder npm exec gefunden.",
+    "errorPrefix": "Fehler: {{message}}",
+    "loadedDays": "{{days}} Tage geladen ({{cost}} USD)",
+    "errorOccurred": "Fehler aufgetreten",
+    "close": "Schliessen"
+  },
+  "commandPalette": {
+    "title": "Command Palette",
+    "description": "Tastaturgesteuerte Befehlsauswahl für Navigation und Aktionen im ttdash Dashboard.",
+    "placeholder": "Befehl suchen...",
+    "empty": "Kein Befehl gefunden.",
+    "groups": {
+      "actions": "Aktionen",
+      "filters": "Filter & Ansicht",
+      "navigation": "Navigation",
+      "view": "Ansicht",
+      "language": "Sprache",
+      "help": "Hilfe",
+      "providers": "Anbieter",
+      "models": "Modelle"
+    },
+    "commands": {
+      "autoImport": {
+        "label": "Auto-Import starten",
+        "description": "Lokalen toktrack Import ausführen"
+      },
+      "openLimits": {
+        "label": "Limits öffnen",
+        "description": "Provider Limits und Subscriptions konfigurieren"
+      },
+      "exportCsv": {
+        "label": "CSV exportieren",
+        "description": "Aktuell gefilterte Daten exportieren"
+      },
+      "generateReport": {
+        "label": "PDF-Report generieren",
+        "labelLoading": "PDF-Report wird generiert",
+        "description": "Aktuell gefilterte Daten als PDF exportieren"
+      },
+      "upload": {
+        "label": "JSON hochladen",
+        "description": "toktrack oder Legacy JSON importieren"
+      },
+      "delete": {
+        "label": "Daten löschen",
+        "description": "Lokalen Datensatz entfernen"
+      },
+      "viewDaily": {
+        "label": "Zur Tagesansicht wechseln",
+        "description": "Daten pro Tag anzeigen"
+      },
+      "viewMonthly": {
+        "label": "Zur Monatsansicht wechseln",
+        "description": "Daten pro Monat anzeigen"
+      },
+      "viewYearly": {
+        "label": "Zur Jahresansicht wechseln",
+        "description": "Daten pro Jahr anzeigen"
+      },
+      "preset7d": {
+        "label": "Zeitraum: letzte 7 Tage",
+        "description": "Setzt den Datumsfilter auf 7 Tage"
+      },
+      "preset30d": {
+        "label": "Zeitraum: letzte 30 Tage",
+        "description": "Setzt den Datumsfilter auf 30 Tage"
+      },
+      "presetMonth": {
+        "label": "Zeitraum: aktueller Monat",
+        "description": "Setzt den Datumsfilter auf den laufenden Monat"
+      },
+      "presetYear": {
+        "label": "Zeitraum: aktuelles Jahr",
+        "description": "Setzt den Datumsfilter auf das laufende Jahr"
+      },
+      "presetAll": {
+        "label": "Zeitraum: alle Daten",
+        "description": "Entfernt Preset-Zeitraumfilter"
+      },
+      "clearProviders": {
+        "label": "Anbieterfilter zurücksetzen",
+        "description": "Alle aktiven Anbieterfilter entfernen"
+      },
+      "clearModels": {
+        "label": "Modellfilter zurücksetzen",
+        "description": "Alle aktiven Modellfilter entfernen"
+      },
+      "clearDates": {
+        "label": "Datumsfilter zurücksetzen",
+        "description": "Start- und Enddatum entfernen"
+      },
+      "scrollTop": {
+        "label": "Nach oben scrollen",
+        "description": "Zum Seitenanfang springen"
+      },
+      "scrollBottom": {
+        "label": "Nach unten scrollen",
+        "description": "Zum Seitenende springen"
+      },
+      "filters": {
+        "label": "Zu Filtern",
+        "description": "Springt zur Filterleiste"
+      },
+      "insights": {
+        "label": "Zu Insights",
+        "description": "Springt zur Executive Summary"
+      },
+      "metrics": {
+        "label": "Zu Metriken",
+        "description": "Springt zu den KPI-Karten"
+      },
+      "today": {
+        "label": "Zu Heute",
+        "description": "Springt zu den KPIs des aktuellen Tages"
+      },
+      "month": {
+        "label": "Zu Monat",
+        "description": "Springt zu den KPIs des aktuellen Monats"
+      },
+      "activity": {
+        "label": "Zu Aktivität",
+        "description": "Springt zur Aktivitäts-Heatmap"
+      },
+      "forecastCache": {
+        "label": "Zu Prognose & Cache",
+        "description": "Springt zu Forecast und Cache ROI"
+      },
+      "limits": {
+        "label": "Zu Limits & Subscriptions",
+        "description": "Springt zur Limits-Sektion"
+      },
+      "charts": {
+        "label": "Zu Kostenanalyse",
+        "description": "Springt zu den Kostencharts"
+      },
+      "tokenAnalysis": {
+        "label": "Zu Token-Analyse",
+        "description": "Springt zu Token-Charts und Verteilungen"
+      },
+      "requestAnalysis": {
+        "label": "Zu Request-Analyse",
+        "description": "Springt zu Requests im Zeitverlauf und Request-Verteilung"
+      },
+      "comparisons": {
+        "label": "Zu Vergleiche & Anomalien",
+        "description": "Springt zu Periodenvergleich und Auffälligkeiten"
+      },
+      "tables": {
+        "label": "Zu Tabellen",
+        "description": "Springt zu den Detailtabellen"
+      },
+      "themeLight": {
+        "label": "Light Mode aktivieren",
+        "description": "Zwischen hellem und dunklem Theme wechseln"
+      },
+      "themeDark": {
+        "label": "Dark Mode aktivieren",
+        "description": "Zwischen hellem und dunklem Theme wechseln"
+      },
+      "languageGerman": {
+        "label": "Auf Deutsch wechseln",
+        "description": "Die Dashboard-Sprache auf Deutsch umstellen"
+      },
+      "languageEnglish": {
+        "label": "Auf Englisch wechseln",
+        "description": "Die Dashboard-Sprache auf Englisch umstellen"
+      },
+      "help": {
+        "label": "Hilfe & Tastenkürzel öffnen",
+        "description": "Öffnet die Hilfeübersicht"
+      }
+    }
+  },
+  "limits": {
+    "sectionTitle": "Limits & Subscriptions",
+    "sectionDescription": "Budget-Risiko getrennt von Subscription-Wirkung im aktuellen Filterkontext",
+    "providersBadge": "{{count}} Anbieter",
+    "warningBanner": "{{count}} Anbieter haben ihr Monatslimit im aktuellen Ausschnitt erreicht oder überschritten.",
+    "cards": {
+      "atLimit": "Anbieter am Limit",
+      "nearLimit": "Nahe am Limit",
+      "subscriptionVolume": "Subscription-Volumen",
+      "subscriptionValue": "Subscription-Mehrwert",
+      "nearLimitHint": "ab 80% Auslastung",
+      "subscriptionVolumeHint": "fixe Kosten / Monat",
+      "subscriptionValueHint": "Usage über Subscription",
+      "noMonth": "Kein Monat"
+    },
+    "statuses": {
+      "limitExceeded": "Limit überschritten",
+      "budgetTight": "Budget angespannt",
+      "budgetStable": "Budget stabil",
+      "noLimit": "Kein Limit gesetzt",
+      "noSubscription": "Keine Subscription",
+      "subscriptionPaysOff": "Subscription zahlt sich aus",
+      "belowSubscription": "Noch unter Subscription"
+    },
+    "tracks": {
+      "budgetTitle": "Budget-Status je Anbieter",
+      "budgetSubtitle": "Jeder Track zeigt pro Anbieter direkt den Abstand bis zum Limit oder den bereits eingetretenen Überzug",
+      "budgetNoMonth": "Kein Monat im aktuellen Ausschnitt",
+      "subscriptionTitle": "Subscription-Status je Anbieter",
+      "subscriptionSubtitle": "Jeder Track zeigt pro Anbieter direkt den Abstand zum Break-even oder den bereits erreichten Mehrwert",
+      "subscriptionNoMonth": "Kein Monat im aktuellen Ausschnitt",
+      "portfolioTitle": "Portfolio-Entwicklung",
+      "portfolioSubtitle": "Monatlicher Verlauf von Usage, konfigurierten Limits und Subscription-Wirkung",
+      "usage": "Usage",
+      "limit": "Limit",
+      "subscription": "Subscription",
+      "breakEven": "Break-even",
+      "currentlyUsed": "Aktuell verbraucht",
+      "remainingToLimit": "Bis Limit offen",
+      "alreadyOverLimit": "Schon darüber",
+      "remainingToBreakEven": "Bis Break-even offen",
+      "alreadyAboveBreakEven": "Schon darüber",
+      "usageFocusMonth": "Kosten Fokusmonat",
+      "limitSubscription": "Limit / Subscription",
+      "budgetRisk": "Budget-Risiko",
+      "subscriptionEffect": "Subscription-Wirkung",
+      "stillToLimit": "Noch {{value}} bis zum Limit",
+      "alreadyAboveLimit": "Schon {{value}} über Limit",
+      "stillToBreakEven": "Noch {{value}} bis Break-even",
+      "alreadyAboveBreakEvenText": "Schon {{value}} über Break-even",
+      "noSubscriptionSet": "Keine Subscription gesetzt"
+    },
+    "modal": {
+      "title": "Provider Limits",
+      "description": "Definiere pro Anbieter Subscription und Monatslimit. Nur Anbieter aus dem aktuell geladenen Report sind editierbar. Ein Limit von 0 bedeutet kein Limit.",
+      "noProviders": "Keine Anbieter im geladenen Report gefunden.",
+      "hasSubscription": "Subscription vorhanden",
+      "subscriptionPerMonth": "Subscription $/Monat",
+      "monthlyLimit": "Monatslimit $",
+      "close": "Schliessen",
+      "save": "Speichern"
+    }
+  },
+  "report": {
+    "title": "TTDash Report"
+  },
+  "api": {
+    "fetchUsageFailed": "Fehler beim Laden der Daten",
+    "uploadFailed": "Upload fehlgeschlagen",
+    "deleteFailed": "Löschen fehlgeschlagen",
+    "pdfFailed": "PDF-Generierung fehlgeschlagen"
+  },
+  "toasts": {
+    "fileLoaded": "Datei {{name}} erfolgreich geladen",
+    "fileReadFailed": "Datei konnte nicht gelesen werden",
+    "dataDeleted": "Daten gelöscht",
+    "csvExported": "CSV exportiert",
+    "dataImported": "Daten erfolgreich importiert"
+  }
+}

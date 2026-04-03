@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatTokens, localToday, toLocalDateStr } from '@/lib/formatters'
+import { getCurrentLocale } from '@/lib/i18n'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface HeatmapCalendarProps {
@@ -14,8 +16,6 @@ interface HeatmapCalendarProps {
 const CELL_SIZE = 14
 const CELL_GAP = 2
 const TOTAL = CELL_SIZE + CELL_GAP
-const DAY_LABELS = ['Mo', '', 'Mi', '', 'Fr', '', 'So']
-
 function getColor(value: number, maxValue: number, hue: number): string {
   if (value === 0) return 'hsl(224, 12%, 14%)'
   const intensity = Math.min(value / maxValue, 1)
@@ -28,15 +28,18 @@ function getColor(value: number, maxValue: number, hue: number): string {
   return `hsl(${hue}, 70%, 70%)`
 }
 
-const HEATMAP_CONFIG = {
-  cost: { title: 'Kosten-Heatmap', empty: 'Kosten-Heatmap nur in der Tagesansicht verfügbar', formatter: formatCurrency, accessor: (entry: DailyUsage) => entry.totalCost, hue: 215 },
-  requests: { title: 'Request-Heatmap', empty: 'Request-Heatmap nur in der Tagesansicht verfügbar', formatter: formatNumber, accessor: (entry: DailyUsage) => entry.requestCount, hue: 160 },
-  tokens: { title: 'Token-Heatmap', empty: 'Token-Heatmap nur in der Tagesansicht verfügbar', formatter: formatTokens, accessor: (entry: DailyUsage) => entry.totalTokens, hue: 35 },
-} as const
-
 export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: HeatmapCalendarProps) {
+  const { t } = useTranslation()
   const [tooltip, setTooltip] = useState<{ x: number; y: number; date: string; value: number } | null>(null)
-  const config = HEATMAP_CONFIG[metric]
+  const dayLabels = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => index).map((index) => index % 2 === 1 ? '' : new Intl.DateTimeFormat(getCurrentLocale(), { weekday: 'short' }).format(new Date(Date.UTC(2024, 0, 1 + index))).slice(0, 2)),
+    []
+  )
+  const config = {
+    cost: { title: t('charts.heatmap.costTitle'), empty: t('charts.heatmap.costEmpty'), formatter: formatCurrency, accessor: (entry: DailyUsage) => entry.totalCost, hue: 215 },
+    requests: { title: t('charts.heatmap.requestsTitle'), empty: t('charts.heatmap.requestsEmpty'), formatter: formatNumber, accessor: (entry: DailyUsage) => entry.requestCount, hue: 160 },
+    tokens: { title: t('charts.heatmap.tokensTitle'), empty: t('charts.heatmap.tokensEmpty'), formatter: formatTokens, accessor: (entry: DailyUsage) => entry.totalTokens, hue: 35 },
+  }[metric]
   const infoText = metric === 'cost'
     ? CHART_HELP.heatmap
     : metric === 'requests'
@@ -78,7 +81,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
         const m = currentDate.getMonth()
         if (m !== lastMonth) {
           monthLabels.push({
-            label: currentDate.toLocaleDateString('de-CH', { month: 'short' }),
+            label: currentDate.toLocaleDateString(getCurrentLocale(), { month: 'short' }),
             week,
           })
           lastMonth = m
@@ -110,7 +113,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-sm text-muted-foreground">{config.empty}</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Wechsle zur Tagesansicht für die Kalender-Heatmap</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">{t('charts.heatmap.switchToDaily')}</p>
           </div>
         </CardContent>
       </Card>
@@ -134,7 +137,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
         <div className="relative overflow-x-auto">
           <svg width={svgWidth} height={svgHeight} className="block">
             {/* Day labels */}
-            {DAY_LABELS.map((label, i) => (
+            {dayLabels.map((label, i) => (
               label && (
                 <text
                   key={i}
@@ -215,7 +218,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
 
           {/* Legend */}
           <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground">
-            <span>Weniger</span>
+            <span>{t('charts.heatmap.less')}</span>
             {[0, 0.15, 0.30, 0.45, 0.60, 0.75, 0.90, 1].map((level, i) => (
               <div
                 key={i}
@@ -223,7 +226,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
                 style={{ backgroundColor: getColor(level * maxValue, maxValue, config.hue) }}
               />
             ))}
-            <span>Mehr</span>
+            <span>{t('charts.heatmap.more')}</span>
           </div>
         </div>
       </CardContent>

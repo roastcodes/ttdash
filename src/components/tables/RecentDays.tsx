@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { FEATURE_HELP } from '@/lib/help-content'
-import { formatCurrency, formatDate, formatPercent } from '@/lib/formatters'
+import { formatCurrency, formatDate, formatPercent, formatNumber } from '@/lib/formatters'
 import { normalizeModelName, getModelColor, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
@@ -20,6 +21,7 @@ interface RecentDaysProps {
 type SortKey = 'date' | 'cost' | 'tokens' | 'costPerM'
 
 export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysProps) {
+  const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortAsc, setSortAsc] = useState(false)
@@ -83,17 +85,17 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
         <div className="flex flex-col gap-0.5">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             <span className="inline-flex items-center gap-2">
-              {viewMode === 'monthly' ? 'Monate im Detail' : viewMode === 'yearly' ? 'Jahre im Detail' : 'Letzte Tage im Detail'}
+              {viewMode === 'monthly' ? t('tables.recentDays.monthsDetail') : viewMode === 'yearly' ? t('tables.recentDays.yearsDetail') : t('tables.recentDays.daysDetail')}
               <InfoButton text={FEATURE_HELP.recentDays} />
             </span>
           </CardTitle>
           <span className="text-xs text-muted-foreground/70">
-            Zeige {displayed.length} von {sorted.length} {periodLabel(viewMode, true)}
+            {t('tables.recentDays.showing', { shown: displayed.length, total: sorted.length, unit: periodLabel(viewMode, true) })}
           </span>
         </div>
         {sorted.length > 30 && (
           <Button variant="ghost" size="sm" onClick={() => setShowAll(!showAll)}>
-            {showAll ? 'Weniger anzeigen' : 'Alle anzeigen'}
+            {showAll ? t('tables.recentDays.showLess') : t('tables.recentDays.showAll')}
           </Button>
         )}
       </CardHeader>
@@ -101,23 +103,23 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
         {summary && (
           <div className="mb-3 grid grid-cols-2 lg:grid-cols-5 gap-2">
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Gesamtkosten</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.recentDays.totalCost')}</div>
               <div className="mt-1 text-sm font-medium"><FormattedValue value={summary.totalCost} type="currency" /></div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Gesamt-Tokens</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.recentDays.totalTokens')}</div>
               <div className="mt-1 text-sm font-medium"><FormattedValue value={summary.totalTokens} type="tokens" /></div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Requests</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.recentDays.requests')}</div>
               <div className="mt-1 text-sm font-medium"><FormattedValue value={summary.totalRequests} type="number" /></div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Cache Read Anteil</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.recentDays.cacheReadShare')}</div>
               <div className="mt-1 text-sm font-medium">{formatPercent(summary.cacheShare, 1)}</div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Peak</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.recentDays.peak')}</div>
               <div className="mt-1 text-sm font-medium">{summary.top ? formatDate(summary.top.date) : '–'}</div>
               <div className="text-xs text-muted-foreground">{summary.top ? `${summary.top.totalCost.toFixed(2)} USD` : '–'}</div>
             </div>
@@ -139,25 +141,25 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="font-medium">{formatDate(day.date, 'long')}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">{day.requestCount.toLocaleString('de-CH')} Requests</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{formatNumber(day.requestCount)} {t('common.requests')}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-mono font-semibold"><FormattedValue value={day.totalCost} type="currency" /></div>
                     <div className="text-xs text-muted-foreground"><FormattedValue value={day.totalTokens} type="tokens" /></div>
                     {viewMode === 'daily' && benchmarkMap.get(day.date)?.prevCostDelta !== undefined && (
                       <div className="mt-1 text-[10px] text-muted-foreground">
-                        Vortag {benchmarkMap.get(day.date)!.prevCostDelta! >= 0 ? '↑' : '↓'}{Math.abs(benchmarkMap.get(day.date)!.prevCostDelta!).toFixed(0)}%
+                        {t('tables.recentDays.previousDay')} {benchmarkMap.get(day.date)!.prevCostDelta! >= 0 ? '↑' : '↓'}{Math.abs(benchmarkMap.get(day.date)!.prevCostDelta!).toFixed(0)}%
                       </div>
                     )}
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                   <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                    <div className="text-muted-foreground">Input</div>
+                    <div className="text-muted-foreground">{t('common.input')}</div>
                     <div className="mt-1 font-mono"><FormattedValue value={day.inputTokens} type="tokens" /></div>
                   </div>
                   <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                    <div className="text-muted-foreground">Output</div>
+                    <div className="text-muted-foreground">{t('common.output')}</div>
                     <div className="mt-1 font-mono"><FormattedValue value={day.outputTokens} type="tokens" /></div>
                   </div>
                   <div className="rounded-lg bg-muted/20 px-2.5 py-2">
@@ -183,13 +185,13 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   ))}
                   {uniqueModels.length > 4 && (
                     <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] text-muted-foreground border border-border/50">
-                      +{uniqueModels.length - 4} weitere
+                      {t('tables.modelEfficiency.more', { count: uniqueModels.length - 4 })}
                     </span>
                   )}
                 </div>
                 {viewMode === 'daily' && benchmarkMap.get(day.date)?.avgCost7 !== undefined && (
                   <div className="mt-3 text-[10px] text-muted-foreground">
-                    7T-Ø {formatCurrency(benchmarkMap.get(day.date)!.avgCost7!)} · Req-Ø {benchmarkMap.get(day.date)!.avgRequests7?.toFixed(0) ?? '–'}
+                    {t('tables.recentDays.avg7d')} {formatCurrency(benchmarkMap.get(day.date)!.avgCost7!)} · {t('tables.recentDays.reqAvg')} {benchmarkMap.get(day.date)!.avgRequests7?.toFixed(0) ?? '–'}
                   </div>
                 )}
               </button>
@@ -202,24 +204,24 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border">
                 <th className={cn("px-2 py-2 text-left text-xs font-medium cursor-pointer hover:text-foreground transition-colors", sortKey === 'date' ? 'text-foreground' : 'text-muted-foreground')} onClick={() => handleSort('date')}>
-                  <span className="inline-flex items-center gap-1">Datum <ArrowUpDown className={cn("h-3 w-3", sortKey === 'date' && "text-primary")} /></span>
+                  <span className="inline-flex items-center gap-1">{t('tables.recentDays.date')} <ArrowUpDown className={cn("h-3 w-3", sortKey === 'date' && "text-primary")} /></span>
                 </th>
                 <th className={cn("px-2 py-2 text-right text-xs font-medium cursor-pointer hover:text-foreground transition-colors", sortKey === 'cost' ? 'text-foreground' : 'text-muted-foreground')} onClick={() => handleSort('cost')}>
-                  <span className="inline-flex items-center gap-1">Kosten <ArrowUpDown className={cn("h-3 w-3", sortKey === 'cost' && "text-primary")} /></span>
+                  <span className="inline-flex items-center gap-1">{t('tables.recentDays.cost')} <ArrowUpDown className={cn("h-3 w-3", sortKey === 'cost' && "text-primary")} /></span>
                 </th>
                 <th className={cn("px-2 py-2 text-right text-xs font-medium cursor-pointer hover:text-foreground transition-colors", sortKey === 'tokens' ? 'text-foreground' : 'text-muted-foreground')} onClick={() => handleSort('tokens')}>
-                  <span className="inline-flex items-center gap-1">Tokens <ArrowUpDown className={cn("h-3 w-3", sortKey === 'tokens' && "text-primary")} /></span>
+                  <span className="inline-flex items-center gap-1">{t('tables.recentDays.tokens')} <ArrowUpDown className={cn("h-3 w-3", sortKey === 'tokens' && "text-primary")} /></span>
                 </th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden md:table-cell">Input</th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden md:table-cell">Output</th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden lg:table-cell">Cache Write</th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden lg:table-cell">Cache Read</th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden xl:table-cell">Thinking</th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden xl:table-cell">Req</th>
+                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden md:table-cell">{t('common.input')}</th>
+                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden md:table-cell">{t('common.output')}</th>
+                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden lg:table-cell">{t('common.cacheWrite')}</th>
+                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden lg:table-cell">{t('common.cacheRead')}</th>
+                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden xl:table-cell">{t('common.thinking')}</th>
+                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden xl:table-cell">{t('common.requestsShort')}</th>
                 <th className={cn("px-2 py-2 text-right text-xs font-medium cursor-pointer hover:text-foreground transition-colors", sortKey === 'costPerM' ? 'text-foreground' : 'text-muted-foreground')} onClick={() => handleSort('costPerM')}>
                   <span className="inline-flex items-center gap-1">$/1M <ArrowUpDown className={cn("h-3 w-3", sortKey === 'costPerM' && "text-primary")} /></span>
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">Modelle</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">{t('tables.recentDays.models')}</th>
               </tr>
             </thead>
             <tbody>
@@ -285,7 +287,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                       </div>
                       {viewMode === 'daily' && benchmarkMap.get(day.date)?.avgCost7 !== undefined && (
                         <div className="mt-1 text-[10px] text-muted-foreground">
-                          Vortag {benchmarkMap.get(day.date)?.prevCostDelta !== undefined ? `${benchmarkMap.get(day.date)!.prevCostDelta! >= 0 ? '↑' : '↓'}${Math.abs(benchmarkMap.get(day.date)!.prevCostDelta!).toFixed(0)}%` : '–'} · 7T-Ø {formatCurrency(benchmarkMap.get(day.date)!.avgCost7!)}
+                          {t('tables.recentDays.previousDay')} {benchmarkMap.get(day.date)?.prevCostDelta !== undefined ? `${benchmarkMap.get(day.date)!.prevCostDelta! >= 0 ? '↑' : '↓'}${Math.abs(benchmarkMap.get(day.date)!.prevCostDelta!).toFixed(0)}%` : '–'} · {t('tables.recentDays.avg7d')} {formatCurrency(benchmarkMap.get(day.date)!.avgCost7!)}
                         </div>
                       )}
                     </td>

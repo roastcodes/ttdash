@@ -1,4 +1,5 @@
 import { useId, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
@@ -14,6 +15,7 @@ interface CumulativeCostProps {
 }
 
 export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
+  const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
 
   // Add projected end-of-month line
@@ -45,7 +47,7 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
   const lastCumulative = data[data.length - 1]?.cumulative ?? 0
 
   return (
-    <ChartCard title="Kumulative Kosten" subtitle={`Gesamt: ${formatCurrency(lastCumulative)}`} info={CHART_HELP.cumulativeCost} chartData={data as unknown as Record<string, unknown>[]} valueKey="cumulative" valueFormatter={formatCurrency}>
+    <ChartCard title={t('charts.cumulativeCost.title')} subtitle={t('charts.cumulativeCost.total', { value: formatCurrency(lastCumulative) })} info={CHART_HELP.cumulativeCost} chartData={data as unknown as Record<string, unknown>[]} valueKey="cumulative" valueFormatter={formatCurrency}>
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="line" delay={0.05}>
@@ -67,7 +69,7 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
                 dataKey="cumulative"
                 stroke={CHART_COLORS.cumulative}
                 fill={`url(#${uid}-cumulGrad)`}
-                name="Kumulativ"
+                name={t('charts.cumulativeCost.cumulative')}
                 strokeWidth={2}
                 activeDot={{ r: 5, strokeWidth: 2, stroke: CHART_COLORS.cumulative, fill: 'hsl(var(--background))' }}
                 dot={false}
@@ -84,7 +86,7 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 dot={false}
-                name="Projektion"
+                name={t('charts.cumulativeCost.projection')}
                 connectNulls
                 isAnimationActive={animate}
                 animationBegin={CHART_ANIMATION.stagger}

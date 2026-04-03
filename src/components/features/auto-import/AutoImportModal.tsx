@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { LoaderCircle, CheckCircle2, XCircle, Terminal } from 'lucide-react'
@@ -28,6 +29,7 @@ const lineColors: Record<LineType, string> = {
 }
 
 export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportModalProps) {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<Status>('idle')
   const [lines, setLines] = useState<Line[]>([])
   const [summary, setSummary] = useState<SuccessEvent | null>(null)
@@ -48,12 +50,12 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
     const handle = startAutoImport({
       onCheck: (data: CheckEvent) => {
         if (data.status === 'checking') {
-          addLine('check', `Prüfe ${data.tool}...`)
+          addLine('check', t('autoImportModal.checkingTool', { tool: data.tool }))
         } else if (data.status === 'found') {
-          addLine('check', `${data.tool} gefunden (${data.method}, v${data.version})`)
+          addLine('check', t('autoImportModal.toolFound', { tool: data.tool, method: data.method, version: data.version }))
           setStatus('running')
         } else if (data.status === 'not_found') {
-          addLine('check', `${data.tool} nicht gefunden`)
+          addLine('check', t('autoImportModal.toolNotFound', { tool: data.tool }))
         }
       },
       onProgress: (data) => {
@@ -63,7 +65,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
         addLine('stderr', data.line)
       },
       onSuccess: (data: SuccessEvent) => {
-        addLine('success', `${data.days} Tage importiert (${data.totalCost.toFixed(2)} USD)`)
+        addLine('success', t('autoImportModal.importedDays', { days: data.days, cost: data.totalCost.toFixed(2) }))
         setSummary(data)
         setStatus('success')
         onSuccess()
@@ -75,7 +77,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
       onDone: () => {
         closeRef.current = null
       },
-    })
+    }, t)
 
     closeRef.current = handle
 
@@ -83,7 +85,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
       handle.close()
       closeRef.current = null
     }
-  }, [open, addLine, onSuccess])
+  }, [open, addLine, onSuccess, t])
 
   // Auto-scroll
   useEffect(() => {
@@ -100,10 +102,10 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Terminal className="h-5 w-5" />
-            Toktrack Auto-Import
+            {t('autoImportModal.title')}
           </DialogTitle>
           <DialogDescription>
-            Importiert lokale Nutzungsdaten automatisch via lokalem `toktrack`, `bunx` oder `npm exec` und speichert sie nur auf diesem Gerät.
+            {t('autoImportModal.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -113,7 +115,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
           className="bg-muted/30 rounded-lg p-3 font-mono text-xs max-h-[300px] min-h-[120px] overflow-y-auto border border-border"
         >
           {lines.length === 0 && (
-            <span className="text-muted-foreground">Verbinde...</span>
+            <span className="text-muted-foreground">{t('autoImportModal.connecting')}</span>
           )}
           {lines.map((line, i) => (
             <div key={i} className={lineColors[line.type]}>
@@ -131,7 +133,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
               <>
                 <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
                 <span className="text-muted-foreground">
-                  {status === 'checking' ? 'Prüfe Voraussetzungen...' : 'Importiere Daten...'}
+                  {status === 'checking' ? t('autoImportModal.checkingPrerequisites') : t('autoImportModal.importingData')}
                 </span>
               </>
             )}
@@ -139,21 +141,21 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
               <>
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                 <span className="text-green-500">
-                  {summary.days} Tage geladen ({summary.totalCost.toFixed(2)} USD)
+                  {t('autoImportModal.loadedDays', { days: summary.days, cost: summary.totalCost.toFixed(2) })}
                 </span>
               </>
             )}
             {status === 'error' && (
               <>
                 <XCircle className="h-4 w-4 text-destructive" />
-                <span className="text-destructive">Fehler aufgetreten</span>
+                <span className="text-destructive">{t('autoImportModal.errorOccurred')}</span>
               </>
             )}
           </div>
 
           {!isRunning && (
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-              Schliessen
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+              {t('autoImportModal.close')}
             </Button>
           )}
         </div>

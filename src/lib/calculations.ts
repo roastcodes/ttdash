@@ -358,9 +358,9 @@ export function computeCurrentMonthForecast(data: DailyUsage[]) {
     ? { avg: recentAvg, change: ((recentAvg - previousAvg) / previousAvg) * 100 }
     : { avg: recentAvg, change: 0 }
 
-  let confidence = 'niedrig'
-  if (elapsedDays >= 14 && volatility <= projectedDailyBurn * 0.75) confidence = 'hoch'
-  else if (elapsedDays >= 7 && volatility <= projectedDailyBurn * 1.25) confidence = 'mittel'
+  let confidence = 'low'
+  if (elapsedDays >= 14 && volatility <= projectedDailyBurn * 0.75) confidence = 'high'
+  else if (elapsedDays >= 7 && volatility <= projectedDailyBurn * 1.25) confidence = 'medium'
 
   return {
     currentMonth,

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { formatCurrency, formatDate } from '@/lib/formatters'
@@ -15,6 +16,7 @@ interface AnomalyDetectionProps {
 }
 
 export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: AnomalyDetectionProps) {
+  const { t } = useTranslation()
   const { anomalies, mean, stdDev } = useMemo(() => {
     if (data.length < 3) return { anomalies: [], mean: 0, stdDev: 0 }
     const costs = data.map(d => d.totalCost)
@@ -28,14 +30,14 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            Auffällige {periodLabel(viewMode, true)}
+            {t('anomaly.title', { period: periodLabel(viewMode, true) })}
             <InfoButton text={CHART_HELP.anomalyDetection} />
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-sm text-muted-foreground">Keine Anomalien erkannt</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Alle Kosten liegen innerhalb von 2 Standardabweichungen</p>
+            <p className="text-sm text-muted-foreground">{t('anomaly.none')}</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">{t('anomaly.withinStdDev')}</p>
           </div>
         </CardContent>
       </Card>
@@ -47,13 +49,13 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           <TriangleAlert className="h-4 w-4 text-yellow-500" />
-          Auffällige {periodLabel(viewMode, true)} ({anomalies.length})
+          {t('anomaly.title', { period: periodLabel(viewMode, true) })} ({anomalies.length})
           <InfoButton text={CHART_HELP.anomalyDetection} />
         </CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-xs text-muted-foreground mb-3">
-          {periodLabel(viewMode, true)} mit Kosten &gt;2 Standardabweichungen vom Mittelwert ({formatCurrency(mean)} ± {formatCurrency(stdDev)})
+          {t('anomaly.description', { period: periodLabel(viewMode, true), mean: formatCurrency(mean), stdDev: formatCurrency(stdDev) })}
         </p>
         <div className="space-y-2">
           {anomalies
@@ -77,7 +79,7 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
                     <div className={`w-2 h-2 rounded-full ${isHigh ? 'bg-red-400' : 'bg-green-400'} ${severity === 'critical' ? 'animate-pulse' : ''}`} />
                     <span className="text-sm">{formatDate(day.date, 'long')}</span>
                     {severity === 'critical' && (
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">kritisch</span>
+                      <span className="text-[9px] font-semibold uppercase tracking-wider text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">{t('anomaly.critical')}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-4">

@@ -1,0 +1,891 @@
+{
+  "app": {
+    "name": "TTDash",
+    "language": "Language",
+    "languages": {
+      "de": "German",
+      "en": "English"
+    }
+  },
+  "header": {
+    "import": "Import",
+    "upload": "Upload",
+    "limits": "Limits",
+    "report": "Report",
+    "csv": "CSV",
+    "delete": "Delete",
+    "help": "Help & shortcuts"
+  },
+  "emptyState": {
+    "description": "Upload a `toktrack` or legacy JSON file, or start local auto-import with local `toktrack`, `bunx toktrack daily --json`, or `npx --yes toktrack daily --json`.",
+    "autoImport": "Auto import",
+    "uploadFile": "Upload file",
+    "or": "or"
+  },
+  "viewModes": {
+    "daily": "Daily view",
+    "monthly": "Monthly view",
+    "yearly": "Yearly view"
+  },
+  "periods": {
+    "day": "day",
+    "days": "days",
+    "month": "month",
+    "months": "months",
+    "year": "year",
+    "years": "years",
+    "unitDay": "day",
+    "unitMonth": "mo.",
+    "unitYear": "year"
+  },
+  "common": {
+    "all": "All",
+    "none": "None",
+    "reset": "Reset",
+    "notAvailable": "n/a",
+    "noData": "No data",
+    "generated": "Generated",
+    "view": "View",
+    "dateRange": "Date range",
+    "month": "Month",
+    "provider": "Provider",
+    "providers": "Providers",
+    "model": "Model",
+    "models": "Models",
+    "cost": "Cost",
+    "costs": "Costs",
+    "tokens": "Tokens",
+    "requests": "Requests",
+    "today": "Today",
+    "currentMonth": "Month",
+    "yes": "Yes",
+    "no": "No",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "open": "Open",
+    "close": "Close",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "selectedProviders": "Selected providers",
+    "selectedModels": "Selected models",
+    "allProviders": "All providers",
+    "allModels": "All models",
+    "allMonths": "All months",
+    "noFilter": "No filter",
+    "focusMonth": "Focus month",
+    "showInfo": "Show info",
+    "expand": "Expand",
+    "input": "Input",
+    "output": "Output",
+    "cacheWrite": "Cache write",
+    "cacheRead": "Cache read",
+    "thinking": "Thinking",
+    "requestsShort": "Req",
+    "request": "Request",
+    "share": "Share",
+    "top": "Top"
+  },
+  "filterBar": {
+    "status": "Filter status",
+    "providersActive": "{{count}} providers active",
+    "modelsActive": "{{count}} models active",
+    "dateFilterActive": "Date filter active",
+    "presets": {
+      "7d": "7D",
+      "30d": "30D",
+      "month": "Month",
+      "year": "Year",
+      "all": "All"
+    },
+    "until": "to",
+    "resetDateRange": "Reset date range",
+    "providers": "Providers",
+    "models": "Models",
+    "resetModels": "Reset models"
+  },
+  "dashboard": {
+    "insights": {
+      "title": "Insights",
+      "badge": "Condensed signals",
+      "description": "Focused signals from cost, model, and request data",
+      "quickRead": "Quick read"
+    },
+    "metrics": {
+      "title": "Metrics",
+      "badge": "10 metrics",
+      "description": "Core KPIs at a glance"
+    },
+    "activity": {
+      "title": "Activity",
+      "dailyDescription": "Daily usage overview",
+      "monthlyDescription": "Monthly usage overview",
+      "yearlyDescription": "Yearly usage overview"
+    },
+    "forecastCache": {
+      "title": "Forecast & Cache",
+      "description": "Cost forecast and cache efficiency"
+    },
+    "costAnalysis": {
+      "title": "Cost analysis",
+      "description": "Detailed cost breakdown"
+    },
+    "tokenAnalysis": {
+      "title": "Token analysis",
+      "description": "Usage by token type"
+    },
+    "requestAnalysis": {
+      "title": "Request analysis",
+      "description": "Requests overall, by model, and over time"
+    },
+    "advancedAnalysis": {
+      "title": "Distributions & Risk",
+      "description": "Additional signals for spread, correlation, and dependencies"
+    },
+    "comparisons": {
+      "title": "Comparisons & Anomalies",
+      "description": "Period comparison and outliers"
+    },
+    "tables": {
+      "title": "Tables",
+      "description": "Detailed breakdowns"
+    },
+    "cards": {
+      "periodComparison": "Period comparison",
+      "anomalyDetection": "Anomaly detection",
+      "costForecast": "Cost forecast",
+      "cacheRoi": "Cache ROI"
+    },
+    "stats": {
+      "cacheHitRate": "Cache hit rate",
+      "totalTokens": "Total tokens",
+      "cacheRead": "Cache read",
+      "dataPoints": "Data points",
+      "avgCostPerUnit": "Avg cost/{{unit}}",
+      "total": "Total",
+      "avgPerUnit": "Avg / {{unit}}"
+    }
+  },
+  "metricCards": {
+    "primary": {
+      "totalCost": "Total cost",
+      "totalTokens": "Total tokens",
+      "activeDays": "Active days",
+      "topModel": "Top model",
+      "cacheHitRate": "Cache hit rate",
+      "costPerMillion": "$/1M tokens",
+      "requests": "Requests",
+      "thinking": "Thinking",
+      "avgPerPeriod": "{{value}}/{{unit}} avg",
+      "tokensPerRequestAvg": "{{value}} average per request",
+      "coverageOfDays": "{{coverage}} coverage across {{days}} days",
+      "providersActive": "{{count}} providers active",
+      "share": "{{value}} share",
+      "requestLead": "Req lead: {{value}}",
+      "allTokensViaCacheRead": "{{value}} of all tokens via cache read",
+      "requestCountersMissing": "No request counters in the dataset",
+      "thinkingShareOfVolume": "{{value}} of total token volume",
+      "requestsSubtitle": "Avg {{requests}} / {{unit}} · {{cost}} / req · σ {{volatility}}",
+      "thinkingSubtitle": "{{share}} share · {{tokens}} / request"
+    },
+    "secondary": {
+      "mostExpensiveDay": "Most expensive day",
+      "mostExpensiveMonth": "Most expensive month",
+      "mostExpensiveYear": "Most expensive year",
+      "dominantProvider": "Dominant provider",
+      "peak7Days": "Peak 7 days",
+      "avgCostPerUnit": "Avg cost/{{unit}}",
+      "spread": "Spread: {{value}}",
+      "medianPerUnit": "Median/{{unit}}",
+      "vsAverage": "{{direction}}{{value}}% vs avg",
+      "medianInfo": "The median shows the typical value and is less sensitive to outliers than the average.",
+      "requestLeader": "{{model}} · {{requests}} req",
+      "dominantProviderSubtitle": "{{share}} share · {{cost}}{{requestLeader}}"
+    },
+    "today": {
+      "title": "Today — {{date}}",
+      "description": "KPIs for the current day",
+      "costToday": "Cost today",
+      "tokensToday": "Tokens today",
+      "models": "Models",
+      "costPerMillion": "$/1M tokens",
+      "cacheHitRate": "Cache hit rate",
+      "requests": "Requests",
+      "thinking": "Thinking",
+      "vsAverageShort": "vs avg",
+      "overallAverage": "Overall avg: {{value}}",
+      "cacheShare": "{{value}} cache share",
+      "requestsToday": "Requests today",
+      "avgPerDay": "Avg {{value}}/day",
+      "ioRatio": "I/O ratio: {{value}}:1",
+      "topModel": "Top: {{value}}",
+      "requestsSubtitle": "{{value}} / model · {{cost}}/req",
+      "requestCountersMissing": "No request counters",
+      "thinkingSubtitle": "{{value}} share"
+    },
+    "month": {
+      "title": "Month — {{date}}",
+      "badge": "{{count}} days",
+      "description": "KPIs for the current month",
+      "costMonth": "Month cost",
+      "tokensMonth": "Month tokens",
+      "activeDays": "Active days",
+      "models": "Models",
+      "costPerMillion": "$/1M tokens",
+      "cacheHitRate": "Cache hit rate",
+      "requests": "Requests",
+      "thinking": "Thinking",
+      "vsPreviousMonth": "vs previous month",
+      "coverage": "{{value}} coverage",
+      "requestsInMonth": "Requests this month",
+      "avgPerDay": "Avg {{value}}/day",
+      "ioRatio": "I/O ratio: {{value}}:1",
+      "topModel": "Top: {{value}}",
+      "cacheMix": "In: {{input}} / Out: {{output}}",
+      "requestsSubtitle": "Avg {{value}}/day · {{cost}}/req",
+      "requestCountersMissing": "No request counters",
+      "thinkingSubtitle": "{{value}} share"
+    }
+  },
+  "insights": {
+    "concentration": {
+      "title": "Cost concentration",
+      "summary": "{{provider}} is currently the dominant provider in the selected slice, while {{model}} is the strongest single lever.",
+      "fallback": "No stable provider distribution is available yet.",
+      "topProvider": "Top provider",
+      "topModel": "Top model",
+      "topModelShare": "Top model share",
+      "topThreeModels": "Top 3 models"
+    },
+    "requestEconomy": {
+      "title": "Request economy",
+      "valueLabel": "Avg cost per request",
+      "summary": "Each request costs {{cost}} on average and processes {{tokens}}. {{leader}}",
+      "leader": "{{model}} currently leads on request volume.",
+      "fallback": "The loaded dataset does not contain reliable request counters. Request economy is therefore unavailable.",
+      "avgRequests": "Avg req/{{unit}}",
+      "avgTokensPerRequest": "Avg tokens/req",
+      "costPerMillion": "$/1M tokens",
+      "totalRequests": "Total requests"
+    },
+    "usagePatterns": {
+      "title": "Usage patterns",
+      "summaryWithCoverage": "{{activeDays}} of {{totalDays}} calendar days contain activity in the filtered range. Requests vary by {{volatility}}.",
+      "summaryWithoutCoverage": "{{activeDays}} active {{unit}} in the selected slice.",
+      "avgModels": "Avg models/entry",
+      "providersActive": "Providers active",
+      "weekendShare": "Weekend share",
+      "thinkingShare": "Thinking share"
+    },
+    "peakWindow": {
+      "title": "Peak window",
+      "summary": "Strongest 7-day phase from {{start}} to {{end}}.",
+      "fallback": "No 7-day window is available, so the focus falls back to the most expensive single point.",
+      "peakDay": "Peak day",
+      "avgPerUnit": "Avg/{{unit}}",
+      "peak7DayAverage": "Peak 7D avg/day",
+      "signal": "Signal",
+      "signalStrong": "highly concentrated",
+      "signalModerate": "moderately concentrated",
+      "signalWide": "broadly distributed"
+    },
+    "quickRead": {
+      "summary": "{{provider}} accounts for {{providerShare}} of cost, while the top 3 models concentrate {{topThreeShare}}. {{requestLeader}}",
+      "requestLeader": "{{requestModel}} leads on requests, while {{tokenModel}} leads on token volume.",
+      "fallback": "There is not enough data in the current filter slice for a stable summary yet."
+    }
+  },
+  "charts": {
+    "costOverTime": {
+      "title": "Cost over time + 7-day avg",
+      "subtitle": "Daily cost with 7-day moving average",
+      "summary": "Latest {{latest}} · Peak {{peak}} on {{date}}",
+      "cost": "Cost",
+      "movingAverage": "7-day avg"
+    },
+    "costByModel": {
+      "title": "Cost by model",
+      "subtitle": "Cost distribution by model",
+      "total": "Total"
+    },
+    "costByModelOverTime": {
+      "title": "Cost by model over time",
+      "subtitle": "Per model over time",
+      "topDriver": "Top driver: {{model}} · {{total}} cumulative",
+      "movingAverageHeading": "7-day average by model",
+      "movingAverageSuffix": "avg"
+    },
+    "cumulativeCost": {
+      "title": "Cumulative cost",
+      "total": "Total: {{value}}",
+      "cumulative": "Cumulative",
+      "projection": "Projection"
+    },
+    "tokensOverTime": {
+      "title": "Tokens over time",
+      "subtitle": "All token types with 7-day avg",
+      "allTypes": "Total tokens (all types)",
+      "totalTokens": "Total tokens",
+      "movingAverage": "7-day avg",
+      "cacheTokens": "Cache tokens",
+      "inputOutputTokens": "Input / Output tokens",
+      "thinkingTokens": "Thinking tokens",
+      "averageSuffix": "avg"
+    },
+    "requestsOverTime": {
+      "title": "Requests over time",
+      "subtitle": "Requests overall, by model, and with 7-day avg",
+      "summary": "Total {{total}} · Peak {{peak}} on {{date}}",
+      "averagePerUnit": "Avg / {{unit}}",
+      "trend": "Trend avg",
+      "movingAverage": "7-day avg",
+      "trendHeading": "Moving average by model",
+      "movingAverageHeading": "7-day average by model",
+      "totalMovingAverage": "Total {{label}}",
+      "requestsByModelTotal": "Requests by model total",
+      "requestsInRange": "Requests in the selected range",
+      "total": "Total",
+      "topModel": "Top model",
+      "topShare": "Top share",
+      "totalRequestsSeries": "Total requests"
+    },
+    "heatmap": {
+      "costTitle": "Cost heatmap",
+      "requestsTitle": "Request heatmap",
+      "tokensTitle": "Token heatmap",
+      "costEmpty": "Cost heatmap is only available in daily view",
+      "requestsEmpty": "Request heatmap is only available in daily view",
+      "tokensEmpty": "Token heatmap is only available in daily view",
+      "switchToDaily": "Switch to daily view for the calendar heatmap",
+      "less": "Less",
+      "more": "More"
+    },
+    "tokenTypes": {
+      "title": "Token types",
+      "subtitle": "Distribution of token types",
+      "total": "Total"
+    },
+    "modelMix": {
+      "title": "Model mix",
+      "subtitle": "Cost share by model over time"
+    },
+    "distribution": {
+      "title": "Distributions",
+      "requiresData": "At least 2 data points are required in the current filter for distributions.",
+      "costPerPeriod": "Cost per {{period}}",
+      "requestsPerPeriod": "Requests per {{period}}",
+      "tokensPerRequest": "Tokens per request",
+      "interval": "Interval",
+      "dataPoints": "Data points",
+      "buckets": "Buckets"
+    },
+    "correlation": {
+      "title": "Correlations",
+      "requiresData": "At least 2 data points are required in the current filter for correlations.",
+      "points": "{{count}} points",
+      "requestsVsCost": "Requests vs. cost",
+      "cacheVsCostPerRequest": "Cache rate vs. $/req",
+      "requestsAxis": "Requests",
+      "requestsLabel": "Requests",
+      "tokensLabel": "Tokens",
+      "costPerRequestAxis": "$/Req",
+      "cost": "Cost",
+      "costPerRequest": "Cost / req",
+      "cacheRate": "Cache rate",
+      "strongRequestCost": "Strong relationship: more requests visibly drive cost.",
+      "mediumRequestCost": "Moderate relationship between load and cost.",
+      "weakRequestCost": "Weak relationship: cost is driven more by model mix and token load.",
+      "negativeCache": "Negative relationship: higher cache rate tends to reduce cost per request.",
+      "neutralCache": "Little linear effect: cache helps, but is not the only driver.",
+      "positiveCache": "Positive relationship: high cache rates do not automatically coincide with lower cost per request here."
+    },
+    "costByWeekday": {
+      "title": "Cost by weekday",
+      "subtitle": "Peak: {{peak}} · Low: {{low}} · Weekend {{share}}",
+      "averageCost": "Avg cost"
+    },
+    "tokenEfficiency": {
+      "title": "Token efficiency ($/1M)",
+      "subtitle": "Avg {{value}}/1M tokens",
+      "series": "$/1M tokens",
+      "movingAverage": "7D avg"
+    }
+  },
+  "risk": {
+    "title": "Concentration risk",
+    "modelDependency": "Model dependency",
+    "providerDependency": "Provider dependency",
+    "high": "high",
+    "medium": "medium",
+    "low": "low",
+    "modelHint": "HHI {{value}} · Higher values indicate a few dominant models.",
+    "providerHint": "HHI {{value}} · Shows dependency on individual providers."
+  },
+  "requestQuality": {
+    "title": "Request quality",
+    "tokensPerRequest": "Tokens / request",
+    "costPerRequest": "Cost / request",
+    "cachePerRequest": "Cache / request",
+    "thinkingPerRequest": "Thinking / request",
+    "tokensHint": "Average token load per request",
+    "costHint": "Direct cost per request",
+    "cacheHint": "Read cache tokens per request",
+    "thinkingHint": "Thinking tokens per request",
+    "requestDensity": "Request density",
+    "averagePerActiveUnit": "Avg per active {{unit}}",
+    "cacheHitRate": "Cache hit rate",
+    "cacheHitHint": "Direct cache-read relative to all tokens",
+    "inputOutput": "Input / Output",
+    "inputOutputHint": "Drift between incoming and generated tokens",
+    "topRequestModel": "Top request model",
+    "noRequestLeader": "No request leader"
+  },
+  "forecast": {
+    "noData": "No data available",
+    "noForecast": "No forecast available",
+    "requiresTwoDays": "At least 2 days with data are required",
+    "avgMonthlyCost": "Avg monthly cost",
+    "avgYearlyCost": "Avg yearly cost",
+    "totalOverPeriods": "Total: {{total}} over {{count}} {{unit}}",
+    "monthEndForecast": "Month-end forecast",
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "soFar": "So far: {{value}}",
+    "remainingDays": "Days remaining: {{count}}",
+    "projectedPerDay": "Forecast {{value}}/day",
+    "vsLastWeek": "vs last week",
+    "chartTitle": "Current month cost forecast",
+    "chartSubtitle": "Month-end forecast based on smoothed calendar-day cost",
+    "lowerBound": "Lower bound",
+    "uncertaintyBand": "Uncertainty band",
+    "actualCost": "Actual cost",
+    "projection": "Forecast"
+  },
+  "cacheRoi": {
+    "title": "Cache savings (ROI)",
+    "noData": "No data available",
+    "heuristicFallback": "For {{count}} {{modelsLabel}} without a configured price table, the ROI estimate uses a heuristic fallback.",
+    "model": "model",
+    "models": "models",
+    "withoutCache": "Without cache",
+    "withCache": "With cache",
+    "withCacheActual": "With cache (actual)",
+    "savings": "Savings",
+    "avgCostPerUnit": "Avg cost/{{unit}}",
+    "paid": "Paid",
+    "saved": "Saved"
+  },
+  "comparison": {
+    "title": "Period comparison",
+    "notEnoughData": "Not enough data for a comparison",
+    "requiresDays": "At least 7 days required (currently: {{count}})",
+    "thisWeek": "This week",
+    "lastWeek": "Last week",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "week": "Week",
+    "month": "Month",
+    "metric": "Metric",
+    "delta": "Delta",
+    "cost": "Cost",
+    "tokens": "Tokens",
+    "avgPerDay": "Avg/day",
+    "cacheRate": "Cache rate",
+    "days": "Days"
+  },
+  "anomaly": {
+    "title": "Unusual {{period}}",
+    "none": "No anomalies detected",
+    "withinStdDev": "All costs are within 2 standard deviations",
+    "description": "{{period}} with cost >2 standard deviations from the mean ({{mean}} +/- {{stdDev}})",
+    "critical": "critical"
+  },
+  "tables": {
+    "modelEfficiency": {
+      "title": "Model efficiency",
+      "count": "{{count}} models",
+      "topModel": "Top model",
+      "mostEfficient": "Most efficient model",
+      "totalRequests": "Total requests",
+      "topModelTokens": "Top model tokens",
+      "share": "{{value}} share",
+      "perModel": "{{value}} / model",
+      "more": "+{{count}} more",
+      "model": "Model",
+      "cost": "Cost",
+      "tokens": "Tokens",
+      "shareShort": "Share",
+      "req": "Req",
+      "reqShare": "Req %",
+      "costPerReq": "$ / Req",
+      "tokensPerReq": "Tokens / Req",
+      "cacheShare": "Cache %",
+      "thinkingShare": "Think %",
+      "avgPerUnit": "Avg/{{unit}}"
+    },
+    "providerEfficiency": {
+      "title": "Provider efficiency",
+      "count": "{{count}} providers",
+      "leadProvider": "Lead provider",
+      "mostEfficient": "Most efficient provider",
+      "totalRequests": "Total requests",
+      "share": "{{value}} share",
+      "perProvider": "{{value}} / provider",
+      "avgPerUnit": "Avg/{{unit}}",
+      "provider": "Provider",
+      "cost": "Cost",
+      "shareShort": "Share",
+      "req": "Req",
+      "tokens": "Tokens",
+      "costPerReq": "$ / Req",
+      "costPerMillion": "$/1M",
+      "cacheShare": "Cache %"
+    },
+    "recentDays": {
+      "daysDetail": "Recent days in detail",
+      "monthsDetail": "Months in detail",
+      "yearsDetail": "Years in detail",
+      "showing": "Showing {{shown}} of {{total}} {{unit}}",
+      "showLess": "Show less",
+      "showAll": "Show all",
+      "totalCost": "Total cost",
+      "totalTokens": "Total tokens",
+      "requests": "Requests",
+      "cacheReadShare": "Cache read share",
+      "peak": "Peak",
+      "previousDay": "Previous day",
+      "avg7d": "7D avg",
+      "reqAvg": "Req avg",
+      "date": "Date",
+      "cost": "Cost",
+      "tokens": "Tokens",
+      "models": "Models"
+    }
+  },
+  "helpPanel": {
+    "chartsAndFeatures": "Charts & features",
+    "metricLabels": {
+      "totalCost": "Total cost",
+      "totalTokens": "Total tokens",
+      "activeDays": "Active days",
+      "topModel": "Top model",
+      "cacheHitRate": "Cache hit rate",
+      "costPerMillion": "Cost / 1M tokens",
+      "mostExpensiveDay": "Most expensive day",
+      "cheapestDay": "Cheapest day",
+      "avgCostPerDay": "Avg cost / day",
+      "outputTokens": "Output tokens"
+    },
+    "chartLabels": {
+      "costOverTime": "Cost over time",
+      "costByModel": "Cost by model",
+      "costByModelOverTime": "Cost by model over time",
+      "cumulativeCost": "Cumulative cost",
+      "costByWeekday": "Cost by weekday",
+      "tokensOverTime": "Tokens over time",
+      "requestsOverTime": "Requests over time",
+      "tokenTypes": "Token types",
+      "tokenEfficiency": "Token efficiency",
+      "modelMix": "Model mix",
+      "distributionAnalysis": "Distributions",
+      "correlationAnalysis": "Correlations",
+      "heatmap": "Cost heatmap",
+      "requestHeatmap": "Request heatmap",
+      "tokenHeatmap": "Token heatmap",
+      "forecast": "Forecast",
+      "cacheROI": "Cache ROI",
+      "periodComparison": "Period comparison",
+      "anomalyDetection": "Anomaly detection"
+    },
+    "sectionLabels": {
+      "insights": "Insights",
+      "metrics": "Metrics",
+      "today": "Today",
+      "currentMonth": "Month",
+      "activity": "Activity",
+      "forecastCache": "Forecast & Cache",
+      "costAnalysis": "Cost analysis",
+      "tokenAnalysis": "Token analysis",
+      "requestAnalysis": "Request analysis",
+      "advancedAnalysis": "Distributions & Risk",
+      "comparisons": "Comparisons & Anomalies",
+      "tables": "Tables",
+      "limits": "Limits & Subscriptions"
+    },
+    "featureLabels": {
+      "requestQuality": "Request quality",
+      "providerLimits": "Limits & Subscriptions",
+      "concentrationRisk": "Concentration risk",
+      "providerEfficiency": "Provider efficiency",
+      "modelEfficiency": "Model efficiency",
+      "recentDays": "Periods in detail"
+    }
+  },
+  "autoImportModal": {
+    "title": "Toktrack auto import",
+    "description": "Automatically imports local usage data via local `toktrack`, `bunx`, or `npm exec` and stores it only on this device.",
+    "connecting": "Connecting...",
+    "checkingTool": "Checking {{tool}}...",
+    "toolFound": "{{tool}} found ({{method}}, v{{version}})",
+    "toolNotFound": "{{tool}} not found",
+    "importedDays": "{{days}} days imported ({{cost}} USD)",
+    "checkingPrerequisites": "Checking prerequisites...",
+    "importingData": "Importing data...",
+    "startingLocalImport": "Starting local toktrack import...",
+    "loadingUsageData": "Loading usage data via {{command}}...",
+    "processingUsageData": "Processing usage data... ({{seconds}}s)",
+    "serverConnectionLost": "Lost connection to server.",
+    "autoImportRunning": "An auto import is already running. Please wait.",
+    "noRunnerFound": "No local toktrack, Bun, or npm exec found.",
+    "errorPrefix": "Error: {{message}}",
+    "loadedDays": "{{days}} days loaded ({{cost}} USD)",
+    "errorOccurred": "An error occurred",
+    "close": "Close"
+  },
+  "commandPalette": {
+    "title": "Command palette",
+    "description": "Keyboard-driven command menu for navigation and actions in the ttdash dashboard.",
+    "placeholder": "Search commands...",
+    "empty": "No command found.",
+    "groups": {
+      "actions": "Actions",
+      "filters": "Filters & View",
+      "navigation": "Navigation",
+      "view": "View",
+      "language": "Language",
+      "help": "Help",
+      "providers": "Providers",
+      "models": "Models"
+    },
+    "commands": {
+      "autoImport": {
+        "label": "Start auto import",
+        "description": "Run local toktrack import"
+      },
+      "openLimits": {
+        "label": "Open limits",
+        "description": "Configure provider limits and subscriptions"
+      },
+      "exportCsv": {
+        "label": "Export CSV",
+        "description": "Export currently filtered data"
+      },
+      "generateReport": {
+        "label": "Generate PDF report",
+        "labelLoading": "Generating PDF report",
+        "description": "Export currently filtered data as PDF"
+      },
+      "upload": {
+        "label": "Upload JSON",
+        "description": "Import toktrack or legacy JSON"
+      },
+      "delete": {
+        "label": "Delete data",
+        "description": "Remove local dataset"
+      },
+      "viewDaily": {
+        "label": "Switch to daily view",
+        "description": "Show data per day"
+      },
+      "viewMonthly": {
+        "label": "Switch to monthly view",
+        "description": "Show data per month"
+      },
+      "viewYearly": {
+        "label": "Switch to yearly view",
+        "description": "Show data per year"
+      },
+      "preset7d": {
+        "label": "Range: last 7 days",
+        "description": "Sets the date filter to 7 days"
+      },
+      "preset30d": {
+        "label": "Range: last 30 days",
+        "description": "Sets the date filter to 30 days"
+      },
+      "presetMonth": {
+        "label": "Range: current month",
+        "description": "Sets the date filter to the current month"
+      },
+      "presetYear": {
+        "label": "Range: current year",
+        "description": "Sets the date filter to the current year"
+      },
+      "presetAll": {
+        "label": "Range: all data",
+        "description": "Clears preset date filters"
+      },
+      "clearProviders": {
+        "label": "Reset provider filter",
+        "description": "Remove all active provider filters"
+      },
+      "clearModels": {
+        "label": "Reset model filter",
+        "description": "Remove all active model filters"
+      },
+      "clearDates": {
+        "label": "Reset date filter",
+        "description": "Remove start and end date"
+      },
+      "scrollTop": {
+        "label": "Scroll to top",
+        "description": "Jump to the top of the page"
+      },
+      "scrollBottom": {
+        "label": "Scroll to bottom",
+        "description": "Jump to the bottom of the page"
+      },
+      "filters": {
+        "label": "Go to filters",
+        "description": "Jump to the filter bar"
+      },
+      "insights": {
+        "label": "Go to insights",
+        "description": "Jump to the executive summary"
+      },
+      "metrics": {
+        "label": "Go to metrics",
+        "description": "Jump to KPI cards"
+      },
+      "today": {
+        "label": "Go to today",
+        "description": "Jump to the current day KPIs"
+      },
+      "month": {
+        "label": "Go to month",
+        "description": "Jump to the current month KPIs"
+      },
+      "activity": {
+        "label": "Go to activity",
+        "description": "Jump to the activity heatmap"
+      },
+      "forecastCache": {
+        "label": "Go to forecast & cache",
+        "description": "Jump to forecast and cache ROI"
+      },
+      "limits": {
+        "label": "Go to Limits & Subscriptions",
+        "description": "Jump to the limits section"
+      },
+      "charts": {
+        "label": "Go to cost analysis",
+        "description": "Jump to cost charts"
+      },
+      "tokenAnalysis": {
+        "label": "Go to token analysis",
+        "description": "Jump to token charts and distributions"
+      },
+      "requestAnalysis": {
+        "label": "Go to request analysis",
+        "description": "Jump to requests over time and request distribution"
+      },
+      "comparisons": {
+        "label": "Go to comparisons & anomalies",
+        "description": "Jump to period comparison and unusual activity"
+      },
+      "tables": {
+        "label": "Go to tables",
+        "description": "Jump to detailed tables"
+      },
+      "themeLight": {
+        "label": "Enable light mode",
+        "description": "Switch between light and dark theme"
+      },
+      "themeDark": {
+        "label": "Enable dark mode",
+        "description": "Switch between light and dark theme"
+      },
+      "languageGerman": {
+        "label": "Switch to German",
+        "description": "Change the dashboard language to German"
+      },
+      "languageEnglish": {
+        "label": "Switch to English",
+        "description": "Change the dashboard language to English"
+      },
+      "help": {
+        "label": "Open help & shortcuts",
+        "description": "Open the help overview"
+      }
+    }
+  },
+  "limits": {
+    "sectionTitle": "Limits & Subscriptions",
+    "sectionDescription": "Budget risk separated from subscription impact in the current filter context",
+    "providersBadge": "{{count}} providers",
+    "warningBanner": "{{count}} providers have reached or exceeded their monthly limit in the current slice.",
+    "cards": {
+      "atLimit": "Providers at limit",
+      "nearLimit": "Near limit",
+      "subscriptionVolume": "Subscription volume",
+      "subscriptionValue": "Subscription value",
+      "nearLimitHint": "from 80% utilization",
+      "subscriptionVolumeHint": "fixed cost / month",
+      "subscriptionValueHint": "usage above subscription",
+      "noMonth": "No month"
+    },
+    "statuses": {
+      "limitExceeded": "Limit exceeded",
+      "budgetTight": "Budget tight",
+      "budgetStable": "Budget stable",
+      "noLimit": "No limit set",
+      "noSubscription": "No subscription",
+      "subscriptionPaysOff": "Subscription pays off",
+      "belowSubscription": "Still below subscription"
+    },
+    "tracks": {
+      "budgetTitle": "Budget status by provider",
+      "budgetSubtitle": "Each track shows the remaining distance to the limit or the already incurred overrun for each provider",
+      "budgetNoMonth": "No month in the current slice",
+      "subscriptionTitle": "Subscription status by provider",
+      "subscriptionSubtitle": "Each track shows the remaining distance to break-even or the already realized value for each provider",
+      "subscriptionNoMonth": "No month in the current slice",
+      "portfolioTitle": "Portfolio trend",
+      "portfolioSubtitle": "Monthly trend of usage, configured limits, and subscription impact",
+      "usage": "Usage",
+      "limit": "Limit",
+      "subscription": "Subscription",
+      "breakEven": "Break-even",
+      "currentlyUsed": "Currently used",
+      "remainingToLimit": "Remaining to limit",
+      "alreadyOverLimit": "Already over",
+      "remainingToBreakEven": "Remaining to break-even",
+      "alreadyAboveBreakEven": "Already above",
+      "usageFocusMonth": "Focus month cost",
+      "limitSubscription": "Limit / Subscription",
+      "budgetRisk": "Budget risk",
+      "subscriptionEffect": "Subscription effect",
+      "stillToLimit": "{{value}} remaining to limit",
+      "alreadyAboveLimit": "{{value}} above limit",
+      "stillToBreakEven": "{{value}} remaining to break-even",
+      "alreadyAboveBreakEvenText": "{{value}} above break-even",
+      "noSubscriptionSet": "No subscription set"
+    },
+    "modal": {
+      "title": "Provider limits",
+      "description": "Define subscription and monthly limit per provider. Only providers from the currently loaded report can be edited. A limit of 0 means no limit.",
+      "noProviders": "No providers found in the loaded report.",
+      "hasSubscription": "Subscription enabled",
+      "subscriptionPerMonth": "Subscription $/month",
+      "monthlyLimit": "Monthly limit $",
+      "close": "Close",
+      "save": "Save"
+    }
+  },
+  "report": {
+    "title": "TTDash Report"
+  },
+  "api": {
+    "fetchUsageFailed": "Failed to load data",
+    "uploadFailed": "Upload failed",
+    "deleteFailed": "Delete failed",
+    "pdfFailed": "PDF generation failed"
+  },
+  "toasts": {
+    "fileLoaded": "File {{name}} loaded successfully",
+    "fileReadFailed": "Could not read file",
+    "dataDeleted": "Data deleted",
+    "csvExported": "CSV exported",
+    "dataImported": "Data imported successfully"
+  }
+}
