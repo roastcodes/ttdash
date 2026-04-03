@@ -1,5 +1,14 @@
 # Changelog
 
+## [6.0.1] - 2026-04-03
+
+### Added
+- **PDF-Report in der Command Palette** — `cmd+k` enthält jetzt eine direkte Aktion zum Generieren des aktuell gefilterten PDF-Reports
+
+### Fixed
+- **Request-Qualität Info-Tooltip** — das Info-Label in der Karte wird nicht mehr am oberen Rand abgeschnitten
+- **Gemeinsame Report-Aktion** — Toolbar-Button und Command Palette verwenden jetzt denselben Exportpfad inklusive Ladezustand und Toast-Feedback
+
 ## [6.0.0] - 2026-04-03
 
 ### Added
