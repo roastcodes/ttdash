@@ -6,6 +6,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const { normalizeIncomingData } = require('./usage-normalizer');
+const { generatePdfReport } = require('./server/report');
 const { version: APP_VERSION } = require('./package.json');
 
 const ROOT = __dirname;
@@ -211,6 +212,23 @@ function json(res, status, data) {
     ...SECURITY_HEADERS,
   });
   res.end(JSON.stringify(data));
+}
+
+function sendFile(res, status, headers, filePath) {
+  const stream = fs.createReadStream(filePath);
+  res.writeHead(status, {
+    ...headers,
+    ...SECURITY_HEADERS,
+  });
+  stream.on('error', () => {
+    if (!res.headersSent) {
+      res.writeHead(500, SECURITY_HEADERS);
+      res.end('Internal Server Error');
+      return;
+    }
+    res.destroy();
+  });
+  stream.pipe(res);
 }
 
 function resolveApiPath(pathname) {
@@ -484,6 +502,46 @@ const server = http.createServer(async (req, res) => {
       cleanup();
     }
     return;
+  }
+
+  if (apiPath === '/report/pdf') {
+    if (req.method !== 'POST') {
+      return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    const data = readData();
+    if (!data || !Array.isArray(data.daily) || data.daily.length === 0) {
+      return json(res, 400, { message: 'Keine Daten für den Report vorhanden.' });
+    }
+
+    let body = {};
+    try {
+      body = await readBody(req);
+    } catch (e) {
+      const status = e.message === 'Payload too large' ? 413 : 400;
+      return json(res, status, { message: e.message === 'Payload too large' ? 'Report-Anfrage zu gross' : 'Ungültige Report-Anfrage' });
+    }
+
+    try {
+      const result = await generatePdfReport(data.daily, body || {});
+      const cleanup = () => {
+        try {
+          fs.rmSync(result.tempDir, { recursive: true, force: true });
+        } catch {}
+      };
+
+      res.on('close', cleanup);
+      res.on('finish', cleanup);
+
+      return sendFile(res, 200, {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${result.filename}"`,
+      }, result.pdfPath);
+    } catch (error) {
+      const message = error && error.message ? error.message : 'PDF-Generierung fehlgeschlagen';
+      const status = error && error.code === 'TYPST_MISSING' ? 503 : 500;
+      return json(res, status, { message });
+    }
   }
 
   if (apiPath !== null) {

@@ -56,7 +56,6 @@ export function Dashboard() {
   const { isDark, toggle: toggleTheme } = useTheme()
   const { addToast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const dashboardRef = useRef<HTMLDivElement>(null)
   const [drillDownDate, setDrillDownDate] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   const [autoImportOpen, setAutoImportOpen] = useState(false)
@@ -193,7 +192,7 @@ export function Dashboard() {
   }
 
   return (
-    <div ref={dashboardRef} className="min-h-screen max-w-7xl mx-auto px-4 pb-8">
+    <div className="min-h-screen max-w-7xl mx-auto px-4 pb-8">
       <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} />
 
       <Header
@@ -208,7 +207,16 @@ export function Dashboard() {
         onDelete={handleDelete}
         onUpload={handleUpload}
         onAutoImport={handleAutoImport}
-        pdfButton={<PDFReportButton containerRef={dashboardRef} />}
+        pdfButton={(
+          <PDFReportButton
+            viewMode={viewMode}
+            selectedMonth={selectedMonth}
+            selectedProviders={selectedProviders}
+            selectedModels={selectedModels}
+            startDate={startDate}
+            endDate={endDate}
+          />
+        )}
       />
 
       <div id="filters">

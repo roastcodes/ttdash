@@ -1,4 +1,4 @@
-import type { UsageData } from '@/types'
+import type { UsageData, ViewMode } from '@/types'
 
 export async function fetchUsage(): Promise<UsageData> {
   const res = await fetch('/api/usage')
@@ -22,4 +22,28 @@ export async function uploadData(data: unknown): Promise<{ days: number; totalCo
 export async function deleteUsage(): Promise<void> {
   const res = await fetch('/api/usage', { method: 'DELETE' })
   if (!res.ok) throw new Error('Löschen fehlgeschlagen')
+}
+
+export interface PdfReportRequest {
+  viewMode: ViewMode
+  selectedMonth: string | null
+  selectedProviders: string[]
+  selectedModels: string[]
+  startDate?: string
+  endDate?: string
+}
+
+export async function generatePdfReport(request: PdfReportRequest): Promise<Blob> {
+  const res = await fetch('/api/report/pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'PDF-Generierung fehlgeschlagen' }))
+    throw new Error(err.message)
+  }
+
+  return res.blob()
 }
