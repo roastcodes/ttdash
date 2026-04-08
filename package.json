@@ -19,8 +19,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server.js",
-    "prepare": "npm run build",
-    "prepack": "npm run build"
+    "prepare": "npm run build"
   },
   "files": [
     "server.js",
