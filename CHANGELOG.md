@@ -1,5 +1,14 @@
 # Changelog
 
+## [6.0.7] - 2026-04-08
+
+### Added
+- **Cache-Hit-Rate in der Request-Analyse** — neue kombinierte Visualisierung mit Zeitverlauf links und Modell-Snapshot rechts, vollständig filterkompatibel und mit denselben Aufbauanimationen wie die übrigen Diagramme
+
+### Improved
+- **Modellabdeckung im Cache-Hit-Rate-Verlauf** — alle aktiven Modelle, inklusive `GPT-5` und `GPT-5.4`, erscheinen jetzt zuverlässig in der Zeitreihen-Legende und im Diagramm
+- **Snapshot-Animation & Tooltip-Klarheit** — horizontale Balken bauen sich sauber von links nach rechts auf; Tooltips im Zeitverlauf blenden irrelevante `0.0%`-Serien aus und zeigen die aktiven Modelle lesbarer an
+
 ## [6.0.6] - 2026-04-08
 
 ### Added
