@@ -349,6 +349,18 @@
       "topShare": "Top share",
       "totalRequestsSeries": "Total requests"
     },
+    "requestCacheHitRate": {
+      "title": "Cache hit rate by model",
+      "subtitle": "Total {{total}} · 7-day avg {{trailing}}",
+      "totalRate": "Total",
+      "trailing7Rate": "7-day avg",
+      "trendRate": "Trend avg",
+      "topModel": "Top model",
+      "models": "Models",
+      "total": "Total",
+      "timelineHeading": "Cache hit rate over time / {{unit}}",
+      "modelBreakdownHeading": "Current model snapshot"
+    },
     "heatmap": {
       "costTitle": "Cost heatmap",
       "requestsTitle": "Request heatmap",
@@ -585,6 +597,7 @@
       "costByWeekday": "Cost by weekday",
       "tokensOverTime": "Tokens over time",
       "requestsOverTime": "Requests over time",
+      "requestCacheHitRate": "Cache hit rate by model",
       "tokenTypes": "Token types",
       "tokenEfficiency": "Token efficiency",
       "modelMix": "Model mix",

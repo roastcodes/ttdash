@@ -130,6 +130,14 @@ export interface RequestChartDataPoint {
   [key: string]: unknown
 }
 
+export interface CacheHitRateByModelChartDataPoint {
+  model: string
+  totalRate: number
+  trailing7Rate: number
+  totalBaseTokens: number
+  trailing7BaseTokens: number
+}
+
 export interface WeekdayData {
   day: string
   cost: number

@@ -32,6 +32,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
     costByWeekday: t('helpPanel.chartLabels.costByWeekday'),
     tokensOverTime: t('helpPanel.chartLabels.tokensOverTime'),
     requestsOverTime: t('helpPanel.chartLabels.requestsOverTime'),
+    requestCacheHitRate: t('helpPanel.chartLabels.requestCacheHitRate'),
     tokenTypes: t('helpPanel.chartLabels.tokenTypes'),
     tokenEfficiency: t('helpPanel.chartLabels.tokenEfficiency'),
     modelMix: t('helpPanel.chartLabels.modelMix'),

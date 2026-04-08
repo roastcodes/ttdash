@@ -14,6 +14,7 @@ import { CostByModelOverTime } from './charts/CostByModelOverTime'
 import { CumulativeCost } from './charts/CumulativeCost'
 import { TokensOverTime } from './charts/TokensOverTime'
 import { RequestsOverTime } from './charts/RequestsOverTime'
+import { RequestCacheHitRateByModel } from './charts/RequestCacheHitRateByModel'
 import { TokenTypes } from './charts/TokenTypes'
 import { CostByWeekday } from './charts/CostByWeekday'
 import { TokenEfficiency } from './charts/TokenEfficiency'
@@ -455,6 +456,11 @@ export function Dashboard() {
               <RequestsOverTime data={requestChartData} viewMode={viewMode} onClickDay={setDrillDownDate} />
             </FadeIn>
             <FadeIn delay={0.49}>
+              <div className="mt-4">
+                <RequestCacheHitRateByModel timelineData={filteredData} summaryData={filteredDailyData} viewMode={viewMode} />
+              </div>
+            </FadeIn>
+            <FadeIn delay={0.51}>
               <div className="mt-4">
                 <RequestQuality metrics={metrics} viewMode={viewMode} />
               </div>

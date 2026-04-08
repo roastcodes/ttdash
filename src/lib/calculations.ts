@@ -1,4 +1,4 @@
-import type { AggregateMetrics, DailyUsage, DashboardMetrics } from '@/types'
+import type { AggregateMetrics, CacheHitRateByModelChartDataPoint, DailyUsage, DashboardMetrics } from '@/types'
 import { getModelProvider, normalizeModelName } from './model-utils'
 
 export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
@@ -254,6 +254,109 @@ export function computeProviderMetrics(data: DailyUsage[]): Map<string, Aggregat
   }
 
   return map
+}
+
+function computeCacheHitRate(cacheRead: number, cacheCreate: number, input: number, output: number, thinking: number): number {
+  const base = cacheRead + cacheCreate + input + output + thinking
+  return base > 0 ? (cacheRead / base) * 100 : 0
+}
+
+export function computeCacheHitRateByModel(data: DailyUsage[]): CacheHitRateByModelChartDataPoint[] {
+  if (data.length === 0) return []
+
+  const sorted = [...data]
+    .filter(entry => /^\d{4}-\d{2}-\d{2}$/.test(entry.date))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  if (sorted.length === 0) return []
+
+  const trailingWindow = sorted.slice(-Math.min(7, sorted.length))
+  const totals = new Map<string, { cacheRead: number; cacheCreate: number; input: number; output: number; thinking: number }>()
+  const trailing = new Map<string, { cacheRead: number; cacheCreate: number; input: number; output: number; thinking: number }>()
+
+  const updateMetricMap = (
+    target: Map<string, { cacheRead: number; cacheCreate: number; input: number; output: number; thinking: number }>,
+    modelName: string,
+    cacheRead: number,
+    cacheCreate: number,
+    input: number,
+    output: number,
+    thinking: number,
+  ) => {
+    const key = normalizeModelName(modelName)
+    const current = target.get(key) ?? { cacheRead: 0, cacheCreate: 0, input: 0, output: 0, thinking: 0 }
+    current.cacheRead += cacheRead
+    current.cacheCreate += cacheCreate
+    current.input += input
+    current.output += output
+    current.thinking += thinking
+    target.set(key, current)
+  }
+
+  for (const day of sorted) {
+    for (const breakdown of day.modelBreakdowns) {
+      updateMetricMap(
+        totals,
+        breakdown.modelName,
+        breakdown.cacheReadTokens,
+        breakdown.cacheCreationTokens,
+        breakdown.inputTokens,
+        breakdown.outputTokens,
+        breakdown.thinkingTokens,
+      )
+    }
+  }
+
+  for (const day of trailingWindow) {
+    for (const breakdown of day.modelBreakdowns) {
+      updateMetricMap(
+        trailing,
+        breakdown.modelName,
+        breakdown.cacheReadTokens,
+        breakdown.cacheCreationTokens,
+        breakdown.inputTokens,
+        breakdown.outputTokens,
+        breakdown.thinkingTokens,
+      )
+    }
+  }
+
+  const sumMetricMap = (source: Map<string, { cacheRead: number; cacheCreate: number; input: number; output: number; thinking: number }>) => (
+    Array.from(source.values()).reduce((acc, metric) => ({
+      cacheRead: acc.cacheRead + metric.cacheRead,
+      cacheCreate: acc.cacheCreate + metric.cacheCreate,
+      input: acc.input + metric.input,
+      output: acc.output + metric.output,
+      thinking: acc.thinking + metric.thinking,
+    }), { cacheRead: 0, cacheCreate: 0, input: 0, output: 0, thinking: 0 })
+  )
+
+  const totalAll = sumMetricMap(totals)
+  const trailingAll = sumMetricMap(trailing)
+
+  const rows: CacheHitRateByModelChartDataPoint[] = [{
+    model: 'Total',
+    totalRate: computeCacheHitRate(totalAll.cacheRead, totalAll.cacheCreate, totalAll.input, totalAll.output, totalAll.thinking),
+    trailing7Rate: computeCacheHitRate(trailingAll.cacheRead, trailingAll.cacheCreate, trailingAll.input, trailingAll.output, trailingAll.thinking),
+    totalBaseTokens: totalAll.cacheRead + totalAll.cacheCreate + totalAll.input + totalAll.output + totalAll.thinking,
+    trailing7BaseTokens: trailingAll.cacheRead + trailingAll.cacheCreate + trailingAll.input + trailingAll.output + trailingAll.thinking,
+  }]
+
+  const modelRows = Array.from(totals.entries())
+    .map(([model, metric]) => {
+      const trailingMetric = trailing.get(model) ?? { cacheRead: 0, cacheCreate: 0, input: 0, output: 0, thinking: 0 }
+      return {
+        model,
+        totalRate: computeCacheHitRate(metric.cacheRead, metric.cacheCreate, metric.input, metric.output, metric.thinking),
+        trailing7Rate: computeCacheHitRate(trailingMetric.cacheRead, trailingMetric.cacheCreate, trailingMetric.input, trailingMetric.output, trailingMetric.thinking),
+        totalBaseTokens: metric.cacheRead + metric.cacheCreate + metric.input + metric.output + metric.thinking,
+        trailing7BaseTokens: trailingMetric.cacheRead + trailingMetric.cacheCreate + trailingMetric.input + trailingMetric.output + trailingMetric.thinking,
+      }
+    })
+    .filter(entry => entry.totalBaseTokens > 0)
+    .sort((a, b) => b.totalBaseTokens - a.totalBaseTokens)
+
+  return [...rows, ...modelRows]
 }
 
 export function computeAnomalies(data: DailyUsage[], threshold = 2): DailyUsage[] {

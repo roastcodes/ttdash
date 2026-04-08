@@ -13,9 +13,18 @@ interface CustomTooltipProps {
   formatter?: (value: number, name: string) => string
   pinnedEntryNames?: string[]
   showComputedTotal?: boolean
+  hideZeroValues?: boolean
 }
 
-export function CustomTooltip({ active, payload, label, formatter, pinnedEntryNames = [], showComputedTotal = true }: CustomTooltipProps) {
+export function CustomTooltip({
+  active,
+  payload,
+  label,
+  formatter,
+  pinnedEntryNames = [],
+  showComputedTotal = true,
+  hideZeroValues = false,
+}: CustomTooltipProps) {
   if (!active || !payload?.length) return null
 
   // Separate actual values from moving average (Ø) lines
@@ -23,11 +32,12 @@ export function CustomTooltip({ active, payload, label, formatter, pinnedEntryNa
     entry.name.includes('Ø') || entry.dataKey?.toString().includes('MA7') || entry.dataKey?.toString().includes('_ma7')
 
   const isPinned = (entry: TooltipPayloadEntry) => pinnedEntryNames.includes(entry.name)
+  const hasNonZeroValue = (entry: TooltipPayloadEntry) => !hideZeroValues || Math.abs(entry.value ?? 0) > 0.0001
 
   const actualEntries = payload
-    .filter(e => !isMA(e) && !isPinned(e))
+    .filter(e => !isMA(e) && !isPinned(e) && hasNonZeroValue(e))
     .sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
-  const pinnedEntries = payload.filter(e => !isMA(e) && isPinned(e))
+  const pinnedEntries = payload.filter(e => !isMA(e) && isPinned(e) && hasNonZeroValue(e))
   const maEntries = payload.filter(e => isMA(e))
 
   const total = actualEntries.reduce((sum, entry) => sum + (entry.value ?? 0), 0)
