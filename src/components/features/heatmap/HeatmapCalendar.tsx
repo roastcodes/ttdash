@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { InfoButton } from '@/components/features/help/InfoButton'
@@ -16,6 +16,9 @@ interface HeatmapCalendarProps {
 const CELL_SIZE = 14
 const CELL_GAP = 2
 const TOTAL = CELL_SIZE + CELL_GAP
+const LEFT_GUTTER = 30
+const TOP_GUTTER = 26
+
 function getColor(value: number, maxValue: number, hue: number): string {
   if (value === 0) return 'hsl(224, 12%, 14%)'
   const intensity = Math.min(value / maxValue, 1)
@@ -31,6 +34,7 @@ function getColor(value: number, maxValue: number, hue: number): string {
 export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: HeatmapCalendarProps) {
   const { t } = useTranslation()
   const [tooltip, setTooltip] = useState<{ x: number; y: number; date: string; value: number } | null>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
   const dayLabels = useMemo(
     () => Array.from({ length: 7 }, (_, index) => index).map((index) => index % 2 === 1 ? '' : new Intl.DateTimeFormat(getCurrentLocale(), { weekday: 'short' }).format(new Date(Date.UTC(2024, 0, 1 + index))).slice(0, 2)),
     []
@@ -66,7 +70,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
     const alignedStart = new Date(startDate)
     alignedStart.setDate(alignedStart.getDate() - startDow)
 
-    const result: { date: string; cost: number; week: number; day: number }[] = []
+    const result: { date: string; value: number; week: number; day: number }[] = []
     const monthLabels: { label: string; week: number }[] = []
     let currentDate = new Date(alignedStart)
     let week = 0
@@ -122,27 +126,28 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
 
   if (cells.length === 0) return null
 
-  const svgWidth = weeks * TOTAL + 30
-  const svgHeight = 7 * TOTAL + 25
+  const svgWidth = weeks * TOTAL + LEFT_GUTTER
+  const svgHeight = 7 * TOTAL + TOP_GUTTER + 8
 
   return (
-      <Card>
+    <Card className="overflow-visible">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           {config.title}
           <InfoButton text={infoText} />
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="relative overflow-x-auto">
-          <svg width={svgWidth} height={svgHeight} className="block">
+      <CardContent className="overflow-visible">
+        <div ref={overlayRef} className="relative overflow-visible z-10">
+          <div className="overflow-x-auto overflow-y-hidden">
+            <svg width={svgWidth} height={svgHeight} className="block">
             {/* Day labels */}
             {dayLabels.map((label, i) => (
               label && (
                 <text
                   key={i}
                   x={0}
-                  y={25 + i * TOTAL + CELL_SIZE - 2}
+                  y={TOP_GUTTER + i * TOTAL + CELL_SIZE - 2}
                   fontSize={9}
                   fill="hsl(220, 8%, 46%)"
                   className="font-mono"
@@ -156,8 +161,8 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
             {months.map((m, i) => (
               <text
                 key={i}
-                x={30 + m.week * TOTAL}
-                y={10}
+                x={LEFT_GUTTER + m.week * TOTAL}
+                y={12}
                 fontSize={9}
                 fill="hsl(220, 8%, 46%)"
                 className="font-mono"
@@ -172,17 +177,19 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
               return (
                 <g key={i}>
                   <rect
-                    x={30 + cell.week * TOTAL}
-                    y={18 + cell.day * TOTAL}
+                    x={LEFT_GUTTER + cell.week * TOTAL}
+                    y={TOP_GUTTER + cell.day * TOTAL}
                     width={CELL_SIZE}
                     height={CELL_SIZE}
                     rx={2}
                     fill={getColor(cell.value, maxValue, config.hue)}
                     className="transition-all duration-150 cursor-pointer"
-                    onMouseEnter={() => {
+                    onMouseEnter={(event) => {
+                      const bounds = overlayRef.current?.getBoundingClientRect()
+                      if (!bounds) return
                       setTooltip({
-                        x: 30 + cell.week * TOTAL + CELL_SIZE / 2,
-                        y: 18 + cell.day * TOTAL - 8,
+                        x: event.clientX - bounds.left,
+                        y: event.clientY - bounds.top - 12,
                         date: cell.date,
                         value: cell.value,
                       })
@@ -191,8 +198,8 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
                   />
                   {isToday && (
                     <rect
-                      x={30 + cell.week * TOTAL - 1}
-                      y={18 + cell.day * TOTAL - 1}
+                      x={LEFT_GUTTER + cell.week * TOTAL - 1}
+                      y={TOP_GUTTER + cell.day * TOTAL - 1}
                       width={CELL_SIZE + 2}
                       height={CELL_SIZE + 2}
                       rx={3}
@@ -204,11 +211,12 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
                 </g>
               )
             })}
-          </svg>
+            </svg>
+          </div>
 
           {tooltip && (
             <div
-              className="absolute z-20 -translate-x-1/2 -translate-y-full rounded-md border border-border bg-popover px-2 py-1 text-xs shadow-lg pointer-events-none whitespace-nowrap"
+              className="absolute z-30 -translate-x-1/2 -translate-y-full rounded-md border border-border bg-popover px-2 py-1 text-xs shadow-lg pointer-events-none whitespace-nowrap"
               style={{ left: tooltip.x, top: tooltip.y }}
             >
               <span className="font-medium">{config.formatter(tooltip.value)}</span>
