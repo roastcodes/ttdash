@@ -34,6 +34,13 @@ Then verify the main flows manually:
 - Filtering
 - CSV/PDF export
 
+If you change dependencies, update both lockfiles so npm and Bun installs stay reproducible:
+
+```bash
+npm install
+bun install --lockfile-only
+```
+
 ## Style
 
 - Frontend: TypeScript + React, 2-space indentation, single quotes, no semicolons in `src/`
