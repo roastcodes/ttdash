@@ -1,8 +1,6 @@
 import type { DailyUsage, ProviderLimitConfig, ProviderLimits } from '@/types'
 import { getModelProvider } from '@/lib/model-utils'
 
-export const PROVIDER_LIMIT_STORAGE_KEY = 'ttdash-provider-limits-v1'
-
 export const DEFAULT_PROVIDER_LIMIT_CONFIG: ProviderLimitConfig = {
   hasSubscription: false,
   subscriptionPrice: 0,

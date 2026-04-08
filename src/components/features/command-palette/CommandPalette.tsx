@@ -7,10 +7,11 @@ import {
   Table, Search, ArrowUp, CircleHelp, Zap, Filter, BarChart3,
   LineChart, Sigma, CalendarRange, Layers3, ArrowDown, RefreshCcw, SlidersHorizontal, Languages
 } from 'lucide-react'
-import type { ViewMode } from '@/types'
+import type { AppLanguage, ViewMode } from '@/types'
 
 interface CommandPaletteProps {
   isDark: boolean
+  currentLanguage: AppLanguage
   availableProviders: string[]
   selectedProviders: string[]
   availableModels: string[]
@@ -35,6 +36,7 @@ interface CommandPaletteProps {
   onClearDateRange: () => void
   onResetAll: () => void
   onHelp: () => void
+  onLanguageChange: (language: AppLanguage) => void
 }
 
 interface CommandItem {
@@ -115,6 +117,7 @@ function getCommandSearchScore(cmd: CommandItem, query: string) {
 
 export function CommandPalette({
   isDark,
+  currentLanguage,
   availableProviders,
   selectedProviders,
   availableModels,
@@ -139,8 +142,9 @@ export function CommandPalette({
   onClearDateRange,
   onResetAll,
   onHelp,
+  onLanguageChange,
 }: CommandPaletteProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -193,8 +197,8 @@ export function CommandPalette({
     { id: 'tables', label: t('commandPalette.commands.tables.label'), description: t('commandPalette.commands.tables.description'), keywords: ['table', 'details'], icon: <Table className="h-4 w-4" />, action: () => onScrollTo('tables'), group: t('commandPalette.groups.navigation') },
 
     { id: 'theme', label: isDark ? t('commandPalette.commands.themeLight.label') : t('commandPalette.commands.themeDark.label'), description: t('commandPalette.commands.themeDark.description'), keywords: ['theme', 'dark', 'light'], shortcut: '⌘D', icon: isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />, action: onToggleTheme, group: t('commandPalette.groups.view') },
-    { id: 'language-de', label: t('commandPalette.commands.languageGerman.label'), description: t('commandPalette.commands.languageGerman.description'), keywords: ['language', 'sprache', 'deutsch', 'german', 'locale'], aliases: ['switch german', 'auf deutsch', 'sprache deutsch'], icon: <Languages className="h-4 w-4" />, action: () => void i18n.changeLanguage('de'), group: t('commandPalette.groups.language') },
-    { id: 'language-en', label: t('commandPalette.commands.languageEnglish.label'), description: t('commandPalette.commands.languageEnglish.description'), keywords: ['language', 'sprache', 'english', 'englisch', 'locale'], aliases: ['switch english', 'auf englisch', 'sprache english'], icon: <Languages className="h-4 w-4" />, action: () => void i18n.changeLanguage('en'), group: t('commandPalette.groups.language') },
+    { id: 'language-de', label: t('commandPalette.commands.languageGerman.label'), description: t('commandPalette.commands.languageGerman.description'), keywords: ['language', 'sprache', 'deutsch', 'german', 'locale'], aliases: ['switch german', 'auf deutsch', 'sprache deutsch'], icon: <Languages className="h-4 w-4" />, action: () => onLanguageChange('de'), group: t('commandPalette.groups.language') },
+    { id: 'language-en', label: t('commandPalette.commands.languageEnglish.label'), description: t('commandPalette.commands.languageEnglish.description'), keywords: ['language', 'sprache', 'english', 'englisch', 'locale'], aliases: ['switch english', 'auf englisch', 'sprache english'], icon: <Languages className="h-4 w-4" />, action: () => onLanguageChange('en'), group: t('commandPalette.groups.language') },
     { id: 'help', label: t('commandPalette.commands.help.label'), description: t('commandPalette.commands.help.description'), keywords: ['shortcut', 'hilfe'], shortcut: '?', icon: <CircleHelp className="h-4 w-4" />, action: onHelp, group: t('commandPalette.groups.help') },
   ]
 
@@ -234,7 +238,7 @@ export function CommandPalette({
     ...baseCommands,
     ...providerCommands,
     ...modelCommands,
-  ], [baseCommands, providerCommands, modelCommands])
+  ], [baseCommands, providerCommands, modelCommands, currentLanguage])
 
   const filteredCommands = useMemo(() => (
     commands

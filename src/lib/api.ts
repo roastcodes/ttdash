@@ -1,5 +1,6 @@
-import type { UsageData, ViewMode } from '@/types'
+import type { AppSettings, AppLanguage, AppTheme, ProviderLimits, UsageData, ViewMode } from '@/types'
 import i18n from '@/lib/i18n'
+import { normalizeAppSettings } from '@/lib/app-settings'
 
 export async function fetchUsage(): Promise<UsageData> {
   const res = await fetch('/api/usage')
@@ -23,6 +24,31 @@ export async function uploadData(data: unknown): Promise<{ days: number; totalCo
 export async function deleteUsage(): Promise<void> {
   const res = await fetch('/api/usage', { method: 'DELETE' })
   if (!res.ok) throw new Error(i18n.t('api.deleteFailed'))
+}
+
+export interface UpdateSettingsRequest {
+  language?: AppLanguage
+  theme?: AppTheme
+  providerLimits?: ProviderLimits
+}
+
+export async function fetchSettings(): Promise<AppSettings> {
+  const res = await fetch('/api/settings')
+  if (!res.ok) throw new Error('Failed to load settings')
+  return normalizeAppSettings(await res.json())
+}
+
+export async function updateSettings(patch: UpdateSettingsRequest): Promise<AppSettings> {
+  const res = await fetch('/api/settings', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Failed to save settings' }))
+    throw new Error(err.message)
+  }
+  return normalizeAppSettings(await res.json())
 }
 
 export interface PdfReportRequest {

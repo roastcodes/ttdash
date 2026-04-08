@@ -12,7 +12,6 @@ export function useTheme() {
     } else {
       document.documentElement.classList.remove('dark')
     }
-    localStorage.setItem('theme', isDark ? 'dark' : 'light')
   }, [isDark])
 
   const toggle = useCallback(() => setIsDark(prev => !prev), [])

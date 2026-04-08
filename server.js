@@ -11,14 +11,15 @@ const { version: APP_VERSION } = require('./package.json');
 
 const ROOT = __dirname;
 const STATIC_ROOT = path.join(ROOT, 'dist');
-const DATA_FILE = path.join(ROOT, 'data.json');
+const APP_DIR_NAME = 'TTDash';
+const APP_DIR_NAME_LINUX = 'ttdash';
+const LEGACY_DATA_FILE = path.join(ROOT, 'data.json');
 const START_PORT = parseInt(process.env.PORT, 10) || 3000;
 const MAX_PORT = START_PORT + 100;
 const API_PREFIX = '/port/5000/api';
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const IS_WINDOWS = process.platform === 'win32';
 const TOKTRACK_LOCAL_BIN = path.join(ROOT, 'node_modules', '.bin', IS_WINDOWS ? 'toktrack.cmd' : 'toktrack');
-const NPX_CACHE_DIR = path.join(os.tmpdir(), 'ttdash-npx-cache');
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
@@ -26,6 +27,44 @@ const SECURITY_HEADERS = {
   'Cross-Origin-Opener-Policy': 'same-origin',
 };
 const APP_LABEL = 'TTDash';
+const DEFAULT_SETTINGS = {
+  language: 'de',
+  theme: 'dark',
+  providerLimits: {},
+};
+
+function resolveAppPaths() {
+  const homeDir = os.homedir();
+
+  if (process.platform === 'darwin') {
+    const appSupportDir = path.join(homeDir, 'Library', 'Application Support', APP_DIR_NAME);
+    return {
+      dataDir: appSupportDir,
+      configDir: appSupportDir,
+      cacheDir: path.join(homeDir, 'Library', 'Caches', APP_DIR_NAME),
+    };
+  }
+
+  if (IS_WINDOWS) {
+    return {
+      dataDir: path.join(process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'), APP_DIR_NAME),
+      configDir: path.join(process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'), APP_DIR_NAME),
+      cacheDir: path.join(process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'), APP_DIR_NAME, 'Cache'),
+    };
+  }
+
+  const appName = APP_DIR_NAME_LINUX;
+  return {
+    dataDir: path.join(process.env.XDG_DATA_HOME || path.join(homeDir, '.local', 'share'), appName),
+    configDir: path.join(process.env.XDG_CONFIG_HOME || path.join(homeDir, '.config'), appName),
+    cacheDir: path.join(process.env.XDG_CACHE_HOME || path.join(homeDir, '.cache'), appName),
+  };
+}
+
+const APP_PATHS = resolveAppPaths();
+const DATA_FILE = path.join(APP_PATHS.dataDir, 'data.json');
+const SETTINGS_FILE = path.join(APP_PATHS.configDir, 'settings.json');
+const NPX_CACHE_DIR = path.join(APP_PATHS.cacheDir, 'npx-cache');
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -41,6 +80,93 @@ const MIME_TYPES = {
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
 };
+
+function ensureDir(dirPath) {
+  fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function ensureAppDirs() {
+  ensureDir(APP_PATHS.dataDir);
+  ensureDir(APP_PATHS.configDir);
+  ensureDir(APP_PATHS.cacheDir);
+  ensureDir(NPX_CACHE_DIR);
+}
+
+function writeJsonAtomic(filePath, data) {
+  ensureDir(path.dirname(filePath));
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
+  fs.renameSync(tempPath, filePath);
+}
+
+function migrateLegacyDataFile() {
+  if (!fs.existsSync(LEGACY_DATA_FILE) || fs.existsSync(DATA_FILE)) {
+    return;
+  }
+
+  ensureDir(path.dirname(DATA_FILE));
+
+  try {
+    fs.renameSync(LEGACY_DATA_FILE, DATA_FILE);
+    console.log(`Migriere bestehende Daten nach ${DATA_FILE}`);
+  } catch {
+    fs.copyFileSync(LEGACY_DATA_FILE, DATA_FILE);
+    try {
+      fs.unlinkSync(LEGACY_DATA_FILE);
+    } catch {}
+    console.log(`Kopiere bestehende Daten nach ${DATA_FILE}`);
+  }
+}
+
+function normalizeLanguage(value) {
+  return value === 'en' ? 'en' : 'de';
+}
+
+function normalizeTheme(value) {
+  return value === 'light' ? 'light' : 'dark';
+}
+
+function sanitizeCurrency(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  return Math.max(0, Number(value.toFixed(2)));
+}
+
+function normalizeProviderLimitConfig(value) {
+  if (!value || typeof value !== 'object') {
+    return {
+      hasSubscription: false,
+      subscriptionPrice: 0,
+      monthlyLimit: 0,
+    };
+  }
+
+  return {
+    hasSubscription: Boolean(value.hasSubscription),
+    subscriptionPrice: sanitizeCurrency(value.subscriptionPrice),
+    monthlyLimit: sanitizeCurrency(value.monthlyLimit),
+  };
+}
+
+function normalizeProviderLimits(value) {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  const next = {};
+  for (const [provider, config] of Object.entries(value)) {
+    next[provider] = normalizeProviderLimitConfig(config);
+  }
+  return next;
+}
+
+function normalizeSettings(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    language: normalizeLanguage(source.language),
+    theme: normalizeTheme(source.theme),
+    providerLimits: normalizeProviderLimits(source.providerLimits),
+  };
+}
 
 function openBrowser(url) {
   if (process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1' || !process.stdout.isTTY) {
@@ -110,6 +236,7 @@ function printStartupSummary(url, port) {
   console.log(`  Port:           ${port}`);
   console.log(`  Static Root:    ${STATIC_ROOT}`);
   console.log(`  Daten-Datei:    ${DATA_FILE}`);
+  console.log(`  Settings-Datei: ${SETTINGS_FILE}`);
   console.log(`  Datenstatus:    ${describeDataFile()}`);
   console.log(`  Browser-Start:  ${browserMode}`);
   console.log('');
@@ -179,7 +306,42 @@ function readData() {
 }
 
 function writeData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data));
+  writeJsonAtomic(DATA_FILE, data);
+}
+
+function readSettings() {
+  try {
+    return normalizeSettings(JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8')));
+  } catch {
+    return {
+      ...DEFAULT_SETTINGS,
+      providerLimits: {},
+    };
+  }
+}
+
+function writeSettings(settings) {
+  writeJsonAtomic(SETTINGS_FILE, normalizeSettings(settings));
+}
+
+function updateSettings(patch) {
+  const current = readSettings();
+  const next = {
+    ...current,
+    ...(patch && typeof patch === 'object' ? patch : {}),
+  };
+
+  if (patch && Object.prototype.hasOwnProperty.call(patch, 'providerLimits')) {
+    next.providerLimits = normalizeProviderLimits(patch.providerLimits);
+  } else {
+    next.providerLimits = current.providerLimits;
+  }
+
+  next.language = normalizeLanguage(next.language);
+  next.theme = normalizeTheme(next.theme);
+
+  writeSettings(next);
+  return next;
 }
 
 function readBody(req) {
@@ -382,6 +544,23 @@ const server = http.createServer(async (req, res) => {
       try { fs.unlinkSync(DATA_FILE); } catch {}
       return json(res, 200, { success: true });
     }
+    return json(res, 405, { message: 'Method Not Allowed' });
+  }
+
+  if (apiPath === '/settings') {
+    if (req.method === 'GET') {
+      return json(res, 200, readSettings());
+    }
+
+    if (req.method === 'PATCH') {
+      try {
+        const body = await readBody(req);
+        return json(res, 200, updateSettings(body));
+      } catch (e) {
+        return json(res, 400, { message: e.message || 'Ungültige Settings-Anfrage' });
+      }
+    }
+
     return json(res, 405, { message: 'Method Not Allowed' });
   }
 
@@ -588,6 +767,8 @@ function tryListen(port) {
   server.listen(port);
 }
 
+ensureAppDirs();
+migrateLegacyDataFile();
 tryListen(START_PORT);
 
 // Graceful shutdown on Ctrl+C / kill

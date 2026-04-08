@@ -40,11 +40,11 @@ import { ExpandableCard } from './ui/expandable-card'
 import { DashboardSkeleton } from './ui/skeleton'
 import { Button } from './ui/button'
 import { useUsageData, useUploadData, useDeleteData } from '@/hooks/use-usage-data'
+import { useAppSettings } from '@/hooks/use-app-settings'
 import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
 import { useComputedMetrics } from '@/hooks/use-computed-metrics'
-import { useProviderLimits } from '@/hooks/use-provider-limits'
-import { useTheme } from '@/hooks/use-theme'
 import { useToast } from '@/components/ui/toast'
+import { applyTheme } from '@/lib/app-settings'
 import { downloadCSV } from '@/lib/csv-export'
 import { SECTION_HELP } from '@/lib/help-content'
 import { generatePdfReport } from '@/lib/api'
@@ -53,6 +53,7 @@ import { getCurrentLocale } from '@/lib/i18n'
 import { getUniqueProviders } from '@/lib/model-utils'
 import { LimitsModal } from './features/limits/LimitsModal'
 import { ProviderLimitsSection } from './features/limits/ProviderLimitsSection'
+import type { AppLanguage } from '@/types'
 
 const DrillDownModal = lazy(() => import('./features/drill-down/DrillDownModal').then(module => ({ default: module.DrillDownModal })))
 const AutoImportModal = lazy(() => import('./features/auto-import/AutoImportModal').then(module => ({ default: module.AutoImportModal })))
@@ -63,7 +64,6 @@ export function Dashboard() {
   const uploadMutation = useUploadData()
   const deleteMutation = useDeleteData()
   const queryClient = useQueryClient()
-  const { isDark, toggle: toggleTheme } = useTheme()
   const { addToast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [drillDownDate, setDrillDownDate] = useState<string | null>(null)
@@ -77,7 +77,24 @@ export function Dashboard() {
   const daily = usageData?.daily ?? []
   const hasData = daily.length > 0
   const allProviders = useMemo(() => getUniqueProviders(daily.map(d => d.modelsUsed)), [daily])
-  const { limits: providerLimits, setLimits: setProviderLimits } = useProviderLimits(allProviders)
+  const {
+    settings,
+    providerLimits,
+    setTheme,
+    setLanguage,
+    setProviderLimits,
+  } = useAppSettings(allProviders)
+  const isDark = settings.theme === 'dark'
+
+  useEffect(() => {
+    applyTheme(settings.theme)
+  }, [settings.theme])
+
+  useEffect(() => {
+    if (i18n.resolvedLanguage !== settings.language) {
+      void i18n.changeLanguage(settings.language)
+    }
+  }, [i18n, settings.language])
 
   const initialSourceSet = useRef(false)
   useEffect(() => {
@@ -147,6 +164,19 @@ export function Dashboard() {
   const handleUpload = useCallback(() => {
     fileInputRef.current?.click()
   }, [])
+
+  const handleToggleTheme = useCallback(() => {
+    void setTheme(isDark ? 'light' : 'dark')
+  }, [isDark, setTheme])
+
+  const handleLanguageChange = useCallback((language: AppLanguage) => {
+    if (settings.language !== language) {
+      void setLanguage(language)
+    }
+    if (i18n.resolvedLanguage !== language) {
+      void i18n.changeLanguage(language)
+    }
+  }, [i18n, setLanguage, settings.language])
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -247,11 +277,13 @@ export function Dashboard() {
       <Header
         dateRange={dateRange}
         isDark={isDark}
+        currentLanguage={settings.language}
         helpOpen={helpOpen}
         streak={streak}
         dataSource={dataSource}
         onHelpOpenChange={setHelpOpen}
-        onToggleTheme={toggleTheme}
+        onLanguageChange={handleLanguageChange}
+        onToggleTheme={handleToggleTheme}
         onExportCSV={handleExportCSV}
         onDelete={handleDelete}
         onUpload={handleUpload}
@@ -505,6 +537,7 @@ export function Dashboard() {
       {/* Command Palette */}
       <CommandPalette
         isDark={isDark}
+        currentLanguage={settings.language}
         availableProviders={availableProviders}
         selectedProviders={selectedProviders}
         availableModels={availableModels}
@@ -512,7 +545,7 @@ export function Dashboard() {
         hasTodaySection={Boolean(todayData)}
         hasMonthSection={hasCurrentMonthData}
         reportGenerating={reportGenerating}
-        onToggleTheme={toggleTheme}
+        onToggleTheme={handleToggleTheme}
         onExportCSV={handleExportCSV}
         onGenerateReport={handleGenerateReport}
         onDelete={handleDelete}
@@ -532,6 +565,7 @@ export function Dashboard() {
         }}
         onResetAll={resetAll}
         onHelp={() => setHelpOpen(true)}
+        onLanguageChange={handleLanguageChange}
       />
 
       <Suspense fallback={null}>

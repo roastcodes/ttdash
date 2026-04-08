@@ -124,7 +124,7 @@ const HELP_CONTENT = {
     },
     feature: {
       requestQuality: 'Shows condensed request signals such as tokens per request, cost per request, and cache and thinking shares. This helps assess operational request quality faster.',
-      providerLimits: 'This is where fixed subscription cost and variable monthly limits are maintained per provider. Values are stored locally in the browser and only apply to providers present in the loaded report.',
+      providerLimits: 'This is where fixed subscription cost and variable monthly limits are maintained per provider. Values are stored in the local app settings and only apply to providers present in the loaded report.',
       concentrationRisk: 'Shows dependency on individual models and providers. Higher values mean that a small number of actors carries a large share of cost.',
       providerEfficiency: 'Shows the provider comparison by cost, requests, tokens, and efficiency metrics such as $/req or $/1M tokens.',
       modelEfficiency: 'Shows the model comparison by cost, volume, and efficiency so expensive or inefficient candidates are easy to spot.',

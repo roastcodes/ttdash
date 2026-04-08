@@ -125,8 +125,15 @@ docs/             README assets
 
 - No cloud backend
 - No remote database
-- Imported data is stored locally in `data.json`
+- Imported data is stored in your local app data directory
+- Settings such as language, theme, and provider limits are stored in your local app settings directory
 - Auto-import reads local `toktrack` output and normalizes it for the dashboard
+
+Platform paths:
+
+- macOS: `~/Library/Application Support/TTDash/`
+- Windows: `%LOCALAPPDATA%\\TTDash\\` for data and `%APPDATA%\\TTDash\\` for settings
+- Linux: `~/.local/share/ttdash/` for data and `~/.config/ttdash/` for settings
 
 ## Troubleshooting
 

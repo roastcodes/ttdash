@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { VERSION } from '@/lib/constants'
 import { HelpPanel } from '@/components/features/help/HelpPanel'
+import type { AppLanguage } from '@/types'
 
 interface DataSource {
   type: 'stored' | 'auto-import' | 'file'
@@ -13,10 +14,12 @@ interface DataSource {
 interface HeaderProps {
   dateRange: { start: string; end: string } | null
   isDark: boolean
+  currentLanguage: AppLanguage
   helpOpen: boolean
   streak?: number
   dataSource?: DataSource | null
   onHelpOpenChange: (open: boolean) => void
+  onLanguageChange: (language: AppLanguage) => void
   onToggleTheme: () => void
   onExportCSV: () => void
   onDelete: () => void
@@ -55,8 +58,8 @@ function DataSourceBadge({ source }: { source: DataSource }) {
   )
 }
 
-export function Header({ dateRange, isDark, helpOpen, streak, dataSource, onHelpOpenChange, onToggleTheme, onExportCSV, onDelete, onUpload, onAutoImport, limitsButton, pdfButton }: HeaderProps) {
-  const { t, i18n } = useTranslation()
+export function Header({ dateRange, isDark, currentLanguage, helpOpen, streak, dataSource, onHelpOpenChange, onLanguageChange, onToggleTheme, onExportCSV, onDelete, onUpload, onAutoImport, limitsButton, pdfButton }: HeaderProps) {
+  const { t } = useTranslation()
 
   return (
     <header className="py-4 px-1 space-y-3">
@@ -101,8 +104,8 @@ export function Header({ dateRange, isDark, helpOpen, streak, dataSource, onHelp
               <button
                 key={language}
                 type="button"
-                onClick={() => void i18n.changeLanguage(language)}
-                className={`rounded px-2 py-1 text-[10px] font-medium transition-colors ${i18n.resolvedLanguage === language ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => onLanguageChange(language)}
+                className={`rounded px-2 py-1 text-[10px] font-medium transition-colors ${currentLanguage === language ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                 title={t(`app.languages.${language}`)}
               >
                 {language.toUpperCase()}

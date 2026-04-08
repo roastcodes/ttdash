@@ -1,5 +1,14 @@
 # Changelog
 
+## [6.0.6] - 2026-04-08
+
+### Added
+- **Plattformgerechte Persistenz** — Nutzungsdaten und App-Einstellungen liegen jetzt in OS-konformen User-Verzeichnissen statt im Projekt- bzw. Installationsordner; bestehende `data.json` wird beim Start automatisch migriert
+
+### Improved
+- **Stabile Settings über Ports hinweg** — Sprache, Theme und Provider-Limits werden serverseitig in lokalen App-Settings gespeichert und bleiben dadurch auch bei automatischem Portwechsel erhalten
+- **Robustere Dateischreibvorgänge** — `data.json` und `settings.json` werden atomar geschrieben, damit lokale Persistenz bei Abbruch oder Neustart nicht inkonsistent wird
+
 ## [6.0.5] - 2026-04-04
 
 ### Improved

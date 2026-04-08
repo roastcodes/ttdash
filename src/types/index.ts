@@ -39,6 +39,10 @@ export interface UsageData {
   }
 }
 
+export type AppLanguage = 'de' | 'en'
+
+export type AppTheme = 'dark' | 'light'
+
 export type ViewMode = 'daily' | 'monthly' | 'yearly'
 
 export interface DateRange {
@@ -150,3 +154,9 @@ export interface ProviderLimitConfig {
 }
 
 export type ProviderLimits = Record<string, ProviderLimitConfig>
+
+export interface AppSettings {
+  language: AppLanguage
+  theme: AppTheme
+  providerLimits: ProviderLimits
+}
