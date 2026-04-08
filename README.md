@@ -22,9 +22,35 @@ Local usage dashboard for `toktrack` data. `TTDash` runs entirely on your machin
 - Command palette, keyboard shortcuts, and responsive layout
 - Animated chart reveals on scroll and on dashboard reload
 
-## Installation
+## Quick Start
 
-### Recommended
+From the npm registry:
+
+```bash
+npx ttdash@latest
+```
+
+Or with Bun:
+
+```bash
+bunx ttdash@latest
+```
+
+For a persistent global install:
+
+```bash
+npm install -g ttdash
+ttdash
+```
+
+```bash
+bun add -g ttdash
+ttdash
+```
+
+## Installation From Source
+
+Clone the repository and install locally:
 
 macOS / Linux:
 
@@ -40,9 +66,7 @@ install.bat
 ttdash
 ```
 
-The installer prefers Bun when available and falls back to npm where needed. The app opens in your browser automatically on local start.
-
-### Manual install
+Manual source install:
 
 ```bash
 npm install
@@ -82,6 +106,10 @@ The auto-import path prefers:
 
 The server automatically picks the next free port if `3000` is occupied.
 
+## Sample Data
+
+A synthetic sample dataset for local verification is included at `examples/sample-usage.json`.
+
 ## Development
 
 ```bash
@@ -117,8 +145,9 @@ server.js         local HTTP server and auto-import endpoint
 usage-normalizer.js
 install.sh
 install.bat
-dist/             production build output
+dist/             generated production build output
 docs/             README assets
+examples/         synthetic sample data
 ```
 
 ## Data & Privacy
@@ -173,8 +202,8 @@ Install `toktrack` locally or ensure `bunx` / `npx` can execute it.
 
 ## Status
 
-There is currently no dedicated automated test suite in the repository. Validation is done via production builds and Playwright-based browser checks.
+GitHub Actions runs the production build for pull requests and pushes to `main`. Local validation is done via production builds and targeted browser checks.
 
 ## License
 
-MIT
+MIT. See `LICENSE`.

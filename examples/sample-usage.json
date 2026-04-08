@@ -1,0 +1,210 @@
+{
+  "daily": [
+    {
+      "date": "2026-04-01",
+      "inputTokens": 182000,
+      "outputTokens": 38100,
+      "cacheCreationTokens": 64000,
+      "cacheReadTokens": 156000,
+      "thinkingTokens": 9200,
+      "totalTokens": 449300,
+      "totalCost": 4.83,
+      "requestCount": 84,
+      "modelsUsed": [
+        "gpt-5.4",
+        "claude-sonnet-4-5"
+      ],
+      "modelBreakdowns": [
+        {
+          "modelName": "gpt-5.4",
+          "inputTokens": 121000,
+          "outputTokens": 22100,
+          "cacheCreationTokens": 30000,
+          "cacheReadTokens": 98000,
+          "thinkingTokens": 4600,
+          "cost": 2.91,
+          "requestCount": 51
+        },
+        {
+          "modelName": "claude-sonnet-4-5",
+          "inputTokens": 61000,
+          "outputTokens": 16000,
+          "cacheCreationTokens": 34000,
+          "cacheReadTokens": 58000,
+          "thinkingTokens": 4600,
+          "cost": 1.92,
+          "requestCount": 33
+        }
+      ]
+    },
+    {
+      "date": "2026-04-02",
+      "inputTokens": 146000,
+      "outputTokens": 32900,
+      "cacheCreationTokens": 51000,
+      "cacheReadTokens": 121000,
+      "thinkingTokens": 7100,
+      "totalTokens": 358000,
+      "totalCost": 3.94,
+      "requestCount": 73,
+      "modelsUsed": [
+        "gpt-5.4",
+        "claude-sonnet-4-5"
+      ],
+      "modelBreakdowns": [
+        {
+          "modelName": "gpt-5.4",
+          "inputTokens": 92000,
+          "outputTokens": 18800,
+          "cacheCreationTokens": 25000,
+          "cacheReadTokens": 76000,
+          "thinkingTokens": 3600,
+          "cost": 2.3,
+          "requestCount": 42
+        },
+        {
+          "modelName": "claude-sonnet-4-5",
+          "inputTokens": 54000,
+          "outputTokens": 14100,
+          "cacheCreationTokens": 26000,
+          "cacheReadTokens": 45000,
+          "thinkingTokens": 3500,
+          "cost": 1.64,
+          "requestCount": 31
+        }
+      ]
+    },
+    {
+      "date": "2026-04-03",
+      "inputTokens": 203000,
+      "outputTokens": 44400,
+      "cacheCreationTokens": 72000,
+      "cacheReadTokens": 181000,
+      "thinkingTokens": 11800,
+      "totalTokens": 512200,
+      "totalCost": 5.52,
+      "requestCount": 96,
+      "modelsUsed": [
+        "gpt-5.4",
+        "claude-sonnet-4-5",
+        "gemini-2.5-pro"
+      ],
+      "modelBreakdowns": [
+        {
+          "modelName": "gpt-5.4",
+          "inputTokens": 113000,
+          "outputTokens": 23800,
+          "cacheCreationTokens": 30000,
+          "cacheReadTokens": 92000,
+          "thinkingTokens": 5000,
+          "cost": 2.84,
+          "requestCount": 48
+        },
+        {
+          "modelName": "claude-sonnet-4-5",
+          "inputTokens": 59000,
+          "outputTokens": 14600,
+          "cacheCreationTokens": 27000,
+          "cacheReadTokens": 54000,
+          "thinkingTokens": 3800,
+          "cost": 1.72,
+          "requestCount": 29
+        },
+        {
+          "modelName": "gemini-2.5-pro",
+          "inputTokens": 31000,
+          "outputTokens": 6000,
+          "cacheCreationTokens": 15000,
+          "cacheReadTokens": 35000,
+          "thinkingTokens": 3000,
+          "cost": 0.96,
+          "requestCount": 19
+        }
+      ]
+    },
+    {
+      "date": "2026-04-04",
+      "inputTokens": 128000,
+      "outputTokens": 27400,
+      "cacheCreationTokens": 44000,
+      "cacheReadTokens": 98000,
+      "thinkingTokens": 5200,
+      "totalTokens": 302600,
+      "totalCost": 3.11,
+      "requestCount": 61,
+      "modelsUsed": [
+        "gpt-5.4",
+        "gemini-2.5-pro"
+      ],
+      "modelBreakdowns": [
+        {
+          "modelName": "gpt-5.4",
+          "inputTokens": 86000,
+          "outputTokens": 17400,
+          "cacheCreationTokens": 21000,
+          "cacheReadTokens": 61000,
+          "thinkingTokens": 2700,
+          "cost": 2.05,
+          "requestCount": 39
+        },
+        {
+          "modelName": "gemini-2.5-pro",
+          "inputTokens": 42000,
+          "outputTokens": 10000,
+          "cacheCreationTokens": 23000,
+          "cacheReadTokens": 37000,
+          "thinkingTokens": 2500,
+          "cost": 1.06,
+          "requestCount": 22
+        }
+      ]
+    },
+    {
+      "date": "2026-04-05",
+      "inputTokens": 91000,
+      "outputTokens": 20100,
+      "cacheCreationTokens": 37000,
+      "cacheReadTokens": 76000,
+      "thinkingTokens": 4100,
+      "totalTokens": 228200,
+      "totalCost": 2.47,
+      "requestCount": 49,
+      "modelsUsed": [
+        "gpt-5.4",
+        "claude-sonnet-4-5"
+      ],
+      "modelBreakdowns": [
+        {
+          "modelName": "gpt-5.4",
+          "inputTokens": 58000,
+          "outputTokens": 12400,
+          "cacheCreationTokens": 17000,
+          "cacheReadTokens": 43000,
+          "thinkingTokens": 2200,
+          "cost": 1.54,
+          "requestCount": 28
+        },
+        {
+          "modelName": "claude-sonnet-4-5",
+          "inputTokens": 33000,
+          "outputTokens": 7700,
+          "cacheCreationTokens": 20000,
+          "cacheReadTokens": 33000,
+          "thinkingTokens": 1900,
+          "cost": 0.93,
+          "requestCount": 21
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "inputTokens": 750000,
+    "outputTokens": 162900,
+    "cacheCreationTokens": 268000,
+    "cacheReadTokens": 632000,
+    "thinkingTokens": 37400,
+    "totalTokens": 1850300,
+    "totalCost": 19.87,
+    "requestCount": 363
+  }
+}
