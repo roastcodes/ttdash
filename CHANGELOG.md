@@ -1,5 +1,15 @@
 # Changelog
 
+## [6.0.8] - 2026-04-08
+
+### Added
+- **CLI-Flags für `ttdash`** — `--port` / `-p`, `--help` / `-h`, `--no-open` / `-no` und `--auto-load` / `-al` werden jetzt direkt vom globalen CLI-Befehl unterstützt
+- **Persistente Lade-Metadaten** — App-Settings speichern jetzt, wann Daten zuletzt geladen wurden und über welchen Pfad (`Datei`, `Auto-Import`, `CLI Auto-Load`)
+- **Sichtbare Lade-Hinweise im UI** — Header und Limits-Dialog zeigen jetzt den letzten Ladezeitpunkt; bei `-al` erscheint zusätzlich ein eigener `Auto-Load beim Start`-Badge
+
+### Improved
+- **Gemeinsamer Auto-Import-Pfad** — UI-Auto-Import und CLI-Auto-Load verwenden jetzt dieselbe Server-Logik, damit Laufzeitverhalten, Persistenz und Fehlerbehandlung konsistent bleiben
+
 ## [6.0.7] - 2026-04-08
 
 ### Added

@@ -4,16 +4,20 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { FEATURE_HELP } from '@/lib/help-content'
+import { formatDateTimeFull } from '@/lib/formatters'
 import { getProviderBadgeClasses } from '@/lib/model-utils'
 import { syncProviderLimits } from '@/lib/provider-limits'
 import { cn } from '@/lib/cn'
-import type { ProviderLimits } from '@/types'
+import type { DataLoadSource, ProviderLimits } from '@/types'
 
 interface LimitsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   providers: string[]
   limits: ProviderLimits
+  lastLoadedAt?: string | null
+  lastLoadSource?: DataLoadSource
+  cliAutoLoadActive?: boolean
   onSave: (limits: ProviderLimits) => void
 }
 
@@ -25,7 +29,7 @@ function parseNumberInput(value: string): number {
   return Math.max(0, Number(parsed.toFixed(2)))
 }
 
-export function LimitsModal({ open, onOpenChange, providers, limits, onSave }: LimitsModalProps) {
+export function LimitsModal({ open, onOpenChange, providers, limits, lastLoadedAt, lastLoadSource, cliAutoLoadActive = false, onSave }: LimitsModalProps) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState<ProviderLimits>(() => syncProviderLimits(providers, limits))
 
@@ -49,6 +53,10 @@ export function LimitsModal({ open, onOpenChange, providers, limits, onSave }: L
     onOpenChange(false)
   }
 
+  const loadSourceLabel = lastLoadSource
+    ? t(`limits.modal.sources.${lastLoadSource}`)
+    : t('limits.modal.sources.unknown')
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto overflow-x-visible">
@@ -61,6 +69,30 @@ export function LimitsModal({ open, onOpenChange, providers, limits, onSave }: L
             {t('limits.modal.description')}
           </DialogDescription>
         </DialogHeader>
+
+        <div className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-3">
+          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            {t('limits.modal.dataStatus')}
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1">
+              <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{t('limits.modal.lastLoaded')}</div>
+              <div className="text-sm font-medium text-foreground">
+                {lastLoadedAt ? formatDateTimeFull(lastLoadedAt) : t('common.notAvailable')}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{t('limits.modal.loadedVia')}</div>
+              <div className="text-sm font-medium text-foreground">{loadSourceLabel}</div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{t('limits.modal.cliAutoLoad')}</div>
+              <div className="text-sm font-medium text-foreground">
+                {cliAutoLoadActive ? t('common.enabled') : t('common.disabled')}
+              </div>
+            </div>
+          </div>
+        </div>
 
         {providers.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-8 text-sm text-muted-foreground text-center">

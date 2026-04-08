@@ -112,3 +112,28 @@ export function formatMonthYear(dateStr: string): string {
   const date = new Date(parseInt(year), parseInt(month) - 1)
   return date.toLocaleDateString(getCurrentLocale(), { month: 'long', year: 'numeric' })
 }
+
+export function formatDateTimeCompact(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  return date.toLocaleString(getCurrentLocale(), {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+export function formatDateTimeFull(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  return date.toLocaleString(getCurrentLocale(), {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}

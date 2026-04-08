@@ -49,7 +49,7 @@ import { applyTheme } from '@/lib/app-settings'
 import { downloadCSV } from '@/lib/csv-export'
 import { SECTION_HELP } from '@/lib/help-content'
 import { generatePdfReport } from '@/lib/api'
-import { formatCurrency, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
+import { formatCurrency, formatDateTimeCompact, formatDateTimeFull, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
 import { getUniqueProviders } from '@/lib/model-utils'
 import { LimitsModal } from './features/limits/LimitsModal'
@@ -72,7 +72,7 @@ export function Dashboard() {
   const [autoImportOpen, setAutoImportOpen] = useState(false)
   const [limitsOpen, setLimitsOpen] = useState(false)
   const [reportGenerating, setReportGenerating] = useState(false)
-  const [dataSource, setDataSource] = useState<{ type: 'stored' | 'auto-import' | 'file'; label?: string; time?: string } | null>(null)
+  const [dataSource, setDataSource] = useState<{ type: 'stored' | 'auto-import' | 'file'; label?: string; time?: string; title?: string } | null>(null)
   const [animationSeed, setAnimationSeed] = useState(0)
 
   const daily = usageData?.daily ?? []
@@ -97,13 +97,35 @@ export function Dashboard() {
     }
   }, [i18n, settings.language])
 
-  const initialSourceSet = useRef(false)
-  useEffect(() => {
-    if (hasData && !initialSourceSet.current && !dataSource) {
-      initialSourceSet.current = true
-      setDataSource({ type: 'stored' })
+  const persistedLoadedTime = useMemo(
+    () => settings.lastLoadedAt ? formatDateTimeCompact(settings.lastLoadedAt) : undefined,
+    [settings.lastLoadedAt, i18n.resolvedLanguage],
+  )
+  const persistedLoadedTitle = useMemo(
+    () => settings.lastLoadedAt ? t('header.loadedAt', { time: formatDateTimeFull(settings.lastLoadedAt) }) : undefined,
+    [settings.lastLoadedAt, i18n.resolvedLanguage, t],
+  )
+  const persistedDataSource = useMemo(() => {
+    if (!hasData) return null
+
+    return {
+      type: 'stored' as const,
+      time: persistedLoadedTime,
+      title: persistedLoadedTitle,
     }
-  }, [hasData, dataSource])
+  }, [hasData, persistedLoadedTime, persistedLoadedTitle])
+  const headerDataSource = dataSource ?? persistedDataSource
+  const startupAutoLoadBadge = useMemo(() => (
+    settings.cliAutoLoadActive
+      ? {
+          active: true,
+          time: persistedLoadedTime,
+          title: settings.lastLoadedAt
+            ? t('header.autoLoadAt', { time: formatDateTimeFull(settings.lastLoadedAt) })
+            : t('header.autoLoadActive'),
+        }
+      : null
+  ), [settings.cliAutoLoadActive, settings.lastLoadedAt, persistedLoadedTime, i18n.resolvedLanguage, t])
 
   const {
     viewMode, setViewMode,
@@ -186,8 +208,16 @@ export function Dashboard() {
       const text = await file.text()
       const json = JSON.parse(text)
       await uploadMutation.mutateAsync(json)
+      void queryClient.invalidateQueries({ queryKey: ['settings'] })
       setAnimationSeed(prev => prev + 1)
-      setDataSource({ type: 'file', label: file.name, time: new Date().toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' }) })
+      const now = new Date()
+      const time = now.toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' })
+      setDataSource({
+        type: 'file',
+        label: file.name,
+        time,
+        title: `${file.name} · ${t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) })}`,
+      })
       addToast(t('toasts.fileLoaded', { name: file.name }), 'success')
     } catch {
       addToast(t('toasts.fileReadFailed'), 'error')
@@ -197,11 +227,11 @@ export function Dashboard() {
 
   const handleDelete = useCallback(async () => {
     await deleteMutation.mutateAsync()
+    void queryClient.invalidateQueries({ queryKey: ['settings'] })
     setAnimationSeed(prev => prev + 1)
     setDataSource(null)
-    initialSourceSet.current = false
     addToast(t('toasts.dataDeleted'), 'info')
-  }, [deleteMutation, addToast, t])
+  }, [deleteMutation, queryClient, addToast, t])
 
   const handleExportCSV = useCallback(() => {
     downloadCSV(filteredData)
@@ -244,9 +274,16 @@ export function Dashboard() {
   }, [])
 
   const handleAutoImportSuccess = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['usage'] })
+    void queryClient.invalidateQueries({ queryKey: ['usage'] })
+    void queryClient.invalidateQueries({ queryKey: ['settings'] })
     setAnimationSeed(prev => prev + 1)
-    setDataSource({ type: 'auto-import', time: new Date().toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' }) })
+    const now = new Date()
+    const time = now.toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' })
+    setDataSource({
+      type: 'auto-import',
+      time,
+      title: t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) }),
+    })
     addToast(t('toasts.dataImported'), 'success')
   }, [queryClient, addToast, t])
 
@@ -281,7 +318,8 @@ export function Dashboard() {
         currentLanguage={settings.language}
         helpOpen={helpOpen}
         streak={streak}
-        dataSource={dataSource}
+        dataSource={headerDataSource}
+        startupAutoLoad={startupAutoLoadBadge}
         onHelpOpenChange={setHelpOpen}
         onLanguageChange={handleLanguageChange}
         onToggleTheme={handleToggleTheme}
@@ -583,6 +621,9 @@ export function Dashboard() {
         onOpenChange={setLimitsOpen}
         providers={allProviders}
         limits={providerLimits}
+        lastLoadedAt={settings.lastLoadedAt}
+        lastLoadSource={settings.lastLoadSource}
+        cliAutoLoadActive={settings.cliAutoLoadActive}
         onSave={setProviderLimits}
       />
     </div>

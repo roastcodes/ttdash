@@ -1,10 +1,13 @@
-import type { AppLanguage, AppSettings, AppTheme, ProviderLimits } from '@/types'
+import type { AppLanguage, AppSettings, AppTheme, DataLoadSource, ProviderLimits } from '@/types'
 import { normalizeProviderLimitConfig } from '@/lib/provider-limits'
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'de',
   theme: 'dark',
   providerLimits: {},
+  lastLoadedAt: null,
+  lastLoadSource: null,
+  cliAutoLoadActive: false,
 }
 
 export function normalizeAppLanguage(value: unknown): AppLanguage {
@@ -26,6 +29,21 @@ export function normalizeStoredProviderLimits(value: unknown): ProviderLimits {
   return next
 }
 
+export function normalizeDataLoadSource(value: unknown): DataLoadSource {
+  return value === 'file' || value === 'auto-import' || value === 'cli-auto-load'
+    ? value
+    : null
+}
+
+export function normalizeStoredTimestamp(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+
+  const timestamp = Date.parse(value)
+  if (!Number.isFinite(timestamp)) return null
+
+  return new Date(timestamp).toISOString()
+}
+
 export function normalizeAppSettings(value: unknown): AppSettings {
   const source = value && typeof value === 'object' ? value as Partial<AppSettings> : {}
 
@@ -33,6 +51,9 @@ export function normalizeAppSettings(value: unknown): AppSettings {
     language: normalizeAppLanguage(source.language),
     theme: normalizeAppTheme(source.theme),
     providerLimits: normalizeStoredProviderLimits(source.providerLimits),
+    lastLoadedAt: normalizeStoredTimestamp(source.lastLoadedAt),
+    lastLoadSource: normalizeDataLoadSource(source.lastLoadSource),
+    cliAutoLoadActive: Boolean(source.cliAutoLoadActive),
   }
 }
 

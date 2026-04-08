@@ -163,8 +163,13 @@ export interface ProviderLimitConfig {
 
 export type ProviderLimits = Record<string, ProviderLimitConfig>
 
+export type DataLoadSource = 'file' | 'auto-import' | 'cli-auto-load' | null
+
 export interface AppSettings {
   language: AppLanguage
   theme: AppTheme
   providerLimits: ProviderLimits
+  lastLoadedAt: string | null
+  lastLoadSource: DataLoadSource
+  cliAutoLoadActive: boolean
 }

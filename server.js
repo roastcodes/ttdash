@@ -5,6 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
+const { parseArgs } = require('util');
 const { normalizeIncomingData } = require('./usage-normalizer');
 const { generatePdfReport } = require('./server/report');
 const { version: APP_VERSION } = require('./package.json');
@@ -14,7 +15,9 @@ const STATIC_ROOT = path.join(ROOT, 'dist');
 const APP_DIR_NAME = 'TTDash';
 const APP_DIR_NAME_LINUX = 'ttdash';
 const LEGACY_DATA_FILE = path.join(ROOT, 'data.json');
-const START_PORT = parseInt(process.env.PORT, 10) || 3000;
+const CLI_OPTIONS = parseCliArgs(process.argv.slice(2));
+const ENV_START_PORT = parseInt(process.env.PORT, 10);
+const START_PORT = CLI_OPTIONS.port ?? (Number.isFinite(ENV_START_PORT) ? ENV_START_PORT : 3000);
 const MAX_PORT = START_PORT + 100;
 const API_PREFIX = '/port/5000/api';
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -31,7 +34,101 @@ const DEFAULT_SETTINGS = {
   language: 'de',
   theme: 'dark',
   providerLimits: {},
+  lastLoadedAt: null,
+  lastLoadSource: null,
 };
+let startupAutoLoadCompleted = false;
+
+function normalizeCliArgs(args) {
+  return args.map((arg) => {
+    if (arg === '-no') {
+      return '--no-open';
+    }
+    if (arg === '-al') {
+      return '--auto-load';
+    }
+    return arg;
+  });
+}
+
+function printHelp() {
+  console.log(`TTDash v${APP_VERSION}`);
+  console.log('');
+  console.log('Verwendung:');
+  console.log('  ttdash [optionen]');
+  console.log('');
+  console.log('Optionen:');
+  console.log('  -p, --port <port>   Startport festlegen');
+  console.log('  -h, --help          Diese Hilfe anzeigen');
+  console.log('  -no, --no-open      Browser-Autostart deaktivieren');
+  console.log('  -al, --auto-load    Führt direkt beim Start einen Auto-Import aus');
+  console.log('');
+  console.log('Beispiele:');
+  console.log('  ttdash --port 3010');
+  console.log('  ttdash -p 3010 -no');
+  console.log('  ttdash --auto-load');
+  console.log('');
+  console.log('Umgebungsvariablen:');
+  console.log('  PORT=3010 ttdash');
+  console.log('  NO_OPEN_BROWSER=1 ttdash');
+}
+
+function parseCliArgs(rawArgs) {
+  const args = normalizeCliArgs(rawArgs);
+
+  let parsed;
+  try {
+    parsed = parseArgs({
+      args,
+      allowPositionals: false,
+      strict: true,
+      options: {
+        port: {
+          type: 'string',
+          short: 'p',
+        },
+        help: {
+          type: 'boolean',
+          short: 'h',
+        },
+        'no-open': {
+          type: 'boolean',
+        },
+        'auto-load': {
+          type: 'boolean',
+        },
+      },
+    });
+  } catch (error) {
+    console.error(error.message);
+    console.log('');
+    printHelp();
+    process.exit(1);
+  }
+
+  if (parsed.values.help) {
+    printHelp();
+    process.exit(0);
+  }
+
+  let port;
+  if (parsed.values.port !== undefined) {
+    const parsedPort = Number.parseInt(parsed.values.port, 10);
+    if (!Number.isInteger(parsedPort) || parsedPort <= 0 || parsedPort > 65535) {
+      console.error(`Ungültiger Port: ${parsed.values.port}`);
+      console.log('');
+      printHelp();
+      process.exit(1);
+    }
+    port = parsedPort;
+  }
+
+  return {
+    port,
+    noOpen: Boolean(parsed.values['no-open']),
+    autoLoad: Boolean(parsed.values['auto-load']),
+  };
+}
 
 function resolveAppPaths() {
   const homeDir = os.homedir();
@@ -126,6 +223,25 @@ function normalizeTheme(value) {
   return value === 'light' ? 'light' : 'dark';
 }
 
+function normalizeLastLoadSource(value) {
+  return value === 'file' || value === 'auto-import' || value === 'cli-auto-load'
+    ? value
+    : null;
+}
+
+function normalizeIsoTimestamp(value) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+
+  return new Date(timestamp).toISOString();
+}
+
 function sanitizeCurrency(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
   return Math.max(0, Number(value.toFixed(2)));
@@ -165,11 +281,20 @@ function normalizeSettings(value) {
     language: normalizeLanguage(source.language),
     theme: normalizeTheme(source.theme),
     providerLimits: normalizeProviderLimits(source.providerLimits),
+    lastLoadedAt: normalizeIsoTimestamp(source.lastLoadedAt),
+    lastLoadSource: normalizeLastLoadSource(source.lastLoadSource),
+  };
+}
+
+function toSettingsResponse(settings) {
+  return {
+    ...normalizeSettings(settings),
+    cliAutoLoadActive: startupAutoLoadCompleted,
   };
 }
 
 function openBrowser(url) {
-  if (process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1' || !process.stdout.isTTY) {
+  if (!shouldOpenBrowser()) {
     return;
   }
 
@@ -189,6 +314,10 @@ function openBrowser(url) {
   });
   child.on('error', () => {});
   child.unref();
+}
+
+function shouldOpenBrowser() {
+  return !(CLI_OPTIONS.noOpen || process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1' || !process.stdout.isTTY);
 }
 
 function formatCurrency(value) {
@@ -225,9 +354,12 @@ function describeDataFile() {
 }
 
 function printStartupSummary(url, port) {
-  const browserMode = process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1' || !process.stdout.isTTY
-    ? 'deaktiviert'
-    : 'aktiviert';
+  const browserMode = shouldOpenBrowser()
+    ? 'aktiviert'
+    : 'deaktiviert';
+  const autoLoadMode = CLI_OPTIONS.autoLoad
+    ? 'aktiviert'
+    : 'deaktiviert';
 
   console.log('');
   console.log(`${APP_LABEL} v${APP_VERSION} ist bereit`);
@@ -239,12 +371,15 @@ function printStartupSummary(url, port) {
   console.log(`  Settings-Datei: ${SETTINGS_FILE}`);
   console.log(`  Datenstatus:    ${describeDataFile()}`);
   console.log(`  Browser-Start:  ${browserMode}`);
+  console.log(`  Auto-Load:      ${autoLoadMode}`);
   console.log('');
   console.log('Verfügbare Wege für Daten:');
   console.log('  1. Auto-Import aus der App starten');
   console.log('  2. toktrack JSON per Upload importieren');
   console.log('');
   console.log('Nützliche Kommandos:');
+  console.log(`  ttdash --port ${port}`);
+  console.log(`  ttdash --port ${port} --no-open`);
   console.log(`  NO_OPEN_BROWSER=1 PORT=${port} node server.js`);
   console.log(`  curl ${url}/api/usage`);
   console.log('');
@@ -311,12 +446,12 @@ function writeData(data) {
 
 function readSettings() {
   try {
-    return normalizeSettings(JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8')));
+    return toSettingsResponse(JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8')));
   } catch {
-    return {
+    return toSettingsResponse({
       ...DEFAULT_SETTINGS,
       providerLimits: {},
-    };
+    });
   }
 }
 
@@ -341,7 +476,31 @@ function updateSettings(patch) {
   next.theme = normalizeTheme(next.theme);
 
   writeSettings(next);
-  return next;
+  return toSettingsResponse(next);
+}
+
+function recordDataLoad(source) {
+  const current = readSettings();
+  const next = {
+    ...current,
+    lastLoadedAt: new Date().toISOString(),
+    lastLoadSource: source,
+  };
+
+  writeSettings(next);
+  return toSettingsResponse(next);
+}
+
+function clearDataLoadState() {
+  const current = readSettings();
+  const next = {
+    ...current,
+    lastLoadedAt: null,
+    lastLoadSource: null,
+  };
+
+  writeSettings(next);
+  return toSettingsResponse(next);
 }
 
 function readBody(req) {
@@ -514,6 +673,92 @@ function runToktrack(runner, args, { streamStderr = false, onStderr, signalOnClo
   });
 }
 
+async function performAutoImport({
+  source = 'auto-import',
+  onCheck = () => {},
+  onProgress = () => {},
+  onOutput = () => {},
+  signalOnClose,
+} = {}) {
+  if (autoImportRunning) {
+    throw new Error('Ein Auto-Import läuft bereits. Bitte warten.');
+  }
+
+  autoImportRunning = true;
+  let progressSeconds = 0;
+  const progressInterval = setInterval(() => {
+    progressSeconds += 5;
+    onOutput(`Verarbeite Nutzungsdaten... (${progressSeconds}s)`);
+  }, 5000);
+
+  try {
+    onCheck({ tool: 'toktrack', status: 'checking' });
+    onProgress({ message: 'Starte lokalen toktrack-Import...' });
+
+    const runner = await resolveToktrackRunner();
+    if (!runner) {
+      onCheck({ tool: 'toktrack', status: 'not_found' });
+      throw new Error('Kein lokales toktrack, Bun oder npm exec gefunden.');
+    }
+
+    const versionResult = await runToktrack(runner, ['--version']);
+    onCheck({
+      tool: 'toktrack',
+      status: 'found',
+      method: runner.label,
+      version: String(versionResult).replace(/^toktrack\s+/, ''),
+    });
+    onProgress({ message: `Lade Nutzungsdaten via ${runner.displayCommand}...` });
+
+    const rawJson = await runToktrack(runner, ['daily', '--json'], {
+      streamStderr: true,
+      onStderr: (line) => {
+        onOutput(line);
+      },
+      signalOnClose,
+    });
+
+    const normalized = normalizeIncomingData(JSON.parse(rawJson));
+    writeData(normalized);
+    recordDataLoad(source);
+
+    return {
+      days: normalized.daily.length,
+      totalCost: normalized.totals.totalCost,
+    };
+  } finally {
+    clearInterval(progressInterval);
+    autoImportRunning = false;
+  }
+}
+
+async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
+  console.log('Auto-Load aktiviert, starte Import...');
+
+  try {
+    const result = await performAutoImport({
+      source,
+      onCheck: (event) => {
+        if (event.status === 'found') {
+          console.log(`toktrack gefunden (${event.method}, v${event.version})`);
+        }
+      },
+      onProgress: (event) => {
+        console.log(event.message);
+      },
+      onOutput: (line) => {
+        console.log(line);
+      },
+    });
+
+    startupAutoLoadCompleted = true;
+    console.log(`Auto-Load abgeschlossen: ${result.days} Tage importiert, ${formatCurrency(result.totalCost)}.`);
+  } catch (error) {
+    console.error(`Auto-Load fehlgeschlagen: ${error.message}`);
+    console.error('Dashboard startet ohne neu importierte Daten.');
+  }
+}
+
 // --- Server ---
 
 const server = http.createServer(async (req, res) => {
@@ -542,6 +787,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'DELETE') {
       try { fs.unlinkSync(DATA_FILE); } catch {}
+      clearDataLoadState();
       return json(res, 200, { success: true });
     }
     return json(res, 405, { message: 'Method Not Allowed' });
@@ -570,6 +816,7 @@ const server = http.createServer(async (req, res) => {
         const body = await readBody(req);
         const normalized = normalizeIncomingData(body);
         writeData(normalized);
+        recordDataLoad('file');
         const days = normalized.daily.length;
         const totalCost = normalized.totals.totalCost;
         return json(res, 200, { days, totalCost });
@@ -589,20 +836,6 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { message: 'Method Not Allowed' });
     }
 
-    if (autoImportRunning) {
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-        ...SECURITY_HEADERS,
-      });
-      sendSSE(res, 'error', { message: 'Ein Auto-Import läuft bereits. Bitte warten.' });
-      sendSSE(res, 'done', {});
-      res.end();
-      return;
-    }
-
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -611,45 +844,23 @@ const server = http.createServer(async (req, res) => {
       ...SECURITY_HEADERS,
     });
 
-    autoImportRunning = true;
     let aborted = false;
-
-    const cleanup = () => { autoImportRunning = false; };
-
-    req.on('close', () => { aborted = true; cleanup(); });
-
-    sendSSE(res, 'check', { tool: 'toktrack', status: 'checking' });
-
-    // Progress indicator
-    let progressSeconds = 0;
-    const progressInterval = setInterval(() => {
-      if (!aborted) {
-        progressSeconds += 5;
-        sendSSE(res, 'stderr', { line: `Verarbeite Nutzungsdaten... (${progressSeconds}s)` });
-      }
-    }, 5000);
+    req.on('close', () => { aborted = true; });
 
     try {
-      sendSSE(res, 'progress', { message: 'Starte lokalen toktrack-Import...' });
-
-      const runner = await resolveToktrackRunner();
-      if (!runner) {
-        sendSSE(res, 'check', { tool: 'toktrack', status: 'not_found' });
-        throw new Error('Kein lokales toktrack, Bun oder npm exec gefunden.');
-      }
-
-      const versionResult = await runToktrack(runner, ['--version']);
-      sendSSE(res, 'check', {
-        tool: 'toktrack',
-        status: 'found',
-        method: runner.label,
-        version: String(versionResult).replace(/^toktrack\s+/, ''),
-      });
-      sendSSE(res, 'progress', { message: `Lade Nutzungsdaten via ${runner.displayCommand}...` });
-
-      const rawJson = await runToktrack(runner, ['daily', '--json'], {
-        streamStderr: true,
-        onStderr: (line) => {
+      const result = await performAutoImport({
+        source: 'auto-import',
+        onCheck: (event) => {
+          if (!aborted) {
+            sendSSE(res, 'check', event);
+          }
+        },
+        onProgress: (event) => {
+          if (!aborted) {
+            sendSSE(res, 'progress', event);
+          }
+        },
+        onOutput: (line) => {
           if (!aborted) {
             sendSSE(res, 'stderr', { line });
           }
@@ -659,26 +870,16 @@ const server = http.createServer(async (req, res) => {
         },
       });
 
-      clearInterval(progressInterval);
-      if (aborted) { cleanup(); return; }
+      if (aborted) { return; }
 
-      const normalized = normalizeIncomingData(JSON.parse(rawJson));
-      writeData(normalized);
-
-      const days = normalized.daily.length;
-      const totalCost = normalized.totals.totalCost;
-
-      sendSSE(res, 'success', { days, totalCost });
+      sendSSE(res, 'success', result);
       sendSSE(res, 'done', {});
       res.end();
-      cleanup();
     } catch (err) {
-      clearInterval(progressInterval);
-      if (aborted) { cleanup(); return; }
+      if (aborted) { return; }
       sendSSE(res, 'error', { message: `Fehler: ${err.message}` });
       sendSSE(res, 'done', {});
       res.end();
-      cleanup();
     }
     return;
   }
@@ -739,37 +940,54 @@ const server = http.createServer(async (req, res) => {
 });
 
 function tryListen(port) {
-  if (port > MAX_PORT) {
-    console.error(`Kein freier Port gefunden (${START_PORT}-${MAX_PORT})`);
-    process.exit(1);
-  }
-
-  const onError = (err) => {
-    server.off('listening', onListening);
-    if (err.code === 'EADDRINUSE') {
-      console.log(`Port ${port} belegt, versuche ${port + 1}...`);
-      tryListen(port + 1);
-    } else {
-      console.error(err);
-      process.exit(1);
+  return new Promise((resolve, reject) => {
+    if (port > MAX_PORT) {
+      reject(new Error(`Kein freier Port gefunden (${START_PORT}-${MAX_PORT})`));
+      return;
     }
-  };
 
-  const onListening = () => {
-    server.off('error', onError);
-    const url = `http://localhost:${port}`;
-    printStartupSummary(url, port);
-    openBrowser(url);
-  };
+    const onError = (err) => {
+      server.off('listening', onListening);
+      if (err.code === 'EADDRINUSE') {
+        console.log(`Port ${port} belegt, versuche ${port + 1}...`);
+        resolve(tryListen(port + 1));
+      } else {
+        reject(err);
+      }
+    };
 
-  server.once('error', onError);
-  server.once('listening', onListening);
-  server.listen(port);
+    const onListening = () => {
+      server.off('error', onError);
+      resolve(port);
+    };
+
+    server.once('error', onError);
+    server.once('listening', onListening);
+    server.listen(port);
+  });
 }
 
-ensureAppDirs();
-migrateLegacyDataFile();
-tryListen(START_PORT);
+async function start() {
+  ensureAppDirs();
+  migrateLegacyDataFile();
+
+  const port = await tryListen(START_PORT);
+  const url = `http://localhost:${port}`;
+
+  if (CLI_OPTIONS.autoLoad) {
+    await runStartupAutoLoad({
+      source: 'cli-auto-load',
+    });
+  }
+
+  printStartupSummary(url, port);
+  openBrowser(url);
+}
+
+start().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
 
 // Graceful shutdown on Ctrl+C / kill
 function shutdown(signal) {

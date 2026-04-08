@@ -14,7 +14,11 @@
     "report": "Report",
     "csv": "CSV",
     "delete": "Löschen",
-    "help": "Hilfe & Tastenkürzel"
+    "help": "Hilfe & Tastenkürzel",
+    "loaded": "Geladen",
+    "loadedAt": "Zuletzt geladen: {{time}}",
+    "autoLoadActive": "Auto-Load beim Start",
+    "autoLoadAt": "Beim Start automatisch geladen: {{time}}"
   },
   "emptyState": {
     "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx toktrack daily --json` oder `npx --yes toktrack daily --json`.",
@@ -882,12 +886,22 @@
     "modal": {
       "title": "Provider Limits",
       "description": "Definiere pro Anbieter Subscription und Monatslimit. Nur Anbieter aus dem aktuell geladenen Report sind editierbar. Ein Limit von 0 bedeutet kein Limit.",
+      "dataStatus": "Datenstatus",
+      "lastLoaded": "Zuletzt geladen",
+      "loadedVia": "Geladen über",
+      "cliAutoLoad": "CLI Auto-Load",
       "noProviders": "Keine Anbieter im geladenen Report gefunden.",
       "hasSubscription": "Subscription vorhanden",
       "subscriptionPerMonth": "Subscription $/Monat",
       "monthlyLimit": "Monatslimit $",
       "close": "Schliessen",
-      "save": "Speichern"
+      "save": "Speichern",
+      "sources": {
+        "file": "Datei-Upload",
+        "auto-import": "Auto-Import",
+        "cli-auto-load": "CLI Auto-Load",
+        "unknown": "Unbekannt"
+      }
     }
   },
   "report": {

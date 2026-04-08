@@ -9,6 +9,13 @@ interface DataSource {
   type: 'stored' | 'auto-import' | 'file'
   label?: string
   time?: string
+  title?: string
+}
+
+interface StartupAutoLoad {
+  active: boolean
+  time?: string
+  title?: string
 }
 
 interface HeaderProps {
@@ -18,6 +25,7 @@ interface HeaderProps {
   helpOpen: boolean
   streak?: number
   dataSource?: DataSource | null
+  startupAutoLoad?: StartupAutoLoad | null
   onHelpOpenChange: (open: boolean) => void
   onLanguageChange: (language: AppLanguage) => void
   onToggleTheme: () => void
@@ -34,7 +42,7 @@ function DataSourceBadge({ source }: { source: DataSource }) {
 
   if (source.type === 'auto-import') {
     return (
-      <span className="text-[10px] font-medium inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-500/10 text-green-400 border border-green-500/20" title={t('emptyState.autoImport')}>
+      <span className="text-[10px] font-medium inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-500/10 text-green-400 border border-green-500/20" title={source.title ?? t('emptyState.autoImport')}>
         <Zap className="h-2.5 w-2.5" />
         {t('emptyState.autoImport')}
         {source.time && <span className="text-green-400/60">· {source.time}</span>}
@@ -43,7 +51,7 @@ function DataSourceBadge({ source }: { source: DataSource }) {
   }
   if (source.type === 'file') {
     return (
-      <span className="text-[10px] font-medium inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20" title={source.label ?? t('emptyState.uploadFile')}>
+      <span className="text-[10px] font-medium inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20" title={source.title ?? source.label ?? t('emptyState.uploadFile')}>
         <FileUp className="h-2.5 w-2.5 shrink-0" />
         <span className="truncate max-w-28 sm:max-w-40">{source.label ?? t('emptyState.uploadFile')}</span>
         {source.time && <span className="text-blue-400/60 shrink-0">· {source.time}</span>}
@@ -51,14 +59,29 @@ function DataSourceBadge({ source }: { source: DataSource }) {
     )
   }
   return (
-    <span className="text-[10px] font-medium inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/50 text-muted-foreground border border-border/50" title={t('common.noData')}>
+    <span className="text-[10px] font-medium inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/50 text-muted-foreground border border-border/50" title={source.title ?? t('header.loaded')}>
       <HardDrive className="h-2.5 w-2.5" />
-      {t('common.generated')}
+      {t('header.loaded')}
+      {source.time && <span className="text-muted-foreground/70">· {source.time}</span>}
     </span>
   )
 }
 
-export function Header({ dateRange, isDark, currentLanguage, helpOpen, streak, dataSource, onHelpOpenChange, onLanguageChange, onToggleTheme, onExportCSV, onDelete, onUpload, onAutoImport, limitsButton, pdfButton }: HeaderProps) {
+function StartupAutoLoadBadge({ badge }: { badge: StartupAutoLoad }) {
+  const { t } = useTranslation()
+
+  if (!badge.active) return null
+
+  return (
+    <span className="text-[10px] font-medium inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20" title={badge.title ?? t('header.autoLoadActive')}>
+      <Zap className="h-2.5 w-2.5" />
+      {t('header.autoLoadActive')}
+      {badge.time && <span className="text-amber-400/70">· {badge.time}</span>}
+    </span>
+  )
+}
+
+export function Header({ dateRange, isDark, currentLanguage, helpOpen, streak, dataSource, startupAutoLoad, onHelpOpenChange, onLanguageChange, onToggleTheme, onExportCSV, onDelete, onUpload, onAutoImport, limitsButton, pdfButton }: HeaderProps) {
   const { t } = useTranslation()
 
   return (
@@ -89,6 +112,7 @@ export function Header({ dateRange, isDark, currentLanguage, helpOpen, streak, d
               </span>
             )}
             {dataSource && <DataSourceBadge source={dataSource} />}
+            {startupAutoLoad && <StartupAutoLoadBadge badge={startupAutoLoad} />}
             {streak != null && streak > 1 && (
               <span className="text-xs font-medium inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-400 border border-orange-500/20 shrink-0">
                 <Flame className="h-3 w-3" />
