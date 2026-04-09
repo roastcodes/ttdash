@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.0.11] - 2026-04-10
+
+### Fixed
+- **Idempotenter Bun-Installer** — `install.sh` und `install.bat` bereinigen vor `bun add -g file:...` jetzt vorhandene `ttdash`-Einträge aus Bun’s globalem Manifest und löschen bei Bedarf das fehlerhafte globale `bun.lock`, damit wiederholte Upgrades keine doppelten `package.json`-Keys mehr erzeugen
+
 ## [6.0.10] - 2026-04-09
 
 ### Added
