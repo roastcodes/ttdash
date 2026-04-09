@@ -20,11 +20,15 @@ The frontend dev server runs on `http://localhost:5173` and the local API/static
 
 ## Before Opening a Pull Request
 
-Run the production build:
+Run the production build and automated checks:
 
 ```bash
 npm run build
+npm run test:unit
+npm run test:e2e
 ```
+
+The Playwright suite uses an isolated local app directory under `.tmp-playwright/` and should not reuse your normal local dashboard data.
 
 Then verify the main flows manually:
 

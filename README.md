@@ -127,6 +127,34 @@ Build a production bundle:
 npm run build
 ```
 
+## Testing
+
+Run the fast local verification suite:
+
+```bash
+npm run test:unit
+```
+
+Create coverage reports in `coverage/` and JUnit output in `test-results/`:
+
+```bash
+npm run test:unit:coverage
+```
+
+Run the browser smoke test against the built app:
+
+```bash
+npm run test:e2e
+```
+
+The Playwright run starts its own isolated local server and test data directory, so it does not touch your normal `TTDash` app data.
+
+Run the full local test set:
+
+```bash
+npm run test:all
+```
+
 ## Project Structure
 
 ```text
@@ -203,7 +231,7 @@ Install `toktrack` locally or ensure `bunx` / `npx` can execute it.
 
 ## Status
 
-GitHub Actions runs the production build for pull requests and pushes to `main`. Local validation is done via production builds and targeted browser checks.
+GitHub Actions runs the build, unit/integration coverage suite, and Playwright smoke test for pull requests and pushes to `main`.
 
 ## License
 

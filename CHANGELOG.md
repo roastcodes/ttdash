@@ -1,5 +1,19 @@
 # Changelog
 
+## [6.0.9] - 2026-04-09
+
+### Added
+- **Automatisierte Testpyramide** — Vitest deckt jetzt Datennormalisierung, Berechnungen, Hook-Logik und den lokalen Serverpfad ab; Playwright prüft den Upload-zu-Dashboard-Smoke-Flow mit echten Browser-Reports
+- **CI-Testpipeline** — GitHub Actions führt Build, Coverage, Playwright-Smoke und Report-Artefakte jetzt automatisiert auf Pushes und Pull Requests aus
+
+### Improved
+- **Öffentliche Repo-Bereitschaft** — Paket-Metadaten, Lizenz, Security-/Contribution-Dokumente und Publish-Surface wurden für ein späteres Public-Repo bereinigt
+- **Test-Isolation** — der Playwright-Webserver nutzt eine eigene lokale App-Umgebung und überschreibt keine normalen Nutzungsdaten
+- **Runtime-Härtung** — lokaler Server bindet standardmässig an `127.0.0.1`, liefert restriktivere Security-Header und vermeidet unnötige externe Runtime-Requests
+
+### Fixed
+- **Bun-/npm-Konsistenz** — Lockfiles und Publish-Inhalt sind jetzt auf denselben Dependency- und Runtime-Stand gebracht, sodass Build und Installation reproduzierbar bleiben
+
 ## [6.0.8] - 2026-04-08
 
 ### Added
