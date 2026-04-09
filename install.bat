@@ -4,8 +4,10 @@ set "INSTALL_TOOL=npm"
 set "BUILD_TOOL=npm"
 set "GLOBAL_TOOL=npm"
 set "APP_VERSION=unbekannt"
+set "APP_NAME=ttdash"
 
 for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "(Get-Content -Raw 'package.json' | ConvertFrom-Json).version"`) do set "APP_VERSION=%%v"
+for /f "usebackq delims=" %%n in (`powershell -NoProfile -Command "(Get-Content -Raw 'package.json' | ConvertFrom-Json).name"`) do set "APP_NAME=%%n"
 
 echo.
 echo  ttdash v%APP_VERSION% installer
@@ -70,6 +72,18 @@ echo    √ Build abgeschlossen (dist/)
 echo.
 echo  [3/3] Installiere global...
 if /i "%GLOBAL_TOOL%"=="bun" (
+    for /f "usebackq delims=" %%p in (`bun pm bin -g 2^>nul`) do set "BUN_GLOBAL_BIN=%%p"
+    if defined BUN_GLOBAL_BIN (
+        for %%d in ("%BUN_GLOBAL_BIN%\..") do set "BUN_ROOT=%%~fd"
+        set "BUN_GLOBAL_PACKAGE_JSON=%BUN_ROOT%\install\global\package.json"
+        set "BUN_GLOBAL_LOCKFILE=%BUN_ROOT%\install\global\bun.lock"
+        set "BUN_CLEANUP_STATUS="
+        for /f "usebackq delims=" %%s in (`bun --eval "const fs = require('fs'); const file = process.env.BUN_GLOBAL_PACKAGE_JSON; const name = process.env.APP_NAME; if (!file || !fs.existsSync(file)) { console.log('clean'); process.exit(0); } const raw = fs.readFileSync(file, 'utf8'); const parsed = JSON.parse(raw); const deps = { ...(parsed.dependencies || {}) }; const hadEntry = Object.prototype.hasOwnProperty.call(deps, name); if (hadEntry) { delete deps[name]; } const next = { ...parsed }; if (Object.keys(deps).length > 0) { next.dependencies = deps; } else { delete next.dependencies; } const normalized = JSON.stringify(next, null, 2) + '\n'; const normalizedChanged = raw !== normalized; if (normalizedChanged || hadEntry) { fs.writeFileSync(file, normalized); } if (hadEntry) { console.log('removed'); } else if (normalizedChanged) { console.log('normalized'); } else { console.log('clean'); }" 2^>nul`) do set "BUN_CLEANUP_STATUS=%%s"
+        if /i not "!BUN_CLEANUP_STATUS!"=="clean" (
+            if exist "%BUN_GLOBAL_LOCKFILE%" del /f /q "%BUN_GLOBAL_LOCKFILE%" >nul 2>&1
+            echo    - Vorhandenen Bun-Globaleintrag fuer %APP_NAME% bereinigt
+        )
+    )
     echo    - Versuche bun add -g file:%cd%
     call bun add -g file:%cd% >nul 2>&1
     if !errorlevel! neq 0 (

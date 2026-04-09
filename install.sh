@@ -14,9 +14,14 @@ total=3
 install_tool="npm"
 global_tool="npm"
 version="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' package.json | head -1)"
+package_name="$(sed -n 's/.*"name": "\(.*\)".*/\1/p' package.json | head -1)"
 
 if [ -z "$version" ]; then
   version="unbekannt"
+fi
+
+if [ -z "$package_name" ]; then
+  package_name="ttdash"
 fi
 
 info()  { step=$((step + 1)); printf "\n${BLUE}${BOLD}[$step/$total]${NC} %s\n" "$1"; }
@@ -24,6 +29,74 @@ ok()    { printf "  ${GREEN}✓${NC} %s\n" "$1"; }
 fail()  { printf "  ${RED}✗${NC} %s\n" "$1"; exit 1; }
 warn()  { printf "  ${RED}!${NC} %s\n" "$1"; }
 note()  { printf "  ${DIM}› %s${NC}\n" "$1"; }
+
+prepare_bun_global_install() {
+  local bun_global_bin_dir bun_root bun_global_dir bun_global_package_json bun_global_lock cleanup_status
+
+  bun_global_bin_dir="$(bun pm bin -g 2>/dev/null || true)"
+  if [ -z "$bun_global_bin_dir" ]; then
+    return 0
+  fi
+
+  bun_root="$(dirname "$bun_global_bin_dir")"
+  bun_global_dir="$bun_root/install/global"
+  bun_global_package_json="$bun_global_dir/package.json"
+  bun_global_lock="$bun_global_dir/bun.lock"
+
+  if [ ! -f "$bun_global_package_json" ]; then
+    return 0
+  fi
+
+  cleanup_status="$(
+    BUN_GLOBAL_PACKAGE_JSON="$bun_global_package_json" \
+    BUN_PACKAGE_NAME="$package_name" \
+    bun --eval 'const fs = require("fs");
+const file = process.env.BUN_GLOBAL_PACKAGE_JSON;
+const name = process.env.BUN_PACKAGE_NAME;
+const raw = fs.readFileSync(file, "utf8");
+const parsed = JSON.parse(raw);
+const deps = { ...(parsed.dependencies || {}) };
+const hadEntry = Object.prototype.hasOwnProperty.call(deps, name);
+
+if (hadEntry) {
+  delete deps[name];
+}
+
+const next = { ...parsed };
+if (Object.keys(deps).length > 0) {
+  next.dependencies = deps;
+} else {
+  delete next.dependencies;
+}
+
+const normalized = JSON.stringify(next, null, 2) + "\n";
+const normalizedChanged = raw !== normalized;
+
+if (normalizedChanged || hadEntry) {
+  fs.writeFileSync(file, normalized);
+}
+
+if (hadEntry) {
+  console.log("removed");
+} else if (normalizedChanged) {
+  console.log("normalized");
+} else {
+  console.log("clean");
+}'
+  )" || {
+    warn "Vorhandener Bun-Globaleintrag konnte nicht bereinigt werden"
+    return 0
+  }
+
+  if [ "$cleanup_status" = "clean" ]; then
+    return 0
+  fi
+
+  note "Bereinige vorhandenen Bun-Globaleintrag für $package_name"
+  if [ -f "$bun_global_lock" ]; then
+    rm -f "$bun_global_lock"
+  fi
+}
 
 cd "$(dirname "$0")"
 
@@ -79,6 +152,7 @@ fi
 # 3 — Global install
 info "Installiere global..."
 if [ "$global_tool" = "bun" ]; then
+  prepare_bun_global_install
   note "Versuche globale Installation mit bun add -g file:$(pwd)"
   if bun add -g "file:$(pwd)" 2>&1 | tail -1; then
     ok "Global via Bun installiert"
