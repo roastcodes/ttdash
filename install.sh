@@ -13,8 +13,11 @@ step=0
 total=3
 install_tool="npm"
 global_tool="npm"
-version="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' package.json | head -1)"
-package_name="$(sed -n 's/.*"name": "\(.*\)".*/\1/p' package.json | head -1)"
+script_source="${BASH_SOURCE[0]:-$0}"
+script_dir="$(cd "$(dirname "$script_source")" && pwd)"
+manifest_file="$script_dir/package.json"
+version="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' "$manifest_file" | head -1)"
+package_name="$(sed -n 's/.*"name": "\(.*\)".*/\1/p' "$manifest_file" | head -1)"
 
 if [ -z "$version" ]; then
   version="unbekannt"
@@ -98,7 +101,7 @@ if (hadEntry) {
   fi
 }
 
-cd "$(dirname "$0")"
+cd "$script_dir"
 
 printf "${BOLD}ttdash v%s${NC} installer\n" "$version"
 printf "${DIM}%s${NC}\n" "$(pwd)"

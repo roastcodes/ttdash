@@ -1,5 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%" || exit /b 1
 set "INSTALL_TOOL=npm"
 set "BUILD_TOOL=npm"
 set "GLOBAL_TOOL=npm"
