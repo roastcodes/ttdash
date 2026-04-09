@@ -19,6 +19,7 @@ const CLI_OPTIONS = parseCliArgs(process.argv.slice(2));
 const ENV_START_PORT = parseInt(process.env.PORT, 10);
 const START_PORT = CLI_OPTIONS.port ?? (Number.isFinite(ENV_START_PORT) ? ENV_START_PORT : 3000);
 const MAX_PORT = START_PORT + 100;
+const BIND_HOST = process.env.HOST || '127.0.0.1';
 const API_PREFIX = '/port/5000/api';
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const IS_WINDOWS = process.platform === 'win32';
@@ -28,6 +29,7 @@ const SECURITY_HEADERS = {
   'Referrer-Policy': 'no-referrer',
   'X-Frame-Options': 'DENY',
   'Cross-Origin-Opener-Policy': 'same-origin',
+  'Content-Security-Policy': "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
 };
 const APP_LABEL = 'TTDash';
 const DEFAULT_SETTINGS = {
@@ -71,6 +73,7 @@ function printHelp() {
   console.log('Umgebungsvariablen:');
   console.log('  PORT=3010 ttdash');
   console.log('  NO_OPEN_BROWSER=1 ttdash');
+  console.log('  HOST=127.0.0.1 ttdash');
 }
 
 function parseCliArgs(rawArgs) {
@@ -366,6 +369,7 @@ function printStartupSummary(url, port) {
   console.log(`  URL:            ${url}`);
   console.log(`  API:            ${url}/api/usage`);
   console.log(`  Port:           ${port}`);
+  console.log(`  Host:           ${BIND_HOST}`);
   console.log(`  Static Root:    ${STATIC_ROOT}`);
   console.log(`  Daten-Datei:    ${DATA_FILE}`);
   console.log(`  Settings-Datei: ${SETTINGS_FILE}`);
@@ -762,7 +766,7 @@ async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
 // --- Server ---
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
+  const url = new URL(req.url, 'http://localhost');
   const pathname = decodeURIComponent(url.pathname);
 
   // API routing
@@ -963,7 +967,7 @@ function tryListen(port) {
 
     server.once('error', onError);
     server.once('listening', onListening);
-    server.listen(port);
+    server.listen(port, BIND_HOST);
   });
 }
 
@@ -972,7 +976,8 @@ async function start() {
   migrateLegacyDataFile();
 
   const port = await tryListen(START_PORT);
-  const url = `http://localhost:${port}`;
+  const browserHost = BIND_HOST === '0.0.0.0' ? 'localhost' : BIND_HOST;
+  const url = `http://${browserHost}:${port}`;
 
   if (CLI_OPTIONS.autoLoad) {
     await runStartupAutoLoad({

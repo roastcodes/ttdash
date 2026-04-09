@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Geist", "Inter", sans-serif;
-  --font-mono: "Geist Mono", "JetBrains Mono", monospace;
+  --font-sans: "Avenir Next", "Segoe UI Variable", "Segoe UI", "Helvetica Neue", "Arial Nova", sans-serif;
+  --font-mono: "SFMono-Regular", "SF Mono", "Menlo", "Consolas", "Liberation Mono", monospace;
   --radius: 0.5rem;
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));

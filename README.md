@@ -154,6 +154,7 @@ examples/         synthetic sample data
 
 - No cloud backend
 - No remote database
+- No third-party fonts, analytics, or remote assets at runtime
 - Imported data is stored in your local app data directory
 - Settings such as language, theme, and provider limits are stored in your local app settings directory
 - Auto-import reads local `toktrack` output and normalizes it for the dashboard
