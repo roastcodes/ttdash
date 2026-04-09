@@ -1,0 +1,55 @@
+version: 2
+
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Europe/Zurich'
+    target-branch: 'main'
+    open-pull-requests-limit: 5
+    rebase-strategy: 'auto'
+    versioning-strategy: 'increase-if-necessary'
+    labels:
+      - 'dependencies'
+    commit-message:
+      prefix: 'deps'
+      include: 'scope'
+    pull-request-branch-name:
+      separator: '-'
+    groups:
+      production-dependencies:
+        dependency-type: 'production'
+        update-types:
+          - 'minor'
+          - 'patch'
+      development-dependencies:
+        dependency-type: 'development'
+        update-types:
+          - 'minor'
+          - 'patch'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:15'
+      timezone: 'Europe/Zurich'
+    target-branch: 'main'
+    open-pull-requests-limit: 2
+    rebase-strategy: 'auto'
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+    commit-message:
+      prefix: 'ci'
+      include: 'scope'
+    pull-request-branch-name:
+      separator: '-'
+    groups:
+      github-actions:
+        patterns:
+          - '*'
