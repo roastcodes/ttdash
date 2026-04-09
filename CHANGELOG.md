@@ -1,5 +1,13 @@
 # Changelog
 
+## [6.0.10] - 2026-04-09
+
+### Added
+- **GitHub Release-Workflow** — ein separater `release.yml` erstellt jetzt GitHub Releases automatisiert auf `v*`-Tags, prüft vorher Tests und Build und akzeptiert nur Tags auf `main`
+
+### Improved
+- **README-Projektkontext** — die Dokumentation verweist jetzt explizit auf `toktrack` als Basisdatenquelle und bedankt sich bei `mag123c`
+
 ## [6.0.9] - 2026-04-09
 
 ### Added

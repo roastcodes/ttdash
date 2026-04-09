@@ -2,6 +2,8 @@
 
 Local usage dashboard for `toktrack` data. `TTDash` runs entirely on your machine and turns raw usage exports into charts, KPIs, forecasts, provider/model breakdowns, and drill-down views.
 
+`TTDash` is built around the usage data provided by [`toktrack`](https://github.com/mag123c/toktrack). Thanks to [mag123c](https://github.com/mag123c) for creating and maintaining the data source this dashboard builds on.
+
 ![TTDash dashboard screenshot](docs/ttdash-dashboard.png)
 
 ## Why TTDash
