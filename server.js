@@ -68,25 +68,25 @@ function normalizeCliArgs(args) {
 function printHelp() {
   console.log(`TTDash v${APP_VERSION}`);
   console.log('');
-  console.log('Verwendung:');
-  console.log('  ttdash [optionen]');
+  console.log('Usage:');
+  console.log('  ttdash [options]');
   console.log('  ttdash stop');
   console.log('');
-  console.log('Optionen:');
-  console.log('  -p, --port <port>   Startport festlegen');
-  console.log('  -h, --help          Diese Hilfe anzeigen');
-  console.log('  -no, --no-open      Browser-Autostart deaktivieren');
-  console.log('  -al, --auto-load    Führt direkt beim Start einen Auto-Import aus');
-  console.log('  -b, --background    Startet TTDash als Hintergrundprozess');
+  console.log('Options:');
+  console.log('  -p, --port <port>   Set the start port');
+  console.log('  -h, --help          Show this help');
+  console.log('  -no, --no-open      Disable browser auto-open');
+  console.log('  -al, --auto-load    Run auto-import immediately on startup');
+  console.log('  -b, --background    Start TTDash as a background process');
   console.log('');
-  console.log('Beispiele:');
+  console.log('Examples:');
   console.log('  ttdash --port 3010');
   console.log('  ttdash -p 3010 -no');
   console.log('  ttdash --auto-load');
   console.log('  ttdash --background');
   console.log('  ttdash stop');
   console.log('');
-  console.log('Umgebungsvariablen:');
+  console.log('Environment variables:');
   console.log('  PORT=3010 ttdash');
   console.log('  NO_OPEN_BROWSER=1 ttdash');
   console.log('  HOST=127.0.0.1 ttdash');
@@ -136,7 +136,7 @@ function parseCliArgs(rawArgs) {
 
   let command = null;
   if (parsed.positionals.length > 1) {
-    console.error(`Unbekannter Aufruf: ${parsed.positionals.join(' ')}`);
+    console.error(`Unknown invocation: ${parsed.positionals.join(' ')}`);
     console.log('');
     printHelp();
     process.exit(1);
@@ -144,7 +144,7 @@ function parseCliArgs(rawArgs) {
 
   if (parsed.positionals.length === 1) {
     if (parsed.positionals[0] !== 'stop') {
-      console.error(`Unbekannter Befehl: ${parsed.positionals[0]}`);
+      console.error(`Unknown command: ${parsed.positionals[0]}`);
       console.log('');
       printHelp();
       process.exit(1);
@@ -157,7 +157,7 @@ function parseCliArgs(rawArgs) {
   if (parsed.values.port !== undefined) {
     const parsedPort = Number.parseInt(parsed.values.port, 10);
     if (!Number.isInteger(parsedPort) || parsedPort <= 0 || parsedPort > 65535) {
-      console.error(`Ungültiger Port: ${parsed.values.port}`);
+      console.error(`Invalid port: ${parsed.values.port}`);
       console.log('');
       printHelp();
       process.exit(1);
@@ -387,7 +387,7 @@ async function withBackgroundInstancesLock(callback, timeoutMs = BACKGROUND_INST
       }
 
       if (Date.now() - startedAt >= timeoutMs) {
-        throw new Error('Konnte Background-Registry nicht sperren.');
+        throw new Error('Could not acquire background registry lock.');
       }
 
       await sleep(50);
@@ -494,11 +494,11 @@ function formatBackgroundInstanceLabel(instance, index) {
     `${index + 1}. ${instance.url}`,
     `PID ${instance.pid}`,
     `Port ${instance.port}`,
-    `gestartet ${formatDateTime(instance.startedAt)}`,
+    `started ${formatDateTime(instance.startedAt)}`,
   ];
 
   if (instance.logFile) {
-    parts.push(`Log ${instance.logFile}`);
+    parts.push(`log ${instance.logFile}`);
   }
 
   return parts.join(' | ');
@@ -509,7 +509,7 @@ async function promptForBackgroundInstance(instances) {
     return instances[0];
   }
 
-  console.log('Mehrere TTDash-Background-Server laufen:');
+  console.log('Multiple TTDash background servers are running:');
   instances.forEach((instance, index) => {
     console.log(`  ${formatBackgroundInstanceLabel(instance, index)}`);
   });
@@ -522,7 +522,7 @@ async function promptForBackgroundInstance(instances) {
 
   try {
     while (true) {
-      const answer = (await rl.question(`Welche Instanz soll beendet werden? [1-${instances.length}, Enter=Abbrechen] `)).trim();
+      const answer = (await rl.question(`Which instance should be stopped? [1-${instances.length}, Enter=cancel] `)).trim();
 
       if (!answer) {
         return null;
@@ -533,7 +533,7 @@ async function promptForBackgroundInstance(instances) {
         return instances[selection - 1];
       }
 
-      console.log(`Ungültige Auswahl: ${answer}`);
+      console.log(`Invalid selection: ${answer}`);
     }
   } finally {
     rl.close();
@@ -589,36 +589,36 @@ async function runStopCommand() {
 
   const instances = await pruneBackgroundInstances();
   if (instances.length === 0) {
-    console.log('Keine laufenden TTDash-Background-Server gefunden.');
+    console.log('No running TTDash background servers found.');
     return;
   }
 
   const selectedInstance = await promptForBackgroundInstance(instances);
   if (!selectedInstance) {
-    console.log('Abgebrochen.');
+    console.log('Canceled.');
     return;
   }
 
   const result = await stopBackgroundInstance(selectedInstance);
   if (result.status === 'stopped') {
-    console.log(`TTDash-Background-Server beendet: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    console.log(`Stopped TTDash background server: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
     return;
   }
 
   if (result.status === 'already-stopped') {
-    console.log(`Instanz war bereits beendet und wurde aus der Registry entfernt: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    console.log(`Instance was already stopped and was removed from the registry: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
     return;
   }
 
   if (result.status === 'forbidden') {
-    console.error(`TTDash-Background-Server konnte nicht beendet werden (keine Berechtigung): ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    console.error(`Could not stop TTDash background server (permission denied): ${selectedInstance.url} (PID ${selectedInstance.pid})`);
     process.exitCode = 1;
     return;
   }
 
-  console.error(`TTDash-Background-Server reagiert nicht auf SIGTERM: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+  console.error(`TTDash background server did not respond to SIGTERM: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
   if (selectedInstance.logFile) {
-    console.error(`Log-Datei: ${selectedInstance.logFile}`);
+    console.error(`Log file: ${selectedInstance.logFile}`);
   }
   process.exitCode = 1;
 }
@@ -657,15 +657,15 @@ async function startInBackground() {
     const logOutput = fs.existsSync(logFile)
       ? fs.readFileSync(logFile, 'utf-8').trim()
       : '';
-    throw new Error(logOutput || `TTDash konnte nicht als Hintergrundprozess gestartet werden. Log: ${logFile}`);
+    throw new Error(logOutput || `Could not start TTDash as a background process. Log: ${logFile}`);
   }
 
-  console.log('TTDash läuft im Hintergrund.');
+  console.log('TTDash is running in the background.');
   console.log(`  URL:  ${instance.url}`);
   console.log(`  PID:  ${instance.pid}`);
   console.log(`  Log:  ${logFile}`);
   console.log('');
-  console.log('Beenden mit:');
+  console.log('Stop it with:');
   console.log('  ttdash stop');
 }
 
@@ -678,13 +678,13 @@ function migrateLegacyDataFile() {
 
   try {
     fs.renameSync(LEGACY_DATA_FILE, DATA_FILE);
-    console.log(`Migriere bestehende Daten nach ${DATA_FILE}`);
+    console.log(`Migrating existing data to ${DATA_FILE}`);
   } catch {
     fs.copyFileSync(LEGACY_DATA_FILE, DATA_FILE);
     try {
       fs.unlinkSync(LEGACY_DATA_FILE);
     } catch {}
-    console.log(`Kopiere bestehende Daten nach ${DATA_FILE}`);
+    console.log(`Copying existing data to ${DATA_FILE}`);
   }
 }
 
@@ -976,57 +976,57 @@ function formatInteger(value) {
 
 function describeDataFile() {
   if (!fs.existsSync(DATA_FILE)) {
-    return 'keine lokale Datei gefunden';
+    return 'no local file found';
   }
 
   try {
     const normalized = readData();
     if (!normalized) {
-      return 'vorhanden, aber nicht lesbar';
+      return 'present, but unreadable';
     }
 
     const totalCost = formatCurrency(normalized.totals?.totalCost || 0);
     const totalTokens = formatInteger(normalized.totals?.totalTokens || 0);
     const dailyCount = formatInteger(normalized.daily?.length || 0);
-    return `${dailyCount} Tage, ${totalCost}, ${totalTokens} Tokens`;
+    return `${dailyCount} days, ${totalCost}, ${totalTokens} tokens`;
   } catch {
-    return 'vorhanden, aber nicht lesbar';
+    return 'present, but unreadable';
   }
 }
 
 function printStartupSummary(url, port) {
   const browserMode = shouldOpenBrowser()
-    ? 'aktiviert'
-    : 'deaktiviert';
+    ? 'enabled'
+    : 'disabled';
   const autoLoadMode = CLI_OPTIONS.autoLoad
-    ? 'aktiviert'
-    : 'deaktiviert';
+    ? 'enabled'
+    : 'disabled';
   const runtimeMode = IS_BACKGROUND_CHILD
-    ? 'Hintergrund'
-    : 'Vordergrund';
+    ? 'background'
+    : 'foreground';
 
   console.log('');
-  console.log(`${APP_LABEL} v${APP_VERSION} ist bereit`);
+  console.log(`${APP_LABEL} v${APP_VERSION} is ready`);
   console.log(`  URL:            ${url}`);
   console.log(`  API:            ${url}/api/usage`);
   console.log(`  Port:           ${port}`);
   console.log(`  Host:           ${BIND_HOST}`);
-  console.log(`  Modus:          ${runtimeMode}`);
+  console.log(`  Mode:           ${runtimeMode}`);
   console.log(`  Static Root:    ${STATIC_ROOT}`);
-  console.log(`  Daten-Datei:    ${DATA_FILE}`);
-  console.log(`  Settings-Datei: ${SETTINGS_FILE}`);
+  console.log(`  Data File:      ${DATA_FILE}`);
+  console.log(`  Settings File:  ${SETTINGS_FILE}`);
   if (IS_BACKGROUND_CHILD && process.env.TTDASH_BACKGROUND_LOG_FILE) {
-    console.log(`  Log-Datei:      ${process.env.TTDASH_BACKGROUND_LOG_FILE}`);
+    console.log(`  Log File:       ${process.env.TTDASH_BACKGROUND_LOG_FILE}`);
   }
-  console.log(`  Datenstatus:    ${describeDataFile()}`);
-  console.log(`  Browser-Start:  ${browserMode}`);
+  console.log(`  Data Status:    ${describeDataFile()}`);
+  console.log(`  Browser Open:   ${browserMode}`);
   console.log(`  Auto-Load:      ${autoLoadMode}`);
   console.log('');
-  console.log('Verfügbare Wege für Daten:');
-  console.log('  1. Auto-Import aus der App starten');
-  console.log('  2. toktrack JSON per Upload importieren');
+  console.log('Available ways to load data:');
+  console.log('  1. Start auto-import from the app');
+  console.log('  2. Import toktrack JSON via upload');
   console.log('');
-  console.log('Nützliche Kommandos:');
+  console.log('Useful commands:');
   console.log(`  ttdash --port ${port}`);
   console.log(`  ttdash --port ${port} --no-open`);
   console.log('  ttdash --background');
@@ -1253,8 +1253,8 @@ async function resolveToktrackRunner() {
       command: TOKTRACK_LOCAL_BIN,
       prefixArgs: [],
       env: process.env,
-      method: 'lokal',
-      label: 'lokales toktrack',
+      method: 'local',
+      label: 'local toktrack',
       displayCommand: 'node_modules/.bin/toktrack daily --json',
     };
   }
@@ -1319,7 +1319,7 @@ function runToktrack(runner, args, { streamStderr = false, onStderr, signalOnClo
         resolve(stdout.trimEnd());
         return;
       }
-      reject(new Error(stderr.trim() || `${runner.label} konnte nicht gestartet werden.`));
+      reject(new Error(stderr.trim() || `Could not start ${runner.label}.`));
     });
   });
 }
@@ -1332,24 +1332,24 @@ async function performAutoImport({
   signalOnClose,
 } = {}) {
   if (autoImportRunning) {
-    throw new Error('Ein Auto-Import läuft bereits. Bitte warten.');
+    throw new Error('An auto-import is already running. Please wait.');
   }
 
   autoImportRunning = true;
   let progressSeconds = 0;
   const progressInterval = setInterval(() => {
     progressSeconds += 5;
-    onOutput(`Verarbeite Nutzungsdaten... (${progressSeconds}s)`);
+    onOutput(`Processing usage data... (${progressSeconds}s)`);
   }, 5000);
 
   try {
     onCheck({ tool: 'toktrack', status: 'checking' });
-    onProgress({ message: 'Starte lokalen toktrack-Import...' });
+    onProgress({ message: 'Starting local toktrack import...' });
 
     const runner = await resolveToktrackRunner();
     if (!runner) {
       onCheck({ tool: 'toktrack', status: 'not_found' });
-      throw new Error('Kein lokales toktrack, Bun oder npm exec gefunden.');
+      throw new Error('No local toktrack, Bun, or npm exec installation found.');
     }
 
     const versionResult = await runToktrack(runner, ['--version']);
@@ -1359,7 +1359,7 @@ async function performAutoImport({
       method: runner.label,
       version: String(versionResult).replace(/^toktrack\s+/, ''),
     });
-    onProgress({ message: `Lade Nutzungsdaten via ${runner.displayCommand}...` });
+    onProgress({ message: `Loading usage data via ${runner.displayCommand}...` });
 
     const rawJson = await runToktrack(runner, ['daily', '--json'], {
       streamStderr: true,
@@ -1384,14 +1384,14 @@ async function performAutoImport({
 }
 
 async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
-  console.log('Auto-Load aktiviert, starte Import...');
+  console.log('Auto-load enabled, starting import...');
 
   try {
     const result = await performAutoImport({
       source,
       onCheck: (event) => {
         if (event.status === 'found') {
-          console.log(`toktrack gefunden (${event.method}, v${event.version})`);
+          console.log(`toktrack found (${event.method}, v${event.version})`);
         }
       },
       onProgress: (event) => {
@@ -1403,10 +1403,10 @@ async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
     });
 
     startupAutoLoadCompleted = true;
-    console.log(`Auto-Load abgeschlossen: ${result.days} Tage importiert, ${formatCurrency(result.totalCost)}.`);
+    console.log(`Auto-load complete: imported ${result.days} days, ${formatCurrency(result.totalCost)}.`);
   } catch (error) {
-    console.error(`Auto-Load fehlgeschlagen: ${error.message}`);
-    console.error('Dashboard startet ohne neu importierte Daten.');
+    console.error(`Auto-load failed: ${error.message}`);
+    console.error('Dashboard will start without newly imported data.');
   }
 }
 
@@ -1561,7 +1561,7 @@ const server = http.createServer(async (req, res) => {
       res.end();
     } catch (err) {
       if (aborted) { return; }
-      sendSSE(res, 'error', { message: `Fehler: ${err.message}` });
+      sendSSE(res, 'error', { message: `Error: ${err.message}` });
       sendSSE(res, 'done', {});
       res.end();
     }
@@ -1702,12 +1702,12 @@ runCli().catch((error) => {
 
 // Graceful shutdown on Ctrl+C / kill
 function shutdown(signal) {
-  console.log(`\n${signal} empfangen, fahre Server herunter...`);
+  console.log(`\n${signal} received, shutting down server...`);
   server.close(async () => {
     if (IS_BACKGROUND_CHILD) {
       await unregisterBackgroundInstance(process.pid);
     }
-    console.log('Server gestoppt.');
+    console.log('Server stopped.');
     process.exit(0);
   });
   // Force exit after 3s if connections don't close
@@ -1715,7 +1715,7 @@ function shutdown(signal) {
     if (IS_BACKGROUND_CHILD) {
       await unregisterBackgroundInstance(process.pid);
     }
-    console.log('Erzwinge Beendigung.');
+    console.log('Forcing shutdown.');
     process.exit(0);
   }, 3000);
 }

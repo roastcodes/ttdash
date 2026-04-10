@@ -156,7 +156,7 @@ async function stopAllBackgroundServers(env: NodeJS.ProcessEnv) {
       input: '1\n',
     })
 
-    if (result.output.includes('Keine laufenden TTDash-Background-Server gefunden.')) {
+    if (result.output.includes('No running TTDash background servers found.')) {
       return
     }
   }
@@ -418,7 +418,7 @@ describe('local server API', () => {
       })
 
       expect(firstStart.code).toBe(0)
-      expect(firstStart.output).toContain('TTDash läuft im Hintergrund.')
+      expect(firstStart.output).toContain('TTDash is running in the background.')
       expect(firstStart.output).toContain(firstUrl)
       await waitForUrlAvailable(firstUrl)
 
@@ -427,7 +427,7 @@ describe('local server API', () => {
       })
 
       expect(secondStart.code).toBe(0)
-      expect(secondStart.output).toContain('TTDash läuft im Hintergrund.')
+      expect(secondStart.output).toContain('TTDash is running in the background.')
       expect(secondStart.output).toContain(secondUrl)
       await waitForUrlAvailable(secondUrl)
 
@@ -437,10 +437,10 @@ describe('local server API', () => {
       })
 
       expect(stopSecond.code).toBe(0)
-      expect(stopSecond.output).toContain('Mehrere TTDash-Background-Server laufen:')
+      expect(stopSecond.output).toContain('Multiple TTDash background servers are running:')
       expect(stopSecond.output).toContain(firstUrl)
       expect(stopSecond.output).toContain(secondUrl)
-      expect(stopSecond.output).toContain(`TTDash-Background-Server beendet: ${secondUrl}`)
+      expect(stopSecond.output).toContain(`Stopped TTDash background server: ${secondUrl}`)
 
       const firstUsageResponse = await fetch(`${firstUrl}/api/usage`)
       expect(firstUsageResponse.status).toBe(200)
@@ -451,7 +451,7 @@ describe('local server API', () => {
       })
 
       expect(stopFirst.code).toBe(0)
-      expect(stopFirst.output).toContain(`TTDash-Background-Server beendet: ${firstUrl}`)
+      expect(stopFirst.output).toContain(`Stopped TTDash background server: ${firstUrl}`)
       await waitForServerUnavailable(firstUrl)
     } finally {
       await stopAllBackgroundServers(backgroundEnv)
@@ -479,8 +479,8 @@ describe('local server API', () => {
 
       expect(firstStart.code).toBe(0)
       expect(secondStart.code).toBe(0)
-      expect(firstStart.output).toContain('TTDash läuft im Hintergrund.')
-      expect(secondStart.output).toContain('TTDash läuft im Hintergrund.')
+      expect(firstStart.output).toContain('TTDash is running in the background.')
+      expect(secondStart.output).toContain('TTDash is running in the background.')
 
       await waitForUrlAvailable(firstUrl)
       await waitForUrlAvailable(secondUrl)
