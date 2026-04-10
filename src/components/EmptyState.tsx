@@ -1,4 +1,4 @@
-import { Upload, ChartBar, Zap } from 'lucide-react'
+import { Upload, ChartBar, Zap, SlidersHorizontal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -8,9 +8,10 @@ import { VERSION } from '@/lib/constants'
 interface EmptyStateProps {
   onUpload: () => void
   onAutoImport: () => void
+  onOpenSettings: () => void
 }
 
-export function EmptyState({ onUpload, onAutoImport }: EmptyStateProps) {
+export function EmptyState({ onUpload, onAutoImport, onOpenSettings }: EmptyStateProps) {
   const { t } = useTranslation()
 
   return (
@@ -37,6 +38,10 @@ export function EmptyState({ onUpload, onAutoImport }: EmptyStateProps) {
         <Button onClick={onUpload} variant="outline" size="lg" className="gap-2 w-full">
           <Upload className="h-4 w-4" />
           {t('emptyState.uploadFile')}
+        </Button>
+        <Button onClick={onOpenSettings} variant="ghost" size="lg" className="gap-2 w-full">
+          <SlidersHorizontal className="h-4 w-4" />
+          {t('emptyState.openSettings')}
         </Button>
       </Card>
       </FadeIn>

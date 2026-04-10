@@ -111,6 +111,7 @@ Then either:
 1. Click `Auto-Import` to load local `toktrack` data
 2. Upload a `toktrack` JSON file manually
 3. Upload a legacy `ccusage` export
+4. Open `Settings` to export or import app backups
 
 The auto-import path prefers:
 
@@ -121,6 +122,21 @@ The auto-import path prefers:
 The server automatically picks the next free port if `3000` is occupied.
 
 Background mode keeps the terminal free after launch. If multiple background instances are running, `ttdash stop` shows a selection prompt so you can choose which one to terminate.
+
+## Backups
+
+The `Settings` dialog can export and import:
+
+- app settings backup
+- stored usage data backup
+
+Data-backup import is conservative by design:
+
+- missing days are added
+- identical days are skipped
+- conflicting existing days stay local and are reported instead of being overwritten silently
+
+If you want to fully replace the current dataset with a fresh `toktrack` JSON, keep using the normal upload action in the header.
 
 ## Sample Data
 

@@ -4,10 +4,12 @@
 
 ### Added
 - **Background-CLI für `ttdash`** — `--background` startet den lokalen Server als losgelösten Hintergrundprozess; `ttdash stop` listet laufende Instanzen und beendet auf Wunsch gezielt die ausgewählte
+- **Settings-Backups im UI** — der bisherige Limits-Dialog ist jetzt ein generischer Settings-Dialog mit Import/Export für App-Settings und gespeicherte Nutzungsdaten
 
 ### Improved
 - **CLI-Dokumentation** — README, Hilfeausgabe und Installer-Hinweise dokumentieren jetzt den Hintergrundmodus und den Stop-Befehl direkt im Startpfad
 - **Race-safe Background-Registry** — parallele `--background`-Starts sperren die lokale Instanzdatei jetzt kurzzeitig, damit keine laufenden Server aus der Registry verloren gehen
+- **Konservativer Datenimport** — Backup-Importe ergänzen fehlende Tage, überspringen identische Tage und behalten Konflikttage lokal statt sie still zu überschreiben
 
 ## [6.0.11] - 2026-04-10
 

@@ -39,6 +39,14 @@ export interface UsageData {
   }
 }
 
+export interface UsageImportSummary {
+  importedDays: number
+  addedDays: number
+  unchangedDays: number
+  conflictingDays: number
+  totalDays: number
+}
+
 export type AppLanguage = 'de' | 'en'
 
 export type AppTheme = 'dark' | 'light'

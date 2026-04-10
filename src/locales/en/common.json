@@ -11,6 +11,7 @@
     "import": "Import",
     "upload": "Upload",
     "limits": "Limits",
+    "settings": "Settings",
     "report": "Report",
     "csv": "CSV",
     "delete": "Delete",
@@ -24,6 +25,7 @@
     "description": "Upload a `toktrack` or legacy JSON file, or start local auto-import with local `toktrack`, `bunx toktrack daily --json`, or `npx --yes toktrack daily --json`.",
     "autoImport": "Auto import",
     "uploadFile": "Upload file",
+    "openSettings": "Settings & backups",
     "or": "or"
   },
   "viewModes": {
@@ -680,9 +682,9 @@
         "label": "Start auto import",
         "description": "Run local toktrack import"
       },
-      "openLimits": {
-        "label": "Open limits",
-        "description": "Configure provider limits and subscriptions"
+      "openSettings": {
+        "label": "Open settings",
+        "description": "Manage backups, app options, and provider limits"
       },
       "exportCsv": {
         "label": "Export CSV",
@@ -831,6 +833,37 @@
       }
     }
   },
+  "settings": {
+    "modal": {
+      "title": "Settings",
+      "description": "Manage app backups, stored data, and provider limits in one place.",
+      "dataStatus": "Data status",
+      "lastLoaded": "Last loaded",
+      "loadedVia": "Loaded via",
+      "cliAutoLoad": "CLI auto-load",
+      "settingsBackupTitle": "Back up settings",
+      "settingsBackupDescription": "Export and import language, theme, limits, and stored load metadata as a versioned backup.",
+      "dataBackupTitle": "Back up data",
+      "dataBackupDescription": "Export the locally stored usage state as a backup and import backups conservatively.",
+      "dataImportPolicy": "Data import only adds missing days. Existing days with different values stay local and are reported as conflicts.",
+      "dataImportReplaceHint": "If you want to fully replace the dataset, keep using the regular JSON upload in the header.",
+      "providerLimitsTitle": "Provider limits",
+      "providerLimitsDescription": "Define subscription and monthly limit per provider. Only providers from the currently loaded report can be edited.",
+      "noProviders": "No providers found in the loaded report.",
+      "exportSettings": "Export settings",
+      "importSettings": "Import settings",
+      "exportData": "Export data",
+      "importData": "Import data",
+      "close": "Close",
+      "save": "Save",
+      "sources": {
+        "file": "File upload",
+        "auto-import": "Auto import",
+        "cli-auto-load": "CLI auto-load",
+        "unknown": "Unknown"
+      }
+    }
+  },
   "limits": {
     "sectionTitle": "Limits & Subscriptions",
     "sectionDescription": "Budget risk separated from subscription impact in the current filter context",
@@ -911,6 +944,8 @@
     "fetchUsageFailed": "Failed to load data",
     "uploadFailed": "Upload failed",
     "deleteFailed": "Delete failed",
+    "importUsageFailed": "Data import failed",
+    "importSettingsFailed": "Settings import failed",
     "pdfFailed": "PDF generation failed"
   },
   "toasts": {
@@ -918,6 +953,12 @@
     "fileReadFailed": "Could not read file",
     "dataDeleted": "Data deleted",
     "csvExported": "CSV exported",
-    "dataImported": "Data imported successfully"
+    "dataImported": "Data imported successfully",
+    "settingsExported": "Settings backup exported",
+    "dataExported": "Data backup exported",
+    "noDataToExport": "No data available to export",
+    "settingsImported": "Imported settings from {{name}}",
+    "dataBackupImported": "Backup imported: added {{added}} new days, skipped {{unchanged}} identical days",
+    "dataBackupImportedWithConflicts": "Backup imported: added {{added}} new days, kept {{conflicts}} conflicting days local"
   }
 }

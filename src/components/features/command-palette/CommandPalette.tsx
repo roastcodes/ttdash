@@ -25,7 +25,7 @@ interface CommandPaletteProps {
   onDelete: () => void
   onUpload: () => void
   onAutoImport: () => void
-  onOpenLimits: () => void
+  onOpenSettings: () => void
   onScrollTo: (section: string) => void
   onViewModeChange: (mode: ViewMode) => void
   onApplyPreset: (preset: string) => void
@@ -131,7 +131,7 @@ export function CommandPalette({
   onDelete,
   onUpload,
   onAutoImport,
-  onOpenLimits,
+  onOpenSettings,
   onScrollTo,
   onViewModeChange,
   onApplyPreset,
@@ -161,7 +161,7 @@ export function CommandPalette({
 
   const baseCommands: CommandItem[] = [
     { id: 'auto-import', label: t('commandPalette.commands.autoImport.label'), description: t('commandPalette.commands.autoImport.description'), keywords: ['toktrack', 'import', 'load', 'sync'], aliases: ['auto import', 'daten importieren'], icon: <Zap className="h-4 w-4" />, action: onAutoImport, group: t('commandPalette.groups.actions') },
-    { id: 'limits-open', label: t('commandPalette.commands.openLimits.label'), description: t('commandPalette.commands.openLimits.description'), keywords: ['limits', 'subscription', 'anbieter limit', 'budget'], aliases: ['limits dialog', 'subscriptions öffnen', 'provider limits'], icon: <SlidersHorizontal className="h-4 w-4" />, action: onOpenLimits, group: t('commandPalette.groups.actions') },
+    { id: 'settings-open', label: t('commandPalette.commands.openSettings.label'), description: t('commandPalette.commands.openSettings.description'), keywords: ['settings', 'limits', 'subscription', 'anbieter limit', 'backup'], aliases: ['settings dialog', 'einstellungen öffnen', 'provider limits'], icon: <SlidersHorizontal className="h-4 w-4" />, action: onOpenSettings, group: t('commandPalette.groups.actions') },
     { id: 'csv', label: t('commandPalette.commands.exportCsv.label'), description: t('commandPalette.commands.exportCsv.description'), keywords: ['download', 'export', 'csv'], aliases: ['csv download', 'daten exportieren'], shortcut: '⌘E', icon: <Download className="h-4 w-4" />, action: onExportCSV, group: t('commandPalette.groups.actions') },
     { id: 'report', label: reportGenerating ? t('commandPalette.commands.generateReport.labelLoading') : t('commandPalette.commands.generateReport.label'), description: t('commandPalette.commands.generateReport.description'), keywords: ['pdf', 'report', 'bericht', 'export'], aliases: ['report export', 'pdf export', 'bericht generieren'], icon: <Download className="h-4 w-4" />, action: onGenerateReport, group: t('commandPalette.groups.actions') },
     { id: 'upload', label: t('commandPalette.commands.upload.label'), description: t('commandPalette.commands.upload.description'), keywords: ['upload', 'file', 'json', 'import'], aliases: ['datei laden', 'json import'], shortcut: '⌘U', icon: <Upload className="h-4 w-4" />, action: onUpload, group: t('commandPalette.groups.actions') },

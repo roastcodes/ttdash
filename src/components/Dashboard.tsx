@@ -47,17 +47,55 @@ import { useComputedMetrics } from '@/hooks/use-computed-metrics'
 import { useToast } from '@/components/ui/toast'
 import { applyTheme } from '@/lib/app-settings'
 import { downloadCSV } from '@/lib/csv-export'
+import { VERSION } from '@/lib/constants'
 import { SECTION_HELP } from '@/lib/help-content'
-import { generatePdfReport } from '@/lib/api'
+import { generatePdfReport, importSettings, importUsageData } from '@/lib/api'
 import { formatCurrency, formatDateTimeCompact, formatDateTimeFull, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
 import { getUniqueProviders } from '@/lib/model-utils'
-import { LimitsModal } from './features/limits/LimitsModal'
+import { SettingsModal } from './features/settings/SettingsModal'
 import { ProviderLimitsSection } from './features/limits/ProviderLimitsSection'
 import type { AppLanguage } from '@/types'
 
 const DrillDownModal = lazy(() => import('./features/drill-down/DrillDownModal').then(module => ({ default: module.DrillDownModal })))
 const AutoImportModal = lazy(() => import('./features/auto-import/AutoImportModal').then(module => ({ default: module.AutoImportModal })))
+const SETTINGS_BACKUP_KIND = 'ttdash-settings-backup'
+const USAGE_BACKUP_KIND = 'ttdash-usage-backup'
+const BACKUP_FORMAT_VERSION = 1
+
+type JsonDownloadRecord = {
+  filename: string
+  mimeType: string
+  size: number
+  text: string
+}
+
+type DashboardTestHooks = {
+  onJsonDownload?: (record: JsonDownloadRecord) => void
+  openSettings?: () => void
+}
+
+function downloadJsonFile(filename: string, data: unknown) {
+  const text = JSON.stringify(data, null, 2)
+  const blob = new Blob([text], { type: 'application/json' })
+  const globalWindow = window as Window & {
+    __TTDASH_TEST_HOOKS__?: DashboardTestHooks
+  }
+  globalWindow.__TTDASH_TEST_HOOKS__?.onJsonDownload?.({
+    filename,
+    mimeType: blob.type,
+    size: blob.size,
+    text,
+  })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
 
 export function Dashboard() {
   const { t, i18n } = useTranslation()
@@ -67,11 +105,15 @@ export function Dashboard() {
   const queryClient = useQueryClient()
   const { addToast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const settingsImportInputRef = useRef<HTMLInputElement>(null)
+  const dataImportInputRef = useRef<HTMLInputElement>(null)
   const [drillDownDate, setDrillDownDate] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   const [autoImportOpen, setAutoImportOpen] = useState(false)
-  const [limitsOpen, setLimitsOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [reportGenerating, setReportGenerating] = useState(false)
+  const [settingsTransferBusy, setSettingsTransferBusy] = useState(false)
+  const [dataTransferBusy, setDataTransferBusy] = useState(false)
   const [dataSource, setDataSource] = useState<{ type: 'stored' | 'auto-import' | 'file'; label?: string; time?: string; title?: string } | null>(null)
   const [animationSeed, setAnimationSeed] = useState(0)
 
@@ -84,6 +126,7 @@ export function Dashboard() {
     setTheme,
     setLanguage,
     setProviderLimits,
+    isSaving,
   } = useAppSettings(allProviders)
   const isDark = settings.theme === 'dark'
 
@@ -96,6 +139,26 @@ export function Dashboard() {
       void i18n.changeLanguage(settings.language)
     }
   }, [i18n, settings.language])
+
+  useEffect(() => {
+    const globalWindow = window as Window & {
+      __TTDASH_TEST_HOOKS__?: DashboardTestHooks
+    }
+
+    if (!globalWindow.__TTDASH_TEST_HOOKS__) {
+      return undefined
+    }
+
+    globalWindow.__TTDASH_TEST_HOOKS__.openSettings = () => {
+      setSettingsOpen(true)
+    }
+
+    return () => {
+      if (globalWindow.__TTDASH_TEST_HOOKS__?.openSettings) {
+        delete globalWindow.__TTDASH_TEST_HOOKS__.openSettings
+      }
+    }
+  }, [])
 
   const persistedLoadedTime = useMemo(
     () => settings.lastLoadedAt ? formatDateTimeCompact(settings.lastLoadedAt) : undefined,
@@ -186,6 +249,10 @@ export function Dashboard() {
 
   const handleUpload = useCallback(() => {
     fileInputRef.current?.click()
+  }, [])
+
+  const handleOpenSettings = useCallback(() => {
+    setSettingsOpen(true)
   }, [])
 
   const handleToggleTheme = useCallback(() => {
@@ -287,6 +354,100 @@ export function Dashboard() {
     addToast(t('toasts.dataImported'), 'success')
   }, [queryClient, addToast, t])
 
+  const handleExportSettings = useCallback(() => {
+    downloadJsonFile(`ttdash-settings-backup-${localToday()}.json`, {
+      kind: SETTINGS_BACKUP_KIND,
+      version: BACKUP_FORMAT_VERSION,
+      exportedAt: new Date().toISOString(),
+      appVersion: VERSION,
+      settings: {
+        language: settings.language,
+        theme: settings.theme,
+        providerLimits: settings.providerLimits,
+        lastLoadedAt: settings.lastLoadedAt,
+        lastLoadSource: settings.lastLoadSource,
+      },
+    })
+    addToast(t('toasts.settingsExported'), 'success')
+  }, [settings, addToast, t])
+
+  const handleExportData = useCallback(() => {
+    if (!usageData || usageData.daily.length === 0) {
+      addToast(t('toasts.noDataToExport'), 'info')
+      return
+    }
+
+    downloadJsonFile(`ttdash-data-backup-${localToday()}.json`, {
+      kind: USAGE_BACKUP_KIND,
+      version: BACKUP_FORMAT_VERSION,
+      exportedAt: new Date().toISOString(),
+      appVersion: VERSION,
+      data: usageData,
+    })
+    addToast(t('toasts.dataExported'), 'success')
+  }, [usageData, addToast, t])
+
+  const handleImportSettings = useCallback(() => {
+    settingsImportInputRef.current?.click()
+  }, [])
+
+  const handleImportData = useCallback(() => {
+    dataImportInputRef.current?.click()
+  }, [])
+
+  const handleSettingsImportChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setSettingsTransferBusy(true)
+    try {
+      const parsed = JSON.parse(await file.text())
+      const imported = await importSettings(parsed)
+      queryClient.setQueryData(['settings'], imported)
+      addToast(t('toasts.settingsImported', { name: file.name }), 'success')
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : t('toasts.fileReadFailed'), 'error')
+    } finally {
+      setSettingsTransferBusy(false)
+      e.target.value = ''
+    }
+  }, [queryClient, addToast, t])
+
+  const handleDataImportChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setDataTransferBusy(true)
+    try {
+      const parsed = JSON.parse(await file.text())
+      const summary = await importUsageData(parsed)
+      await queryClient.invalidateQueries({ queryKey: ['usage'] })
+      await queryClient.invalidateQueries({ queryKey: ['settings'] })
+      setAnimationSeed(prev => prev + 1)
+      const now = new Date()
+      const time = now.toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' })
+      setDataSource({
+        type: 'file',
+        label: file.name,
+        time,
+        title: `${file.name} · ${t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) })}`,
+      })
+
+      const toastType: 'info' | 'success' = summary.conflictingDays > 0 ? 'info' : 'success'
+      const toastKey = summary.conflictingDays > 0 ? 'toasts.dataBackupImportedWithConflicts' : 'toasts.dataBackupImported'
+      addToast(t(toastKey, {
+        added: summary.addedDays,
+        unchanged: summary.unchangedDays,
+        conflicts: summary.conflictingDays,
+      }), toastType)
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : t('toasts.fileReadFailed'), 'error')
+    } finally {
+      setDataTransferBusy(false)
+      e.target.value = ''
+    }
+  }, [queryClient, addToast, t])
+
   const handleScrollTo = useCallback((section: string) => {
     const el = document.getElementById(section)
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -299,18 +460,39 @@ export function Dashboard() {
   if (!hasData) {
     return (
       <>
-        <EmptyState onUpload={handleUpload} onAutoImport={handleAutoImport} />
-        <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} />
+        <EmptyState onUpload={handleUpload} onAutoImport={handleAutoImport} onOpenSettings={handleOpenSettings} />
+        <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} data-testid="usage-upload-input" />
+        <input ref={settingsImportInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleSettingsImportChange} data-testid="settings-import-input" />
+        <input ref={dataImportInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleDataImportChange} data-testid="data-import-input" />
         <Suspense fallback={null}>
           {autoImportOpen && <AutoImportModal open={autoImportOpen} onOpenChange={setAutoImportOpen} onSuccess={handleAutoImportSuccess} />}
         </Suspense>
+        <SettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          providers={allProviders}
+          limits={providerLimits}
+          lastLoadedAt={settings.lastLoadedAt}
+          lastLoadSource={settings.lastLoadSource}
+          cliAutoLoadActive={settings.cliAutoLoadActive}
+          hasData={false}
+          onSaveLimits={setProviderLimits}
+          onExportSettings={handleExportSettings}
+          onImportSettings={handleImportSettings}
+          onExportData={handleExportData}
+          onImportData={handleImportData}
+          settingsBusy={settingsTransferBusy || isSaving}
+          dataBusy={dataTransferBusy}
+        />
       </>
     )
   }
 
   return (
     <div className="min-h-screen max-w-7xl mx-auto px-4 pb-8">
-      <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} />
+      <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} data-testid="usage-upload-input" />
+      <input ref={settingsImportInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleSettingsImportChange} data-testid="settings-import-input" />
+      <input ref={dataImportInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleDataImportChange} data-testid="data-import-input" />
 
       <Header
         dateRange={dateRange}
@@ -327,16 +509,16 @@ export function Dashboard() {
         onDelete={handleDelete}
         onUpload={handleUpload}
         onAutoImport={handleAutoImport}
-        limitsButton={(
+        settingsButton={(
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setLimitsOpen(true)}
-            title="Provider Limits"
+            onClick={handleOpenSettings}
+            title={t('header.settings')}
             className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
           >
             <SlidersHorizontal className="h-4 w-4" />
-            <span>{t('header.limits')}</span>
+            <span>{t('header.settings')}</span>
           </Button>
         )}
         pdfButton={(
@@ -595,7 +777,7 @@ export function Dashboard() {
         onDelete={handleDelete}
         onUpload={handleUpload}
         onAutoImport={handleAutoImport}
-        onOpenLimits={() => setLimitsOpen(true)}
+        onOpenSettings={handleOpenSettings}
         onScrollTo={handleScrollTo}
         onViewModeChange={setViewMode}
         onApplyPreset={applyPreset}
@@ -616,15 +798,22 @@ export function Dashboard() {
         {autoImportOpen && <AutoImportModal open={autoImportOpen} onOpenChange={setAutoImportOpen} onSuccess={handleAutoImportSuccess} />}
       </Suspense>
 
-      <LimitsModal
-        open={limitsOpen}
-        onOpenChange={setLimitsOpen}
+      <SettingsModal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
         providers={allProviders}
         limits={providerLimits}
         lastLoadedAt={settings.lastLoadedAt}
         lastLoadSource={settings.lastLoadSource}
         cliAutoLoadActive={settings.cliAutoLoadActive}
-        onSave={setProviderLimits}
+        hasData={hasData}
+        onSaveLimits={setProviderLimits}
+        onExportSettings={handleExportSettings}
+        onImportSettings={handleImportSettings}
+        onExportData={handleExportData}
+        onImportData={handleImportData}
+        settingsBusy={settingsTransferBusy || isSaving}
+        dataBusy={dataTransferBusy}
       />
     </div>
   )

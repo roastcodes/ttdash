@@ -35,6 +35,9 @@ const SECURITY_HEADERS = {
   'Content-Security-Policy': "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
 };
 const APP_LABEL = 'TTDash';
+const SETTINGS_BACKUP_KIND = 'ttdash-settings-backup';
+const USAGE_BACKUP_KIND = 'ttdash-usage-backup';
+const BACKUP_FORMAT_VERSION = 1;
 const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
 const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
@@ -173,6 +176,20 @@ function parseCliArgs(rawArgs) {
 
 function resolveAppPaths() {
   const homeDir = os.homedir();
+
+  const explicitPaths = {
+    dataDir: process.env.TTDASH_DATA_DIR,
+    configDir: process.env.TTDASH_CONFIG_DIR,
+    cacheDir: process.env.TTDASH_CACHE_DIR,
+  };
+
+  if (explicitPaths.dataDir || explicitPaths.configDir || explicitPaths.cacheDir) {
+    return {
+      dataDir: explicitPaths.dataDir || explicitPaths.configDir || explicitPaths.cacheDir,
+      configDir: explicitPaths.configDir || explicitPaths.dataDir || explicitPaths.cacheDir,
+      cacheDir: explicitPaths.cacheDir || explicitPaths.configDir || explicitPaths.dataDir,
+    };
+  }
 
   if (process.platform === 'darwin') {
     const appSupportDir = path.join(homeDir, 'Library', 'Application Support', APP_DIR_NAME);
@@ -701,6 +718,166 @@ function normalizeIsoTimestamp(value) {
 function sanitizeCurrency(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
   return Math.max(0, Number(value.toFixed(2)));
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function computeUsageTotals(daily) {
+  return daily.reduce((totals, day) => ({
+    inputTokens: totals.inputTokens + (day.inputTokens || 0),
+    outputTokens: totals.outputTokens + (day.outputTokens || 0),
+    cacheCreationTokens: totals.cacheCreationTokens + (day.cacheCreationTokens || 0),
+    cacheReadTokens: totals.cacheReadTokens + (day.cacheReadTokens || 0),
+    thinkingTokens: totals.thinkingTokens + (day.thinkingTokens || 0),
+    totalCost: totals.totalCost + (day.totalCost || 0),
+    totalTokens: totals.totalTokens + (day.totalTokens || 0),
+    requestCount: totals.requestCount + (day.requestCount || 0),
+  }), {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheCreationTokens: 0,
+    cacheReadTokens: 0,
+    thinkingTokens: 0,
+    totalCost: 0,
+    totalTokens: 0,
+    requestCount: 0,
+  });
+}
+
+function sortStrings(values) {
+  return [...new Set((Array.isArray(values) ? values : []).filter((value) => typeof value === 'string' && value.trim()))]
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function canonicalizeModelBreakdown(entry) {
+  return {
+    modelName: typeof entry?.modelName === 'string' ? entry.modelName : '',
+    inputTokens: Number(entry?.inputTokens) || 0,
+    outputTokens: Number(entry?.outputTokens) || 0,
+    cacheCreationTokens: Number(entry?.cacheCreationTokens) || 0,
+    cacheReadTokens: Number(entry?.cacheReadTokens) || 0,
+    thinkingTokens: Number(entry?.thinkingTokens) || 0,
+    cost: Number(entry?.cost) || 0,
+    requestCount: Number(entry?.requestCount) || 0,
+  };
+}
+
+function canonicalizeUsageDay(day) {
+  return {
+    date: typeof day?.date === 'string' ? day.date : '',
+    inputTokens: Number(day?.inputTokens) || 0,
+    outputTokens: Number(day?.outputTokens) || 0,
+    cacheCreationTokens: Number(day?.cacheCreationTokens) || 0,
+    cacheReadTokens: Number(day?.cacheReadTokens) || 0,
+    thinkingTokens: Number(day?.thinkingTokens) || 0,
+    totalTokens: Number(day?.totalTokens) || 0,
+    totalCost: Number(day?.totalCost) || 0,
+    requestCount: Number(day?.requestCount) || 0,
+    modelsUsed: sortStrings(day?.modelsUsed),
+    modelBreakdowns: (Array.isArray(day?.modelBreakdowns) ? day.modelBreakdowns : [])
+      .map(canonicalizeModelBreakdown)
+      .sort((left, right) => left.modelName.localeCompare(right.modelName)),
+  };
+}
+
+function areUsageDaysEquivalent(left, right) {
+  return JSON.stringify(canonicalizeUsageDay(left)) === JSON.stringify(canonicalizeUsageDay(right));
+}
+
+function extractSettingsImportPayload(payload) {
+  if (!isPlainObject(payload)) {
+    return payload;
+  }
+
+  if (payload.kind === SETTINGS_BACKUP_KIND) {
+    if (!Object.prototype.hasOwnProperty.call(payload, 'settings')) {
+      throw new Error('Die Settings-Backup-Datei enthält keine Einstellungen.');
+    }
+    return payload.settings;
+  }
+
+  if (typeof payload.kind === 'string' && payload.kind === USAGE_BACKUP_KIND) {
+    throw new Error('Dies ist eine Daten-Backup-Datei und keine Settings-Datei.');
+  }
+
+  return payload;
+}
+
+function extractUsageImportPayload(payload) {
+  if (!isPlainObject(payload)) {
+    return payload;
+  }
+
+  if (payload.kind === USAGE_BACKUP_KIND) {
+    if (!Object.prototype.hasOwnProperty.call(payload, 'data')) {
+      throw new Error('Die Daten-Backup-Datei enthält keine Nutzungsdaten.');
+    }
+    return payload.data;
+  }
+
+  if (typeof payload.kind === 'string' && payload.kind === SETTINGS_BACKUP_KIND) {
+    throw new Error('Dies ist eine Settings-Backup-Datei und keine Daten-Datei.');
+  }
+
+  return payload;
+}
+
+function mergeUsageData(currentData, importedData) {
+  const current = currentData && Array.isArray(currentData.daily) && currentData.daily.length > 0
+    ? normalizeIncomingData(currentData)
+    : null;
+
+  if (!current) {
+    return {
+      data: importedData,
+      summary: {
+        importedDays: importedData.daily.length,
+        addedDays: importedData.daily.length,
+        unchangedDays: 0,
+        conflictingDays: 0,
+        totalDays: importedData.daily.length,
+      },
+    };
+  }
+
+  const currentByDate = new Map(current.daily.map((day) => [day.date, day]));
+  let addedDays = 0;
+  let unchangedDays = 0;
+  let conflictingDays = 0;
+
+  for (const importedDay of importedData.daily) {
+    const existingDay = currentByDate.get(importedDay.date);
+    if (!existingDay) {
+      currentByDate.set(importedDay.date, importedDay);
+      addedDays += 1;
+      continue;
+    }
+
+    if (areUsageDaysEquivalent(existingDay, importedDay)) {
+      unchangedDays += 1;
+      continue;
+    }
+
+    conflictingDays += 1;
+  }
+
+  const mergedDaily = [...currentByDate.values()].sort((left, right) => left.date.localeCompare(right.date));
+
+  return {
+    data: {
+      daily: mergedDaily,
+      totals: computeUsageTotals(mergedDaily),
+    },
+    summary: {
+      importedDays: importedData.daily.length,
+      addedDays,
+      unchangedDays,
+      conflictingDays,
+      totalDays: mergedDaily.length,
+    },
+  };
 }
 
 function normalizeProviderLimitConfig(value) {
@@ -1284,6 +1461,21 @@ const server = http.createServer(async (req, res) => {
     return json(res, 405, { message: 'Method Not Allowed' });
   }
 
+  if (apiPath === '/settings/import') {
+    if (req.method !== 'POST') {
+      return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    try {
+      const body = await readBody(req);
+      const importedSettings = normalizeSettings(extractSettingsImportPayload(body));
+      writeSettings(importedSettings);
+      return json(res, 200, toSettingsResponse(importedSettings));
+    } catch (e) {
+      return json(res, 400, { message: e.message || 'Ungültige Settings-Datei' });
+    }
+  }
+
   if (apiPath === '/upload') {
     if (req.method === 'POST') {
       try {
@@ -1303,6 +1495,24 @@ const server = http.createServer(async (req, res) => {
       }
     }
     return json(res, 405, { message: 'Method Not Allowed' });
+  }
+
+  if (apiPath === '/usage/import') {
+    if (req.method !== 'POST') {
+      return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    try {
+      const body = await readBody(req);
+      const importedData = normalizeIncomingData(extractUsageImportPayload(body));
+      const currentData = readData();
+      const result = mergeUsageData(currentData, importedData);
+      writeData(result.data);
+      recordDataLoad('file');
+      return json(res, 200, result.summary);
+    } catch (e) {
+      return json(res, 400, { message: e.message || 'Ungültige Daten-Datei' });
+    }
   }
 
   if (apiPath === '/auto-import/stream') {

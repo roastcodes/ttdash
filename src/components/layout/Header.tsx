@@ -33,7 +33,7 @@ interface HeaderProps {
   onDelete: () => void
   onUpload: () => void
   onAutoImport: () => void
-  limitsButton?: React.ReactNode
+  settingsButton?: React.ReactNode
   pdfButton?: React.ReactNode
 }
 
@@ -81,7 +81,7 @@ function StartupAutoLoadBadge({ badge }: { badge: StartupAutoLoad }) {
   )
 }
 
-export function Header({ dateRange, isDark, currentLanguage, helpOpen, streak, dataSource, startupAutoLoad, onHelpOpenChange, onLanguageChange, onToggleTheme, onExportCSV, onDelete, onUpload, onAutoImport, limitsButton, pdfButton }: HeaderProps) {
+export function Header({ dateRange, isDark, currentLanguage, helpOpen, streak, dataSource, startupAutoLoad, onHelpOpenChange, onLanguageChange, onToggleTheme, onExportCSV, onDelete, onUpload, onAutoImport, settingsButton, pdfButton }: HeaderProps) {
   const { t } = useTranslation()
 
   return (
@@ -157,7 +157,7 @@ export function Header({ dateRange, isDark, currentLanguage, helpOpen, streak, d
         </Button>
         <div className="contents sm:block sm:w-px sm:h-5 sm:bg-border/50" />
         <div className="contents sm:block">
-          {limitsButton}
+          {settingsButton}
         </div>
         <div className="contents sm:block">
           {pdfButton}
