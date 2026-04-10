@@ -4,12 +4,15 @@
 
 Before the first public release, configure npm Trusted Publishing for this repository.
 
-1. Create or use the npm account that will own `ttdash`
+1. Create or use the npm account that can publish `@roastcodes/ttdash`
 2. Enable 2FA on that npm account
-3. In npm package settings, add this GitHub repository as a trusted publisher
-4. Confirm the GitHub Actions release workflow is allowed to request an OIDC token
+3. Ensure you have publish rights in the `roastcodes` npm organization
+4. In npm package settings, add this GitHub repository as a trusted publisher for `@roastcodes/ttdash`
+5. Confirm the GitHub Actions release workflow is allowed to request an OIDC token
 
 Trusted Publishing is preferred because it avoids long-lived npm tokens and enables provenance for public publishes.
+
+If you want npm provenance on the published package, the GitHub repository must be public when the release workflow runs.
 
 ## Release Checklist
 
@@ -45,11 +48,11 @@ On a `v*` tag push, the workflow:
 4. builds the production bundle
 5. verifies the packed npm artifact
 6. runs the Playwright smoke suite
-7. publishes the package to npm through Trusted Publishing
+7. publishes `@roastcodes/ttdash` to npm through Trusted Publishing
 8. waits for npm registry propagation
 9. verifies:
-   - `npx --yes ttdash@<version> --help`
-   - `bunx ttdash@<version> --help`
+   - `npx --yes @roastcodes/ttdash@<version> --help`
+   - `bunx @roastcodes/ttdash@<version> --help`
 10. creates the GitHub release
 
 ## Post-Publish Checks
@@ -57,15 +60,15 @@ On a `v*` tag push, the workflow:
 After the workflow succeeds, run a final sanity check:
 
 ```bash
-npm view ttdash version description bin --json
-npx --yes ttdash@latest --help
-bunx ttdash@latest --help
+npm view @roastcodes/ttdash version description bin --json
+npx --yes @roastcodes/ttdash@latest --help
+bunx @roastcodes/ttdash@latest --help
 ```
 
 Optional runtime smoke test:
 
 ```bash
-NO_OPEN_BROWSER=1 PORT=3010 npx --yes ttdash@latest
+NO_OPEN_BROWSER=1 PORT=3010 npx --yes @roastcodes/ttdash@latest
 ```
 
 Then open `http://127.0.0.1:3010`.

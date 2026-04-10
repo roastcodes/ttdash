@@ -2,24 +2,25 @@
 
 ## [Unreleased]
 
+## [6.1.0] - 2026-04-11
+
 ### Added
-- **Background CLI for `ttdash`** — `--background` starts the local server as a detached background process, and `ttdash stop` lists running instances so the selected one can be stopped directly
-- **Settings backups in the UI** — the former limits dialog now acts as a general settings dialog with import/export for app settings and stored usage data
+- **Background CLI mode** — `--background` starts the local server as a detached background process, and `ttdash stop` lists running instances so the selected one can be stopped directly
+- **Settings backups and layout preferences** — the settings dialog now supports backup import/export, conservative usage-data restore, default dashboard filters, section visibility, and section ordering
+- **Packaged CLI verification** — `npm run verify:package` now builds the real tarball and verifies that the packaged `ttdash` CLI can install, print help, and start outside the repo checkout
+- **Scoped package release prep** — the package is now prepared for the first public scoped release as `@roastcodes/ttdash`
 
 ### Improved
-- **CLI documentation** — the README, help output, and installer hints now document background mode and the stop command directly in the main startup path
+- **Dashboard settings model** — provider limits, persisted filters, section visibility, and section order now behave as first-class stored settings across fresh starts and backup restore flows
+- **CLI and installer UX** — terminal output, help text, and installer guidance now use English-first release-facing messaging
+- **Metrics and report correctness** — aggregated dashboard metrics, provider day counting, filter-preset behavior, and PDF language handling were corrected and aligned with the current view state
+- **Release workflow** — tagged releases now verify the packed artifact, publish the scoped package, and smoke-check both `npx` and `bunx` after publish
+- **Repository documentation** — README, contribution, release, security, and conduct docs were rewritten for a public, maintainer-led npm project
+
+### Fixed
 - **Race-safe background registry** — parallel `--background` starts briefly lock the local instance registry so no running server gets dropped from the tracked list
 - **Conservative data import** — backup imports add missing days, skip identical days, and keep conflicting local days instead of silently overwriting them
-
-## [6.0.12] - 2026-04-11
-
-### Added
-- **Packaged CLI verification** — a new `npm run verify:package` smoke test now builds the real tarball and verifies that the packaged `ttdash` CLI can print help and start outside the repo checkout
-- **npm release guide** — public release preparation now includes documented npm, `npx`, and `bunx` verification steps
-
-### Improved
-- **npm release workflow** — tagged releases now verify the packed artifact, publish to npm with provenance, and smoke-check both `npx ttdash` and `bunx ttdash` after publish
-- **Consumer documentation** — the README now documents `npx` / `bunx`, packaged artifact verification, Node requirements, and the local Typst requirement for PDF export
+- **Playwright release validation** — the E2E configuration now supports an override port so local release verification does not fail when the default smoke-test port is already occupied
 
 ## [6.0.11] - 2026-04-10
 

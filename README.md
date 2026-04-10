@@ -2,11 +2,7 @@
 
 [![CI](https://github.com/roastcodes/ttdash/actions/workflows/ci.yml/badge.svg)](https://github.com/roastcodes/ttdash/actions/workflows/ci.yml)
 ![GitHub Release](https://img.shields.io/github/v/release/roastcodes/ttdash)
-![npm](https://img.shields.io/badge/npm-pending-lightgrey)
-
-<!-- Replace the npm placeholder badge after the first public publish:
-[![npm](https://img.shields.io/npm/v/ttdash)](https://www.npmjs.com/package/ttdash)
--->
+[![npm](https://img.shields.io/npm/v/%40roastcodes%2Fttdash)](https://www.npmjs.com/package/@roastcodes/ttdash)
 
 `TTDash` is a local-first dashboard and CLI for `toktrack` usage data. It runs entirely on your machine, turns raw usage exports into charts and operational summaries, and keeps your stored data, settings, and imports on local disk instead of a hosted backend.
 
@@ -33,31 +29,31 @@ Requirements:
 Run `TTDash` directly from the npm registry:
 
 ```bash
-npx --yes ttdash@latest
+npx --yes @roastcodes/ttdash@latest
 ```
 
 Or with Bun:
 
 ```bash
-bunx ttdash@latest
+bunx @roastcodes/ttdash@latest
 ```
 
 Smoke-check the published CLI without starting the dashboard:
 
 ```bash
-npx --yes ttdash@latest --help
-bunx ttdash@latest --help
+npx --yes @roastcodes/ttdash@latest --help
+bunx @roastcodes/ttdash@latest --help
 ```
 
 For a persistent global install:
 
 ```bash
-npm install -g ttdash
+npm install -g @roastcodes/ttdash
 ttdash
 ```
 
 ```bash
-bun add -g ttdash
+bun add -g @roastcodes/ttdash
 ttdash
 ```
 

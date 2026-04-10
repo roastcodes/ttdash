@@ -1,6 +1,6 @@
 {
-  "name": "ttdash",
-  "version": "6.0.12",
+  "name": "@roastcodes/ttdash",
+  "version": "6.1.0",
   "description": "Local-first dashboard and CLI for toktrack usage data",
   "main": "server.js",
   "repository": {
@@ -51,6 +51,9 @@
     "tokens"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=20"
   },
