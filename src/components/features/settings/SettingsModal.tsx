@@ -185,6 +185,9 @@ export function SettingsModal({
     setLimitDraft(syncProviderLimits(limitProviders, {}))
     setDefaultFilterDraft(DEFAULT_DASHBOARD_FILTERS)
     setSectionVisibilityDraft(getDefaultDashboardSectionVisibility())
+    setSectionOrderDraft(getDefaultDashboardSectionOrder())
+    setDraggedSectionId(null)
+    setDragOverSectionId(null)
   }
 
   const handleResetDefaultFilters = () => {
@@ -646,6 +649,7 @@ export function SettingsModal({
             variant="ghost"
             onClick={handleResetDrafts}
             disabled={settingsBusy}
+            data-testid="reset-all-settings-drafts"
           >
             {t('common.reset')}
           </Button>

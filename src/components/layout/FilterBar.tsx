@@ -7,7 +7,7 @@ import { getModelColor, getProviderBadgeClasses, getProviderBadgeStyle } from '@
 import { formatDate, formatMonthYear, localToday, toLocalDateStr } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
 import { CalendarDays, ChevronLeft, ChevronRight, X } from 'lucide-react'
-import type { ViewMode } from '@/types'
+import type { DashboardDatePreset, ViewMode } from '@/types'
 
 interface FilterBarProps {
   viewMode: ViewMode
@@ -51,6 +51,50 @@ function buildCalendarDays(displayMonth: Date) {
 
   while (cells.length % 7 !== 0) cells.push(null)
   return cells
+}
+
+function resolveActivePreset(selectedMonth: string | null, startDate?: string, endDate?: string): DashboardDatePreset | null {
+  if (selectedMonth) return null
+  if (!startDate && !endDate) return 'all'
+  if (!startDate || !endDate) return null
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const fmt = toLocalDateStr
+
+  const matchesPreset = (preset: DashboardDatePreset) => {
+    switch (preset) {
+      case '7d': {
+        const start = new Date(today)
+        start.setDate(today.getDate() - 6)
+        return startDate === fmt(start) && endDate === fmt(today)
+      }
+      case '30d': {
+        const start = new Date(today)
+        start.setDate(today.getDate() - 29)
+        return startDate === fmt(start) && endDate === fmt(today)
+      }
+      case 'month': {
+        const start = new Date(today.getFullYear(), today.getMonth(), 1)
+        return startDate === fmt(start) && endDate === fmt(today)
+      }
+      case 'year': {
+        const start = new Date(today.getFullYear(), 0, 1)
+        return startDate === fmt(start) && endDate === fmt(today)
+      }
+      case 'all':
+      default:
+        return false
+    }
+  }
+
+  for (const preset of ['7d', '30d', 'month', 'year'] as DashboardDatePreset[]) {
+    if (matchesPreset(preset)) {
+      return preset
+    }
+  }
+
+  return null
 }
 
 interface DatePickerFieldProps {
@@ -270,10 +314,10 @@ export function FilterBar({
   onResetAll,
 }: FilterBarProps) {
   const { t } = useTranslation()
-  const [activePreset, setActivePreset] = useState<string | null>(null)
-
-  // Reset active preset when month or viewMode changes externally
-  useEffect(() => { setActivePreset(null) }, [selectedMonth, viewMode])
+  const activePreset = useMemo(
+    () => resolveActivePreset(selectedMonth, startDate, endDate),
+    [selectedMonth, startDate, endDate],
+  )
 
   const hasCustomFilters = selectedMonth !== null || selectedProviders.length > 0 || selectedModels.length > 0 || Boolean(startDate || endDate) || viewMode !== 'daily'
 
@@ -287,10 +331,7 @@ export function FilterBar({
           {(startDate || endDate) && <span className="rounded-full bg-muted/30 px-2 py-0.5">{t('filterBar.dateFilterActive')}</span>}
           <button
             type="button"
-            onClick={() => {
-              setActivePreset(null)
-              onResetAll()
-            }}
+            onClick={() => onResetAll()}
             className="ml-auto inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[11px] font-medium text-foreground transition-all duration-200 hover:bg-accent hover:border-accent disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-border"
             disabled={!hasCustomFilters}
           >
@@ -310,7 +351,7 @@ export function FilterBar({
             </SelectContent>
           </Select>
 
-          <Select value={selectedMonth ?? 'all'} onValueChange={(v) => { setActivePreset(null); onMonthChange(v === 'all' ? null : v) }}>
+          <Select value={selectedMonth ?? 'all'} onValueChange={(v) => onMonthChange(v === 'all' ? null : v)}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -332,7 +373,7 @@ export function FilterBar({
             ].map(p => (
               <button
                 key={p.key}
-                onClick={() => { setActivePreset(p.key); onApplyPreset(p.key) }}
+                onClick={() => onApplyPreset(p.key)}
                 className={cn(
                   'rounded-full px-3 py-1.5 text-xs font-medium border transition-all duration-200 min-w-[48px]',
                   activePreset === p.key
@@ -354,7 +395,6 @@ export function FilterBar({
             onClick={() => {
               onStartDateChange(undefined)
               onEndDateChange(undefined)
-              setActivePreset('all')
             }}
             className="rounded-full px-3 py-2 text-xs font-medium border border-border transition-all duration-200 hover:bg-accent hover:border-accent"
           >

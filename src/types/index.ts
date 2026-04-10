@@ -99,7 +99,7 @@ export interface DashboardMetrics {
   costPerMillion: number
   avgTokensPerRequest: number
   avgCostPerRequest: number
-  avgModelsPerDay: number
+  avgModelsPerEntry: number
   avgDailyCost: number
   avgRequestsPerDay: number
   topDay: { date: string; cost: number } | null

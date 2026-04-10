@@ -118,7 +118,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
               ? t('insights.usagePatterns.summaryWithCoverage', { activeDays: metrics.activeDays, totalDays: totalCalendarDays, volatility: formatNumber(Math.round(metrics.requestVolatility)) })
               : t('insights.usagePatterns.summaryWithoutCoverage', { activeDays: metrics.activeDays, unit: usageUnit })}
             details={[
-              { label: t('insights.usagePatterns.avgModels'), value: metrics.avgModelsPerDay.toFixed(1) },
+              { label: t('insights.usagePatterns.avgModels'), value: metrics.avgModelsPerEntry.toFixed(1) },
               { label: t('insights.usagePatterns.providersActive'), value: formatNumber(metrics.providerCount) },
               { label: t('insights.usagePatterns.weekendShare'), value: metrics.weekendCostShare !== null ? formatPercent(metrics.weekendCostShare, 0) : '–' },
               { label: t('insights.usagePatterns.thinkingShare'), value: metrics.totalTokens > 0 ? formatPercent((metrics.totalThinking / metrics.totalTokens) * 100, 1) : '–' },

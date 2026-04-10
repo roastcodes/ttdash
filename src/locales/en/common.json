@@ -765,6 +765,10 @@
         "label": "Go to filters",
         "description": "Jump to the filter bar"
       },
+      "goToSection": {
+        "label": "Go to {{section}}",
+        "description": "Jump to the {{section}} section"
+      },
       "insights": {
         "label": "Go to insights",
         "description": "Jump to the executive summary"

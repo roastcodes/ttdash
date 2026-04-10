@@ -16,7 +16,10 @@ const dataImportToastPattern = /^(Backup importiert: 1 neue Tage ergänzt, 1 Kon
 const saveSettingsButtonPattern = /^(Speichern|Save)$/
 const monthlySettingsPattern = /^(Monatlich|Monthly)$/
 const monthlyViewPattern = /^(Monatsansicht|Monthly view)$/
+const dailyViewPattern = /^(Tagesansicht|Daily view)$/
 const last30DaysPattern = /^(Letzte 30 Tage|Last 30 days)$/
+const defaultDailyPattern = /^(Täglich|Daily)$/
+const allDataPattern = /^(Alle Daten|All data)$/
 
 async function uploadSampleUsage(page: Page) {
   await page.locator('[data-testid="usage-upload-input"]').setInputFiles(sampleUsagePath)
@@ -89,10 +92,45 @@ test('manages settings and backup imports through the settings dialog using isol
 
   await dialog.getByRole('button', { name: monthlySettingsPattern }).click()
   await dialog.getByRole('button', { name: last30DaysPattern }).click()
-  await dialog.locator('[data-section-id="tokenAnalysis"]').click()
+  await dialog.getByTestId('move-section-up-tokenAnalysis').click()
+  await dialog.getByTestId('toggle-section-visibility-tokenAnalysis').click()
+  await dialog.getByTestId('reset-all-settings-drafts').click()
+  await expect(dialog.getByRole('button', { name: defaultDailyPattern })).toHaveAttribute('aria-pressed', 'true')
+  await expect(dialog.getByRole('button', { name: allDataPattern })).toHaveAttribute('aria-pressed', 'true')
+  await expect(dialog.locator('[data-section-id="tokenAnalysis"]')).toContainText(/Sichtbar|Visible/)
+  await expect.poll(async () => dialog.locator('[data-section-id]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-section-id')))).toEqual([
+    'insights',
+    'metrics',
+    'today',
+    'currentMonth',
+    'activity',
+    'forecastCache',
+    'limits',
+    'costAnalysis',
+    'tokenAnalysis',
+    'requestAnalysis',
+    'advancedAnalysis',
+    'comparisons',
+    'tables',
+  ])
+  await dialog.getByRole('button', { name: saveSettingsButtonPattern }).click()
+
+  await expect(dialog).toBeHidden()
+  await expect(page.locator('#token-analysis')).toBeVisible()
+  await expect(page.locator('#filters').getByRole('combobox').first()).toContainText(dailyViewPattern)
+
+  await page.evaluate(() => {
+    const globalWindow = window as typeof window & {
+      __TTDASH_TEST_HOOKS__?: {
+        openSettings?: () => void
+      }
+    }
+    globalWindow.__TTDASH_TEST_HOOKS__?.openSettings?.()
+  })
+  await expect(dialog).toBeVisible()
   await dialog.getByTestId('reset-default-filters').click()
-  await expect(dialog.getByRole('button', { name: /^(Täglich|Daily)$/ })).toHaveAttribute('aria-pressed', 'true')
-  await expect(dialog.getByRole('button', { name: /^(Alle Daten|All data)$/ })).toHaveAttribute('aria-pressed', 'true')
+  await expect(dialog.getByRole('button', { name: defaultDailyPattern })).toHaveAttribute('aria-pressed', 'true')
+  await expect(dialog.getByRole('button', { name: allDataPattern })).toHaveAttribute('aria-pressed', 'true')
   await dialog.getByRole('button', { name: monthlySettingsPattern }).click()
   await dialog.getByRole('button', { name: last30DaysPattern }).click()
   await dialog.getByTestId('reset-section-visibility').click()
@@ -219,7 +257,7 @@ test('manages settings and backup imports through the settings dialog using isol
         tokenAnalysis: false,
         comparisons: false,
       },
-      sectionOrder: ['tables', 'metrics', 'insights'],
+      sectionOrder: ['tables', 'advancedAnalysis', 'metrics', 'insights'],
       lastLoadedAt: '2026-04-01T12:30:00.000Z',
       lastLoadSource: 'file',
     },
@@ -242,7 +280,7 @@ test('manages settings and backup imports through the settings dialog using isol
   })
   expect(importedSettings.sectionVisibility.tokenAnalysis).toBe(false)
   expect(importedSettings.sectionVisibility.comparisons).toBe(false)
-  expect(importedSettings.sectionOrder.slice(0, 3)).toEqual(['tables', 'metrics', 'insights'])
+  expect(importedSettings.sectionOrder.slice(0, 4)).toEqual(['tables', 'advancedAnalysis', 'metrics', 'insights'])
 })
 
 test('loads persisted settings on a fresh browser start and applies them immediately', async ({ browser, page }) => {
@@ -269,7 +307,7 @@ test('loads persisted settings on a fresh browser start and applies them immedia
         tokenAnalysis: false,
         comparisons: false,
       },
-      sectionOrder: ['tables', 'metrics', 'insights'],
+      sectionOrder: ['tables', 'advancedAnalysis', 'metrics', 'insights'],
     },
   })
   expect(patchSettingsResponse.ok()).toBe(true)
@@ -304,18 +342,28 @@ test('loads persisted settings on a fresh browser start and applies them immedia
     await expect(freshPage.getByRole('button', { name: 'Delete' })).toBeVisible()
     await expect.poll(async () => freshPage.evaluate(() => {
       const tables = document.getElementById('tables')
+      const advancedAnalysis = document.getElementById('advanced-analysis')
       const metrics = document.getElementById('metrics')
       const insights = document.getElementById('insights')
 
-      if (!tables || !metrics || !insights) {
+      if (!tables || !advancedAnalysis || !metrics || !insights) {
         return false
       }
 
-      const tablesBeforeMetrics = Boolean(tables.compareDocumentPosition(metrics) & Node.DOCUMENT_POSITION_FOLLOWING)
+      const tablesBeforeAdvanced = Boolean(tables.compareDocumentPosition(advancedAnalysis) & Node.DOCUMENT_POSITION_FOLLOWING)
+      const advancedBeforeMetrics = Boolean(advancedAnalysis.compareDocumentPosition(metrics) & Node.DOCUMENT_POSITION_FOLLOWING)
       const metricsBeforeInsights = Boolean(metrics.compareDocumentPosition(insights) & Node.DOCUMENT_POSITION_FOLLOWING)
 
-      return tablesBeforeMetrics && metricsBeforeInsights
+      return tablesBeforeAdvanced && advancedBeforeMetrics && metricsBeforeInsights
     })).toBe(true)
+
+    await freshPage.keyboard.press('Control+k')
+    await expect(freshPage.getByTestId('command-section-advancedAnalysis')).toBeVisible()
+    const orderedSectionCommandIds = await freshPage.locator('[data-testid^="command-section-"]').evaluateAll((nodes) => (
+      nodes.map((node) => node.getAttribute('data-testid')?.replace('command-section-', ''))
+    ))
+    expect(orderedSectionCommandIds.slice(0, 4)).toEqual(['tables', 'advancedAnalysis', 'metrics', 'insights'])
+    await freshPage.keyboard.press('Escape')
 
     await freshPage.evaluate(() => {
       const globalWindow = window as typeof window & {
@@ -332,10 +380,11 @@ test('loads persisted settings on a fresh browser start and applies them immedia
     await expect(dialog.getByRole('button', { name: 'OpenAI', exact: true })).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Monthly' })).toHaveAttribute('aria-pressed', 'true')
     await expect(dialog.getByRole('button', { name: 'Last 30 days' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(dialog.locator('[data-section-id="advancedAnalysis"]')).toContainText('Distributions & Risk')
     await expect(dialog.locator('[data-section-id="insights"]')).toContainText('Insights')
     await expect(dialog.locator('[data-section-id="tokenAnalysis"]')).toContainText('Hidden')
     const orderedSectionIds = await dialog.locator('[data-section-id]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-section-id')))
-    expect(orderedSectionIds.slice(0, 3)).toEqual(['tables', 'metrics', 'insights'])
+    expect(orderedSectionIds.slice(0, 4)).toEqual(['tables', 'advancedAnalysis', 'metrics', 'insights'])
     const openAiCard = dialog.locator('[data-provider-id="OpenAI"]')
     await expect(openAiCard.locator('input[type="number"]').nth(0)).toHaveValue('20')
     await expect(openAiCard.locator('input[type="number"]').nth(1)).toHaveValue('400')
@@ -345,4 +394,28 @@ test('loads persisted settings on a fresh browser start and applies them immedia
   } finally {
     await context.close()
   }
+})
+
+test('uses the current UI language when generating a PDF report after switching locale', async ({ page }) => {
+  await page.request.delete('/api/usage')
+
+  let reportRequest: Record<string, unknown> | null = null
+
+  await page.route('**/api/report/pdf', async route => {
+    reportRequest = JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/pdf',
+      body: Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n'),
+    })
+  })
+
+  await page.goto('/')
+  await uploadSampleUsage(page)
+  await page.getByTitle(/English|Englisch/).click()
+  await expect(page.locator('#filters').getByText('Filter status')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Report' }).click()
+
+  await expect.poll(() => reportRequest?.language).toBe('en')
 })

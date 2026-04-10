@@ -7,9 +7,15 @@ import type {
   ViewMode,
 } from '@/types'
 
+export interface DashboardSectionDefinition {
+  id: DashboardSectionId
+  domId: string
+  labelKey: string
+}
+
 export const DASHBOARD_DATE_PRESETS: DashboardDatePreset[] = ['all', '7d', '30d', 'month', 'year']
 export const DASHBOARD_VIEW_MODES: ViewMode[] = ['daily', 'monthly', 'yearly']
-export const DASHBOARD_SECTION_DEFINITIONS: Array<{ id: DashboardSectionId; domId: string; labelKey: string }> = [
+export const DASHBOARD_SECTION_DEFINITIONS: DashboardSectionDefinition[] = [
   { id: 'insights', domId: 'insights', labelKey: 'helpPanel.sectionLabels.insights' },
   { id: 'metrics', domId: 'metrics', labelKey: 'helpPanel.sectionLabels.metrics' },
   { id: 'today', domId: 'today', labelKey: 'helpPanel.sectionLabels.today' },
@@ -26,7 +32,7 @@ export const DASHBOARD_SECTION_DEFINITIONS: Array<{ id: DashboardSectionId; domI
 ]
 export const DASHBOARD_SECTION_DEFINITION_MAP = Object.fromEntries(
   DASHBOARD_SECTION_DEFINITIONS.map((section) => [section.id, section]),
-) as Record<DashboardSectionId, (typeof DASHBOARD_SECTION_DEFINITIONS)[number]>
+) as Record<DashboardSectionId, DashboardSectionDefinition>
 
 export const DEFAULT_DASHBOARD_FILTERS: DashboardDefaultFilters = {
   viewMode: 'daily',

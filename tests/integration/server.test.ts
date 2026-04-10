@@ -520,6 +520,43 @@ describe('local server API', () => {
     expect(mergedSettings.sectionOrder.slice(0, 3)).toEqual(['tables', 'metrics', 'insights'])
   })
 
+  it('rejects report generation when no usage data exists', async () => {
+    await fetch(`${baseUrl}/api/usage`, {
+      method: 'DELETE',
+    })
+
+    const response = await fetch(`${baseUrl}/api/report/pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ viewMode: 'daily' }),
+    })
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({
+      message: 'Keine Daten für den Report vorhanden.',
+    })
+  })
+
+  it('rejects malformed report payloads before report generation starts', async () => {
+    const seedResponse = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sampleUsage),
+    })
+    expect(seedResponse.status).toBe(200)
+
+    const response = await fetch(`${baseUrl}/api/report/pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{"viewMode":"daily"',
+    })
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({
+      message: 'Ungültige Report-Anfrage',
+    })
+  })
+
   it('starts background servers and stops the selected instance via the CLI', async () => {
     const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-test-'))
     const backgroundEnv = createCliEnv(backgroundRoot)

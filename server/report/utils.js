@@ -252,6 +252,7 @@ function stdDev(values) {
 }
 
 function computeWeekOverWeekChange(data) {
+  if (data.some((entry) => !/^\d{4}-\d{2}-\d{2}$/.test(entry.date))) return null;
   if (data.length < 14) return null;
   const sorted = sortByDate(data);
   const last7 = sorted.slice(-7);
@@ -450,15 +451,21 @@ function computeProviderRows(data) {
         tokens: 0,
         requests: 0,
         days: 0,
+        _dates: new Set(),
       };
       current.cost += breakdown.cost;
       current.tokens += breakdown.inputTokens + breakdown.outputTokens + breakdown.cacheCreationTokens + breakdown.cacheReadTokens + breakdown.thinkingTokens;
       current.requests += breakdown.requestCount;
-      current.days += entryDays;
+      if (!current._dates.has(day.date)) {
+        current._dates.add(day.date);
+        current.days += entryDays;
+      }
       rows.set(provider, current);
     }
   }
-  return Array.from(rows.values()).sort((a, b) => b.cost - a.cost);
+  return Array.from(rows.values())
+    .map(({ _dates, ...entry }) => entry)
+    .sort((a, b) => b.cost - a.cost);
 }
 
 function getDateRange(data) {

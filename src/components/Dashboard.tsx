@@ -357,7 +357,7 @@ export function Dashboard() {
     } finally {
       setReportGenerating(false)
     }
-  }, [reportGenerating, viewMode, selectedMonth, selectedProviders, selectedModels, startDate, endDate, addToast])
+  }, [reportGenerating, viewMode, selectedMonth, selectedProviders, selectedModels, startDate, endDate, addToast, i18n.language, t])
 
   const handleAutoImport = useCallback(() => {
     setAutoImportOpen(true)
@@ -842,7 +842,6 @@ export function Dashboard() {
       {/* Command Palette */}
       <CommandPalette
         isDark={isDark}
-        currentLanguage={settings.language}
         availableProviders={availableProviders}
         selectedProviders={selectedProviders}
         availableModels={availableModels}
@@ -851,6 +850,7 @@ export function Dashboard() {
         hasMonthSection={hasCurrentMonthData}
         hasRequestSection={metrics.hasRequestData}
         sectionVisibility={sectionVisibility}
+        sectionOrder={sectionOrder}
         reportGenerating={reportGenerating}
         onToggleTheme={handleToggleTheme}
         onExportCSV={handleExportCSV}
