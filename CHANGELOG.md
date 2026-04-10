@@ -3,13 +3,13 @@
 ## [Unreleased]
 
 ### Added
-- **Background-CLI für `ttdash`** — `--background` startet den lokalen Server als losgelösten Hintergrundprozess; `ttdash stop` listet laufende Instanzen und beendet auf Wunsch gezielt die ausgewählte
-- **Settings-Backups im UI** — der bisherige Limits-Dialog ist jetzt ein generischer Settings-Dialog mit Import/Export für App-Settings und gespeicherte Nutzungsdaten
+- **Background CLI for `ttdash`** — `--background` starts the local server as a detached background process, and `ttdash stop` lists running instances so the selected one can be stopped directly
+- **Settings backups in the UI** — the former limits dialog now acts as a general settings dialog with import/export for app settings and stored usage data
 
 ### Improved
-- **CLI-Dokumentation** — README, Hilfeausgabe und Installer-Hinweise dokumentieren jetzt den Hintergrundmodus und den Stop-Befehl direkt im Startpfad
-- **Race-safe Background-Registry** — parallele `--background`-Starts sperren die lokale Instanzdatei jetzt kurzzeitig, damit keine laufenden Server aus der Registry verloren gehen
-- **Konservativer Datenimport** — Backup-Importe ergänzen fehlende Tage, überspringen identische Tage und behalten Konflikttage lokal statt sie still zu überschreiben
+- **CLI documentation** — the README, help output, and installer hints now document background mode and the stop command directly in the main startup path
+- **Race-safe background registry** — parallel `--background` starts briefly lock the local instance registry so no running server gets dropped from the tracked list
+- **Conservative data import** — backup imports add missing days, skip identical days, and keep conflicting local days instead of silently overwriting them
 
 ## [6.0.12] - 2026-04-11
 
@@ -24,39 +24,39 @@
 ## [6.0.11] - 2026-04-10
 
 ### Fixed
-- **Idempotenter Bun-Installer** — `install.sh` und `install.bat` bereinigen vor `bun add -g file:...` jetzt vorhandene `ttdash`-Einträge aus Bun’s globalem Manifest und löschen bei Bedarf das fehlerhafte globale `bun.lock`, damit wiederholte Upgrades keine doppelten `package.json`-Keys mehr erzeugen
+- **Idempotent Bun installer** — `install.sh` and `install.bat` now clean existing `ttdash` entries from Bun’s global manifest before `bun add -g file:...` and remove the broken global `bun.lock` when needed, so repeated upgrades do not create duplicate `package.json` keys
 
 ## [6.0.10] - 2026-04-09
 
 ### Added
-- **GitHub Release-Workflow** — ein separater `release.yml` erstellt jetzt GitHub Releases automatisiert auf `v*`-Tags, prüft vorher Tests und Build und akzeptiert nur Tags auf `main`
+- **GitHub release workflow** — a dedicated `release.yml` now creates GitHub releases automatically on `v*` tags, verifies tests and build first, and only accepts tags on `main`
 
 ### Improved
-- **README-Projektkontext** — die Dokumentation verweist jetzt explizit auf `toktrack` als Basisdatenquelle und bedankt sich bei `mag123c`
+- **README project context** — the documentation now points explicitly to `toktrack` as the primary data source and credits `mag123c`
 
 ## [6.0.9] - 2026-04-09
 
 ### Added
-- **Automatisierte Testpyramide** — Vitest deckt jetzt Datennormalisierung, Berechnungen, Hook-Logik und den lokalen Serverpfad ab; Playwright prüft den Upload-zu-Dashboard-Smoke-Flow mit echten Browser-Reports
-- **CI-Testpipeline** — GitHub Actions führt Build, Coverage, Playwright-Smoke und Report-Artefakte jetzt automatisiert auf Pushes und Pull Requests aus
+- **Automated test pyramid** — Vitest now covers data normalization, calculations, hook behavior, and the local server path; Playwright verifies the upload-to-dashboard smoke flow with real browser reports
+- **CI test pipeline** — GitHub Actions now runs build, coverage, Playwright smoke tests, and report artifacts automatically on pushes and pull requests
 
 ### Improved
-- **Öffentliche Repo-Bereitschaft** — Paket-Metadaten, Lizenz, Security-/Contribution-Dokumente und Publish-Surface wurden für ein späteres Public-Repo bereinigt
-- **Test-Isolation** — der Playwright-Webserver nutzt eine eigene lokale App-Umgebung und überschreibt keine normalen Nutzungsdaten
-- **Runtime-Härtung** — lokaler Server bindet standardmässig an `127.0.0.1`, liefert restriktivere Security-Header und vermeidet unnötige externe Runtime-Requests
+- **Public repo readiness** — package metadata, license, security/contribution docs, and publish surface were cleaned up for a public repository
+- **Test isolation** — the Playwright web server uses its own local app environment and does not overwrite normal user data
+- **Runtime hardening** — the local server now binds to `127.0.0.1` by default, returns stricter security headers, and avoids unnecessary external runtime requests
 
 ### Fixed
-- **Bun-/npm-Konsistenz** — Lockfiles und Publish-Inhalt sind jetzt auf denselben Dependency- und Runtime-Stand gebracht, sodass Build und Installation reproduzierbar bleiben
+- **Bun/npm consistency** — lockfiles and published runtime contents now stay aligned so builds and installs remain reproducible
 
 ## [6.0.8] - 2026-04-08
 
 ### Added
-- **CLI-Flags für `ttdash`** — `--port` / `-p`, `--help` / `-h`, `--no-open` / `-no` und `--auto-load` / `-al` werden jetzt direkt vom globalen CLI-Befehl unterstützt
-- **Persistente Lade-Metadaten** — App-Settings speichern jetzt, wann Daten zuletzt geladen wurden und über welchen Pfad (`Datei`, `Auto-Import`, `CLI Auto-Load`)
-- **Sichtbare Lade-Hinweise im UI** — Header und Limits-Dialog zeigen jetzt den letzten Ladezeitpunkt; bei `-al` erscheint zusätzlich ein eigener `Auto-Load beim Start`-Badge
+- **CLI flags for `ttdash`** — `--port` / `-p`, `--help` / `-h`, `--no-open` / `-no`, and `--auto-load` / `-al` are now supported directly by the global CLI command
+- **Persistent load metadata** — app settings now store when data was last loaded and from which path (`file`, `auto-import`, `cli-auto-load`)
+- **Visible load hints in the UI** — the header and limits dialog now show the last load time, and `-al` also adds a dedicated `Auto-load on start` badge
 
 ### Improved
-- **Gemeinsamer Auto-Import-Pfad** — UI-Auto-Import und CLI-Auto-Load verwenden jetzt dieselbe Server-Logik, damit Laufzeitverhalten, Persistenz und Fehlerbehandlung konsistent bleiben
+- **Shared auto-import path** — UI auto-import and CLI auto-load now use the same server logic so runtime behavior, persistence, and error handling stay consistent
 
 ## [6.0.7] - 2026-04-08
 
