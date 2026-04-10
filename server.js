@@ -41,10 +41,34 @@ const BACKUP_FORMAT_VERSION = 1;
 const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
 const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
+const DASHBOARD_DATE_PRESETS = ['all', '7d', '30d', 'month', 'year'];
+const DASHBOARD_SECTION_IDS = [
+  'insights',
+  'metrics',
+  'today',
+  'currentMonth',
+  'activity',
+  'forecastCache',
+  'limits',
+  'costAnalysis',
+  'tokenAnalysis',
+  'requestAnalysis',
+  'advancedAnalysis',
+  'comparisons',
+  'tables',
+];
 const DEFAULT_SETTINGS = {
   language: 'de',
   theme: 'dark',
   providerLimits: {},
+  defaultFilters: {
+    viewMode: 'daily',
+    datePreset: 'all',
+    providers: [],
+    models: [],
+  },
+  sectionVisibility: Object.fromEntries(DASHBOARD_SECTION_IDS.map((sectionId) => [sectionId, true])),
+  sectionOrder: DASHBOARD_SECTION_IDS,
   lastLoadedAt: null,
   lastLoadSource: null,
 };
@@ -696,6 +720,14 @@ function normalizeTheme(value) {
   return value === 'light' ? 'light' : 'dark';
 }
 
+function normalizeViewMode(value) {
+  return value === 'monthly' || value === 'yearly' ? value : 'daily';
+}
+
+function normalizeDashboardDatePreset(value) {
+  return DASHBOARD_DATE_PRESETS.includes(value) ? value : 'all';
+}
+
 function normalizeLastLoadSource(value) {
   return value === 'file' || value === 'auto-import' || value === 'cli-auto-load'
     ? value
@@ -908,12 +940,64 @@ function normalizeProviderLimits(value) {
   return next;
 }
 
+function normalizeStringList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [...new Set(value
+    .filter((entry) => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter(Boolean))];
+}
+
+function normalizeDefaultFilters(value) {
+  const source = value && typeof value === 'object' ? value : {};
+
+  return {
+    viewMode: normalizeViewMode(source.viewMode),
+    datePreset: normalizeDashboardDatePreset(source.datePreset),
+    providers: normalizeStringList(source.providers),
+    models: normalizeStringList(source.models),
+  };
+}
+
+function normalizeSectionVisibility(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const next = {};
+
+  for (const sectionId of DASHBOARD_SECTION_IDS) {
+    next[sectionId] = typeof source[sectionId] === 'boolean'
+      ? source[sectionId]
+      : true;
+  }
+
+  return next;
+}
+
+function normalizeSectionOrder(value) {
+  if (!Array.isArray(value)) {
+    return [...DASHBOARD_SECTION_IDS];
+  }
+
+  const incoming = value.filter((sectionId) => (
+    typeof sectionId === 'string' && DASHBOARD_SECTION_IDS.includes(sectionId)
+  ));
+  const uniqueIncoming = [...new Set(incoming)];
+  const missing = DASHBOARD_SECTION_IDS.filter((sectionId) => !uniqueIncoming.includes(sectionId));
+
+  return [...uniqueIncoming, ...missing];
+}
+
 function normalizeSettings(value) {
   const source = value && typeof value === 'object' ? value : {};
   return {
     language: normalizeLanguage(source.language),
     theme: normalizeTheme(source.theme),
     providerLimits: normalizeProviderLimits(source.providerLimits),
+    defaultFilters: normalizeDefaultFilters(source.defaultFilters),
+    sectionVisibility: normalizeSectionVisibility(source.sectionVisibility),
+    sectionOrder: normalizeSectionOrder(source.sectionOrder),
     lastLoadedAt: normalizeIsoTimestamp(source.lastLoadedAt),
     lastLoadSource: normalizeLastLoadSource(source.lastLoadSource),
   };

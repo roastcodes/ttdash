@@ -52,6 +52,31 @@ export type AppLanguage = 'de' | 'en'
 export type AppTheme = 'dark' | 'light'
 
 export type ViewMode = 'daily' | 'monthly' | 'yearly'
+export type DashboardDatePreset = 'all' | '7d' | '30d' | 'month' | 'year'
+export type DashboardSectionId =
+  | 'insights'
+  | 'metrics'
+  | 'today'
+  | 'currentMonth'
+  | 'activity'
+  | 'forecastCache'
+  | 'limits'
+  | 'costAnalysis'
+  | 'tokenAnalysis'
+  | 'requestAnalysis'
+  | 'advancedAnalysis'
+  | 'comparisons'
+  | 'tables'
+
+export interface DashboardDefaultFilters {
+  viewMode: ViewMode
+  datePreset: DashboardDatePreset
+  providers: string[]
+  models: string[]
+}
+
+export type DashboardSectionVisibility = Record<DashboardSectionId, boolean>
+export type DashboardSectionOrder = DashboardSectionId[]
 
 export interface DateRange {
   start: string
@@ -177,6 +202,9 @@ export interface AppSettings {
   language: AppLanguage
   theme: AppTheme
   providerLimits: ProviderLimits
+  defaultFilters: DashboardDefaultFilters
+  sectionVisibility: DashboardSectionVisibility
+  sectionOrder: DashboardSectionOrder
   lastLoadedAt: string | null
   lastLoadSource: DataLoadSource
   cliAutoLoadActive: boolean

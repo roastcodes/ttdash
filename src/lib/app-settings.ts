@@ -1,10 +1,21 @@
 import type { AppLanguage, AppSettings, AppTheme, DataLoadSource, ProviderLimits } from '@/types'
+import {
+  DEFAULT_DASHBOARD_FILTERS,
+  getDefaultDashboardSectionOrder,
+  getDefaultDashboardSectionVisibility,
+  normalizeDashboardDefaultFilters,
+  normalizeDashboardSectionOrder,
+  normalizeDashboardSectionVisibility,
+} from '@/lib/dashboard-preferences'
 import { normalizeProviderLimitConfig } from '@/lib/provider-limits'
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'de',
   theme: 'dark',
   providerLimits: {},
+  defaultFilters: DEFAULT_DASHBOARD_FILTERS,
+  sectionVisibility: getDefaultDashboardSectionVisibility(),
+  sectionOrder: getDefaultDashboardSectionOrder(),
   lastLoadedAt: null,
   lastLoadSource: null,
   cliAutoLoadActive: false,
@@ -51,6 +62,9 @@ export function normalizeAppSettings(value: unknown): AppSettings {
     language: normalizeAppLanguage(source.language),
     theme: normalizeAppTheme(source.theme),
     providerLimits: normalizeStoredProviderLimits(source.providerLimits),
+    defaultFilters: normalizeDashboardDefaultFilters(source.defaultFilters),
+    sectionVisibility: normalizeDashboardSectionVisibility(source.sectionVisibility),
+    sectionOrder: normalizeDashboardSectionOrder(source.sectionOrder),
     lastLoadedAt: normalizeStoredTimestamp(source.lastLoadedAt),
     lastLoadSource: normalizeDataLoadSource(source.lastLoadSource),
     cliAutoLoadActive: Boolean(source.cliAutoLoadActive),

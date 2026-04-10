@@ -3,6 +3,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
+import type { DashboardDefaultFilters } from '@/types'
 import { dashboardFixture } from '../fixtures/usage-data'
 
 describe('useDashboardFilters', () => {
@@ -65,5 +66,72 @@ describe('useDashboardFilters', () => {
 
     expect(result.current.startDate).toBe('2026-03-31')
     expect(result.current.endDate).toBe('2026-04-06')
+  })
+
+  it('hydrates from external default filters and restores them on reset', () => {
+    const defaults: DashboardDefaultFilters = {
+      viewMode: 'monthly',
+      datePreset: '30d',
+      providers: ['OpenAI'],
+      models: ['GPT-5.4'],
+    }
+
+    const { result } = renderHook(({ filters }) => useDashboardFilters(dashboardFixture, filters), {
+      initialProps: { filters: defaults },
+    })
+
+    expect(result.current.viewMode).toBe('monthly')
+    expect(result.current.selectedProviders).toEqual(['OpenAI'])
+    expect(result.current.selectedModels).toEqual(['GPT-5.4'])
+    expect(result.current.startDate).toBe('2026-03-08')
+    expect(result.current.endDate).toBe('2026-04-06')
+
+    act(() => {
+      result.current.toggleProvider('Anthropic')
+      result.current.applyPreset('7d')
+    })
+
+    expect(result.current.selectedProviders).toEqual(['OpenAI', 'Anthropic'])
+    expect(result.current.startDate).toBe('2026-03-31')
+
+    act(() => {
+      result.current.resetAll()
+    })
+
+    expect(result.current.viewMode).toBe('monthly')
+    expect(result.current.selectedProviders).toEqual(['OpenAI'])
+    expect(result.current.selectedModels).toEqual(['GPT-5.4'])
+    expect(result.current.startDate).toBe('2026-03-08')
+    expect(result.current.endDate).toBe('2026-04-06')
+  })
+
+  it('applies persisted defaults when matching data becomes available later', () => {
+    const defaults: DashboardDefaultFilters = {
+      viewMode: 'daily',
+      datePreset: 'all',
+      providers: ['OpenAI'],
+      models: ['GPT-5.4'],
+    }
+
+    const { result, rerender } = renderHook(
+      ({ data, filters }) => useDashboardFilters(data, filters),
+      {
+        initialProps: {
+          data: [],
+          filters: defaults,
+        },
+      },
+    )
+
+    expect(result.current.selectedProviders).toEqual([])
+    expect(result.current.selectedModels).toEqual([])
+
+    rerender({
+      data: dashboardFixture,
+      filters: defaults,
+    })
+
+    expect(result.current.selectedProviders).toEqual(['OpenAI'])
+    expect(result.current.selectedModels).toEqual(['GPT-5.4'])
   })
 })

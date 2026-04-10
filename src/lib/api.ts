@@ -1,4 +1,15 @@
-import type { AppSettings, AppLanguage, AppTheme, ProviderLimits, UsageData, UsageImportSummary, ViewMode } from '@/types'
+import type {
+  AppSettings,
+  AppLanguage,
+  AppTheme,
+  DashboardDefaultFilters,
+  DashboardSectionOrder,
+  DashboardSectionVisibility,
+  ProviderLimits,
+  UsageData,
+  UsageImportSummary,
+  ViewMode,
+} from '@/types'
 import i18n from '@/lib/i18n'
 import { normalizeAppSettings } from '@/lib/app-settings'
 
@@ -43,6 +54,9 @@ export interface UpdateSettingsRequest {
   language?: AppLanguage
   theme?: AppTheme
   providerLimits?: ProviderLimits
+  defaultFilters?: DashboardDefaultFilters
+  sectionVisibility?: DashboardSectionVisibility
+  sectionOrder?: DashboardSectionOrder
 }
 
 export async function fetchSettings(): Promise<AppSettings> {

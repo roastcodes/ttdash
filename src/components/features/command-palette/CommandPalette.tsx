@@ -7,7 +7,7 @@ import {
   Table, Search, ArrowUp, CircleHelp, Zap, Filter, BarChart3,
   LineChart, Sigma, CalendarRange, Layers3, ArrowDown, RefreshCcw, SlidersHorizontal, Languages
 } from 'lucide-react'
-import type { AppLanguage, ViewMode } from '@/types'
+import type { AppLanguage, DashboardSectionVisibility, ViewMode } from '@/types'
 
 interface CommandPaletteProps {
   isDark: boolean
@@ -18,6 +18,8 @@ interface CommandPaletteProps {
   selectedModels: string[]
   hasTodaySection: boolean
   hasMonthSection: boolean
+  hasRequestSection: boolean
+  sectionVisibility: DashboardSectionVisibility
   reportGenerating: boolean
   onToggleTheme: () => void
   onExportCSV: () => void
@@ -124,6 +126,8 @@ export function CommandPalette({
   selectedModels,
   hasTodaySection,
   hasMonthSection,
+  hasRequestSection,
+  sectionVisibility,
   reportGenerating,
   onToggleTheme,
   onExportCSV,
@@ -183,18 +187,18 @@ export function CommandPalette({
     { id: 'top', label: t('commandPalette.commands.scrollTop.label'), description: t('commandPalette.commands.scrollTop.description'), keywords: ['top', 'start', 'anfang'], shortcut: '⌘↑', icon: <ArrowUp className="h-4 w-4" />, action: () => window.scrollTo({ top: 0, behavior: 'smooth' }), group: t('commandPalette.groups.navigation') },
     { id: 'bottom', label: t('commandPalette.commands.scrollBottom.label'), description: t('commandPalette.commands.scrollBottom.description'), keywords: ['bottom', 'ende'], icon: <ArrowDown className="h-4 w-4" />, action: () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), group: t('commandPalette.groups.navigation') },
     { id: 'filters', label: t('commandPalette.commands.filters.label'), description: t('commandPalette.commands.filters.description'), keywords: ['filterbar', 'filter'], icon: <Filter className="h-4 w-4" />, action: () => onScrollTo('filters'), group: t('commandPalette.groups.navigation') },
-    { id: 'insights', label: t('commandPalette.commands.insights.label'), description: t('commandPalette.commands.insights.description'), keywords: ['summary', 'insight'], icon: <Sigma className="h-4 w-4" />, action: () => onScrollTo('insights'), group: t('commandPalette.groups.navigation') },
-    { id: 'metrics', label: t('commandPalette.commands.metrics.label'), description: t('commandPalette.commands.metrics.description'), keywords: ['kpi', 'zahlen'], icon: <ChartBar className="h-4 w-4" />, action: () => onScrollTo('metrics'), group: t('commandPalette.groups.navigation') },
-    ...(hasTodaySection ? [{ id: 'today', label: t('commandPalette.commands.today.label'), description: t('commandPalette.commands.today.description'), keywords: ['today', 'heute'], icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('today'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
-    ...(hasMonthSection ? [{ id: 'month', label: t('commandPalette.commands.month.label'), description: t('commandPalette.commands.month.description'), keywords: ['monat', 'current month'], icon: <CalendarRange className="h-4 w-4" />, action: () => onScrollTo('current-month'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
-    { id: 'activity', label: t('commandPalette.commands.activity.label'), description: t('commandPalette.commands.activity.description'), keywords: ['heatmap', 'aktivität'], icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('activity'), group: t('commandPalette.groups.navigation') },
-    { id: 'forecast-cache', label: t('commandPalette.commands.forecastCache.label'), description: t('commandPalette.commands.forecastCache.description'), keywords: ['forecast', 'cache', 'roi'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('forecast-cache'), group: t('commandPalette.groups.navigation') },
-    { id: 'limits', label: t('commandPalette.commands.limits.label'), description: t('commandPalette.commands.limits.description'), keywords: ['limits', 'subscriptions', 'budget', 'anbieter limits'], aliases: ['limits sektion', 'subscriptions sektion'], icon: <SlidersHorizontal className="h-4 w-4" />, action: () => onScrollTo('limits'), group: t('commandPalette.groups.navigation') },
-    { id: 'charts', label: t('commandPalette.commands.charts.label'), description: t('commandPalette.commands.charts.description'), keywords: ['charts', 'kostenanalyse'], icon: <BarChart3 className="h-4 w-4" />, action: () => onScrollTo('charts'), group: t('commandPalette.groups.navigation') },
-    { id: 'token-analysis', label: t('commandPalette.commands.tokenAnalysis.label'), description: t('commandPalette.commands.tokenAnalysis.description'), keywords: ['tokens', 'token analyse'], aliases: ['token chart'], icon: <Layers3 className="h-4 w-4" />, action: () => onScrollTo('token-analysis'), group: t('commandPalette.groups.navigation') },
-    { id: 'request-analysis', label: t('commandPalette.commands.requestAnalysis.label'), description: t('commandPalette.commands.requestAnalysis.description'), keywords: ['requests', 'request analyse', 'anfragen'], aliases: ['request chart', 'request donut'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('request-analysis'), group: t('commandPalette.groups.navigation') },
-    { id: 'comparisons', label: t('commandPalette.commands.comparisons.label'), description: t('commandPalette.commands.comparisons.description'), keywords: ['anomalie', 'vergleich'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('comparisons'), group: t('commandPalette.groups.navigation') },
-    { id: 'tables', label: t('commandPalette.commands.tables.label'), description: t('commandPalette.commands.tables.description'), keywords: ['table', 'details'], icon: <Table className="h-4 w-4" />, action: () => onScrollTo('tables'), group: t('commandPalette.groups.navigation') },
+    ...(sectionVisibility.insights ? [{ id: 'insights', label: t('commandPalette.commands.insights.label'), description: t('commandPalette.commands.insights.description'), keywords: ['summary', 'insight'], icon: <Sigma className="h-4 w-4" />, action: () => onScrollTo('insights'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(sectionVisibility.metrics ? [{ id: 'metrics', label: t('commandPalette.commands.metrics.label'), description: t('commandPalette.commands.metrics.description'), keywords: ['kpi', 'zahlen'], icon: <ChartBar className="h-4 w-4" />, action: () => onScrollTo('metrics'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(hasTodaySection && sectionVisibility.today ? [{ id: 'today', label: t('commandPalette.commands.today.label'), description: t('commandPalette.commands.today.description'), keywords: ['today', 'heute'], icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('today'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(hasMonthSection && sectionVisibility.currentMonth ? [{ id: 'month', label: t('commandPalette.commands.month.label'), description: t('commandPalette.commands.month.description'), keywords: ['monat', 'current month'], icon: <CalendarRange className="h-4 w-4" />, action: () => onScrollTo('current-month'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(sectionVisibility.activity ? [{ id: 'activity', label: t('commandPalette.commands.activity.label'), description: t('commandPalette.commands.activity.description'), keywords: ['heatmap', 'aktivität'], icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('activity'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(sectionVisibility.forecastCache ? [{ id: 'forecast-cache', label: t('commandPalette.commands.forecastCache.label'), description: t('commandPalette.commands.forecastCache.description'), keywords: ['forecast', 'cache', 'roi'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('forecast-cache'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(sectionVisibility.limits ? [{ id: 'limits', label: t('commandPalette.commands.limits.label'), description: t('commandPalette.commands.limits.description'), keywords: ['limits', 'subscriptions', 'budget', 'anbieter limits'], aliases: ['limits sektion', 'subscriptions sektion'], icon: <SlidersHorizontal className="h-4 w-4" />, action: () => onScrollTo('limits'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(sectionVisibility.costAnalysis ? [{ id: 'charts', label: t('commandPalette.commands.charts.label'), description: t('commandPalette.commands.charts.description'), keywords: ['charts', 'kostenanalyse'], icon: <BarChart3 className="h-4 w-4" />, action: () => onScrollTo('charts'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(sectionVisibility.tokenAnalysis ? [{ id: 'token-analysis', label: t('commandPalette.commands.tokenAnalysis.label'), description: t('commandPalette.commands.tokenAnalysis.description'), keywords: ['tokens', 'token analyse'], aliases: ['token chart'], icon: <Layers3 className="h-4 w-4" />, action: () => onScrollTo('token-analysis'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(hasRequestSection && sectionVisibility.requestAnalysis ? [{ id: 'request-analysis', label: t('commandPalette.commands.requestAnalysis.label'), description: t('commandPalette.commands.requestAnalysis.description'), keywords: ['requests', 'request analyse', 'anfragen'], aliases: ['request chart', 'request donut'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('request-analysis'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(sectionVisibility.comparisons ? [{ id: 'comparisons', label: t('commandPalette.commands.comparisons.label'), description: t('commandPalette.commands.comparisons.description'), keywords: ['anomalie', 'vergleich'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('comparisons'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
+    ...(sectionVisibility.tables ? [{ id: 'tables', label: t('commandPalette.commands.tables.label'), description: t('commandPalette.commands.tables.description'), keywords: ['table', 'details'], icon: <Table className="h-4 w-4" />, action: () => onScrollTo('tables'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
 
     { id: 'theme', label: isDark ? t('commandPalette.commands.themeLight.label') : t('commandPalette.commands.themeDark.label'), description: t('commandPalette.commands.themeDark.description'), keywords: ['theme', 'dark', 'light'], shortcut: '⌘D', icon: isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />, action: onToggleTheme, group: t('commandPalette.groups.view') },
     { id: 'language-de', label: t('commandPalette.commands.languageGerman.label'), description: t('commandPalette.commands.languageGerman.description'), keywords: ['language', 'sprache', 'deutsch', 'german', 'locale'], aliases: ['switch german', 'auf deutsch', 'sprache deutsch'], icon: <Languages className="h-4 w-4" />, action: () => onLanguageChange('de'), group: t('commandPalette.groups.language') },

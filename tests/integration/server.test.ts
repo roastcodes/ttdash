@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import sampleUsage from '../../examples/sample-usage.json'
+import { DEFAULT_DASHBOARD_FILTERS, getDefaultDashboardSectionOrder } from '@/lib/dashboard-preferences'
 
 let child: ChildProcessWithoutNullStreams | null = null
 let baseUrl = ''
@@ -227,6 +228,23 @@ describe('local server API', () => {
       language: 'de',
       theme: 'dark',
       providerLimits: {},
+      defaultFilters: DEFAULT_DASHBOARD_FILTERS,
+      sectionVisibility: {
+        insights: true,
+        metrics: true,
+        today: true,
+        currentMonth: true,
+        activity: true,
+        forecastCache: true,
+        limits: true,
+        costAnalysis: true,
+        tokenAnalysis: true,
+        requestAnalysis: true,
+        advancedAnalysis: true,
+        comparisons: true,
+        tables: true,
+      },
+      sectionOrder: getDefaultDashboardSectionOrder(),
       lastLoadedAt: null,
       lastLoadSource: null,
       cliAutoLoadActive: false,
@@ -267,6 +285,17 @@ describe('local server API', () => {
             monthlyLimit: 500.555,
           },
         },
+        defaultFilters: {
+          viewMode: 'monthly',
+          datePreset: '30d',
+          providers: ['OpenAI'],
+          models: ['GPT-5.4'],
+        },
+        sectionVisibility: {
+          tokenAnalysis: false,
+          comparisons: false,
+        },
+        sectionOrder: ['metrics', 'insights', 'today'],
       }),
     })
 
@@ -281,6 +310,32 @@ describe('local server API', () => {
           monthlyLimit: 500.56,
         },
       },
+      defaultFilters: {
+        viewMode: 'monthly',
+        datePreset: '30d',
+        providers: ['OpenAI'],
+        models: ['GPT-5.4'],
+      },
+      sectionVisibility: {
+        tokenAnalysis: false,
+        comparisons: false,
+        insights: true,
+      },
+      sectionOrder: [
+        'metrics',
+        'insights',
+        'today',
+        'currentMonth',
+        'activity',
+        'forecastCache',
+        'limits',
+        'costAnalysis',
+        'tokenAnalysis',
+        'requestAnalysis',
+        'advancedAnalysis',
+        'comparisons',
+        'tables',
+      ],
       cliAutoLoadActive: false,
     })
 
@@ -296,12 +351,24 @@ describe('local server API', () => {
     expect(finalUsage.totals.totalCost).toBe(0)
 
     const finalSettingsResponse = await fetch(`${baseUrl}/api/settings`)
-    expect(await finalSettingsResponse.json()).toMatchObject({
+    const finalSettings = await finalSettingsResponse.json()
+    expect(finalSettings).toMatchObject({
       language: 'en',
       theme: 'light',
+      defaultFilters: {
+        viewMode: 'monthly',
+        datePreset: '30d',
+        providers: ['OpenAI'],
+        models: ['GPT-5.4'],
+      },
+      sectionVisibility: {
+        tokenAnalysis: false,
+        comparisons: false,
+      },
       lastLoadedAt: null,
       lastLoadSource: null,
     })
+    expect(finalSettings.sectionOrder.slice(0, 3)).toEqual(['metrics', 'insights', 'today'])
   })
 
   it('imports settings backups and merges usage backups without overwriting conflicting local days', async () => {
@@ -328,6 +395,17 @@ describe('local server API', () => {
               monthlyLimit: 300.111,
             },
           },
+          defaultFilters: {
+            viewMode: 'yearly',
+            datePreset: 'year',
+            providers: ['Anthropic'],
+            models: ['Claude Sonnet 4.5'],
+          },
+          sectionVisibility: {
+            tables: false,
+            advancedAnalysis: false,
+          },
+          sectionOrder: ['tables', 'metrics', 'insights'],
           lastLoadedAt: '2026-04-01T12:30:00.000Z',
           lastLoadSource: 'file',
         },
@@ -345,6 +423,32 @@ describe('local server API', () => {
           monthlyLimit: 300.11,
         },
       },
+      defaultFilters: {
+        viewMode: 'yearly',
+        datePreset: 'year',
+        providers: ['Anthropic'],
+        models: ['Claude Sonnet 4.5'],
+      },
+      sectionVisibility: {
+        tables: false,
+        advancedAnalysis: false,
+        insights: true,
+      },
+      sectionOrder: [
+        'tables',
+        'metrics',
+        'insights',
+        'today',
+        'currentMonth',
+        'activity',
+        'forecastCache',
+        'limits',
+        'costAnalysis',
+        'tokenAnalysis',
+        'requestAnalysis',
+        'advancedAnalysis',
+        'comparisons',
+      ],
       lastLoadedAt: '2026-04-01T12:30:00.000Z',
       lastLoadSource: 'file',
       cliAutoLoadActive: false,
@@ -397,11 +501,23 @@ describe('local server API', () => {
 
     const mergedSettingsResponse = await fetch(`${baseUrl}/api/settings`)
     expect(mergedSettingsResponse.status).toBe(200)
-    expect(await mergedSettingsResponse.json()).toMatchObject({
+    const mergedSettings = await mergedSettingsResponse.json()
+    expect(mergedSettings).toMatchObject({
       theme: 'light',
       language: 'de',
+      defaultFilters: {
+        viewMode: 'yearly',
+        datePreset: 'year',
+        providers: ['Anthropic'],
+        models: ['Claude Sonnet 4.5'],
+      },
+      sectionVisibility: {
+        tables: false,
+        advancedAnalysis: false,
+      },
       lastLoadSource: 'file',
     })
+    expect(mergedSettings.sectionOrder.slice(0, 3)).toEqual(['tables', 'metrics', 'insights'])
   })
 
   it('starts background servers and stops the selected instance via the CLI', async () => {

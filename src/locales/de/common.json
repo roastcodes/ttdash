@@ -68,6 +68,8 @@
     "no": "Nein",
     "enabled": "Aktiv",
     "disabled": "Inaktiv",
+    "visible": "Sichtbar",
+    "hidden": "Versteckt",
     "open": "Öffnen",
     "close": "Schliessen",
     "startDate": "Startdatum",
@@ -841,6 +843,19 @@
       "lastLoaded": "Zuletzt geladen",
       "loadedVia": "Geladen über",
       "cliAutoLoad": "CLI Auto-Load",
+      "defaultFiltersTitle": "Standardfilter fürs Dashboard",
+      "defaultFiltersDescription": "Lege den Filterzustand fest, der beim Öffnen des Dashboards und beim Zurücksetzen verwendet wird.",
+      "defaultViewMode": "Standardansicht",
+      "defaultDateRange": "Standardzeitraum",
+      "filterProviders": "Standard-Anbieterfilter",
+      "filterModels": "Standard-Modellfilter",
+      "noModels": "Keine Modelle im geladenen Report gefunden.",
+      "sectionVisibilityTitle": "Sichtbare Dashboard-Sektionen",
+      "sectionVisibilityDescription": "Steuere, welche Sektionen im Dashboard gerendert werden und in welcher Reihenfolge sie erscheinen.",
+      "sectionOrderHint": "Ziehe die Sektionen per Drag and Drop in die gewünschte Reihenfolge. Die aktuelle Reihenfolge ist das Standardlayout.",
+      "positionLabel": "Position {{position}} von {{total}}",
+      "moveSectionUp": "{{section}} nach oben verschieben",
+      "moveSectionDown": "{{section}} nach unten verschieben",
       "settingsBackupTitle": "Einstellungen sichern",
       "settingsBackupDescription": "Exportiert und importiert Sprache, Theme, Limits und die gespeicherten Lade-Metadaten als versioniertes Backup.",
       "dataBackupTitle": "Daten sichern",
@@ -856,6 +871,18 @@
       "importData": "Daten importieren",
       "close": "Schliessen",
       "save": "Speichern",
+      "viewModes": {
+        "daily": "Täglich",
+        "monthly": "Monatlich",
+        "yearly": "Jährlich"
+      },
+      "datePresets": {
+        "all": "Alle Daten",
+        "7d": "Letzte 7 Tage",
+        "30d": "Letzte 30 Tage",
+        "month": "Aktueller Monat",
+        "year": "Aktuelles Jahr"
+      },
       "sources": {
         "file": "Datei-Upload",
         "auto-import": "Auto-Import",
@@ -958,6 +985,7 @@
     "dataExported": "Daten-Backup exportiert",
     "noDataToExport": "Keine Daten zum Exportieren vorhanden",
     "settingsImported": "Einstellungen aus {{name}} importiert",
+    "settingsSaved": "Einstellungen gespeichert",
     "dataBackupImported": "Backup importiert: {{added}} neue Tage ergänzt, {{unchanged}} identische Tage übersprungen",
     "dataBackupImportedWithConflicts": "Backup importiert: {{added}} neue Tage ergänzt, {{conflicts}} Konflikttage lokal beibehalten"
   }

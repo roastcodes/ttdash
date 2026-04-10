@@ -68,6 +68,8 @@
     "no": "No",
     "enabled": "Enabled",
     "disabled": "Disabled",
+    "visible": "Visible",
+    "hidden": "Hidden",
     "open": "Open",
     "close": "Close",
     "startDate": "Start date",
@@ -841,6 +843,19 @@
       "lastLoaded": "Last loaded",
       "loadedVia": "Loaded via",
       "cliAutoLoad": "CLI auto-load",
+      "defaultFiltersTitle": "Default dashboard filters",
+      "defaultFiltersDescription": "Choose the filter state that should be applied when the dashboard opens or when filters are reset.",
+      "defaultViewMode": "Default view mode",
+      "defaultDateRange": "Default date range",
+      "filterProviders": "Default provider filter",
+      "filterModels": "Default model filter",
+      "noModels": "No models found in the loaded report.",
+      "sectionVisibilityTitle": "Visible dashboard sections",
+      "sectionVisibilityDescription": "Control which sections are rendered in the dashboard and adjust their order.",
+      "sectionOrderHint": "Drag sections to reorder them. The current order is the default dashboard layout.",
+      "positionLabel": "Position {{position}} of {{total}}",
+      "moveSectionUp": "Move {{section}} up",
+      "moveSectionDown": "Move {{section}} down",
       "settingsBackupTitle": "Back up settings",
       "settingsBackupDescription": "Export and import language, theme, limits, and stored load metadata as a versioned backup.",
       "dataBackupTitle": "Back up data",
@@ -856,6 +871,18 @@
       "importData": "Import data",
       "close": "Close",
       "save": "Save",
+      "viewModes": {
+        "daily": "Daily",
+        "monthly": "Monthly",
+        "yearly": "Yearly"
+      },
+      "datePresets": {
+        "all": "All data",
+        "7d": "Last 7 days",
+        "30d": "Last 30 days",
+        "month": "Current month",
+        "year": "Current year"
+      },
       "sources": {
         "file": "File upload",
         "auto-import": "Auto import",
@@ -958,6 +985,7 @@
     "dataExported": "Data backup exported",
     "noDataToExport": "No data available to export",
     "settingsImported": "Imported settings from {{name}}",
+    "settingsSaved": "Settings saved",
     "dataBackupImported": "Backup imported: added {{added}} new days, skipped {{unchanged}} identical days",
     "dataBackupImportedWithConflicts": "Backup imported: added {{added}} new days, kept {{conflicts}} conflicting days local"
   }

@@ -1,6 +1,14 @@
 import { useCallback, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { AppLanguage, AppSettings, AppTheme, ProviderLimits } from '@/types'
+import type {
+  AppLanguage,
+  AppSettings,
+  AppTheme,
+  DashboardDefaultFilters,
+  DashboardSectionOrder,
+  DashboardSectionVisibility,
+  ProviderLimits,
+} from '@/types'
 import { fetchSettings, updateSettings, type UpdateSettingsRequest } from '@/lib/api'
 import { DEFAULT_APP_SETTINGS, normalizeAppSettings } from '@/lib/app-settings'
 import { syncProviderLimits } from '@/lib/provider-limits'
@@ -49,6 +57,10 @@ export function useAppSettings(availableProviders: string[]) {
   const setTheme = useCallback((theme: AppTheme) => mutation.mutateAsync({ theme }), [mutation])
   const setLanguage = useCallback((language: AppLanguage) => mutation.mutateAsync({ language }), [mutation])
   const setProviderLimits = useCallback((limits: ProviderLimits) => mutation.mutateAsync({ providerLimits: limits }), [mutation])
+  const setDefaultFilters = useCallback((defaultFilters: DashboardDefaultFilters) => mutation.mutateAsync({ defaultFilters }), [mutation])
+  const setSectionVisibility = useCallback((sectionVisibility: DashboardSectionVisibility) => mutation.mutateAsync({ sectionVisibility }), [mutation])
+  const setSectionOrder = useCallback((sectionOrder: DashboardSectionOrder) => mutation.mutateAsync({ sectionOrder }), [mutation])
+  const saveSettings = useCallback((patch: UpdateSettingsRequest) => mutation.mutateAsync(patch), [mutation])
 
   return {
     settings,
@@ -56,6 +68,10 @@ export function useAppSettings(availableProviders: string[]) {
     setTheme,
     setLanguage,
     setProviderLimits,
+    setDefaultFilters,
+    setSectionVisibility,
+    setSectionOrder,
+    saveSettings,
     isLoading: query.isLoading,
     isSaving: mutation.isPending,
   }
