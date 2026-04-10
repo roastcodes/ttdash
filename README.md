@@ -29,13 +29,20 @@ Local usage dashboard for `toktrack` data. `TTDash` runs entirely on your machin
 From the npm registry:
 
 ```bash
-npx ttdash@latest
+npx --yes ttdash@latest
 ```
 
 Or with Bun:
 
 ```bash
 bunx ttdash@latest
+```
+
+Smoke-check the published CLI without starting the dashboard:
+
+```bash
+npx --yes ttdash@latest --help
+bunx ttdash@latest --help
 ```
 
 For a persistent global install:
@@ -93,6 +100,12 @@ Start the app:
 ```bash
 ttdash
 ```
+
+Requirements:
+
+- Node.js `20+`
+- A modern browser on the same machine
+- Typst CLI only if you want PDF report export
 
 Start it in the background:
 
@@ -180,11 +193,22 @@ npm run test:e2e
 ```
 
 The Playwright run starts its own isolated local server and test data directory, so it does not touch your normal `TTDash` app data.
+If port `3015` is already in use locally, run it on a different isolated port:
+
+```bash
+PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e
+```
 
 Run the full local test set:
 
 ```bash
 npm run test:all
+```
+
+Verify the packed npm artifact before publishing:
+
+```bash
+npm run verify:package
 ```
 
 ## Project Structure
@@ -264,6 +288,21 @@ ttdash --background --no-open
 
 Install `toktrack` locally or ensure `bunx` / `npx` can execute it.
 
+### PDF export fails
+
+PDF export requires the Typst CLI to be installed locally.
+
+macOS:
+
+```bash
+brew install typst
+```
+
+Other platforms:
+
+- install Typst from `https://typst.app/`
+- make sure `typst --version` works in the same terminal where you run `ttdash`
+
 ## Tech Stack
 
 - React 19
@@ -277,7 +316,7 @@ Install `toktrack` locally or ensure `bunx` / `npx` can execute it.
 
 ## Status
 
-GitHub Actions runs the build, unit/integration coverage suite, and Playwright smoke test for pull requests and pushes to `main`.
+GitHub Actions runs the build, unit/integration coverage suite, packaged-artifact verification, and Playwright smoke test for pull requests and pushes to `main`.
 
 ## License
 

@@ -825,7 +825,7 @@ function extractSettingsImportPayload(payload) {
 
   if (payload.kind === SETTINGS_BACKUP_KIND) {
     if (!Object.prototype.hasOwnProperty.call(payload, 'settings')) {
-      throw new Error('Die Settings-Backup-Datei enthält keine Einstellungen.');
+      throw new Error('The settings backup file does not contain any settings.');
     }
     return payload.settings;
   }
@@ -844,7 +844,7 @@ function extractUsageImportPayload(payload) {
 
   if (payload.kind === USAGE_BACKUP_KIND) {
     if (!Object.prototype.hasOwnProperty.call(payload, 'data')) {
-      throw new Error('Die Daten-Backup-Datei enthält keine Nutzungsdaten.');
+      throw new Error('The usage backup file does not contain any usage data.');
     }
     return payload.data;
   }
@@ -1538,7 +1538,7 @@ const server = http.createServer(async (req, res) => {
         const body = await readBody(req);
         return json(res, 200, updateSettings(body));
       } catch (e) {
-        return json(res, 400, { message: e.message || 'Ungültige Settings-Anfrage' });
+        return json(res, 400, { message: e.message || 'Invalid settings request' });
       }
     }
 
@@ -1556,7 +1556,7 @@ const server = http.createServer(async (req, res) => {
       writeSettings(importedSettings);
       return json(res, 200, toSettingsResponse(importedSettings));
     } catch (e) {
-      return json(res, 400, { message: e.message || 'Ungültige Settings-Datei' });
+      return json(res, 400, { message: e.message || 'Invalid settings file' });
     }
   }
 
@@ -1573,8 +1573,8 @@ const server = http.createServer(async (req, res) => {
       } catch (e) {
         const status = e.message === 'Payload too large' ? 413 : 400;
         const message = e.message === 'Payload too large'
-          ? 'Datei zu gross (max. 10 MB)'
-          : e.message || 'Ungültiges JSON';
+          ? 'File too large (max. 10 MB)'
+          : e.message || 'Invalid JSON';
         return json(res, status, { message });
       }
     }
@@ -1595,7 +1595,7 @@ const server = http.createServer(async (req, res) => {
       recordDataLoad('file');
       return json(res, 200, result.summary);
     } catch (e) {
-      return json(res, 400, { message: e.message || 'Ungültige Daten-Datei' });
+      return json(res, 400, { message: e.message || 'Invalid usage backup file' });
     }
   }
 
@@ -1659,7 +1659,7 @@ const server = http.createServer(async (req, res) => {
 
     const data = readData();
     if (!data || !Array.isArray(data.daily) || data.daily.length === 0) {
-      return json(res, 400, { message: 'Keine Daten für den Report vorhanden.' });
+      return json(res, 400, { message: 'No data available for the report.' });
     }
 
     let body = {};
@@ -1667,7 +1667,7 @@ const server = http.createServer(async (req, res) => {
       body = await readBody(req);
     } catch (e) {
       const status = e.message === 'Payload too large' ? 413 : 400;
-      return json(res, status, { message: e.message === 'Payload too large' ? 'Report-Anfrage zu gross' : 'Ungültige Report-Anfrage' });
+      return json(res, status, { message: e.message === 'Payload too large' ? 'Report request too large' : 'Invalid report request' });
     }
 
     try {
@@ -1686,14 +1686,14 @@ const server = http.createServer(async (req, res) => {
         'Content-Disposition': `attachment; filename="${result.filename}"`,
       }, result.pdfPath);
     } catch (error) {
-      const message = error && error.message ? error.message : 'PDF-Generierung fehlgeschlagen';
+      const message = error && error.message ? error.message : 'PDF generation failed';
       const status = error && error.code === 'TYPST_MISSING' ? 503 : 500;
       return json(res, status, { message });
     }
   }
 
   if (apiPath !== null) {
-    return json(res, 404, { message: 'API-Endpunkt nicht gefunden' });
+    return json(res, 404, { message: 'API endpoint not found' });
   }
 
   // Static file serving
@@ -1701,7 +1701,7 @@ const server = http.createServer(async (req, res) => {
   const filePath = path.resolve(STATIC_ROOT, `.${safePath}`);
 
   if (!filePath.startsWith(path.resolve(STATIC_ROOT) + path.sep) && filePath !== path.resolve(STATIC_ROOT, 'index.html')) {
-    return json(res, 403, { message: 'Zugriff verweigert' });
+    return json(res, 403, { message: 'Access denied' });
   }
 
   serveFile(res, filePath);
@@ -1710,14 +1710,14 @@ const server = http.createServer(async (req, res) => {
 function tryListen(port) {
   return new Promise((resolve, reject) => {
     if (port > MAX_PORT) {
-      reject(new Error(`Kein freier Port gefunden (${START_PORT}-${MAX_PORT})`));
+      reject(new Error(`No free port found (${START_PORT}-${MAX_PORT})`));
       return;
     }
 
     const onError = (err) => {
       server.off('listening', onListening);
       if (err.code === 'EADDRINUSE') {
-        console.log(`Port ${port} belegt, versuche ${port + 1}...`);
+        console.log(`Port ${port} is in use, trying ${port + 1}...`);
         resolve(tryListen(port + 1));
       } else {
         reject(err);

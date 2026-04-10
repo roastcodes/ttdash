@@ -11,6 +11,16 @@
 - **Race-safe Background-Registry** — parallele `--background`-Starts sperren die lokale Instanzdatei jetzt kurzzeitig, damit keine laufenden Server aus der Registry verloren gehen
 - **Konservativer Datenimport** — Backup-Importe ergänzen fehlende Tage, überspringen identische Tage und behalten Konflikttage lokal statt sie still zu überschreiben
 
+## [6.0.12] - 2026-04-11
+
+### Added
+- **Packaged CLI verification** — a new `npm run verify:package` smoke test now builds the real tarball and verifies that the packaged `ttdash` CLI can print help and start outside the repo checkout
+- **npm release guide** — public release preparation now includes documented npm, `npx`, and `bunx` verification steps
+
+### Improved
+- **npm release workflow** — tagged releases now verify the packed artifact, publish to npm with provenance, and smoke-check both `npx ttdash` and `bunx ttdash` after publish
+- **Consumer documentation** — the README now documents `npx` / `bunx`, packaged artifact verification, Node requirements, and the local Typst requirement for PDF export
+
 ## [6.0.11] - 2026-04-10
 
 ### Fixed

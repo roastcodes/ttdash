@@ -26,9 +26,12 @@ Run the production build and automated checks:
 npm run build
 npm run test:unit
 npm run test:e2e
+npm run verify:package
 ```
 
 The Playwright suite uses an isolated local app directory under `.tmp-playwright/` and should not reuse your normal local dashboard data.
+`npm run verify:package` builds a real tarball and verifies that the packaged CLI can start outside the repo.
+If local port `3015` is already occupied, run Playwright on another isolated port, for example `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`.
 
 Then verify the main flows manually:
 

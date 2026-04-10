@@ -1,7 +1,7 @@
 {
   "name": "ttdash",
-  "version": "6.0.11",
-  "description": "Local dashboard for toktrack usage data",
+  "version": "6.0.12",
+  "description": "Local-first dashboard and CLI for toktrack usage data",
   "main": "server.js",
   "repository": {
     "type": "git",
@@ -27,6 +27,9 @@
     "test:e2e": "npm run build && playwright test",
     "test:e2e:ci": "playwright test",
     "test:all": "npm run test:unit && npm run test:e2e",
+    "pack:dry-run": "npm pack --dry-run",
+    "verify:package": "node scripts/verify-package.js",
+    "verify:release": "npm run test:unit:coverage && npm run build && npm run verify:package",
     "prepare": "npm run build"
   },
   "files": [
@@ -38,9 +41,12 @@
   ],
   "keywords": [
     "toktrack",
-    "codex",
-    "claude",
+    "cli",
     "dashboard",
+    "local-first",
+    "npx",
+    "bunx",
+    "reporting",
     "usage",
     "tokens"
   ],

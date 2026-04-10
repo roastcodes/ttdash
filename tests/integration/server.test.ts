@@ -533,7 +533,7 @@ describe('local server API', () => {
 
     expect(response.status).toBe(400)
     expect(await response.json()).toEqual({
-      message: 'Keine Daten für den Report vorhanden.',
+      message: 'No data available for the report.',
     })
   })
 
@@ -553,7 +553,7 @@ describe('local server API', () => {
 
     expect(response.status).toBe(400)
     expect(await response.json()).toEqual({
-      message: 'Ungültige Report-Anfrage',
+      message: 'Invalid report request',
     })
   })
 
