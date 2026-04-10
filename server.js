@@ -4,6 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const readline = require('readline/promises');
 const { spawn } = require('child_process');
 const { parseArgs } = require('util');
 const { normalizeIncomingData } = require('./usage-normalizer');
@@ -15,7 +16,9 @@ const STATIC_ROOT = path.join(ROOT, 'dist');
 const APP_DIR_NAME = 'TTDash';
 const APP_DIR_NAME_LINUX = 'ttdash';
 const LEGACY_DATA_FILE = path.join(ROOT, 'data.json');
-const CLI_OPTIONS = parseCliArgs(process.argv.slice(2));
+const RAW_CLI_ARGS = process.argv.slice(2);
+const NORMALIZED_CLI_ARGS = normalizeCliArgs(RAW_CLI_ARGS);
+const CLI_OPTIONS = parseCliArgs(RAW_CLI_ARGS);
 const ENV_START_PORT = parseInt(process.env.PORT, 10);
 const START_PORT = CLI_OPTIONS.port ?? (Number.isFinite(ENV_START_PORT) ? ENV_START_PORT : 3000);
 const MAX_PORT = START_PORT + 100;
@@ -32,6 +35,9 @@ const SECURITY_HEADERS = {
   'Content-Security-Policy': "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
 };
 const APP_LABEL = 'TTDash';
+const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
+const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
+const BACKGROUND_START_TIMEOUT_MS = 15000;
 const DEFAULT_SETTINGS = {
   language: 'de',
   theme: 'dark',
@@ -49,6 +55,9 @@ function normalizeCliArgs(args) {
     if (arg === '-al') {
       return '--auto-load';
     }
+    if (arg === '-bg') {
+      return '--background';
+    }
     return arg;
   });
 }
@@ -58,17 +67,21 @@ function printHelp() {
   console.log('');
   console.log('Verwendung:');
   console.log('  ttdash [optionen]');
+  console.log('  ttdash stop');
   console.log('');
   console.log('Optionen:');
   console.log('  -p, --port <port>   Startport festlegen');
   console.log('  -h, --help          Diese Hilfe anzeigen');
   console.log('  -no, --no-open      Browser-Autostart deaktivieren');
   console.log('  -al, --auto-load    Führt direkt beim Start einen Auto-Import aus');
+  console.log('  -b, --background    Startet TTDash als Hintergrundprozess');
   console.log('');
   console.log('Beispiele:');
   console.log('  ttdash --port 3010');
   console.log('  ttdash -p 3010 -no');
   console.log('  ttdash --auto-load');
+  console.log('  ttdash --background');
+  console.log('  ttdash stop');
   console.log('');
   console.log('Umgebungsvariablen:');
   console.log('  PORT=3010 ttdash');
@@ -83,7 +96,7 @@ function parseCliArgs(rawArgs) {
   try {
     parsed = parseArgs({
       args,
-      allowPositionals: false,
+      allowPositionals: true,
       strict: true,
       options: {
         port: {
@@ -100,6 +113,10 @@ function parseCliArgs(rawArgs) {
         'auto-load': {
           type: 'boolean',
         },
+        background: {
+          type: 'boolean',
+          short: 'b',
+        },
       },
     });
   } catch (error) {
@@ -112,6 +129,25 @@ function parseCliArgs(rawArgs) {
   if (parsed.values.help) {
     printHelp();
     process.exit(0);
+  }
+
+  let command = null;
+  if (parsed.positionals.length > 1) {
+    console.error(`Unbekannter Aufruf: ${parsed.positionals.join(' ')}`);
+    console.log('');
+    printHelp();
+    process.exit(1);
+  }
+
+  if (parsed.positionals.length === 1) {
+    if (parsed.positionals[0] !== 'stop') {
+      console.error(`Unbekannter Befehl: ${parsed.positionals[0]}`);
+      console.log('');
+      printHelp();
+      process.exit(1);
+    }
+
+    command = 'stop';
   }
 
   let port;
@@ -127,9 +163,11 @@ function parseCliArgs(rawArgs) {
   }
 
   return {
+    command,
     port,
     noOpen: Boolean(parsed.values['no-open']),
     autoLoad: Boolean(parsed.values['auto-load']),
+    background: Boolean(parsed.values.background),
   };
 }
 
@@ -165,6 +203,11 @@ const APP_PATHS = resolveAppPaths();
 const DATA_FILE = path.join(APP_PATHS.dataDir, 'data.json');
 const SETTINGS_FILE = path.join(APP_PATHS.configDir, 'settings.json');
 const NPX_CACHE_DIR = path.join(APP_PATHS.cacheDir, 'npx-cache');
+const BACKGROUND_INSTANCES_FILE = path.join(APP_PATHS.configDir, 'background-instances.json');
+const BACKGROUND_LOG_DIR = path.join(APP_PATHS.cacheDir, 'background');
+const BACKGROUND_INSTANCES_LOCK_DIR = path.join(APP_PATHS.configDir, 'background-instances.lock');
+const BACKGROUND_INSTANCES_LOCK_TIMEOUT_MS = 5000;
+const BACKGROUND_INSTANCES_LOCK_STALE_MS = 10000;
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -190,6 +233,7 @@ function ensureAppDirs() {
   ensureDir(APP_PATHS.configDir);
   ensureDir(APP_PATHS.cacheDir);
   ensureDir(NPX_CACHE_DIR);
+  ensureDir(BACKGROUND_LOG_DIR);
 }
 
 function writeJsonAtomic(filePath, data) {
@@ -197,6 +241,415 @@ function writeJsonAtomic(filePath, data) {
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
   fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
   fs.renameSync(tempPath, filePath);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function formatDateTime(value) {
+  return new Intl.DateTimeFormat('de-CH', {
+    dateStyle: 'short',
+    timeStyle: 'medium',
+  }).format(new Date(value));
+}
+
+function isProcessRunning(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return false;
+  }
+
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error && error.code === 'EPERM';
+  }
+}
+
+function normalizeBackgroundInstance(value) {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const pid = Number.parseInt(value.pid, 10);
+  const port = Number.parseInt(value.port, 10);
+  const startedAt = normalizeIsoTimestamp(value.startedAt);
+  const id = typeof value.id === 'string' && value.id.trim()
+    ? value.id.trim()
+    : null;
+  const url = typeof value.url === 'string' && value.url.trim()
+    ? value.url.trim()
+    : null;
+  const host = typeof value.host === 'string' && value.host.trim()
+    ? value.host.trim()
+    : BIND_HOST;
+
+  if (!id || !url || !startedAt || !Number.isInteger(pid) || pid <= 0 || !Number.isInteger(port) || port <= 0) {
+    return null;
+  }
+
+  return {
+    id,
+    pid,
+    port,
+    url,
+    host,
+    startedAt,
+    logFile: typeof value.logFile === 'string' && value.logFile.trim()
+      ? value.logFile.trim()
+      : null,
+  };
+}
+
+function readBackgroundInstancesRaw() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(BACKGROUND_INSTANCES_FILE, 'utf-8'));
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {}
+
+  return [];
+}
+
+function writeBackgroundInstances(instances) {
+  writeJsonAtomic(BACKGROUND_INSTANCES_FILE, instances);
+}
+
+function readBackgroundInstancesSnapshot() {
+  const normalized = readBackgroundInstancesRaw()
+    .map(normalizeBackgroundInstance)
+    .filter(Boolean);
+
+  const alive = normalized.filter((instance) => isProcessRunning(instance.pid));
+  const changed = normalized.length !== alive.length;
+
+  alive.sort((left, right) => {
+    const byStartedAt = left.startedAt.localeCompare(right.startedAt);
+    if (byStartedAt !== 0) {
+      return byStartedAt;
+    }
+    return left.port - right.port;
+  });
+
+  return {
+    normalized,
+    alive,
+    changed,
+  };
+}
+
+function getBackgroundInstances() {
+  return readBackgroundInstancesSnapshot().alive;
+}
+
+async function withBackgroundInstancesLock(callback, timeoutMs = BACKGROUND_INSTANCES_LOCK_TIMEOUT_MS) {
+  const startedAt = Date.now();
+
+  while (true) {
+    try {
+      fs.mkdirSync(BACKGROUND_INSTANCES_LOCK_DIR);
+      break;
+    } catch (error) {
+      if (!error || error.code !== 'EEXIST') {
+        throw error;
+      }
+
+      let lockIsStale = false;
+      try {
+        const stats = fs.statSync(BACKGROUND_INSTANCES_LOCK_DIR);
+        lockIsStale = (Date.now() - stats.mtimeMs) > BACKGROUND_INSTANCES_LOCK_STALE_MS;
+      } catch {}
+
+      if (lockIsStale) {
+        try {
+          fs.rmSync(BACKGROUND_INSTANCES_LOCK_DIR, { recursive: true, force: true });
+          continue;
+        } catch {}
+      }
+
+      if (Date.now() - startedAt >= timeoutMs) {
+        throw new Error('Konnte Background-Registry nicht sperren.');
+      }
+
+      await sleep(50);
+    }
+  }
+
+  try {
+    return await callback();
+  } finally {
+    try {
+      fs.rmSync(BACKGROUND_INSTANCES_LOCK_DIR, { recursive: true, force: true });
+    } catch {}
+  }
+}
+
+async function pruneBackgroundInstances() {
+  return withBackgroundInstancesLock(() => {
+    const snapshot = readBackgroundInstancesSnapshot();
+    if (snapshot.changed) {
+      writeBackgroundInstances(snapshot.alive);
+    }
+
+    return snapshot.alive;
+  });
+}
+
+async function registerBackgroundInstance(instance) {
+  return withBackgroundInstancesLock(() => {
+    const instances = readBackgroundInstancesSnapshot().alive;
+    const nextInstances = instances.filter((entry) => entry.pid !== instance.pid);
+    nextInstances.push(instance);
+    nextInstances.sort((left, right) => {
+      const byStartedAt = left.startedAt.localeCompare(right.startedAt);
+      if (byStartedAt !== 0) {
+        return byStartedAt;
+      }
+      return left.port - right.port;
+    });
+    writeBackgroundInstances(nextInstances);
+  });
+}
+
+async function unregisterBackgroundInstance(pid) {
+  return withBackgroundInstancesLock(() => {
+    const instances = readBackgroundInstancesSnapshot().alive;
+    const nextInstances = instances.filter((entry) => entry.pid !== pid);
+    if (nextInstances.length !== instances.length) {
+      writeBackgroundInstances(nextInstances);
+    }
+  });
+}
+
+function createBackgroundInstance({ port, url }) {
+  return {
+    id: `${process.pid}-${Date.now()}`,
+    pid: process.pid,
+    port,
+    url,
+    host: BIND_HOST,
+    startedAt: new Date().toISOString(),
+    logFile: process.env.TTDASH_BACKGROUND_LOG_FILE || null,
+  };
+}
+
+function buildBackgroundLogFilePath() {
+  return path.join(BACKGROUND_LOG_DIR, `server-${Date.now()}.log`);
+}
+
+async function waitForBackgroundInstance(pid, timeoutMs = BACKGROUND_START_TIMEOUT_MS) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const instance = getBackgroundInstances().find((entry) => entry.pid === pid);
+    if (instance) {
+      return instance;
+    }
+
+    if (!isProcessRunning(pid)) {
+      return null;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
+  return null;
+}
+
+async function waitForProcessExit(pid, timeoutMs = 5000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (!isProcessRunning(pid)) {
+      return true;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+
+  return !isProcessRunning(pid);
+}
+
+function formatBackgroundInstanceLabel(instance, index) {
+  const parts = [
+    `${index + 1}. ${instance.url}`,
+    `PID ${instance.pid}`,
+    `Port ${instance.port}`,
+    `gestartet ${formatDateTime(instance.startedAt)}`,
+  ];
+
+  if (instance.logFile) {
+    parts.push(`Log ${instance.logFile}`);
+  }
+
+  return parts.join(' | ');
+}
+
+async function promptForBackgroundInstance(instances) {
+  if (instances.length === 1) {
+    return instances[0];
+  }
+
+  console.log('Mehrere TTDash-Background-Server laufen:');
+  instances.forEach((instance, index) => {
+    console.log(`  ${formatBackgroundInstanceLabel(instance, index)}`);
+  });
+  console.log('');
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    while (true) {
+      const answer = (await rl.question(`Welche Instanz soll beendet werden? [1-${instances.length}, Enter=Abbrechen] `)).trim();
+
+      if (!answer) {
+        return null;
+      }
+
+      const selection = Number.parseInt(answer, 10);
+      if (Number.isInteger(selection) && selection >= 1 && selection <= instances.length) {
+        return instances[selection - 1];
+      }
+
+      console.log(`Ungültige Auswahl: ${answer}`);
+    }
+  } finally {
+    rl.close();
+  }
+}
+
+async function stopBackgroundInstance(instance) {
+  if (!isProcessRunning(instance.pid)) {
+    await unregisterBackgroundInstance(instance.pid);
+    return {
+      status: 'already-stopped',
+      instance,
+    };
+  }
+
+  try {
+    process.kill(instance.pid, 'SIGTERM');
+  } catch (error) {
+    if (error && error.code === 'ESRCH') {
+      await unregisterBackgroundInstance(instance.pid);
+      return {
+        status: 'already-stopped',
+        instance,
+      };
+    }
+
+    if (error && error.code === 'EPERM') {
+      return {
+        status: 'forbidden',
+        instance,
+      };
+    }
+
+    throw error;
+  }
+
+  if (await waitForProcessExit(instance.pid)) {
+    await unregisterBackgroundInstance(instance.pid);
+    return {
+      status: 'stopped',
+      instance,
+    };
+  }
+
+  return {
+    status: 'timeout',
+    instance,
+  };
+}
+
+async function runStopCommand() {
+  ensureAppDirs();
+
+  const instances = await pruneBackgroundInstances();
+  if (instances.length === 0) {
+    console.log('Keine laufenden TTDash-Background-Server gefunden.');
+    return;
+  }
+
+  const selectedInstance = await promptForBackgroundInstance(instances);
+  if (!selectedInstance) {
+    console.log('Abgebrochen.');
+    return;
+  }
+
+  const result = await stopBackgroundInstance(selectedInstance);
+  if (result.status === 'stopped') {
+    console.log(`TTDash-Background-Server beendet: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    return;
+  }
+
+  if (result.status === 'already-stopped') {
+    console.log(`Instanz war bereits beendet und wurde aus der Registry entfernt: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    return;
+  }
+
+  if (result.status === 'forbidden') {
+    console.error(`TTDash-Background-Server konnte nicht beendet werden (keine Berechtigung): ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    process.exitCode = 1;
+    return;
+  }
+
+  console.error(`TTDash-Background-Server reagiert nicht auf SIGTERM: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+  if (selectedInstance.logFile) {
+    console.error(`Log-Datei: ${selectedInstance.logFile}`);
+  }
+  process.exitCode = 1;
+}
+
+function shouldBackgroundChildOpenBrowser() {
+  return !(CLI_OPTIONS.noOpen || process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1');
+}
+
+async function startInBackground() {
+  ensureAppDirs();
+
+  const logFile = buildBackgroundLogFilePath();
+  const childArgs = NORMALIZED_CLI_ARGS.filter((arg) => arg !== '--background');
+  const logFd = fs.openSync(logFile, 'a');
+
+  let child;
+  try {
+    child = spawn(process.execPath, [__filename, ...childArgs], {
+      detached: true,
+      stdio: ['ignore', logFd, logFd],
+      env: {
+        ...process.env,
+        TTDASH_BACKGROUND_CHILD: '1',
+        TTDASH_BACKGROUND_LOG_FILE: logFile,
+        TTDASH_FORCE_OPEN_BROWSER: shouldBackgroundChildOpenBrowser() ? '1' : '0',
+      },
+    });
+  } finally {
+    fs.closeSync(logFd);
+  }
+
+  child.unref();
+
+  const instance = await waitForBackgroundInstance(child.pid);
+  if (!instance) {
+    const logOutput = fs.existsSync(logFile)
+      ? fs.readFileSync(logFile, 'utf-8').trim()
+      : '';
+    throw new Error(logOutput || `TTDash konnte nicht als Hintergrundprozess gestartet werden. Log: ${logFile}`);
+  }
+
+  console.log('TTDash läuft im Hintergrund.');
+  console.log(`  URL:  ${instance.url}`);
+  console.log(`  PID:  ${instance.pid}`);
+  console.log(`  Log:  ${logFile}`);
+  console.log('');
+  console.log('Beenden mit:');
+  console.log('  ttdash stop');
 }
 
 function migrateLegacyDataFile() {
@@ -320,7 +773,15 @@ function openBrowser(url) {
 }
 
 function shouldOpenBrowser() {
-  return !(CLI_OPTIONS.noOpen || process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1' || !process.stdout.isTTY);
+  if (CLI_OPTIONS.noOpen || process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1') {
+    return false;
+  }
+
+  if (FORCE_OPEN_BROWSER) {
+    return true;
+  }
+
+  return Boolean(process.stdout.isTTY);
 }
 
 function formatCurrency(value) {
@@ -363,6 +824,9 @@ function printStartupSummary(url, port) {
   const autoLoadMode = CLI_OPTIONS.autoLoad
     ? 'aktiviert'
     : 'deaktiviert';
+  const runtimeMode = IS_BACKGROUND_CHILD
+    ? 'Hintergrund'
+    : 'Vordergrund';
 
   console.log('');
   console.log(`${APP_LABEL} v${APP_VERSION} ist bereit`);
@@ -370,9 +834,13 @@ function printStartupSummary(url, port) {
   console.log(`  API:            ${url}/api/usage`);
   console.log(`  Port:           ${port}`);
   console.log(`  Host:           ${BIND_HOST}`);
+  console.log(`  Modus:          ${runtimeMode}`);
   console.log(`  Static Root:    ${STATIC_ROOT}`);
   console.log(`  Daten-Datei:    ${DATA_FILE}`);
   console.log(`  Settings-Datei: ${SETTINGS_FILE}`);
+  if (IS_BACKGROUND_CHILD && process.env.TTDASH_BACKGROUND_LOG_FILE) {
+    console.log(`  Log-Datei:      ${process.env.TTDASH_BACKGROUND_LOG_FILE}`);
+  }
   console.log(`  Datenstatus:    ${describeDataFile()}`);
   console.log(`  Browser-Start:  ${browserMode}`);
   console.log(`  Auto-Load:      ${autoLoadMode}`);
@@ -384,6 +852,8 @@ function printStartupSummary(url, port) {
   console.log('Nützliche Kommandos:');
   console.log(`  ttdash --port ${port}`);
   console.log(`  ttdash --port ${port} --no-open`);
+  console.log('  ttdash --background');
+  console.log('  ttdash stop');
   console.log(`  NO_OPEN_BROWSER=1 PORT=${port} node server.js`);
   console.log(`  curl ${url}/api/usage`);
   console.log('');
@@ -979,6 +1449,10 @@ async function start() {
   const browserHost = BIND_HOST === '0.0.0.0' ? 'localhost' : BIND_HOST;
   const url = `http://${browserHost}:${port}`;
 
+  if (IS_BACKGROUND_CHILD) {
+    await registerBackgroundInstance(createBackgroundInstance({ port, url }));
+  }
+
   if (CLI_OPTIONS.autoLoad) {
     await runStartupAutoLoad({
       source: 'cli-auto-load',
@@ -989,20 +1463,48 @@ async function start() {
   openBrowser(url);
 }
 
-start().catch((error) => {
-  console.error(error);
-  process.exit(1);
+async function runCli() {
+  if (CLI_OPTIONS.command === 'stop') {
+    await runStopCommand();
+    return;
+  }
+
+  if (CLI_OPTIONS.background && !IS_BACKGROUND_CHILD) {
+    await startInBackground();
+    return;
+  }
+
+  await start();
+}
+
+runCli().catch((error) => {
+  Promise.resolve()
+    .then(async () => {
+      if (IS_BACKGROUND_CHILD) {
+        await unregisterBackgroundInstance(process.pid);
+      }
+    })
+    .finally(() => {
+      console.error(error);
+      process.exit(1);
+    });
 });
 
 // Graceful shutdown on Ctrl+C / kill
 function shutdown(signal) {
   console.log(`\n${signal} empfangen, fahre Server herunter...`);
-  server.close(() => {
+  server.close(async () => {
+    if (IS_BACKGROUND_CHILD) {
+      await unregisterBackgroundInstance(process.pid);
+    }
     console.log('Server gestoppt.');
     process.exit(0);
   });
   // Force exit after 3s if connections don't close
-  setTimeout(() => {
+  setTimeout(async () => {
+    if (IS_BACKGROUND_CHILD) {
+      await unregisterBackgroundInstance(process.pid);
+    }
     console.log('Erzwinge Beendigung.');
     process.exit(0);
   }, 3000);

@@ -94,6 +94,18 @@ Start the app:
 ttdash
 ```
 
+Start it in the background:
+
+```bash
+ttdash --background
+```
+
+Stop one of the running background instances again:
+
+```bash
+ttdash stop
+```
+
 Then either:
 
 1. Click `Auto-Import` to load local `toktrack` data
@@ -107,6 +119,8 @@ The auto-import path prefers:
 3. `npx --yes toktrack`
 
 The server automatically picks the next free port if `3000` is occupied.
+
+Background mode keeps the terminal free after launch. If multiple background instances are running, `ttdash stop` shows a selection prompt so you can choose which one to terminate.
 
 ## Sample Data
 
@@ -214,6 +228,20 @@ ls -la ~/.bun/bin/ttdash
 
 ```bash
 PORT=3010 ttdash
+```
+
+### Run in the background
+
+```bash
+ttdash --background
+ttdash stop
+```
+
+Combine it with existing flags when needed:
+
+```bash
+ttdash --background --port 3010 --auto-load
+ttdash --background --no-open
 ```
 
 ### Auto-import cannot find `toktrack`

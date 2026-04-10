@@ -1,6 +1,6 @@
 import { createServer } from 'node:net'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -55,6 +55,111 @@ async function waitForServer(url: string) {
   }
 
   throw new Error(`Timed out waiting for server startup:\n${output}`)
+}
+
+async function waitForUrlAvailable(url: string) {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < 15_000) {
+    try {
+      const response = await fetch(`${url}/api/usage`)
+      if (response.ok) {
+        return
+      }
+    } catch {}
+
+    await new Promise(resolve => setTimeout(resolve, 200))
+  }
+
+  throw new Error(`Timed out waiting for server startup: ${url}`)
+}
+
+async function waitForServerUnavailable(url: string) {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < 15_000) {
+    try {
+      await fetch(`${url}/api/usage`)
+    } catch {
+      return
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 200))
+  }
+
+  throw new Error(`Timed out waiting for server shutdown: ${url}`)
+}
+
+function createCliEnv(root: string) {
+  return {
+    ...process.env,
+    HOME: root,
+    HOST: '127.0.0.1',
+    NO_OPEN_BROWSER: '1',
+    XDG_CACHE_HOME: path.join(root, 'cache'),
+    XDG_CONFIG_HOME: path.join(root, 'config'),
+    XDG_DATA_HOME: path.join(root, 'data'),
+  }
+}
+
+function getCliConfigDir(root: string) {
+  if (process.platform === 'darwin') {
+    return path.join(root, 'Library', 'Application Support', 'TTDash')
+  }
+
+  if (process.platform === 'win32') {
+    return path.join(root, 'AppData', 'Roaming', 'TTDash')
+  }
+
+  return path.join(root, 'config', 'ttdash')
+}
+
+function readBackgroundRegistry(root: string) {
+  const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
+  return JSON.parse(readFileSync(registryPath, 'utf-8')) as Array<{ url: string, port: number, pid: number }>
+}
+
+async function runCli(args: string[], { env, input }: { env: NodeJS.ProcessEnv, input?: string }) {
+  return await new Promise<{ code: number | null, output: string }>((resolve, reject) => {
+    const cli = spawn(process.execPath, ['server.js', ...args], {
+      cwd: process.cwd(),
+      env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+
+    let cliOutput = ''
+
+    cli.stdout.on('data', chunk => {
+      cliOutput += chunk.toString()
+    })
+
+    cli.stderr.on('data', chunk => {
+      cliOutput += chunk.toString()
+    })
+
+    cli.on('error', reject)
+    cli.on('close', code => {
+      resolve({ code, output: cliOutput })
+    })
+
+    if (input) {
+      cli.stdin.write(input)
+    }
+    cli.stdin.end()
+  })
+}
+
+async function stopAllBackgroundServers(env: NodeJS.ProcessEnv) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const result = await runCli(['stop'], {
+      env,
+      input: '1\n',
+    })
+
+    if (result.output.includes('Keine laufenden TTDash-Background-Server gefunden.')) {
+      return
+    }
+  }
 }
 
 beforeAll(async () => {
@@ -198,4 +303,94 @@ describe('local server API', () => {
       lastLoadSource: null,
     })
   })
+
+  it('starts background servers and stops the selected instance via the CLI', async () => {
+    const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-test-'))
+    const backgroundEnv = createCliEnv(backgroundRoot)
+    const firstPort = await getFreePort()
+    const secondPort = await getFreePort()
+    const firstUrl = `http://127.0.0.1:${firstPort}`
+    const secondUrl = `http://127.0.0.1:${secondPort}`
+
+    try {
+      const firstStart = await runCli(['--background', '--no-open', '--port', String(firstPort)], {
+        env: backgroundEnv,
+      })
+
+      expect(firstStart.code).toBe(0)
+      expect(firstStart.output).toContain('TTDash läuft im Hintergrund.')
+      expect(firstStart.output).toContain(firstUrl)
+      await waitForUrlAvailable(firstUrl)
+
+      const secondStart = await runCli(['--background', '--no-open', '--port', String(secondPort)], {
+        env: backgroundEnv,
+      })
+
+      expect(secondStart.code).toBe(0)
+      expect(secondStart.output).toContain('TTDash läuft im Hintergrund.')
+      expect(secondStart.output).toContain(secondUrl)
+      await waitForUrlAvailable(secondUrl)
+
+      const stopSecond = await runCli(['stop'], {
+        env: backgroundEnv,
+        input: '2\n',
+      })
+
+      expect(stopSecond.code).toBe(0)
+      expect(stopSecond.output).toContain('Mehrere TTDash-Background-Server laufen:')
+      expect(stopSecond.output).toContain(firstUrl)
+      expect(stopSecond.output).toContain(secondUrl)
+      expect(stopSecond.output).toContain(`TTDash-Background-Server beendet: ${secondUrl}`)
+
+      const firstUsageResponse = await fetch(`${firstUrl}/api/usage`)
+      expect(firstUsageResponse.status).toBe(200)
+      await waitForServerUnavailable(secondUrl)
+
+      const stopFirst = await runCli(['stop'], {
+        env: backgroundEnv,
+      })
+
+      expect(stopFirst.code).toBe(0)
+      expect(stopFirst.output).toContain(`TTDash-Background-Server beendet: ${firstUrl}`)
+      await waitForServerUnavailable(firstUrl)
+    } finally {
+      await stopAllBackgroundServers(backgroundEnv)
+      rmSync(backgroundRoot, { recursive: true, force: true })
+    }
+  }, 45_000)
+
+  it('keeps both instances in the registry when background starts happen concurrently', async () => {
+    const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-parallel-test-'))
+    const backgroundEnv = createCliEnv(backgroundRoot)
+    const firstPort = await getFreePort()
+    const secondPort = await getFreePort()
+    const firstUrl = `http://127.0.0.1:${firstPort}`
+    const secondUrl = `http://127.0.0.1:${secondPort}`
+
+    try {
+      const [firstStart, secondStart] = await Promise.all([
+        runCli(['--background', '--no-open', '--port', String(firstPort)], {
+          env: backgroundEnv,
+        }),
+        runCli(['--background', '--no-open', '--port', String(secondPort)], {
+          env: backgroundEnv,
+        }),
+      ])
+
+      expect(firstStart.code).toBe(0)
+      expect(secondStart.code).toBe(0)
+      expect(firstStart.output).toContain('TTDash läuft im Hintergrund.')
+      expect(secondStart.output).toContain('TTDash läuft im Hintergrund.')
+
+      await waitForUrlAvailable(firstUrl)
+      await waitForUrlAvailable(secondUrl)
+
+      const registry = readBackgroundRegistry(backgroundRoot)
+      expect(registry).toHaveLength(2)
+      expect(registry.map(instance => instance.url).sort()).toEqual([firstUrl, secondUrl].sort())
+    } finally {
+      await stopAllBackgroundServers(backgroundEnv)
+      rmSync(backgroundRoot, { recursive: true, force: true })
+    }
+  }, 45_000)
 })

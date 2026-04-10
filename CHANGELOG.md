@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Background-CLI für `ttdash`** — `--background` startet den lokalen Server als losgelösten Hintergrundprozess; `ttdash stop` listet laufende Instanzen und beendet auf Wunsch gezielt die ausgewählte
+
+### Improved
+- **CLI-Dokumentation** — README, Hilfeausgabe und Installer-Hinweise dokumentieren jetzt den Hintergrundmodus und den Stop-Befehl direkt im Startpfad
+- **Race-safe Background-Registry** — parallele `--background`-Starts sperren die lokale Instanzdatei jetzt kurzzeitig, damit keine laufenden Server aus der Registry verloren gehen
+
 ## [6.0.11] - 2026-04-10
 
 ### Fixed
