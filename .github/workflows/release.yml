@@ -1,38 +1,81 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version in x.y.z format
+        required: true
+        type: string
 
 permissions:
+  actions: read
   contents: write
   id-token: write
 
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release-main
   cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
 
     steps:
+      - name: Create release app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ttdash
+
       - name: Check out repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
-      - name: Verify tagged commit is on main
+      - name: Verify release version input
         run: |
-          git fetch origin main --depth=1
-          git branch -r --contains HEAD | grep -q 'origin/main'
+          export CURRENT_VERSION="$(node -p "require('./package.json').version")"
+          export RELEASE_VERSION
+          echo "CURRENT_VERSION=${CURRENT_VERSION}" >> "$GITHUB_ENV"
+          node - <<'NODE'
+          const current = process.env.CURRENT_VERSION
+          const requested = process.env.RELEASE_VERSION
+          const semverPattern = /^\d+\.\d+\.\d+$/
 
-      - name: Verify tag matches package version
-        run: |
-          VERSION="$(node -p "require('./package.json').version")"
-          test "v${VERSION}" = "${GITHUB_REF_NAME}"
+          if (!semverPattern.test(requested)) {
+            throw new Error(`Release version must use x.y.z format. Received: ${requested}`)
+          }
+
+          const parse = (value) => value.split('.').map((part) => Number.parseInt(part, 10))
+          const compare = (left, right) => {
+            for (let index = 0; index < 3; index += 1) {
+              if (left[index] > right[index]) return 1
+              if (left[index] < right[index]) return -1
+            }
+            return 0
+          }
+
+          if (compare(parse(requested), parse(current)) < 0) {
+            throw new Error(`Release version ${requested} must not be lower than current package version ${current}`)
+          }
+          NODE
+          echo "RELEASE_TAG=v${RELEASE_VERSION}" >> "$GITHUB_ENV"
+          if [[ "${RELEASE_VERSION}" = "${CURRENT_VERSION}" ]]; then
+            echo "SHOULD_BUMP=false" >> "$GITHUB_ENV"
+            echo "Release version already present on main. Continuing in retry mode."
+          else
+            echo "SHOULD_BUMP=true" >> "$GITHUB_ENV"
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -40,6 +83,34 @@ jobs:
           node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
+
+      - name: Verify main CI succeeded
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          MAIN_SHA="$(git rev-parse HEAD)"
+          node scripts/verify-main-ci.js \
+            --repo "${{ github.repository }}" \
+            --workflow ci.yml \
+            --branch main \
+            --sha "${MAIN_SHA}" \
+            --retries 90 \
+            --retry-delay-ms 10000
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Configure authenticated remote
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+      - name: Bump package version
+        if: env.SHOULD_BUMP == 'true'
+        run: npm version "${RELEASE_VERSION}" --no-git-tag-version
 
       - name: Install dependencies
         run: npm ci --ignore-scripts
@@ -64,14 +135,49 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Create release commit and tag
+        run: |
+          git fetch --tags origin
+          if [[ "${SHOULD_BUMP}" = "true" ]]; then
+            git add package.json package-lock.json
+            git commit -m "v${RELEASE_VERSION}: Release"
+          fi
+
+          if git rev-parse "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Tag ${RELEASE_TAG} already exists locally. Skipping tag creation."
+          else
+            git tag -a "${RELEASE_TAG}" -m "${RELEASE_TAG}"
+          fi
+
+      - name: Push release commit and tag
+        run: |
+          if [[ "${SHOULD_BUMP}" = "true" ]]; then
+            git push origin HEAD:main
+          fi
+
+          if git ls-remote --tags origin "refs/tags/${RELEASE_TAG}" | grep -q .; then
+            echo "Tag ${RELEASE_TAG} already exists on origin. Skipping tag push."
+          else
+            git push origin "${RELEASE_TAG}"
+          fi
+
+      - name: Detect existing npm publication
+        run: |
+          if npm view "@roastcodes/ttdash@${RELEASE_VERSION}" version >/dev/null 2>&1; then
+            echo "NPM_VERSION_EXISTS=true" >> "$GITHUB_ENV"
+            echo "Package version already exists on npm. Skipping publish."
+          else
+            echo "NPM_VERSION_EXISTS=false" >> "$GITHUB_ENV"
+          fi
+
       - name: Publish package to npm
+        if: env.NPM_VERSION_EXISTS != 'true'
         run: npm publish
 
       - name: Wait for npm registry propagation
         run: |
-          VERSION="$(node -p "require('./package.json').version")"
           for attempt in 1 2 3 4 5 6; do
-            if npm view "@roastcodes/ttdash@${VERSION}" version >/dev/null 2>&1; then
+            if npm view "@roastcodes/ttdash@${RELEASE_VERSION}" version >/dev/null 2>&1; then
               exit 0
             fi
             sleep 10
@@ -81,23 +187,22 @@ jobs:
 
       - name: Verify registry install paths
         run: |
-          VERSION="$(node -p "require('./package.json').version")"
           node scripts/verify-registry-install.js \
             --package @roastcodes/ttdash \
-            --version "${VERSION}" \
+            --version "${RELEASE_VERSION}" \
             --retries 6 \
             --retry-delay-ms 10000
 
       - name: Create GitHub release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            echo "Release ${GITHUB_REF_NAME} already exists. Skipping creation."
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists. Skipping creation."
             exit 0
           fi
 
-          gh release create "${GITHUB_REF_NAME}" \
+          gh release create "${RELEASE_TAG}" \
             --verify-tag \
-            --title "${GITHUB_REF_NAME}" \
+            --title "${RELEASE_TAG}" \
             --generate-notes
