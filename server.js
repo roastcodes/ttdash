@@ -37,7 +37,6 @@ const SECURITY_HEADERS = {
 const APP_LABEL = 'TTDash';
 const SETTINGS_BACKUP_KIND = 'ttdash-settings-backup';
 const USAGE_BACKUP_KIND = 'ttdash-usage-backup';
-const BACKUP_FORMAT_VERSION = 1;
 const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
 const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
