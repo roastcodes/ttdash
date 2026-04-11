@@ -8,7 +8,6 @@ const sampleUsage = JSON.parse(fs.readFileSync(sampleUsagePath, 'utf-8'))
 const uploadToastPattern = /^(Datei sample-usage\.json erfolgreich geladen|File sample-usage\.json loaded successfully)$/
 const autoImportButtonPattern = /^(Auto-Import|Auto import)$/
 const uploadFileButtonPattern = /^(Datei hochladen|Upload file)$/
-const settingsHeadingPattern = /^(Einstellungen|Settings)$/
 const exportSettingsButtonPattern = /^(Einstellungen exportieren|Export settings)$/
 const exportDataButtonPattern = /^(Daten exportieren|Export data)$/
 const dataImportToastPattern = /^(Backup importiert: 1 neue Tage ergänzt, 1 Konflikttage lokal beibehalten|Backup imported: added 1 new days, kept 1 conflicting days local)$/
@@ -39,6 +38,7 @@ test('uploads sample usage data and renders the dashboard without browser errors
   })
 
   await page.request.delete('/api/usage')
+  await page.request.delete('/api/settings')
 
   await page.goto('/')
 
@@ -58,6 +58,7 @@ test('uploads sample usage data and renders the dashboard without browser errors
 
 test('manages settings and backup imports through the settings dialog using isolated test storage', async ({ page }, testInfo) => {
   await page.request.delete('/api/usage')
+  await page.request.delete('/api/settings')
   await page.addInitScript(() => {
     const globalWindow = window as typeof window & {
       __TTDASH_DOWNLOAD_RECORDS__?: Array<{ filename: string, mimeType: string, size: number, text: string }>
@@ -284,6 +285,7 @@ test('manages settings and backup imports through the settings dialog using isol
 
 test('loads persisted settings on a fresh browser start and applies them immediately', async ({ browser, page }) => {
   await page.request.delete('/api/usage')
+  await page.request.delete('/api/settings')
 
   const patchSettingsResponse = await page.request.patch('/api/settings', {
     data: {

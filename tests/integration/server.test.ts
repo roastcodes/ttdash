@@ -1,6 +1,6 @@
 import { createServer } from 'node:net'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -91,6 +91,40 @@ async function waitForServerUnavailable(url: string) {
   throw new Error(`Timed out waiting for server shutdown: ${url}`)
 }
 
+async function waitForProcessServer(
+  currentChild: ChildProcessWithoutNullStreams,
+  url: string,
+  getOutput: () => string,
+) {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < 15_000) {
+    if (currentChild.exitCode !== null) {
+      throw new Error(`Server exited before becoming ready:\n${getOutput()}`)
+    }
+
+    try {
+      const response = await fetch(`${url}/api/usage`)
+      if (response.ok) {
+        return
+      }
+    } catch {}
+
+    await new Promise(resolve => setTimeout(resolve, 200))
+  }
+
+  throw new Error(`Timed out waiting for server startup:\n${getOutput()}`)
+}
+
+async function stopProcess(currentChild: ChildProcessWithoutNullStreams) {
+  if (currentChild.exitCode !== null) {
+    return
+  }
+
+  currentChild.kill('SIGTERM')
+  await new Promise(resolve => currentChild.once('close', resolve))
+}
+
 function createCliEnv(root: string) {
   return {
     ...process.env,
@@ -100,6 +134,47 @@ function createCliEnv(root: string) {
     XDG_CACHE_HOME: path.join(root, 'cache'),
     XDG_CONFIG_HOME: path.join(root, 'config'),
     XDG_DATA_HOME: path.join(root, 'data'),
+  }
+}
+
+async function startStandaloneServer({
+  root,
+  args = [],
+  envOverrides = {},
+}: {
+  root: string
+  args?: string[]
+  envOverrides?: NodeJS.ProcessEnv
+}) {
+  const port = Number(envOverrides.PORT) || await getFreePort()
+  const url = `http://127.0.0.1:${port}`
+  let serverOutput = ''
+
+  const currentChild = spawn(process.execPath, ['server.js', ...args], {
+    cwd: process.cwd(),
+    env: {
+      ...createCliEnv(root),
+      PORT: String(port),
+      ...envOverrides,
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+
+  currentChild.stdout.on('data', chunk => {
+    serverOutput += chunk.toString()
+  })
+
+  currentChild.stderr.on('data', chunk => {
+    serverOutput += chunk.toString()
+  })
+
+  await waitForProcessServer(currentChild, url, () => serverOutput)
+
+  return {
+    child: currentChild,
+    url,
+    port,
+    getOutput: () => serverOutput,
   }
 }
 
@@ -520,6 +595,85 @@ describe('local server API', () => {
     expect(mergedSettings.sectionOrder.slice(0, 3)).toEqual(['tables', 'metrics', 'insights'])
   })
 
+  it('rejects unrelated JSON and wrong backup types for settings import', async () => {
+    const invalidPayloadResponse = await fetch(`${baseUrl}/api/settings/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        foo: 'bar',
+      }),
+    })
+
+    expect(invalidPayloadResponse.status).toBe(400)
+    expect(await invalidPayloadResponse.json()).toEqual({
+      message: 'Uploaded JSON is not a settings backup file.',
+    })
+
+    const usageBackupResponse = await fetch(`${baseUrl}/api/settings/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kind: 'ttdash-usage-backup',
+        version: 1,
+        data: sampleUsage,
+      }),
+    })
+
+    expect(usageBackupResponse.status).toBe(400)
+    expect(await usageBackupResponse.json()).toEqual({
+      message: 'Dies ist eine Daten-Backup-Datei und keine Settings-Datei.',
+    })
+  })
+
+  it('resets persisted settings to defaults via DELETE /api/settings', async () => {
+    const patchResponse = await fetch(`${baseUrl}/api/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        language: 'en',
+        theme: 'light',
+        sectionVisibility: {
+          tokenAnalysis: false,
+        },
+        sectionOrder: ['tables', 'metrics', 'insights'],
+      }),
+    })
+
+    expect(patchResponse.status).toBe(200)
+
+    const deleteResponse = await fetch(`${baseUrl}/api/settings`, {
+      method: 'DELETE',
+    })
+
+    expect(deleteResponse.status).toBe(200)
+    expect(await deleteResponse.json()).toMatchObject({
+      success: true,
+      settings: {
+        language: 'de',
+        theme: 'dark',
+        providerLimits: {},
+        defaultFilters: DEFAULT_DASHBOARD_FILTERS,
+        sectionOrder: getDefaultDashboardSectionOrder(),
+        lastLoadedAt: null,
+        lastLoadSource: null,
+        cliAutoLoadActive: false,
+      },
+    })
+
+    const settingsResponse = await fetch(`${baseUrl}/api/settings`)
+    expect(settingsResponse.status).toBe(200)
+    expect(await settingsResponse.json()).toMatchObject({
+      language: 'de',
+      theme: 'dark',
+      providerLimits: {},
+      defaultFilters: DEFAULT_DASHBOARD_FILTERS,
+      sectionOrder: getDefaultDashboardSectionOrder(),
+      lastLoadedAt: null,
+      lastLoadSource: null,
+      cliAutoLoadActive: false,
+    })
+  })
+
   it('rejects report generation when no usage data exists', async () => {
     await fetch(`${baseUrl}/api/usage`, {
       method: 'DELETE',
@@ -646,4 +800,87 @@ describe('local server API', () => {
       rmSync(backgroundRoot, { recursive: true, force: true })
     }
   }, 45_000)
+
+  it('keeps explicit runtime dir overrides independent', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-runtime-dir-test-'))
+    const explicitConfigDir = path.join(runtimeRoot, 'explicit-config')
+
+    const expectedPlatformPaths = process.platform === 'darwin'
+      ? {
+          dataFile: path.join(runtimeRoot, 'Library', 'Application Support', 'TTDash', 'data.json'),
+          settingsFile: path.join(explicitConfigDir, 'settings.json'),
+          cacheDir: path.join(runtimeRoot, 'Library', 'Caches', 'TTDash'),
+        }
+      : process.platform === 'win32'
+        ? {
+            dataFile: path.join(runtimeRoot, 'AppData', 'Local', 'TTDash', 'data.json'),
+            settingsFile: path.join(explicitConfigDir, 'settings.json'),
+            cacheDir: path.join(runtimeRoot, 'AppData', 'Local', 'TTDash', 'Cache'),
+          }
+        : {
+            dataFile: path.join(runtimeRoot, 'data', 'ttdash', 'data.json'),
+            settingsFile: path.join(explicitConfigDir, 'settings.json'),
+            cacheDir: path.join(runtimeRoot, 'cache', 'ttdash'),
+          }
+
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        envOverrides: {
+          TTDASH_CONFIG_DIR: explicitConfigDir,
+        },
+      })
+
+      const uploadResponse = await fetch(`${standaloneServer.url}/api/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sampleUsage),
+      })
+      expect(uploadResponse.status).toBe(200)
+
+      const settingsResponse = await fetch(`${standaloneServer.url}/api/settings`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: 'en' }),
+      })
+      expect(settingsResponse.status).toBe(200)
+
+      expect(standaloneServer.getOutput()).toContain(`Data File:      ${expectedPlatformPaths.dataFile}`)
+      expect(standaloneServer.getOutput()).toContain(`Settings File:  ${expectedPlatformPaths.settingsFile}`)
+      expect(existsSync(expectedPlatformPaths.dataFile)).toBe(true)
+      expect(existsSync(expectedPlatformPaths.settingsFile)).toBe(true)
+      expect(existsSync(path.join(expectedPlatformPaths.cacheDir, 'npx-cache'))).toBe(true)
+      expect(existsSync(path.join(explicitConfigDir, 'data.json'))).toBe(false)
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('fails cleanly when port 65535 is busy instead of retrying to 65536', async () => {
+    const occupiedPortServer = createServer()
+    const cliRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-port-limit-test-'))
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        occupiedPortServer.once('error', reject)
+        occupiedPortServer.listen(65535, '127.0.0.1', () => resolve())
+      })
+
+      const result = await runCli(['--port', '65535'], {
+        env: createCliEnv(cliRoot),
+      })
+
+      expect(result.code).toBe(1)
+      expect(result.output).toContain('No free port found (65535-65535)')
+      expect(result.output).not.toContain('trying 65536')
+    } finally {
+      await new Promise(resolve => occupiedPortServer.close(() => resolve(undefined)))
+      rmSync(cliRoot, { recursive: true, force: true })
+    }
+  }, 20_000)
 })

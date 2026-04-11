@@ -21,7 +21,7 @@ const NORMALIZED_CLI_ARGS = normalizeCliArgs(RAW_CLI_ARGS);
 const CLI_OPTIONS = parseCliArgs(RAW_CLI_ARGS);
 const ENV_START_PORT = parseInt(process.env.PORT, 10);
 const START_PORT = CLI_OPTIONS.port ?? (Number.isFinite(ENV_START_PORT) ? ENV_START_PORT : 3000);
-const MAX_PORT = START_PORT + 100;
+const MAX_PORT = Math.min(START_PORT + 100, 65535);
 const BIND_HOST = process.env.HOST || '127.0.0.1';
 const API_PREFIX = '/port/5000/api';
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -199,43 +199,39 @@ function parseCliArgs(rawArgs) {
 
 function resolveAppPaths() {
   const homeDir = os.homedir();
-
   const explicitPaths = {
     dataDir: process.env.TTDASH_DATA_DIR,
     configDir: process.env.TTDASH_CONFIG_DIR,
     cacheDir: process.env.TTDASH_CACHE_DIR,
   };
-
-  if (explicitPaths.dataDir || explicitPaths.configDir || explicitPaths.cacheDir) {
-    return {
-      dataDir: explicitPaths.dataDir || explicitPaths.configDir || explicitPaths.cacheDir,
-      configDir: explicitPaths.configDir || explicitPaths.dataDir || explicitPaths.cacheDir,
-      cacheDir: explicitPaths.cacheDir || explicitPaths.configDir || explicitPaths.dataDir,
-    };
-  }
+  let platformPaths;
 
   if (process.platform === 'darwin') {
     const appSupportDir = path.join(homeDir, 'Library', 'Application Support', APP_DIR_NAME);
-    return {
+    platformPaths = {
       dataDir: appSupportDir,
       configDir: appSupportDir,
       cacheDir: path.join(homeDir, 'Library', 'Caches', APP_DIR_NAME),
     };
-  }
-
-  if (IS_WINDOWS) {
-    return {
+  } else if (IS_WINDOWS) {
+    platformPaths = {
       dataDir: path.join(process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'), APP_DIR_NAME),
       configDir: path.join(process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'), APP_DIR_NAME),
       cacheDir: path.join(process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'), APP_DIR_NAME, 'Cache'),
     };
+  } else {
+    const appName = APP_DIR_NAME_LINUX;
+    platformPaths = {
+      dataDir: path.join(process.env.XDG_DATA_HOME || path.join(homeDir, '.local', 'share'), appName),
+      configDir: path.join(process.env.XDG_CONFIG_HOME || path.join(homeDir, '.config'), appName),
+      cacheDir: path.join(process.env.XDG_CACHE_HOME || path.join(homeDir, '.cache'), appName),
+    };
   }
 
-  const appName = APP_DIR_NAME_LINUX;
   return {
-    dataDir: path.join(process.env.XDG_DATA_HOME || path.join(homeDir, '.local', 'share'), appName),
-    configDir: path.join(process.env.XDG_CONFIG_HOME || path.join(homeDir, '.config'), appName),
-    cacheDir: path.join(process.env.XDG_CACHE_HOME || path.join(homeDir, '.cache'), appName),
+    dataDir: explicitPaths.dataDir || platformPaths.dataDir,
+    configDir: explicitPaths.configDir || platformPaths.configDir,
+    cacheDir: explicitPaths.cacheDir || platformPaths.cacheDir,
   };
 }
 
@@ -819,7 +815,7 @@ function areUsageDaysEquivalent(left, right) {
 
 function extractSettingsImportPayload(payload) {
   if (!isPlainObject(payload)) {
-    return payload;
+    throw new Error('Uploaded JSON is not a settings backup file.');
   }
 
   if (payload.kind === SETTINGS_BACKUP_KIND) {
@@ -833,7 +829,7 @@ function extractSettingsImportPayload(payload) {
     throw new Error('Dies ist eine Daten-Backup-Datei und keine Settings-Datei.');
   }
 
-  return payload;
+  throw new Error('Uploaded JSON is not a settings backup file.');
 }
 
 function extractUsageImportPayload(payload) {
@@ -1532,6 +1528,11 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, readSettings());
     }
 
+    if (req.method === 'DELETE') {
+      try { fs.unlinkSync(SETTINGS_FILE); } catch {}
+      return json(res, 200, { success: true, settings: readSettings() });
+    }
+
     if (req.method === 'PATCH') {
       try {
         const body = await readBody(req);
@@ -1716,6 +1717,10 @@ function tryListen(port) {
     const onError = (err) => {
       server.off('listening', onListening);
       if (err.code === 'EADDRINUSE') {
+        if (port >= MAX_PORT) {
+          reject(new Error(`No free port found (${START_PORT}-${MAX_PORT})`));
+          return;
+        }
         console.log(`Port ${port} is in use, trying ${port + 1}...`);
         resolve(tryListen(port + 1));
       } else {
