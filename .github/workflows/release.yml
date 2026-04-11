@@ -44,7 +44,8 @@ jobs:
 
       - name: Verify release version input
         run: |
-          CURRENT_VERSION="$(node -p "require('./package.json').version")"
+          export CURRENT_VERSION="$(node -p "require('./package.json').version")"
+          export RELEASE_VERSION
           echo "CURRENT_VERSION=${CURRENT_VERSION}" >> "$GITHUB_ENV"
           node - <<'NODE'
           const current = process.env.CURRENT_VERSION
@@ -93,7 +94,7 @@ jobs:
             --workflow ci.yml \
             --branch main \
             --sha "${MAIN_SHA}" \
-            --retries 30 \
+            --retries 90 \
             --retry-delay-ms 10000
 
       - name: Configure git identity
