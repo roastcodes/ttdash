@@ -61,18 +61,6 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-TAG_NAME="v$VERSION"
-
-if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-  echo "Tag already exists locally: $TAG_NAME"
-  exit 1
-fi
-
-if git ls-remote --tags origin "refs/tags/$TAG_NAME" | grep -q .; then
-  echo "Tag already exists on origin: $TAG_NAME"
-  exit 1
-fi
-
 run() {
   echo "+ $*"
   if [[ "$DRY_RUN" -eq 0 ]]; then
