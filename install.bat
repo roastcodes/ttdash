@@ -86,8 +86,8 @@ if /i "%GLOBAL_TOOL%"=="bun" (
             echo    - Cleaned up existing global Bun entry for %APP_NAME%
         )
     )
-    echo    - Trying bun add -g file:%cd%
-    call bun add -g file:%cd% >nul 2>&1
+    echo    - Trying bun add -g "file:%cd%"
+    call bun add -g "file:%cd%" >nul 2>&1
     if !errorlevel! neq 0 (
         echo    ! Global Bun install failed, switching to npm fallback
         echo    - Fallback: npm install -g .

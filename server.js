@@ -826,7 +826,7 @@ function extractSettingsImportPayload(payload) {
   }
 
   if (typeof payload.kind === 'string' && payload.kind === USAGE_BACKUP_KIND) {
-    throw new Error('Dies ist eine Daten-Backup-Datei und keine Settings-Datei.');
+    throw new Error('This is a data backup file, not a settings file.');
   }
 
   throw new Error('Uploaded JSON is not a settings backup file.');
@@ -845,7 +845,7 @@ function extractUsageImportPayload(payload) {
   }
 
   if (typeof payload.kind === 'string' && payload.kind === SETTINGS_BACKUP_KIND) {
-    throw new Error('Dies ist eine Settings-Backup-Datei und keine Daten-Datei.');
+    throw new Error('This is a settings backup file, not a data file.');
   }
 
   return payload;

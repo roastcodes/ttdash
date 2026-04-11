@@ -621,7 +621,24 @@ describe('local server API', () => {
 
     expect(usageBackupResponse.status).toBe(400)
     expect(await usageBackupResponse.json()).toEqual({
-      message: 'Dies ist eine Daten-Backup-Datei und keine Settings-Datei.',
+      message: 'This is a data backup file, not a settings file.',
+    })
+
+    const settingsBackupResponse = await fetch(`${baseUrl}/api/usage/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kind: 'ttdash-settings-backup',
+        version: 1,
+        settings: {
+          language: 'en',
+        },
+      }),
+    })
+
+    expect(settingsBackupResponse.status).toBe(400)
+    expect(await settingsBackupResponse.json()).toEqual({
+      message: 'This is a settings backup file, not a data file.',
     })
   })
 

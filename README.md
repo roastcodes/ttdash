@@ -240,7 +240,7 @@ Or with Bun:
 ```bash
 bun install
 bun run build
-bun add -g file:$(pwd)
+bun add -g "file:$(pwd)"
 ttdash
 ```
 
