@@ -28,7 +28,6 @@
     "test:e2e:ci": "playwright test",
     "test:all": "npm run test:unit && npm run test:e2e",
     "pack:dry-run": "npm pack --dry-run",
-    "tag:main-release": "bash scripts/tag-main-release.sh",
     "verify:package": "node scripts/verify-package.js",
     "verify:registry-install": "node scripts/verify-registry-install.js",
     "verify:release": "npm run test:unit:coverage && npm run build && npm run verify:package",

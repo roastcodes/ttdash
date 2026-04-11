@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [6.1.4] - 2026-04-11
+
+### Added
+- **GitHub-driven release flow** — releases can now be started manually from GitHub Actions with a target version input, instead of relying on a locally created tag on `main`
+- **CI release gate** — the release workflow now verifies that the latest `CI` run for the current `main` commit completed successfully before any version bump, tag, or npm publish step begins
+- **Release app verification** — a dedicated GitHub API helper now validates the `CI` precondition directly from the workflow, so release gating stays tied to the exact `main` SHA
+
+### Improved
+- **Single human-managed version source** — the frontend app version is now injected from `package.json` at build time instead of being maintained as a second manual version constant
+- **Protected-branch compatibility** — the release workflow now uses the dedicated `ttdash-release` GitHub App token for checkout, push, tag creation, and GitHub release creation, so the release path works cleanly with branch rules and ruleset bypasses
+- **Release recovery behavior** — rerunning a failed release with the same version now resumes cleanly when the version bump commit, tag, or npm publication already exists
+- **Release documentation** — the maintainer guide now documents the GitHub App setup, ruleset expectations, workflow-dispatch release path, and the new post-publish verification model
+
 ## [6.1.0] - 2026-04-11
 
 ### Added

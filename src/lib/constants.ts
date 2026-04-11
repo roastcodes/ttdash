@@ -1,4 +1,4 @@
-export const VERSION = '6.1.3'
+export const VERSION = __APP_VERSION__
 
 export const MODEL_COLORS: Record<string, string> = {
   'Opus 4.6': 'hsl(262, 60%, 55%)',
