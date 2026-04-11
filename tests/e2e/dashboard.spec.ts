@@ -8,7 +8,6 @@ const sampleUsage = JSON.parse(fs.readFileSync(sampleUsagePath, 'utf-8'))
 const uploadToastPattern = /^(Datei sample-usage\.json erfolgreich geladen|File sample-usage\.json loaded successfully)$/
 const autoImportButtonPattern = /^(Auto-Import|Auto import)$/
 const uploadFileButtonPattern = /^(Datei hochladen|Upload file)$/
-const settingsButtonPattern = /^(Einstellungen|Settings)$/
 const settingsHeadingPattern = /^(Einstellungen|Settings)$/
 const exportSettingsButtonPattern = /^(Einstellungen exportieren|Export settings)$/
 const exportDataButtonPattern = /^(Daten exportieren|Export data)$/
