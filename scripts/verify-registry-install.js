@@ -89,7 +89,25 @@ function runCommand(command, args, { cwd, env }) {
     env,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 120000,
+    killSignal: 'SIGTERM',
   });
+}
+
+function formatCommandError(error) {
+  if (!error) {
+    return 'Unknown command error';
+  }
+
+  if (error.code === 'ETIMEDOUT' || error.signal === 'SIGTERM') {
+    return 'Command timed out after 120000 ms.';
+  }
+
+  if (error.stderr) {
+    return String(error.stderr).trim();
+  }
+
+  return String(error);
 }
 
 function buildEnv(extra = {}) {
@@ -137,7 +155,7 @@ async function verifyNpmExec(packageName, version, retries, retryDelayMs) {
       return;
     } catch (error) {
       lastError = error;
-      const output = error && error.stderr ? String(error.stderr).trim() : String(error);
+      const output = formatCommandError(error);
       log(`npm exec attempt ${attempt}/${retries} failed.`);
       if (output) {
         log(output);
@@ -148,7 +166,7 @@ async function verifyNpmExec(packageName, version, retries, retryDelayMs) {
     }
   }
 
-  throw new Error(`npm exec install path did not become ready in time.\n${lastError && lastError.stderr ? String(lastError.stderr).trim() : String(lastError)}`);
+  throw new Error(`npm exec install path did not become ready in time.\n${formatCommandError(lastError)}`);
 }
 
 async function verifyBunx(packageName, version, retries, retryDelayMs) {
@@ -178,7 +196,7 @@ async function verifyBunx(packageName, version, retries, retryDelayMs) {
       return;
     } catch (error) {
       lastError = error;
-      const output = error && error.stderr ? String(error.stderr).trim() : String(error);
+      const output = formatCommandError(error);
       log(`bunx attempt ${attempt}/${retries} failed.`);
       if (output) {
         log(output);
@@ -189,7 +207,7 @@ async function verifyBunx(packageName, version, retries, retryDelayMs) {
     }
   }
 
-  throw new Error(`bunx install path did not become ready in time.\n${lastError && lastError.stderr ? String(lastError.stderr).trim() : String(lastError)}`);
+  throw new Error(`bunx install path did not become ready in time.\n${formatCommandError(lastError)}`);
 }
 
 async function main() {

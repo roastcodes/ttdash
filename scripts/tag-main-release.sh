@@ -27,7 +27,6 @@ Examples:
 EOF
 }
 
-PACKAGE_VERSION="$(node -p "require('./package.json').version")"
 VERSION=""
 DRY_RUN=0
 
@@ -50,15 +49,6 @@ for arg in "$@"; do
       ;;
   esac
 done
-
-if [[ -z "$VERSION" ]]; then
-  VERSION="$PACKAGE_VERSION"
-fi
-
-if [[ "$VERSION" != "$PACKAGE_VERSION" ]]; then
-  echo "Version mismatch: package.json is $PACKAGE_VERSION but requested version is $VERSION."
-  exit 1
-fi
 
 CURRENT_BRANCH="$(git branch --show-current)"
 if [[ "$CURRENT_BRANCH" != "main" ]]; then
@@ -92,6 +82,30 @@ run() {
 
 run git fetch origin
 run git pull --ff-only origin main
+
+PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+
+if [[ -z "$VERSION" ]]; then
+  VERSION="$PACKAGE_VERSION"
+fi
+
+if [[ "$VERSION" != "$PACKAGE_VERSION" ]]; then
+  echo "Version mismatch after sync: package.json is $PACKAGE_VERSION but requested version is $VERSION."
+  exit 1
+fi
+
+TAG_NAME="v$VERSION"
+
+if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+  echo "Tag already exists locally: $TAG_NAME"
+  exit 1
+fi
+
+if git ls-remote --tags origin "refs/tags/$TAG_NAME" | grep -q .; then
+  echo "Tag already exists on origin: $TAG_NAME"
+  exit 1
+fi
+
 run git tag -a "$TAG_NAME" -m "$TAG_NAME"
 run git push origin "$TAG_NAME"
 
