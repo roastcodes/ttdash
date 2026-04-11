@@ -1,6 +1,6 @@
 import { createServer } from 'node:net'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -129,6 +129,9 @@ function createCliEnv(root: string) {
   return {
     ...process.env,
     HOME: root,
+    USERPROFILE: root,
+    APPDATA: path.join(root, 'AppData', 'Roaming'),
+    LOCALAPPDATA: path.join(root, 'AppData', 'Local'),
     HOST: '127.0.0.1',
     NO_OPEN_BROWSER: '1',
     XDG_CACHE_HOME: path.join(root, 'cache'),
@@ -193,6 +196,12 @@ function getCliConfigDir(root: string) {
 function readBackgroundRegistry(root: string) {
   const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
   return JSON.parse(readFileSync(registryPath, 'utf-8')) as Array<{ url: string, port: number, pid: number }>
+}
+
+function writeBackgroundRegistry(root: string, entries: unknown) {
+  const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
+  mkdirSync(path.dirname(registryPath), { recursive: true })
+  writeFileSync(registryPath, JSON.stringify(entries, null, 2))
 }
 
 async function runCli(args: string[], { env, input }: { env: NodeJS.ProcessEnv, input?: string }) {
@@ -609,6 +618,21 @@ describe('local server API', () => {
       message: 'Uploaded JSON is not a settings backup file.',
     })
 
+    const invalidSettingsPayloadResponse = await fetch(`${baseUrl}/api/settings/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kind: 'ttdash-settings-backup',
+        version: 1,
+        settings: [],
+      }),
+    })
+
+    expect(invalidSettingsPayloadResponse.status).toBe(400)
+    expect(await invalidSettingsPayloadResponse.json()).toEqual({
+      message: 'The settings backup file has an invalid settings payload.',
+    })
+
     const usageBackupResponse = await fetch(`${baseUrl}/api/settings/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -817,6 +841,40 @@ describe('local server API', () => {
       rmSync(backgroundRoot, { recursive: true, force: true })
     }
   }, 45_000)
+
+  it('prunes stale background entries that point to a live non-matching process', async () => {
+    const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-stale-test-'))
+    const backgroundEnv = createCliEnv(backgroundRoot)
+
+    try {
+      const runtimeResponse = await fetch(`${baseUrl}/api/runtime`)
+      expect(runtimeResponse.status).toBe(200)
+      const runtime = await runtimeResponse.json()
+
+      writeBackgroundRegistry(backgroundRoot, [{
+        id: 'stale-entry',
+        pid: child?.pid,
+        port: runtime.port,
+        url: baseUrl,
+        host: '127.0.0.1',
+        startedAt: new Date().toISOString(),
+        logFile: null,
+      }])
+
+      const stopResult = await runCli(['stop'], {
+        env: backgroundEnv,
+      })
+
+      expect(stopResult.code).toBe(0)
+      expect(stopResult.output).toContain('No running TTDash background servers found.')
+
+      const usageResponse = await fetch(`${baseUrl}/api/usage`)
+      expect(usageResponse.status).toBe(200)
+      expect(readBackgroundRegistry(backgroundRoot)).toEqual([])
+    } finally {
+      rmSync(backgroundRoot, { recursive: true, force: true })
+    }
+  })
 
   it('keeps explicit runtime dir overrides independent', async () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-runtime-dir-test-'))

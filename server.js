@@ -72,6 +72,14 @@ const DEFAULT_SETTINGS = {
   lastLoadSource: null,
 };
 let startupAutoLoadCompleted = false;
+const RUNTIME_INSTANCE = {
+  id: process.env.TTDASH_INSTANCE_ID || `${process.pid}-${Date.now()}`,
+  pid: process.pid,
+  startedAt: new Date().toISOString(),
+  mode: IS_BACKGROUND_CHILD ? 'background' : 'foreground',
+};
+let runtimePort = null;
+let runtimeUrl = null;
 
 function normalizeCliArgs(args) {
   return args.map((arg) => {
@@ -303,6 +311,55 @@ function isProcessRunning(pid) {
   }
 }
 
+async function fetchRuntimeIdentity(url, timeoutMs = 1000) {
+  if (typeof url !== 'string' || !url.trim()) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(new URL('/api/runtime', `${url}/`), {
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await response.json();
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    return payload;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function isBackgroundInstanceOwned(instance) {
+  if (!instance || typeof instance !== 'object') {
+    return false;
+  }
+
+  if (!isProcessRunning(instance.pid)) {
+    return false;
+  }
+
+  const runtime = await fetchRuntimeIdentity(instance.url);
+  if (!runtime || typeof runtime.id !== 'string') {
+    return false;
+  }
+
+  return runtime.id === instance.id
+    && runtime.pid === instance.pid
+    && runtime.port === instance.port;
+}
+
 function normalizeBackgroundInstance(value) {
   if (!value || typeof value !== 'object') {
     return null;
@@ -353,13 +410,19 @@ function writeBackgroundInstances(instances) {
   writeJsonAtomic(BACKGROUND_INSTANCES_FILE, instances);
 }
 
-function readBackgroundInstancesSnapshot() {
+async function readBackgroundInstancesSnapshot() {
   const normalized = readBackgroundInstancesRaw()
     .map(normalizeBackgroundInstance)
     .filter(Boolean);
+  const alive = [];
 
-  const alive = normalized.filter((instance) => isProcessRunning(instance.pid));
-  const changed = normalized.length !== alive.length;
+  for (const instance of normalized) {
+    if (await isBackgroundInstanceOwned(instance)) {
+      alive.push(instance);
+    }
+  }
+
+  const changed = readBackgroundInstancesRaw().length !== alive.length;
 
   alive.sort((left, right) => {
     const byStartedAt = left.startedAt.localeCompare(right.startedAt);
@@ -376,8 +439,8 @@ function readBackgroundInstancesSnapshot() {
   };
 }
 
-function getBackgroundInstances() {
-  return readBackgroundInstancesSnapshot().alive;
+async function getBackgroundInstances() {
+  return (await readBackgroundInstancesSnapshot()).alive;
 }
 
 async function withBackgroundInstancesLock(callback, timeoutMs = BACKGROUND_INSTANCES_LOCK_TIMEOUT_MS) {
@@ -423,8 +486,8 @@ async function withBackgroundInstancesLock(callback, timeoutMs = BACKGROUND_INST
 }
 
 async function pruneBackgroundInstances() {
-  return withBackgroundInstancesLock(() => {
-    const snapshot = readBackgroundInstancesSnapshot();
+  return withBackgroundInstancesLock(async () => {
+    const snapshot = await readBackgroundInstancesSnapshot();
     if (snapshot.changed) {
       writeBackgroundInstances(snapshot.alive);
     }
@@ -434,8 +497,8 @@ async function pruneBackgroundInstances() {
 }
 
 async function registerBackgroundInstance(instance) {
-  return withBackgroundInstancesLock(() => {
-    const instances = readBackgroundInstancesSnapshot().alive;
+  return withBackgroundInstancesLock(async () => {
+    const instances = (await readBackgroundInstancesSnapshot()).alive;
     const nextInstances = instances.filter((entry) => entry.pid !== instance.pid);
     nextInstances.push(instance);
     nextInstances.sort((left, right) => {
@@ -450,8 +513,8 @@ async function registerBackgroundInstance(instance) {
 }
 
 async function unregisterBackgroundInstance(pid) {
-  return withBackgroundInstancesLock(() => {
-    const instances = readBackgroundInstancesSnapshot().alive;
+  return withBackgroundInstancesLock(async () => {
+    const instances = (await readBackgroundInstancesSnapshot()).alive;
     const nextInstances = instances.filter((entry) => entry.pid !== pid);
     if (nextInstances.length !== instances.length) {
       writeBackgroundInstances(nextInstances);
@@ -461,12 +524,12 @@ async function unregisterBackgroundInstance(pid) {
 
 function createBackgroundInstance({ port, url }) {
   return {
-    id: `${process.pid}-${Date.now()}`,
-    pid: process.pid,
+    id: RUNTIME_INSTANCE.id,
+    pid: RUNTIME_INSTANCE.pid,
     port,
     url,
     host: BIND_HOST,
-    startedAt: new Date().toISOString(),
+    startedAt: RUNTIME_INSTANCE.startedAt,
     logFile: process.env.TTDASH_BACKGROUND_LOG_FILE || null,
   };
 }
@@ -479,7 +542,7 @@ async function waitForBackgroundInstance(pid, timeoutMs = BACKGROUND_START_TIMEO
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < timeoutMs) {
-    const instance = getBackgroundInstances().find((entry) => entry.pid === pid);
+    const instance = (await getBackgroundInstances()).find((entry) => entry.pid === pid);
     if (instance) {
       return instance;
     }
@@ -494,18 +557,18 @@ async function waitForBackgroundInstance(pid, timeoutMs = BACKGROUND_START_TIMEO
   return null;
 }
 
-async function waitForProcessExit(pid, timeoutMs = 5000) {
+async function waitForBackgroundInstanceExit(instance, timeoutMs = 5000) {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < timeoutMs) {
-    if (!isProcessRunning(pid)) {
+    if (!(await isBackgroundInstanceOwned(instance))) {
       return true;
     }
 
     await new Promise((resolve) => setTimeout(resolve, 150));
   }
 
-  return !isProcessRunning(pid);
+  return !(await isBackgroundInstanceOwned(instance));
 }
 
 function formatBackgroundInstanceLabel(instance, index) {
@@ -560,7 +623,7 @@ async function promptForBackgroundInstance(instances) {
 }
 
 async function stopBackgroundInstance(instance) {
-  if (!isProcessRunning(instance.pid)) {
+  if (!(await isBackgroundInstanceOwned(instance))) {
     await unregisterBackgroundInstance(instance.pid);
     return {
       status: 'already-stopped',
@@ -589,7 +652,7 @@ async function stopBackgroundInstance(instance) {
     throw error;
   }
 
-  if (await waitForProcessExit(instance.pid)) {
+  if (await waitForBackgroundInstanceExit(instance)) {
     await unregisterBackgroundInstance(instance.pid);
     return {
       status: 'stopped',
@@ -821,6 +884,9 @@ function extractSettingsImportPayload(payload) {
   if (payload.kind === SETTINGS_BACKUP_KIND) {
     if (!Object.prototype.hasOwnProperty.call(payload, 'settings')) {
       throw new Error('The settings backup file does not contain any settings.');
+    }
+    if (!isPlainObject(payload.settings)) {
+      throw new Error('The settings backup file has an invalid settings payload.');
     }
     return payload.settings;
   }
@@ -1523,6 +1589,21 @@ const server = http.createServer(async (req, res) => {
     return json(res, 405, { message: 'Method Not Allowed' });
   }
 
+  if (apiPath === '/runtime') {
+    if (req.method !== 'GET') {
+      return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    return json(res, 200, {
+      id: RUNTIME_INSTANCE.id,
+      pid: RUNTIME_INSTANCE.pid,
+      startedAt: RUNTIME_INSTANCE.startedAt,
+      mode: RUNTIME_INSTANCE.mode,
+      port: runtimePort,
+      url: runtimeUrl,
+    });
+  }
+
   if (apiPath === '/settings') {
     if (req.method === 'GET') {
       return json(res, 200, readSettings());
@@ -1746,6 +1827,8 @@ async function start() {
   const port = await tryListen(START_PORT);
   const browserHost = BIND_HOST === '0.0.0.0' ? 'localhost' : BIND_HOST;
   const url = `http://${browserHost}:${port}`;
+  runtimePort = port;
+  runtimeUrl = url;
 
   if (IS_BACKGROUND_CHILD) {
     await registerBackgroundInstance(createBackgroundInstance({ port, url }));
