@@ -4,6 +4,7 @@ data.json
 .DS_Store
 .playwright-mcp/
 .tmp-playwright/
+.tmp-smoke-*/
 playwright-report/
 test-results/
 test-json/

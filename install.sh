@@ -20,7 +20,7 @@ version="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' "$manifest_file" | head -1)"
 package_name="$(sed -n 's/.*"name": "\(.*\)".*/\1/p' "$manifest_file" | head -1)"
 
 if [ -z "$version" ]; then
-  version="unbekannt"
+  version="unknown"
 fi
 
 if [ -z "$package_name" ]; then
@@ -87,7 +87,7 @@ if (hadEntry) {
   console.log("clean");
 }'
   )" || {
-    warn "Vorhandener Bun-Globaleintrag konnte nicht bereinigt werden"
+    warn "Could not clean up the existing global Bun entry"
     return 0
   }
 
@@ -95,7 +95,7 @@ if (hadEntry) {
     return 0
   fi
 
-  note "Bereinige vorhandenen Bun-Globaleintrag für $package_name"
+  note "Cleaning up existing global Bun entry for $package_name"
   if [ -f "$bun_global_lock" ]; then
     rm -f "$bun_global_lock"
   fi
@@ -105,85 +105,87 @@ cd "$script_dir"
 
 printf "${BOLD}ttdash v%s${NC} installer\n" "$version"
 printf "${DIM}%s${NC}\n" "$(pwd)"
-printf "${DIM}Plattform: %s | Shell: %s${NC}\n" "$(uname -s)" "${SHELL:-unbekannt}"
+printf "${DIM}Platform: %s | Shell: %s${NC}\n" "$(uname -s)" "${SHELL:-unknown}"
 
 if command -v bun >/dev/null 2>&1; then
   install_tool="bun"
   global_tool="bun"
 fi
 
-note "Paketmanager für Installation: $install_tool"
-note "Globaler Installer: $global_tool"
-note "Build-Ziel: $(pwd)/dist"
+note "Package manager for install: $install_tool"
+note "Global installer: $global_tool"
+note "Build target: $(pwd)/dist"
 
 # 1 — Dependencies
-info "Installiere Abhängigkeiten..."
+info "Installing dependencies..."
 if [ "$install_tool" = "bun" ]; then
-  note "Führe bun install aus"
+  note "Running bun install"
   if bun install 2>&1 | tail -1; then
-    ok "bun install abgeschlossen"
+    ok "bun install completed"
   else
-    fail "bun install fehlgeschlagen"
+    fail "bun install failed"
   fi
 else
-  note "Führe npm install --no-audit --no-fund aus"
+  note "Running npm install --no-audit --no-fund"
   if npm install --no-audit --no-fund 2>&1 | tail -1; then
-    ok "npm install abgeschlossen"
+    ok "npm install completed"
   else
-    fail "npm install fehlgeschlagen"
+    fail "npm install failed"
   fi
 fi
 
 # 2 — Build
-info "Baue Frontend..."
+info "Building frontend..."
 if [ "$install_tool" = "bun" ]; then
-  note "Führe bun run build aus"
+  note "Running bun run build"
   if bun run build 2>&1 | tail -1; then
-    ok "Build abgeschlossen (dist/)"
+    ok "Build completed (dist/)"
   else
-    fail "Build fehlgeschlagen"
+    fail "Build failed"
   fi
 else
-  note "Führe npm run build aus"
+  note "Running npm run build"
   if npm run build 2>&1 | tail -1; then
-    ok "Build abgeschlossen (dist/)"
+    ok "Build completed (dist/)"
   else
-    fail "Build fehlgeschlagen"
+    fail "Build failed"
   fi
 fi
 
 # 3 — Global install
-info "Installiere global..."
+info "Installing globally..."
 if [ "$global_tool" = "bun" ]; then
   prepare_bun_global_install
-  note "Versuche globale Installation mit bun add -g file:$(pwd)"
+  note "Trying global install with bun add -g file:$(pwd)"
   if bun add -g "file:$(pwd)" 2>&1 | tail -1; then
-    ok "Global via Bun installiert"
+    ok "Installed globally via Bun"
   else
-    warn "Globale Bun-Installation fehlgeschlagen, wechsle auf npm-Fallback"
+    warn "Global Bun install failed, switching to npm fallback"
     note "Fallback: npm install -g ."
     if npm install -g . 2>&1 | tail -1; then
-      ok "Global via npm installiert"
+      ok "Installed globally via npm"
     else
-      fail "Globale Installation fehlgeschlagen (Bun und npm)"
+      fail "Global install failed (Bun and npm)"
     fi
   fi
 else
-  note "Führe npm install -g . aus"
+  note "Running npm install -g ."
   if npm install -g . 2>&1 | tail -1; then
-    ok "Global installiert"
+    ok "Installed globally"
   else
-    fail "Globale Installation fehlgeschlagen (evtl. sudo nötig)"
+    fail "Global install failed (sudo may be required)"
   fi
 fi
 
-printf "\n${GREEN}${BOLD}Fertig!${NC} Starte das Dashboard mit:\n"
+printf "\n${GREEN}${BOLD}Done!${NC} Start the dashboard with:\n"
 printf "  ${BOLD}ttdash${NC}\n"
-printf "\n${BOLD}Nächste Schritte${NC}\n"
-printf "  ${DIM}• App lokal starten:${NC} ttdash\n"
-printf "  ${DIM}• Anderen Port verwenden:${NC} PORT=3010 ttdash\n"
-printf "  ${DIM}• Browser-Autostart deaktivieren:${NC} NO_OPEN_BROWSER=1 ttdash\n"
-printf "  ${DIM}• Datenquelle im UI:${NC} Auto-Import oder JSON-Upload\n"
-printf "  ${DIM}• Installierte Version:${NC} %s\n" "$version"
-printf "\n${YELLOW}Hinweis:${NC} Falls 'ttdash' nicht gefunden wird, starte ein neues Terminal\n"
-printf "oder prüfe deinen globalen Paketpfad.\n"
+printf "\n${BOLD}Next steps${NC}\n"
+printf "  ${DIM}• Start locally:${NC} ttdash\n"
+printf "  ${DIM}• Start in the background:${NC} ttdash --background\n"
+printf "  ${DIM}• Stop a background instance:${NC} ttdash stop\n"
+printf "  ${DIM}• Use a different port:${NC} PORT=3010 ttdash\n"
+printf "  ${DIM}• Disable browser auto-open:${NC} NO_OPEN_BROWSER=1 ttdash\n"
+printf "  ${DIM}• Data source in the UI:${NC} Auto-import or JSON upload\n"
+printf "  ${DIM}• Installed version:${NC} %s\n" "$version"
+printf "\n${YELLOW}Note:${NC} If 'ttdash' is not found, open a new terminal\n"
+printf "or check your global package path.\n"

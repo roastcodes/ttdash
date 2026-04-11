@@ -7,7 +7,7 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
       totalCost: 0, totalTokens: 0, activeDays: 0, topModel: null,
       topRequestModel: null, topTokenModel: null,
       topModelShare: 0, topThreeModelsShare: 0, topProvider: null, providerCount: 0, hasRequestData: false,
-      cacheHitRate: 0, costPerMillion: 0, avgTokensPerRequest: 0, avgCostPerRequest: 0, avgModelsPerDay: 0, avgDailyCost: 0, avgRequestsPerDay: 0,
+      cacheHitRate: 0, costPerMillion: 0, avgTokensPerRequest: 0, avgCostPerRequest: 0, avgModelsPerEntry: 0, avgDailyCost: 0, avgRequestsPerDay: 0,
       topDay: null, cheapestDay: null, busiestWeek: null, weekendCostShare: null, totalInput: 0, totalOutput: 0,
       totalCacheRead: 0, totalCacheCreate: 0, totalThinking: 0, totalRequests: 0, weekOverWeekChange: null,
       requestVolatility: 0, modelConcentrationIndex: 0, providerConcentrationIndex: 0,
@@ -70,7 +70,7 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
   const costPerMillion = totalTokens > 0 ? totalCost / (totalTokens / 1_000_000) : 0
   const avgTokensPerRequest = hasRequestData && totalRequests > 0 ? totalTokens / totalRequests : 0
   const avgCostPerRequest = hasRequestData && totalRequests > 0 ? totalCost / totalRequests : 0
-  const avgModelsPerDay = activeDays > 0 ? totalModelsUsed / data.length : 0
+  const avgModelsPerEntry = data.length > 0 ? totalModelsUsed / data.length : 0
   const cacheBase = totalCacheRead + totalCacheCreate + totalInput + totalOutput + totalThinking
   const cacheHitRate = cacheBase > 0 ? (totalCacheRead / cacheBase) * 100 : 0
 
@@ -120,7 +120,7 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
 
   return {
     totalCost, totalTokens, activeDays, topModel, topRequestModel, topTokenModel, topModelShare, topThreeModelsShare, topProvider, providerCount: providerCosts.size, hasRequestData, cacheHitRate,
-    costPerMillion, avgTokensPerRequest, avgCostPerRequest, avgModelsPerDay, avgDailyCost, avgRequestsPerDay, topDay, cheapestDay, busiestWeek, weekendCostShare,
+    costPerMillion, avgTokensPerRequest, avgCostPerRequest, avgModelsPerEntry, avgDailyCost, avgRequestsPerDay, topDay, cheapestDay, busiestWeek, weekendCostShare,
     totalInput, totalOutput, totalCacheRead, totalCacheCreate,
     totalThinking, totalRequests,
     weekOverWeekChange,
@@ -162,6 +162,7 @@ function computeBusiestWeek(data: DailyUsage[]): { start: string; end: string; c
 }
 
 export function computeWeekOverWeekChange(data: DailyUsage[]): number | null {
+  if (data.some(entry => !/^\d{4}-\d{2}-\d{2}$/.test(entry.date))) return null
   if (data.length < 14) return null
   const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
   const last7 = sorted.slice(-7)
@@ -221,7 +222,7 @@ export function computeModelCosts(data: DailyUsage[]): Map<string, {
 }
 
 export function computeProviderMetrics(data: DailyUsage[]): Map<string, AggregateMetrics> {
-  const map = new Map<string, AggregateMetrics>()
+  const map = new Map<string, AggregateMetrics & { _dates: Set<string> }>()
 
   for (const day of data) {
     const entryDays = day._aggregatedDays ?? 1
@@ -238,6 +239,7 @@ export function computeProviderMetrics(data: DailyUsage[]): Map<string, Aggregat
         thinking: 0,
         requests: 0,
         days: 0,
+        _dates: new Set<string>(),
       }
 
       existing.cost += breakdown.cost
@@ -248,12 +250,18 @@ export function computeProviderMetrics(data: DailyUsage[]): Map<string, Aggregat
       existing.thinking += breakdown.thinkingTokens
       existing.requests += breakdown.requestCount
       existing.tokens += breakdown.inputTokens + breakdown.outputTokens + breakdown.cacheReadTokens + breakdown.cacheCreationTokens + breakdown.thinkingTokens
-      existing.days += entryDays
+      if (!existing._dates.has(day.date)) {
+        existing._dates.add(day.date)
+        existing.days += entryDays
+      }
       map.set(provider, existing)
     }
   }
 
-  return map
+  return new Map(Array.from(map.entries()).map(([provider, value]) => {
+    const { _dates: _unusedDates, ...metrics } = value
+    return [provider, metrics]
+  }))
 }
 
 function computeCacheHitRate(cacheRead: number, cacheCreate: number, input: number, output: number, thinking: number): number {

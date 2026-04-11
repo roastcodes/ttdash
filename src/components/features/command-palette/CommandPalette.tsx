@@ -7,17 +7,20 @@ import {
   Table, Search, ArrowUp, CircleHelp, Zap, Filter, BarChart3,
   LineChart, Sigma, CalendarRange, Layers3, ArrowDown, RefreshCcw, SlidersHorizontal, Languages
 } from 'lucide-react'
-import type { AppLanguage, ViewMode } from '@/types'
+import { DASHBOARD_SECTION_DEFINITION_MAP } from '@/lib/dashboard-preferences'
+import type { AppLanguage, DashboardSectionId, DashboardSectionOrder, DashboardSectionVisibility, ViewMode } from '@/types'
 
 interface CommandPaletteProps {
   isDark: boolean
-  currentLanguage: AppLanguage
   availableProviders: string[]
   selectedProviders: string[]
   availableModels: string[]
   selectedModels: string[]
   hasTodaySection: boolean
   hasMonthSection: boolean
+  hasRequestSection: boolean
+  sectionVisibility: DashboardSectionVisibility
+  sectionOrder: DashboardSectionOrder
   reportGenerating: boolean
   onToggleTheme: () => void
   onExportCSV: () => void
@@ -25,7 +28,7 @@ interface CommandPaletteProps {
   onDelete: () => void
   onUpload: () => void
   onAutoImport: () => void
-  onOpenLimits: () => void
+  onOpenSettings: () => void
   onScrollTo: (section: string) => void
   onViewModeChange: (mode: ViewMode) => void
   onApplyPreset: (preset: string) => void
@@ -49,6 +52,45 @@ interface CommandItem {
   icon: React.ReactNode
   action: () => void
   group: string
+  testId?: string
+}
+
+const SECTION_COMMAND_ICON_MAP: Record<DashboardSectionId, React.ReactNode> = {
+  insights: <Sigma className="h-4 w-4" />,
+  metrics: <ChartBar className="h-4 w-4" />,
+  today: <Calendar className="h-4 w-4" />,
+  currentMonth: <CalendarRange className="h-4 w-4" />,
+  activity: <Calendar className="h-4 w-4" />,
+  forecastCache: <LineChart className="h-4 w-4" />,
+  limits: <SlidersHorizontal className="h-4 w-4" />,
+  costAnalysis: <BarChart3 className="h-4 w-4" />,
+  tokenAnalysis: <Layers3 className="h-4 w-4" />,
+  requestAnalysis: <LineChart className="h-4 w-4" />,
+  advancedAnalysis: <Sigma className="h-4 w-4" />,
+  comparisons: <LineChart className="h-4 w-4" />,
+  tables: <Table className="h-4 w-4" />,
+}
+
+const SECTION_COMMAND_KEYWORDS: Record<DashboardSectionId, string[]> = {
+  insights: ['summary', 'insight'],
+  metrics: ['kpi', 'zahlen'],
+  today: ['today', 'heute'],
+  currentMonth: ['monat', 'current month'],
+  activity: ['heatmap', 'aktivität'],
+  forecastCache: ['forecast', 'cache', 'roi'],
+  limits: ['limits', 'subscriptions', 'budget', 'anbieter limits'],
+  costAnalysis: ['charts', 'kostenanalyse'],
+  tokenAnalysis: ['tokens', 'token analyse'],
+  requestAnalysis: ['requests', 'request analyse', 'anfragen'],
+  advancedAnalysis: ['advanced analysis', 'distributions', 'risk', 'verteilungen'],
+  comparisons: ['anomalie', 'vergleich'],
+  tables: ['table', 'details'],
+}
+
+const SECTION_COMMAND_ALIASES: Partial<Record<DashboardSectionId, string[]>> = {
+  limits: ['limits sektion', 'subscriptions sektion'],
+  tokenAnalysis: ['token chart'],
+  requestAnalysis: ['request chart', 'request donut'],
 }
 
 function normalizeSearchValue(value: string) {
@@ -117,13 +159,15 @@ function getCommandSearchScore(cmd: CommandItem, query: string) {
 
 export function CommandPalette({
   isDark,
-  currentLanguage,
   availableProviders,
   selectedProviders,
   availableModels,
   selectedModels,
   hasTodaySection,
   hasMonthSection,
+  hasRequestSection,
+  sectionVisibility,
+  sectionOrder,
   reportGenerating,
   onToggleTheme,
   onExportCSV,
@@ -131,7 +175,7 @@ export function CommandPalette({
   onDelete,
   onUpload,
   onAutoImport,
-  onOpenLimits,
+  onOpenSettings,
   onScrollTo,
   onViewModeChange,
   onApplyPreset,
@@ -148,6 +192,22 @@ export function CommandPalette({
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
 
+  const sectionAvailability = useMemo<Record<DashboardSectionId, boolean>>(() => ({
+    insights: true,
+    metrics: true,
+    today: hasTodaySection,
+    currentMonth: hasMonthSection,
+    activity: true,
+    forecastCache: true,
+    limits: true,
+    costAnalysis: true,
+    tokenAnalysis: true,
+    requestAnalysis: hasRequestSection,
+    advancedAnalysis: true,
+    comparisons: true,
+    tables: true,
+  }), [hasMonthSection, hasRequestSection, hasTodaySection])
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -159,9 +219,33 @@ export function CommandPalette({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const baseCommands: CommandItem[] = [
+  const sectionNavigationCommands = useMemo<CommandItem[]>(() => (
+    sectionOrder.flatMap((sectionId) => {
+      const section = DASHBOARD_SECTION_DEFINITION_MAP[sectionId]
+
+      if (!sectionVisibility[sectionId] || !sectionAvailability[sectionId]) {
+        return []
+      }
+
+      const sectionLabel = t(section.labelKey)
+
+      return [{
+        id: `section-${section.id}`,
+        label: t('commandPalette.commands.goToSection.label', { section: sectionLabel }),
+        description: t('commandPalette.commands.goToSection.description', { section: sectionLabel }),
+        keywords: [sectionLabel, section.domId, ...SECTION_COMMAND_KEYWORDS[section.id]],
+        aliases: SECTION_COMMAND_ALIASES[section.id],
+        icon: SECTION_COMMAND_ICON_MAP[section.id],
+        action: () => onScrollTo(section.domId),
+        group: t('commandPalette.groups.navigation'),
+        testId: `command-section-${section.id}`,
+      }]
+    })
+  ), [onScrollTo, sectionAvailability, sectionOrder, sectionVisibility, t])
+
+  const baseCommands = useMemo<CommandItem[]>(() => [
     { id: 'auto-import', label: t('commandPalette.commands.autoImport.label'), description: t('commandPalette.commands.autoImport.description'), keywords: ['toktrack', 'import', 'load', 'sync'], aliases: ['auto import', 'daten importieren'], icon: <Zap className="h-4 w-4" />, action: onAutoImport, group: t('commandPalette.groups.actions') },
-    { id: 'limits-open', label: t('commandPalette.commands.openLimits.label'), description: t('commandPalette.commands.openLimits.description'), keywords: ['limits', 'subscription', 'anbieter limit', 'budget'], aliases: ['limits dialog', 'subscriptions öffnen', 'provider limits'], icon: <SlidersHorizontal className="h-4 w-4" />, action: onOpenLimits, group: t('commandPalette.groups.actions') },
+    { id: 'settings-open', label: t('commandPalette.commands.openSettings.label'), description: t('commandPalette.commands.openSettings.description'), keywords: ['settings', 'limits', 'subscription', 'anbieter limit', 'backup'], aliases: ['settings dialog', 'einstellungen öffnen', 'provider limits'], icon: <SlidersHorizontal className="h-4 w-4" />, action: onOpenSettings, group: t('commandPalette.groups.actions') },
     { id: 'csv', label: t('commandPalette.commands.exportCsv.label'), description: t('commandPalette.commands.exportCsv.description'), keywords: ['download', 'export', 'csv'], aliases: ['csv download', 'daten exportieren'], shortcut: '⌘E', icon: <Download className="h-4 w-4" />, action: onExportCSV, group: t('commandPalette.groups.actions') },
     { id: 'report', label: reportGenerating ? t('commandPalette.commands.generateReport.labelLoading') : t('commandPalette.commands.generateReport.label'), description: t('commandPalette.commands.generateReport.description'), keywords: ['pdf', 'report', 'bericht', 'export'], aliases: ['report export', 'pdf export', 'bericht generieren'], icon: <Download className="h-4 w-4" />, action: onGenerateReport, group: t('commandPalette.groups.actions') },
     { id: 'upload', label: t('commandPalette.commands.upload.label'), description: t('commandPalette.commands.upload.description'), keywords: ['upload', 'file', 'json', 'import'], aliases: ['datei laden', 'json import'], shortcut: '⌘U', icon: <Upload className="h-4 w-4" />, action: onUpload, group: t('commandPalette.groups.actions') },
@@ -183,24 +267,34 @@ export function CommandPalette({
     { id: 'top', label: t('commandPalette.commands.scrollTop.label'), description: t('commandPalette.commands.scrollTop.description'), keywords: ['top', 'start', 'anfang'], shortcut: '⌘↑', icon: <ArrowUp className="h-4 w-4" />, action: () => window.scrollTo({ top: 0, behavior: 'smooth' }), group: t('commandPalette.groups.navigation') },
     { id: 'bottom', label: t('commandPalette.commands.scrollBottom.label'), description: t('commandPalette.commands.scrollBottom.description'), keywords: ['bottom', 'ende'], icon: <ArrowDown className="h-4 w-4" />, action: () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), group: t('commandPalette.groups.navigation') },
     { id: 'filters', label: t('commandPalette.commands.filters.label'), description: t('commandPalette.commands.filters.description'), keywords: ['filterbar', 'filter'], icon: <Filter className="h-4 w-4" />, action: () => onScrollTo('filters'), group: t('commandPalette.groups.navigation') },
-    { id: 'insights', label: t('commandPalette.commands.insights.label'), description: t('commandPalette.commands.insights.description'), keywords: ['summary', 'insight'], icon: <Sigma className="h-4 w-4" />, action: () => onScrollTo('insights'), group: t('commandPalette.groups.navigation') },
-    { id: 'metrics', label: t('commandPalette.commands.metrics.label'), description: t('commandPalette.commands.metrics.description'), keywords: ['kpi', 'zahlen'], icon: <ChartBar className="h-4 w-4" />, action: () => onScrollTo('metrics'), group: t('commandPalette.groups.navigation') },
-    ...(hasTodaySection ? [{ id: 'today', label: t('commandPalette.commands.today.label'), description: t('commandPalette.commands.today.description'), keywords: ['today', 'heute'], icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('today'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
-    ...(hasMonthSection ? [{ id: 'month', label: t('commandPalette.commands.month.label'), description: t('commandPalette.commands.month.description'), keywords: ['monat', 'current month'], icon: <CalendarRange className="h-4 w-4" />, action: () => onScrollTo('current-month'), group: t('commandPalette.groups.navigation') } satisfies CommandItem] : []),
-    { id: 'activity', label: t('commandPalette.commands.activity.label'), description: t('commandPalette.commands.activity.description'), keywords: ['heatmap', 'aktivität'], icon: <Calendar className="h-4 w-4" />, action: () => onScrollTo('activity'), group: t('commandPalette.groups.navigation') },
-    { id: 'forecast-cache', label: t('commandPalette.commands.forecastCache.label'), description: t('commandPalette.commands.forecastCache.description'), keywords: ['forecast', 'cache', 'roi'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('forecast-cache'), group: t('commandPalette.groups.navigation') },
-    { id: 'limits', label: t('commandPalette.commands.limits.label'), description: t('commandPalette.commands.limits.description'), keywords: ['limits', 'subscriptions', 'budget', 'anbieter limits'], aliases: ['limits sektion', 'subscriptions sektion'], icon: <SlidersHorizontal className="h-4 w-4" />, action: () => onScrollTo('limits'), group: t('commandPalette.groups.navigation') },
-    { id: 'charts', label: t('commandPalette.commands.charts.label'), description: t('commandPalette.commands.charts.description'), keywords: ['charts', 'kostenanalyse'], icon: <BarChart3 className="h-4 w-4" />, action: () => onScrollTo('charts'), group: t('commandPalette.groups.navigation') },
-    { id: 'token-analysis', label: t('commandPalette.commands.tokenAnalysis.label'), description: t('commandPalette.commands.tokenAnalysis.description'), keywords: ['tokens', 'token analyse'], aliases: ['token chart'], icon: <Layers3 className="h-4 w-4" />, action: () => onScrollTo('token-analysis'), group: t('commandPalette.groups.navigation') },
-    { id: 'request-analysis', label: t('commandPalette.commands.requestAnalysis.label'), description: t('commandPalette.commands.requestAnalysis.description'), keywords: ['requests', 'request analyse', 'anfragen'], aliases: ['request chart', 'request donut'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('request-analysis'), group: t('commandPalette.groups.navigation') },
-    { id: 'comparisons', label: t('commandPalette.commands.comparisons.label'), description: t('commandPalette.commands.comparisons.description'), keywords: ['anomalie', 'vergleich'], icon: <LineChart className="h-4 w-4" />, action: () => onScrollTo('comparisons'), group: t('commandPalette.groups.navigation') },
-    { id: 'tables', label: t('commandPalette.commands.tables.label'), description: t('commandPalette.commands.tables.description'), keywords: ['table', 'details'], icon: <Table className="h-4 w-4" />, action: () => onScrollTo('tables'), group: t('commandPalette.groups.navigation') },
+    ...sectionNavigationCommands,
 
     { id: 'theme', label: isDark ? t('commandPalette.commands.themeLight.label') : t('commandPalette.commands.themeDark.label'), description: t('commandPalette.commands.themeDark.description'), keywords: ['theme', 'dark', 'light'], shortcut: '⌘D', icon: isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />, action: onToggleTheme, group: t('commandPalette.groups.view') },
     { id: 'language-de', label: t('commandPalette.commands.languageGerman.label'), description: t('commandPalette.commands.languageGerman.description'), keywords: ['language', 'sprache', 'deutsch', 'german', 'locale'], aliases: ['switch german', 'auf deutsch', 'sprache deutsch'], icon: <Languages className="h-4 w-4" />, action: () => onLanguageChange('de'), group: t('commandPalette.groups.language') },
     { id: 'language-en', label: t('commandPalette.commands.languageEnglish.label'), description: t('commandPalette.commands.languageEnglish.description'), keywords: ['language', 'sprache', 'english', 'englisch', 'locale'], aliases: ['switch english', 'auf englisch', 'sprache english'], icon: <Languages className="h-4 w-4" />, action: () => onLanguageChange('en'), group: t('commandPalette.groups.language') },
     { id: 'help', label: t('commandPalette.commands.help.label'), description: t('commandPalette.commands.help.description'), keywords: ['shortcut', 'hilfe'], shortcut: '?', icon: <CircleHelp className="h-4 w-4" />, action: onHelp, group: t('commandPalette.groups.help') },
-  ]
+  ], [
+    isDark,
+    onAutoImport,
+    onOpenSettings,
+    onExportCSV,
+    onGenerateReport,
+    onUpload,
+    onDelete,
+    onViewModeChange,
+    onApplyPreset,
+    onClearProviders,
+    onClearModels,
+    onClearDateRange,
+    onResetAll,
+    onScrollTo,
+    sectionNavigationCommands,
+    reportGenerating,
+    onToggleTheme,
+    onLanguageChange,
+    onHelp,
+    t,
+  ])
 
   const providerCommands = useMemo<CommandItem[]>(() => (
     availableProviders.map(provider => {
@@ -238,7 +332,7 @@ export function CommandPalette({
     ...baseCommands,
     ...providerCommands,
     ...modelCommands,
-  ], [baseCommands, providerCommands, modelCommands, currentLanguage])
+  ], [baseCommands, providerCommands, modelCommands])
 
   const filteredCommands = useMemo(() => (
     commands
@@ -312,6 +406,7 @@ export function CommandPalette({
                   <Command.Item
                     key={cmd.id}
                     value={cmd.id}
+                    data-testid={cmd.testId ?? `command-${cmd.id}`}
                     onSelect={() => runCommand(cmd)}
                     className="flex items-center gap-2 rounded-md px-2 py-2 text-sm cursor-pointer aria-selected:bg-accent"
                   >

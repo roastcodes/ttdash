@@ -4,6 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const readline = require('readline/promises');
 const { spawn } = require('child_process');
 const { parseArgs } = require('util');
 const { normalizeIncomingData } = require('./usage-normalizer');
@@ -15,10 +16,12 @@ const STATIC_ROOT = path.join(ROOT, 'dist');
 const APP_DIR_NAME = 'TTDash';
 const APP_DIR_NAME_LINUX = 'ttdash';
 const LEGACY_DATA_FILE = path.join(ROOT, 'data.json');
-const CLI_OPTIONS = parseCliArgs(process.argv.slice(2));
+const RAW_CLI_ARGS = process.argv.slice(2);
+const NORMALIZED_CLI_ARGS = normalizeCliArgs(RAW_CLI_ARGS);
+const CLI_OPTIONS = parseCliArgs(RAW_CLI_ARGS);
 const ENV_START_PORT = parseInt(process.env.PORT, 10);
 const START_PORT = CLI_OPTIONS.port ?? (Number.isFinite(ENV_START_PORT) ? ENV_START_PORT : 3000);
-const MAX_PORT = START_PORT + 100;
+const MAX_PORT = Math.min(START_PORT + 100, 65535);
 const BIND_HOST = process.env.HOST || '127.0.0.1';
 const API_PREFIX = '/port/5000/api';
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -32,14 +35,51 @@ const SECURITY_HEADERS = {
   'Content-Security-Policy': "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
 };
 const APP_LABEL = 'TTDash';
+const SETTINGS_BACKUP_KIND = 'ttdash-settings-backup';
+const USAGE_BACKUP_KIND = 'ttdash-usage-backup';
+const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
+const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
+const BACKGROUND_START_TIMEOUT_MS = 15000;
+const DASHBOARD_DATE_PRESETS = ['all', '7d', '30d', 'month', 'year'];
+const DASHBOARD_SECTION_IDS = [
+  'insights',
+  'metrics',
+  'today',
+  'currentMonth',
+  'activity',
+  'forecastCache',
+  'limits',
+  'costAnalysis',
+  'tokenAnalysis',
+  'requestAnalysis',
+  'advancedAnalysis',
+  'comparisons',
+  'tables',
+];
 const DEFAULT_SETTINGS = {
   language: 'de',
   theme: 'dark',
   providerLimits: {},
+  defaultFilters: {
+    viewMode: 'daily',
+    datePreset: 'all',
+    providers: [],
+    models: [],
+  },
+  sectionVisibility: Object.fromEntries(DASHBOARD_SECTION_IDS.map((sectionId) => [sectionId, true])),
+  sectionOrder: DASHBOARD_SECTION_IDS,
   lastLoadedAt: null,
   lastLoadSource: null,
 };
 let startupAutoLoadCompleted = false;
+const RUNTIME_INSTANCE = {
+  id: process.env.TTDASH_INSTANCE_ID || `${process.pid}-${Date.now()}`,
+  pid: process.pid,
+  startedAt: new Date().toISOString(),
+  mode: IS_BACKGROUND_CHILD ? 'background' : 'foreground',
+};
+let runtimePort = null;
+let runtimeUrl = null;
 
 function normalizeCliArgs(args) {
   return args.map((arg) => {
@@ -49,6 +89,9 @@ function normalizeCliArgs(args) {
     if (arg === '-al') {
       return '--auto-load';
     }
+    if (arg === '-bg') {
+      return '--background';
+    }
     return arg;
   });
 }
@@ -56,21 +99,25 @@ function normalizeCliArgs(args) {
 function printHelp() {
   console.log(`TTDash v${APP_VERSION}`);
   console.log('');
-  console.log('Verwendung:');
-  console.log('  ttdash [optionen]');
+  console.log('Usage:');
+  console.log('  ttdash [options]');
+  console.log('  ttdash stop');
   console.log('');
-  console.log('Optionen:');
-  console.log('  -p, --port <port>   Startport festlegen');
-  console.log('  -h, --help          Diese Hilfe anzeigen');
-  console.log('  -no, --no-open      Browser-Autostart deaktivieren');
-  console.log('  -al, --auto-load    Führt direkt beim Start einen Auto-Import aus');
+  console.log('Options:');
+  console.log('  -p, --port <port>   Set the start port');
+  console.log('  -h, --help          Show this help');
+  console.log('  -no, --no-open      Disable browser auto-open');
+  console.log('  -al, --auto-load    Run auto-import immediately on startup');
+  console.log('  -b, --background    Start TTDash as a background process');
   console.log('');
-  console.log('Beispiele:');
+  console.log('Examples:');
   console.log('  ttdash --port 3010');
   console.log('  ttdash -p 3010 -no');
   console.log('  ttdash --auto-load');
+  console.log('  ttdash --background');
+  console.log('  ttdash stop');
   console.log('');
-  console.log('Umgebungsvariablen:');
+  console.log('Environment variables:');
   console.log('  PORT=3010 ttdash');
   console.log('  NO_OPEN_BROWSER=1 ttdash');
   console.log('  HOST=127.0.0.1 ttdash');
@@ -83,7 +130,7 @@ function parseCliArgs(rawArgs) {
   try {
     parsed = parseArgs({
       args,
-      allowPositionals: false,
+      allowPositionals: true,
       strict: true,
       options: {
         port: {
@@ -100,6 +147,10 @@ function parseCliArgs(rawArgs) {
         'auto-load': {
           type: 'boolean',
         },
+        background: {
+          type: 'boolean',
+          short: 'b',
+        },
       },
     });
   } catch (error) {
@@ -114,11 +165,30 @@ function parseCliArgs(rawArgs) {
     process.exit(0);
   }
 
+  let command = null;
+  if (parsed.positionals.length > 1) {
+    console.error(`Unknown invocation: ${parsed.positionals.join(' ')}`);
+    console.log('');
+    printHelp();
+    process.exit(1);
+  }
+
+  if (parsed.positionals.length === 1) {
+    if (parsed.positionals[0] !== 'stop') {
+      console.error(`Unknown command: ${parsed.positionals[0]}`);
+      console.log('');
+      printHelp();
+      process.exit(1);
+    }
+
+    command = 'stop';
+  }
+
   let port;
   if (parsed.values.port !== undefined) {
     const parsedPort = Number.parseInt(parsed.values.port, 10);
     if (!Number.isInteger(parsedPort) || parsedPort <= 0 || parsedPort > 65535) {
-      console.error(`Ungültiger Port: ${parsed.values.port}`);
+      console.error(`Invalid port: ${parsed.values.port}`);
       console.log('');
       printHelp();
       process.exit(1);
@@ -127,37 +197,49 @@ function parseCliArgs(rawArgs) {
   }
 
   return {
+    command,
     port,
     noOpen: Boolean(parsed.values['no-open']),
     autoLoad: Boolean(parsed.values['auto-load']),
+    background: Boolean(parsed.values.background),
   };
 }
 
 function resolveAppPaths() {
   const homeDir = os.homedir();
+  const explicitPaths = {
+    dataDir: process.env.TTDASH_DATA_DIR,
+    configDir: process.env.TTDASH_CONFIG_DIR,
+    cacheDir: process.env.TTDASH_CACHE_DIR,
+  };
+  let platformPaths;
 
   if (process.platform === 'darwin') {
     const appSupportDir = path.join(homeDir, 'Library', 'Application Support', APP_DIR_NAME);
-    return {
+    platformPaths = {
       dataDir: appSupportDir,
       configDir: appSupportDir,
       cacheDir: path.join(homeDir, 'Library', 'Caches', APP_DIR_NAME),
     };
-  }
-
-  if (IS_WINDOWS) {
-    return {
+  } else if (IS_WINDOWS) {
+    platformPaths = {
       dataDir: path.join(process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'), APP_DIR_NAME),
       configDir: path.join(process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'), APP_DIR_NAME),
       cacheDir: path.join(process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'), APP_DIR_NAME, 'Cache'),
     };
+  } else {
+    const appName = APP_DIR_NAME_LINUX;
+    platformPaths = {
+      dataDir: path.join(process.env.XDG_DATA_HOME || path.join(homeDir, '.local', 'share'), appName),
+      configDir: path.join(process.env.XDG_CONFIG_HOME || path.join(homeDir, '.config'), appName),
+      cacheDir: path.join(process.env.XDG_CACHE_HOME || path.join(homeDir, '.cache'), appName),
+    };
   }
 
-  const appName = APP_DIR_NAME_LINUX;
   return {
-    dataDir: path.join(process.env.XDG_DATA_HOME || path.join(homeDir, '.local', 'share'), appName),
-    configDir: path.join(process.env.XDG_CONFIG_HOME || path.join(homeDir, '.config'), appName),
-    cacheDir: path.join(process.env.XDG_CACHE_HOME || path.join(homeDir, '.cache'), appName),
+    dataDir: explicitPaths.dataDir || platformPaths.dataDir,
+    configDir: explicitPaths.configDir || platformPaths.configDir,
+    cacheDir: explicitPaths.cacheDir || platformPaths.cacheDir,
   };
 }
 
@@ -165,6 +247,11 @@ const APP_PATHS = resolveAppPaths();
 const DATA_FILE = path.join(APP_PATHS.dataDir, 'data.json');
 const SETTINGS_FILE = path.join(APP_PATHS.configDir, 'settings.json');
 const NPX_CACHE_DIR = path.join(APP_PATHS.cacheDir, 'npx-cache');
+const BACKGROUND_INSTANCES_FILE = path.join(APP_PATHS.configDir, 'background-instances.json');
+const BACKGROUND_LOG_DIR = path.join(APP_PATHS.cacheDir, 'background');
+const BACKGROUND_INSTANCES_LOCK_DIR = path.join(APP_PATHS.configDir, 'background-instances.lock');
+const BACKGROUND_INSTANCES_LOCK_TIMEOUT_MS = 5000;
+const BACKGROUND_INSTANCES_LOCK_STALE_MS = 10000;
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -190,6 +277,7 @@ function ensureAppDirs() {
   ensureDir(APP_PATHS.configDir);
   ensureDir(APP_PATHS.cacheDir);
   ensureDir(NPX_CACHE_DIR);
+  ensureDir(BACKGROUND_LOG_DIR);
 }
 
 function writeJsonAtomic(filePath, data) {
@@ -197,6 +285,470 @@ function writeJsonAtomic(filePath, data) {
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
   fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
   fs.renameSync(tempPath, filePath);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function formatDateTime(value) {
+  return new Intl.DateTimeFormat('de-CH', {
+    dateStyle: 'short',
+    timeStyle: 'medium',
+  }).format(new Date(value));
+}
+
+function isProcessRunning(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return false;
+  }
+
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error && error.code === 'EPERM';
+  }
+}
+
+async function fetchRuntimeIdentity(url, timeoutMs = 1000) {
+  if (typeof url !== 'string' || !url.trim()) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(new URL('/api/runtime', `${url}/`), {
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await response.json();
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    return payload;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function isBackgroundInstanceOwned(instance) {
+  if (!instance || typeof instance !== 'object') {
+    return false;
+  }
+
+  if (!isProcessRunning(instance.pid)) {
+    return false;
+  }
+
+  const runtime = await fetchRuntimeIdentity(instance.url);
+  if (!runtime || typeof runtime.id !== 'string') {
+    return false;
+  }
+
+  return runtime.id === instance.id
+    && runtime.pid === instance.pid
+    && runtime.port === instance.port;
+}
+
+function normalizeBackgroundInstance(value) {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const pid = Number.parseInt(value.pid, 10);
+  const port = Number.parseInt(value.port, 10);
+  const startedAt = normalizeIsoTimestamp(value.startedAt);
+  const id = typeof value.id === 'string' && value.id.trim()
+    ? value.id.trim()
+    : null;
+  const url = typeof value.url === 'string' && value.url.trim()
+    ? value.url.trim()
+    : null;
+  const host = typeof value.host === 'string' && value.host.trim()
+    ? value.host.trim()
+    : BIND_HOST;
+
+  if (!id || !url || !startedAt || !Number.isInteger(pid) || pid <= 0 || !Number.isInteger(port) || port <= 0) {
+    return null;
+  }
+
+  return {
+    id,
+    pid,
+    port,
+    url,
+    host,
+    startedAt,
+    logFile: typeof value.logFile === 'string' && value.logFile.trim()
+      ? value.logFile.trim()
+      : null,
+  };
+}
+
+function readBackgroundInstancesRaw() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(BACKGROUND_INSTANCES_FILE, 'utf-8'));
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {}
+
+  return [];
+}
+
+function writeBackgroundInstances(instances) {
+  writeJsonAtomic(BACKGROUND_INSTANCES_FILE, instances);
+}
+
+async function readBackgroundInstancesSnapshot() {
+  const normalized = readBackgroundInstancesRaw()
+    .map(normalizeBackgroundInstance)
+    .filter(Boolean);
+  const alive = [];
+
+  for (const instance of normalized) {
+    if (await isBackgroundInstanceOwned(instance)) {
+      alive.push(instance);
+    }
+  }
+
+  const changed = readBackgroundInstancesRaw().length !== alive.length;
+
+  alive.sort((left, right) => {
+    const byStartedAt = left.startedAt.localeCompare(right.startedAt);
+    if (byStartedAt !== 0) {
+      return byStartedAt;
+    }
+    return left.port - right.port;
+  });
+
+  return {
+    normalized,
+    alive,
+    changed,
+  };
+}
+
+async function getBackgroundInstances() {
+  return (await readBackgroundInstancesSnapshot()).alive;
+}
+
+async function withBackgroundInstancesLock(callback, timeoutMs = BACKGROUND_INSTANCES_LOCK_TIMEOUT_MS) {
+  const startedAt = Date.now();
+
+  while (true) {
+    try {
+      fs.mkdirSync(BACKGROUND_INSTANCES_LOCK_DIR);
+      break;
+    } catch (error) {
+      if (!error || error.code !== 'EEXIST') {
+        throw error;
+      }
+
+      let lockIsStale = false;
+      try {
+        const stats = fs.statSync(BACKGROUND_INSTANCES_LOCK_DIR);
+        lockIsStale = (Date.now() - stats.mtimeMs) > BACKGROUND_INSTANCES_LOCK_STALE_MS;
+      } catch {}
+
+      if (lockIsStale) {
+        try {
+          fs.rmSync(BACKGROUND_INSTANCES_LOCK_DIR, { recursive: true, force: true });
+          continue;
+        } catch {}
+      }
+
+      if (Date.now() - startedAt >= timeoutMs) {
+        throw new Error('Could not acquire background registry lock.');
+      }
+
+      await sleep(50);
+    }
+  }
+
+  try {
+    return await callback();
+  } finally {
+    try {
+      fs.rmSync(BACKGROUND_INSTANCES_LOCK_DIR, { recursive: true, force: true });
+    } catch {}
+  }
+}
+
+async function pruneBackgroundInstances() {
+  return withBackgroundInstancesLock(async () => {
+    const snapshot = await readBackgroundInstancesSnapshot();
+    if (snapshot.changed) {
+      writeBackgroundInstances(snapshot.alive);
+    }
+
+    return snapshot.alive;
+  });
+}
+
+async function registerBackgroundInstance(instance) {
+  return withBackgroundInstancesLock(async () => {
+    const instances = (await readBackgroundInstancesSnapshot()).alive;
+    const nextInstances = instances.filter((entry) => entry.pid !== instance.pid);
+    nextInstances.push(instance);
+    nextInstances.sort((left, right) => {
+      const byStartedAt = left.startedAt.localeCompare(right.startedAt);
+      if (byStartedAt !== 0) {
+        return byStartedAt;
+      }
+      return left.port - right.port;
+    });
+    writeBackgroundInstances(nextInstances);
+  });
+}
+
+async function unregisterBackgroundInstance(pid) {
+  return withBackgroundInstancesLock(async () => {
+    const instances = (await readBackgroundInstancesSnapshot()).alive;
+    const nextInstances = instances.filter((entry) => entry.pid !== pid);
+    if (nextInstances.length !== instances.length) {
+      writeBackgroundInstances(nextInstances);
+    }
+  });
+}
+
+function createBackgroundInstance({ port, url }) {
+  return {
+    id: RUNTIME_INSTANCE.id,
+    pid: RUNTIME_INSTANCE.pid,
+    port,
+    url,
+    host: BIND_HOST,
+    startedAt: RUNTIME_INSTANCE.startedAt,
+    logFile: process.env.TTDASH_BACKGROUND_LOG_FILE || null,
+  };
+}
+
+function buildBackgroundLogFilePath() {
+  return path.join(BACKGROUND_LOG_DIR, `server-${Date.now()}.log`);
+}
+
+async function waitForBackgroundInstance(pid, timeoutMs = BACKGROUND_START_TIMEOUT_MS) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const instance = (await getBackgroundInstances()).find((entry) => entry.pid === pid);
+    if (instance) {
+      return instance;
+    }
+
+    if (!isProcessRunning(pid)) {
+      return null;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
+  return null;
+}
+
+async function waitForBackgroundInstanceExit(instance, timeoutMs = 5000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (!(await isBackgroundInstanceOwned(instance))) {
+      return true;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+
+  return !(await isBackgroundInstanceOwned(instance));
+}
+
+function formatBackgroundInstanceLabel(instance, index) {
+  const parts = [
+    `${index + 1}. ${instance.url}`,
+    `PID ${instance.pid}`,
+    `Port ${instance.port}`,
+    `started ${formatDateTime(instance.startedAt)}`,
+  ];
+
+  if (instance.logFile) {
+    parts.push(`log ${instance.logFile}`);
+  }
+
+  return parts.join(' | ');
+}
+
+async function promptForBackgroundInstance(instances) {
+  if (instances.length === 1) {
+    return instances[0];
+  }
+
+  console.log('Multiple TTDash background servers are running:');
+  instances.forEach((instance, index) => {
+    console.log(`  ${formatBackgroundInstanceLabel(instance, index)}`);
+  });
+  console.log('');
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    while (true) {
+      const answer = (await rl.question(`Which instance should be stopped? [1-${instances.length}, Enter=cancel] `)).trim();
+
+      if (!answer) {
+        return null;
+      }
+
+      const selection = Number.parseInt(answer, 10);
+      if (Number.isInteger(selection) && selection >= 1 && selection <= instances.length) {
+        return instances[selection - 1];
+      }
+
+      console.log(`Invalid selection: ${answer}`);
+    }
+  } finally {
+    rl.close();
+  }
+}
+
+async function stopBackgroundInstance(instance) {
+  if (!(await isBackgroundInstanceOwned(instance))) {
+    await unregisterBackgroundInstance(instance.pid);
+    return {
+      status: 'already-stopped',
+      instance,
+    };
+  }
+
+  try {
+    process.kill(instance.pid, 'SIGTERM');
+  } catch (error) {
+    if (error && error.code === 'ESRCH') {
+      await unregisterBackgroundInstance(instance.pid);
+      return {
+        status: 'already-stopped',
+        instance,
+      };
+    }
+
+    if (error && error.code === 'EPERM') {
+      return {
+        status: 'forbidden',
+        instance,
+      };
+    }
+
+    throw error;
+  }
+
+  if (await waitForBackgroundInstanceExit(instance)) {
+    await unregisterBackgroundInstance(instance.pid);
+    return {
+      status: 'stopped',
+      instance,
+    };
+  }
+
+  return {
+    status: 'timeout',
+    instance,
+  };
+}
+
+async function runStopCommand() {
+  ensureAppDirs();
+
+  const instances = await pruneBackgroundInstances();
+  if (instances.length === 0) {
+    console.log('No running TTDash background servers found.');
+    return;
+  }
+
+  const selectedInstance = await promptForBackgroundInstance(instances);
+  if (!selectedInstance) {
+    console.log('Canceled.');
+    return;
+  }
+
+  const result = await stopBackgroundInstance(selectedInstance);
+  if (result.status === 'stopped') {
+    console.log(`Stopped TTDash background server: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    return;
+  }
+
+  if (result.status === 'already-stopped') {
+    console.log(`Instance was already stopped and was removed from the registry: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    return;
+  }
+
+  if (result.status === 'forbidden') {
+    console.error(`Could not stop TTDash background server (permission denied): ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    process.exitCode = 1;
+    return;
+  }
+
+  console.error(`TTDash background server did not respond to SIGTERM: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+  if (selectedInstance.logFile) {
+    console.error(`Log file: ${selectedInstance.logFile}`);
+  }
+  process.exitCode = 1;
+}
+
+function shouldBackgroundChildOpenBrowser() {
+  return !(CLI_OPTIONS.noOpen || process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1');
+}
+
+async function startInBackground() {
+  ensureAppDirs();
+
+  const logFile = buildBackgroundLogFilePath();
+  const childArgs = NORMALIZED_CLI_ARGS.filter((arg) => arg !== '--background');
+  const logFd = fs.openSync(logFile, 'a');
+
+  let child;
+  try {
+    child = spawn(process.execPath, [__filename, ...childArgs], {
+      detached: true,
+      stdio: ['ignore', logFd, logFd],
+      env: {
+        ...process.env,
+        TTDASH_BACKGROUND_CHILD: '1',
+        TTDASH_BACKGROUND_LOG_FILE: logFile,
+        TTDASH_FORCE_OPEN_BROWSER: shouldBackgroundChildOpenBrowser() ? '1' : '0',
+      },
+    });
+  } finally {
+    fs.closeSync(logFd);
+  }
+
+  child.unref();
+
+  const instance = await waitForBackgroundInstance(child.pid);
+  if (!instance) {
+    const logOutput = fs.existsSync(logFile)
+      ? fs.readFileSync(logFile, 'utf-8').trim()
+      : '';
+    throw new Error(logOutput || `Could not start TTDash as a background process. Log: ${logFile}`);
+  }
+
+  console.log('TTDash is running in the background.');
+  console.log(`  URL:  ${instance.url}`);
+  console.log(`  PID:  ${instance.pid}`);
+  console.log(`  Log:  ${logFile}`);
+  console.log('');
+  console.log('Stop it with:');
+  console.log('  ttdash stop');
 }
 
 function migrateLegacyDataFile() {
@@ -208,13 +760,13 @@ function migrateLegacyDataFile() {
 
   try {
     fs.renameSync(LEGACY_DATA_FILE, DATA_FILE);
-    console.log(`Migriere bestehende Daten nach ${DATA_FILE}`);
+    console.log(`Migrating existing data to ${DATA_FILE}`);
   } catch {
     fs.copyFileSync(LEGACY_DATA_FILE, DATA_FILE);
     try {
       fs.unlinkSync(LEGACY_DATA_FILE);
     } catch {}
-    console.log(`Kopiere bestehende Daten nach ${DATA_FILE}`);
+    console.log(`Copying existing data to ${DATA_FILE}`);
   }
 }
 
@@ -224,6 +776,14 @@ function normalizeLanguage(value) {
 
 function normalizeTheme(value) {
   return value === 'light' ? 'light' : 'dark';
+}
+
+function normalizeViewMode(value) {
+  return value === 'monthly' || value === 'yearly' ? value : 'daily';
+}
+
+function normalizeDashboardDatePreset(value) {
+  return DASHBOARD_DATE_PRESETS.includes(value) ? value : 'all';
 }
 
 function normalizeLastLoadSource(value) {
@@ -248,6 +808,169 @@ function normalizeIsoTimestamp(value) {
 function sanitizeCurrency(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
   return Math.max(0, Number(value.toFixed(2)));
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function computeUsageTotals(daily) {
+  return daily.reduce((totals, day) => ({
+    inputTokens: totals.inputTokens + (day.inputTokens || 0),
+    outputTokens: totals.outputTokens + (day.outputTokens || 0),
+    cacheCreationTokens: totals.cacheCreationTokens + (day.cacheCreationTokens || 0),
+    cacheReadTokens: totals.cacheReadTokens + (day.cacheReadTokens || 0),
+    thinkingTokens: totals.thinkingTokens + (day.thinkingTokens || 0),
+    totalCost: totals.totalCost + (day.totalCost || 0),
+    totalTokens: totals.totalTokens + (day.totalTokens || 0),
+    requestCount: totals.requestCount + (day.requestCount || 0),
+  }), {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheCreationTokens: 0,
+    cacheReadTokens: 0,
+    thinkingTokens: 0,
+    totalCost: 0,
+    totalTokens: 0,
+    requestCount: 0,
+  });
+}
+
+function sortStrings(values) {
+  return [...new Set((Array.isArray(values) ? values : []).filter((value) => typeof value === 'string' && value.trim()))]
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function canonicalizeModelBreakdown(entry) {
+  return {
+    modelName: typeof entry?.modelName === 'string' ? entry.modelName : '',
+    inputTokens: Number(entry?.inputTokens) || 0,
+    outputTokens: Number(entry?.outputTokens) || 0,
+    cacheCreationTokens: Number(entry?.cacheCreationTokens) || 0,
+    cacheReadTokens: Number(entry?.cacheReadTokens) || 0,
+    thinkingTokens: Number(entry?.thinkingTokens) || 0,
+    cost: Number(entry?.cost) || 0,
+    requestCount: Number(entry?.requestCount) || 0,
+  };
+}
+
+function canonicalizeUsageDay(day) {
+  return {
+    date: typeof day?.date === 'string' ? day.date : '',
+    inputTokens: Number(day?.inputTokens) || 0,
+    outputTokens: Number(day?.outputTokens) || 0,
+    cacheCreationTokens: Number(day?.cacheCreationTokens) || 0,
+    cacheReadTokens: Number(day?.cacheReadTokens) || 0,
+    thinkingTokens: Number(day?.thinkingTokens) || 0,
+    totalTokens: Number(day?.totalTokens) || 0,
+    totalCost: Number(day?.totalCost) || 0,
+    requestCount: Number(day?.requestCount) || 0,
+    modelsUsed: sortStrings(day?.modelsUsed),
+    modelBreakdowns: (Array.isArray(day?.modelBreakdowns) ? day.modelBreakdowns : [])
+      .map(canonicalizeModelBreakdown)
+      .sort((left, right) => left.modelName.localeCompare(right.modelName)),
+  };
+}
+
+function areUsageDaysEquivalent(left, right) {
+  return JSON.stringify(canonicalizeUsageDay(left)) === JSON.stringify(canonicalizeUsageDay(right));
+}
+
+function extractSettingsImportPayload(payload) {
+  if (!isPlainObject(payload)) {
+    throw new Error('Uploaded JSON is not a settings backup file.');
+  }
+
+  if (payload.kind === SETTINGS_BACKUP_KIND) {
+    if (!Object.prototype.hasOwnProperty.call(payload, 'settings')) {
+      throw new Error('The settings backup file does not contain any settings.');
+    }
+    if (!isPlainObject(payload.settings)) {
+      throw new Error('The settings backup file has an invalid settings payload.');
+    }
+    return payload.settings;
+  }
+
+  if (typeof payload.kind === 'string' && payload.kind === USAGE_BACKUP_KIND) {
+    throw new Error('This is a data backup file, not a settings file.');
+  }
+
+  throw new Error('Uploaded JSON is not a settings backup file.');
+}
+
+function extractUsageImportPayload(payload) {
+  if (!isPlainObject(payload)) {
+    return payload;
+  }
+
+  if (payload.kind === USAGE_BACKUP_KIND) {
+    if (!Object.prototype.hasOwnProperty.call(payload, 'data')) {
+      throw new Error('The usage backup file does not contain any usage data.');
+    }
+    return payload.data;
+  }
+
+  if (typeof payload.kind === 'string' && payload.kind === SETTINGS_BACKUP_KIND) {
+    throw new Error('This is a settings backup file, not a data file.');
+  }
+
+  return payload;
+}
+
+function mergeUsageData(currentData, importedData) {
+  const current = currentData && Array.isArray(currentData.daily) && currentData.daily.length > 0
+    ? normalizeIncomingData(currentData)
+    : null;
+
+  if (!current) {
+    return {
+      data: importedData,
+      summary: {
+        importedDays: importedData.daily.length,
+        addedDays: importedData.daily.length,
+        unchangedDays: 0,
+        conflictingDays: 0,
+        totalDays: importedData.daily.length,
+      },
+    };
+  }
+
+  const currentByDate = new Map(current.daily.map((day) => [day.date, day]));
+  let addedDays = 0;
+  let unchangedDays = 0;
+  let conflictingDays = 0;
+
+  for (const importedDay of importedData.daily) {
+    const existingDay = currentByDate.get(importedDay.date);
+    if (!existingDay) {
+      currentByDate.set(importedDay.date, importedDay);
+      addedDays += 1;
+      continue;
+    }
+
+    if (areUsageDaysEquivalent(existingDay, importedDay)) {
+      unchangedDays += 1;
+      continue;
+    }
+
+    conflictingDays += 1;
+  }
+
+  const mergedDaily = [...currentByDate.values()].sort((left, right) => left.date.localeCompare(right.date));
+
+  return {
+    data: {
+      daily: mergedDaily,
+      totals: computeUsageTotals(mergedDaily),
+    },
+    summary: {
+      importedDays: importedData.daily.length,
+      addedDays,
+      unchangedDays,
+      conflictingDays,
+      totalDays: mergedDaily.length,
+    },
+  };
 }
 
 function normalizeProviderLimitConfig(value) {
@@ -278,12 +1001,64 @@ function normalizeProviderLimits(value) {
   return next;
 }
 
+function normalizeStringList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [...new Set(value
+    .filter((entry) => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter(Boolean))];
+}
+
+function normalizeDefaultFilters(value) {
+  const source = value && typeof value === 'object' ? value : {};
+
+  return {
+    viewMode: normalizeViewMode(source.viewMode),
+    datePreset: normalizeDashboardDatePreset(source.datePreset),
+    providers: normalizeStringList(source.providers),
+    models: normalizeStringList(source.models),
+  };
+}
+
+function normalizeSectionVisibility(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const next = {};
+
+  for (const sectionId of DASHBOARD_SECTION_IDS) {
+    next[sectionId] = typeof source[sectionId] === 'boolean'
+      ? source[sectionId]
+      : true;
+  }
+
+  return next;
+}
+
+function normalizeSectionOrder(value) {
+  if (!Array.isArray(value)) {
+    return [...DASHBOARD_SECTION_IDS];
+  }
+
+  const incoming = value.filter((sectionId) => (
+    typeof sectionId === 'string' && DASHBOARD_SECTION_IDS.includes(sectionId)
+  ));
+  const uniqueIncoming = [...new Set(incoming)];
+  const missing = DASHBOARD_SECTION_IDS.filter((sectionId) => !uniqueIncoming.includes(sectionId));
+
+  return [...uniqueIncoming, ...missing];
+}
+
 function normalizeSettings(value) {
   const source = value && typeof value === 'object' ? value : {};
   return {
     language: normalizeLanguage(source.language),
     theme: normalizeTheme(source.theme),
     providerLimits: normalizeProviderLimits(source.providerLimits),
+    defaultFilters: normalizeDefaultFilters(source.defaultFilters),
+    sectionVisibility: normalizeSectionVisibility(source.sectionVisibility),
+    sectionOrder: normalizeSectionOrder(source.sectionOrder),
     lastLoadedAt: normalizeIsoTimestamp(source.lastLoadedAt),
     lastLoadSource: normalizeLastLoadSource(source.lastLoadSource),
   };
@@ -320,7 +1095,15 @@ function openBrowser(url) {
 }
 
 function shouldOpenBrowser() {
-  return !(CLI_OPTIONS.noOpen || process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1' || !process.stdout.isTTY);
+  if (CLI_OPTIONS.noOpen || process.env.NO_OPEN_BROWSER === '1' || process.env.CI === '1') {
+    return false;
+  }
+
+  if (FORCE_OPEN_BROWSER) {
+    return true;
+  }
+
+  return Boolean(process.stdout.isTTY);
 }
 
 function formatCurrency(value) {
@@ -338,52 +1121,61 @@ function formatInteger(value) {
 
 function describeDataFile() {
   if (!fs.existsSync(DATA_FILE)) {
-    return 'keine lokale Datei gefunden';
+    return 'no local file found';
   }
 
   try {
     const normalized = readData();
     if (!normalized) {
-      return 'vorhanden, aber nicht lesbar';
+      return 'present, but unreadable';
     }
 
     const totalCost = formatCurrency(normalized.totals?.totalCost || 0);
     const totalTokens = formatInteger(normalized.totals?.totalTokens || 0);
     const dailyCount = formatInteger(normalized.daily?.length || 0);
-    return `${dailyCount} Tage, ${totalCost}, ${totalTokens} Tokens`;
+    return `${dailyCount} days, ${totalCost}, ${totalTokens} tokens`;
   } catch {
-    return 'vorhanden, aber nicht lesbar';
+    return 'present, but unreadable';
   }
 }
 
 function printStartupSummary(url, port) {
   const browserMode = shouldOpenBrowser()
-    ? 'aktiviert'
-    : 'deaktiviert';
+    ? 'enabled'
+    : 'disabled';
   const autoLoadMode = CLI_OPTIONS.autoLoad
-    ? 'aktiviert'
-    : 'deaktiviert';
+    ? 'enabled'
+    : 'disabled';
+  const runtimeMode = IS_BACKGROUND_CHILD
+    ? 'background'
+    : 'foreground';
 
   console.log('');
-  console.log(`${APP_LABEL} v${APP_VERSION} ist bereit`);
+  console.log(`${APP_LABEL} v${APP_VERSION} is ready`);
   console.log(`  URL:            ${url}`);
   console.log(`  API:            ${url}/api/usage`);
   console.log(`  Port:           ${port}`);
   console.log(`  Host:           ${BIND_HOST}`);
+  console.log(`  Mode:           ${runtimeMode}`);
   console.log(`  Static Root:    ${STATIC_ROOT}`);
-  console.log(`  Daten-Datei:    ${DATA_FILE}`);
-  console.log(`  Settings-Datei: ${SETTINGS_FILE}`);
-  console.log(`  Datenstatus:    ${describeDataFile()}`);
-  console.log(`  Browser-Start:  ${browserMode}`);
+  console.log(`  Data File:      ${DATA_FILE}`);
+  console.log(`  Settings File:  ${SETTINGS_FILE}`);
+  if (IS_BACKGROUND_CHILD && process.env.TTDASH_BACKGROUND_LOG_FILE) {
+    console.log(`  Log File:       ${process.env.TTDASH_BACKGROUND_LOG_FILE}`);
+  }
+  console.log(`  Data Status:    ${describeDataFile()}`);
+  console.log(`  Browser Open:   ${browserMode}`);
   console.log(`  Auto-Load:      ${autoLoadMode}`);
   console.log('');
-  console.log('Verfügbare Wege für Daten:');
-  console.log('  1. Auto-Import aus der App starten');
-  console.log('  2. toktrack JSON per Upload importieren');
+  console.log('Available ways to load data:');
+  console.log('  1. Start auto-import from the app');
+  console.log('  2. Import toktrack JSON via upload');
   console.log('');
-  console.log('Nützliche Kommandos:');
+  console.log('Useful commands:');
   console.log(`  ttdash --port ${port}`);
   console.log(`  ttdash --port ${port} --no-open`);
+  console.log('  ttdash --background');
+  console.log('  ttdash stop');
   console.log(`  NO_OPEN_BROWSER=1 PORT=${port} node server.js`);
   console.log(`  curl ${url}/api/usage`);
   console.log('');
@@ -606,8 +1398,8 @@ async function resolveToktrackRunner() {
       command: TOKTRACK_LOCAL_BIN,
       prefixArgs: [],
       env: process.env,
-      method: 'lokal',
-      label: 'lokales toktrack',
+      method: 'local',
+      label: 'local toktrack',
       displayCommand: 'node_modules/.bin/toktrack daily --json',
     };
   }
@@ -672,7 +1464,7 @@ function runToktrack(runner, args, { streamStderr = false, onStderr, signalOnClo
         resolve(stdout.trimEnd());
         return;
       }
-      reject(new Error(stderr.trim() || `${runner.label} konnte nicht gestartet werden.`));
+      reject(new Error(stderr.trim() || `Could not start ${runner.label}.`));
     });
   });
 }
@@ -685,24 +1477,24 @@ async function performAutoImport({
   signalOnClose,
 } = {}) {
   if (autoImportRunning) {
-    throw new Error('Ein Auto-Import läuft bereits. Bitte warten.');
+    throw new Error('An auto-import is already running. Please wait.');
   }
 
   autoImportRunning = true;
   let progressSeconds = 0;
   const progressInterval = setInterval(() => {
     progressSeconds += 5;
-    onOutput(`Verarbeite Nutzungsdaten... (${progressSeconds}s)`);
+    onOutput(`Processing usage data... (${progressSeconds}s)`);
   }, 5000);
 
   try {
     onCheck({ tool: 'toktrack', status: 'checking' });
-    onProgress({ message: 'Starte lokalen toktrack-Import...' });
+    onProgress({ message: 'Starting local toktrack import...' });
 
     const runner = await resolveToktrackRunner();
     if (!runner) {
       onCheck({ tool: 'toktrack', status: 'not_found' });
-      throw new Error('Kein lokales toktrack, Bun oder npm exec gefunden.');
+      throw new Error('No local toktrack, Bun, or npm exec installation found.');
     }
 
     const versionResult = await runToktrack(runner, ['--version']);
@@ -712,7 +1504,7 @@ async function performAutoImport({
       method: runner.label,
       version: String(versionResult).replace(/^toktrack\s+/, ''),
     });
-    onProgress({ message: `Lade Nutzungsdaten via ${runner.displayCommand}...` });
+    onProgress({ message: `Loading usage data via ${runner.displayCommand}...` });
 
     const rawJson = await runToktrack(runner, ['daily', '--json'], {
       streamStderr: true,
@@ -737,14 +1529,14 @@ async function performAutoImport({
 }
 
 async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
-  console.log('Auto-Load aktiviert, starte Import...');
+  console.log('Auto-load enabled, starting import...');
 
   try {
     const result = await performAutoImport({
       source,
       onCheck: (event) => {
         if (event.status === 'found') {
-          console.log(`toktrack gefunden (${event.method}, v${event.version})`);
+          console.log(`toktrack found (${event.method}, v${event.version})`);
         }
       },
       onProgress: (event) => {
@@ -756,10 +1548,10 @@ async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
     });
 
     startupAutoLoadCompleted = true;
-    console.log(`Auto-Load abgeschlossen: ${result.days} Tage importiert, ${formatCurrency(result.totalCost)}.`);
+    console.log(`Auto-load complete: imported ${result.days} days, ${formatCurrency(result.totalCost)}.`);
   } catch (error) {
-    console.error(`Auto-Load fehlgeschlagen: ${error.message}`);
-    console.error('Dashboard startet ohne neu importierte Daten.');
+    console.error(`Auto-load failed: ${error.message}`);
+    console.error('Dashboard will start without newly imported data.');
   }
 }
 
@@ -797,9 +1589,29 @@ const server = http.createServer(async (req, res) => {
     return json(res, 405, { message: 'Method Not Allowed' });
   }
 
+  if (apiPath === '/runtime') {
+    if (req.method !== 'GET') {
+      return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    return json(res, 200, {
+      id: RUNTIME_INSTANCE.id,
+      pid: RUNTIME_INSTANCE.pid,
+      startedAt: RUNTIME_INSTANCE.startedAt,
+      mode: RUNTIME_INSTANCE.mode,
+      port: runtimePort,
+      url: runtimeUrl,
+    });
+  }
+
   if (apiPath === '/settings') {
     if (req.method === 'GET') {
       return json(res, 200, readSettings());
+    }
+
+    if (req.method === 'DELETE') {
+      try { fs.unlinkSync(SETTINGS_FILE); } catch {}
+      return json(res, 200, { success: true, settings: readSettings() });
     }
 
     if (req.method === 'PATCH') {
@@ -807,11 +1619,26 @@ const server = http.createServer(async (req, res) => {
         const body = await readBody(req);
         return json(res, 200, updateSettings(body));
       } catch (e) {
-        return json(res, 400, { message: e.message || 'Ungültige Settings-Anfrage' });
+        return json(res, 400, { message: e.message || 'Invalid settings request' });
       }
     }
 
     return json(res, 405, { message: 'Method Not Allowed' });
+  }
+
+  if (apiPath === '/settings/import') {
+    if (req.method !== 'POST') {
+      return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    try {
+      const body = await readBody(req);
+      const importedSettings = normalizeSettings(extractSettingsImportPayload(body));
+      writeSettings(importedSettings);
+      return json(res, 200, toSettingsResponse(importedSettings));
+    } catch (e) {
+      return json(res, 400, { message: e.message || 'Invalid settings file' });
+    }
   }
 
   if (apiPath === '/upload') {
@@ -827,12 +1654,30 @@ const server = http.createServer(async (req, res) => {
       } catch (e) {
         const status = e.message === 'Payload too large' ? 413 : 400;
         const message = e.message === 'Payload too large'
-          ? 'Datei zu gross (max. 10 MB)'
-          : e.message || 'Ungültiges JSON';
+          ? 'File too large (max. 10 MB)'
+          : e.message || 'Invalid JSON';
         return json(res, status, { message });
       }
     }
     return json(res, 405, { message: 'Method Not Allowed' });
+  }
+
+  if (apiPath === '/usage/import') {
+    if (req.method !== 'POST') {
+      return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    try {
+      const body = await readBody(req);
+      const importedData = normalizeIncomingData(extractUsageImportPayload(body));
+      const currentData = readData();
+      const result = mergeUsageData(currentData, importedData);
+      writeData(result.data);
+      recordDataLoad('file');
+      return json(res, 200, result.summary);
+    } catch (e) {
+      return json(res, 400, { message: e.message || 'Invalid usage backup file' });
+    }
   }
 
   if (apiPath === '/auto-import/stream') {
@@ -881,7 +1726,7 @@ const server = http.createServer(async (req, res) => {
       res.end();
     } catch (err) {
       if (aborted) { return; }
-      sendSSE(res, 'error', { message: `Fehler: ${err.message}` });
+      sendSSE(res, 'error', { message: `Error: ${err.message}` });
       sendSSE(res, 'done', {});
       res.end();
     }
@@ -895,7 +1740,7 @@ const server = http.createServer(async (req, res) => {
 
     const data = readData();
     if (!data || !Array.isArray(data.daily) || data.daily.length === 0) {
-      return json(res, 400, { message: 'Keine Daten für den Report vorhanden.' });
+      return json(res, 400, { message: 'No data available for the report.' });
     }
 
     let body = {};
@@ -903,7 +1748,7 @@ const server = http.createServer(async (req, res) => {
       body = await readBody(req);
     } catch (e) {
       const status = e.message === 'Payload too large' ? 413 : 400;
-      return json(res, status, { message: e.message === 'Payload too large' ? 'Report-Anfrage zu gross' : 'Ungültige Report-Anfrage' });
+      return json(res, status, { message: e.message === 'Payload too large' ? 'Report request too large' : 'Invalid report request' });
     }
 
     try {
@@ -922,14 +1767,14 @@ const server = http.createServer(async (req, res) => {
         'Content-Disposition': `attachment; filename="${result.filename}"`,
       }, result.pdfPath);
     } catch (error) {
-      const message = error && error.message ? error.message : 'PDF-Generierung fehlgeschlagen';
+      const message = error && error.message ? error.message : 'PDF generation failed';
       const status = error && error.code === 'TYPST_MISSING' ? 503 : 500;
       return json(res, status, { message });
     }
   }
 
   if (apiPath !== null) {
-    return json(res, 404, { message: 'API-Endpunkt nicht gefunden' });
+    return json(res, 404, { message: 'API endpoint not found' });
   }
 
   // Static file serving
@@ -937,7 +1782,7 @@ const server = http.createServer(async (req, res) => {
   const filePath = path.resolve(STATIC_ROOT, `.${safePath}`);
 
   if (!filePath.startsWith(path.resolve(STATIC_ROOT) + path.sep) && filePath !== path.resolve(STATIC_ROOT, 'index.html')) {
-    return json(res, 403, { message: 'Zugriff verweigert' });
+    return json(res, 403, { message: 'Access denied' });
   }
 
   serveFile(res, filePath);
@@ -946,14 +1791,18 @@ const server = http.createServer(async (req, res) => {
 function tryListen(port) {
   return new Promise((resolve, reject) => {
     if (port > MAX_PORT) {
-      reject(new Error(`Kein freier Port gefunden (${START_PORT}-${MAX_PORT})`));
+      reject(new Error(`No free port found (${START_PORT}-${MAX_PORT})`));
       return;
     }
 
     const onError = (err) => {
       server.off('listening', onListening);
       if (err.code === 'EADDRINUSE') {
-        console.log(`Port ${port} belegt, versuche ${port + 1}...`);
+        if (port >= MAX_PORT) {
+          reject(new Error(`No free port found (${START_PORT}-${MAX_PORT})`));
+          return;
+        }
+        console.log(`Port ${port} is in use, trying ${port + 1}...`);
         resolve(tryListen(port + 1));
       } else {
         reject(err);
@@ -978,6 +1827,12 @@ async function start() {
   const port = await tryListen(START_PORT);
   const browserHost = BIND_HOST === '0.0.0.0' ? 'localhost' : BIND_HOST;
   const url = `http://${browserHost}:${port}`;
+  runtimePort = port;
+  runtimeUrl = url;
+
+  if (IS_BACKGROUND_CHILD) {
+    await registerBackgroundInstance(createBackgroundInstance({ port, url }));
+  }
 
   if (CLI_OPTIONS.autoLoad) {
     await runStartupAutoLoad({
@@ -989,21 +1844,49 @@ async function start() {
   openBrowser(url);
 }
 
-start().catch((error) => {
-  console.error(error);
-  process.exit(1);
+async function runCli() {
+  if (CLI_OPTIONS.command === 'stop') {
+    await runStopCommand();
+    return;
+  }
+
+  if (CLI_OPTIONS.background && !IS_BACKGROUND_CHILD) {
+    await startInBackground();
+    return;
+  }
+
+  await start();
+}
+
+runCli().catch((error) => {
+  Promise.resolve()
+    .then(async () => {
+      if (IS_BACKGROUND_CHILD) {
+        await unregisterBackgroundInstance(process.pid);
+      }
+    })
+    .finally(() => {
+      console.error(error);
+      process.exit(1);
+    });
 });
 
 // Graceful shutdown on Ctrl+C / kill
 function shutdown(signal) {
-  console.log(`\n${signal} empfangen, fahre Server herunter...`);
-  server.close(() => {
-    console.log('Server gestoppt.');
+  console.log(`\n${signal} received, shutting down server...`);
+  server.close(async () => {
+    if (IS_BACKGROUND_CHILD) {
+      await unregisterBackgroundInstance(process.pid);
+    }
+    console.log('Server stopped.');
     process.exit(0);
   });
   // Force exit after 3s if connections don't close
-  setTimeout(() => {
-    console.log('Erzwinge Beendigung.');
+  setTimeout(async () => {
+    if (IS_BACKGROUND_CHILD) {
+      await unregisterBackgroundInstance(process.pid);
+    }
+    console.log('Forcing shutdown.');
     process.exit(0);
   }, 3000);
 }

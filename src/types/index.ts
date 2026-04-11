@@ -39,11 +39,44 @@ export interface UsageData {
   }
 }
 
+export interface UsageImportSummary {
+  importedDays: number
+  addedDays: number
+  unchangedDays: number
+  conflictingDays: number
+  totalDays: number
+}
+
 export type AppLanguage = 'de' | 'en'
 
 export type AppTheme = 'dark' | 'light'
 
 export type ViewMode = 'daily' | 'monthly' | 'yearly'
+export type DashboardDatePreset = 'all' | '7d' | '30d' | 'month' | 'year'
+export type DashboardSectionId =
+  | 'insights'
+  | 'metrics'
+  | 'today'
+  | 'currentMonth'
+  | 'activity'
+  | 'forecastCache'
+  | 'limits'
+  | 'costAnalysis'
+  | 'tokenAnalysis'
+  | 'requestAnalysis'
+  | 'advancedAnalysis'
+  | 'comparisons'
+  | 'tables'
+
+export interface DashboardDefaultFilters {
+  viewMode: ViewMode
+  datePreset: DashboardDatePreset
+  providers: string[]
+  models: string[]
+}
+
+export type DashboardSectionVisibility = Record<DashboardSectionId, boolean>
+export type DashboardSectionOrder = DashboardSectionId[]
 
 export interface DateRange {
   start: string
@@ -66,7 +99,7 @@ export interface DashboardMetrics {
   costPerMillion: number
   avgTokensPerRequest: number
   avgCostPerRequest: number
-  avgModelsPerDay: number
+  avgModelsPerEntry: number
   avgDailyCost: number
   avgRequestsPerDay: number
   topDay: { date: string; cost: number } | null
@@ -169,6 +202,9 @@ export interface AppSettings {
   language: AppLanguage
   theme: AppTheme
   providerLimits: ProviderLimits
+  defaultFilters: DashboardDefaultFilters
+  sectionVisibility: DashboardSectionVisibility
+  sectionOrder: DashboardSectionOrder
   lastLoadedAt: string | null
   lastLoadSource: DataLoadSource
   cliAutoLoadActive: boolean

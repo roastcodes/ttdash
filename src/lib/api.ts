@@ -1,4 +1,15 @@
-import type { AppSettings, AppLanguage, AppTheme, ProviderLimits, UsageData, ViewMode } from '@/types'
+import type {
+  AppSettings,
+  AppLanguage,
+  AppTheme,
+  DashboardDefaultFilters,
+  DashboardSectionOrder,
+  DashboardSectionVisibility,
+  ProviderLimits,
+  UsageData,
+  UsageImportSummary,
+  ViewMode,
+} from '@/types'
 import i18n from '@/lib/i18n'
 import { normalizeAppSettings } from '@/lib/app-settings'
 
@@ -26,10 +37,26 @@ export async function deleteUsage(): Promise<void> {
   if (!res.ok) throw new Error(i18n.t('api.deleteFailed'))
 }
 
+export async function importUsageData(data: unknown): Promise<UsageImportSummary> {
+  const res = await fetch('/api/usage/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: i18n.t('api.importUsageFailed') }))
+    throw new Error(err.message)
+  }
+  return res.json()
+}
+
 export interface UpdateSettingsRequest {
   language?: AppLanguage
   theme?: AppTheme
   providerLimits?: ProviderLimits
+  defaultFilters?: DashboardDefaultFilters
+  sectionVisibility?: DashboardSectionVisibility
+  sectionOrder?: DashboardSectionOrder
 }
 
 export async function fetchSettings(): Promise<AppSettings> {
@@ -46,6 +73,19 @@ export async function updateSettings(patch: UpdateSettingsRequest): Promise<AppS
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: 'Failed to save settings' }))
+    throw new Error(err.message)
+  }
+  return normalizeAppSettings(await res.json())
+}
+
+export async function importSettings(data: unknown): Promise<AppSettings> {
+  const res = await fetch('/api/settings/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: i18n.t('api.importSettingsFailed') }))
     throw new Error(err.message)
   }
   return normalizeAppSettings(await res.json())

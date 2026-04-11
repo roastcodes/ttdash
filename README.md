@@ -1,6 +1,10 @@
 # TTDash
 
-Local usage dashboard for `toktrack` data. `TTDash` runs entirely on your machine and turns raw usage exports into charts, KPIs, forecasts, provider/model breakdowns, and drill-down views.
+[![CI](https://github.com/roastcodes/ttdash/actions/workflows/ci.yml/badge.svg)](https://github.com/roastcodes/ttdash/actions/workflows/ci.yml)
+![GitHub Release](https://img.shields.io/github/v/release/roastcodes/ttdash)
+[![npm](https://img.shields.io/npm/v/%40roastcodes%2Fttdash)](https://www.npmjs.com/package/@roastcodes/ttdash)
+
+`TTDash` is a local-first dashboard and CLI for `toktrack` usage data. It runs entirely on your machine, turns raw usage exports into charts and operational summaries, and keeps your stored data, settings, and imports on local disk instead of a hosted backend.
 
 `TTDash` is built around the usage data provided by [`toktrack`](https://github.com/mag123c/toktrack). Thanks to [mag123c](https://github.com/mag123c) for creating and maintaining the data source this dashboard builds on.
 
@@ -8,47 +12,201 @@ Local usage dashboard for `toktrack` data. `TTDash` runs entirely on your machin
 
 ## Why TTDash
 
-- Local-first: data stays on your device
-- Fast setup: install once, run with `ttdash`
-- Works with `toktrack` and legacy `ccusage` JSON
-- Auto-import from local `toktrack` without manual export
-- Built for day-to-day cost and token analysis, not just static reports
-
-## Features
-
-- Provider and model filtering for OpenAI, Anthropic, Google, and more
-- KPI sections for overall usage, today, and current month
-- Cost charts, cumulative projection, forecast, token mix, model mix, heatmap, and weekday analysis
-- Drill-down modal for per-day details
-- CSV export and PDF report export
-- Command palette, keyboard shortcuts, and responsive layout
-- Animated chart reveals on scroll and on dashboard reload
+- Local-first by default: no cloud backend, no remote database, no analytics
+- Fast to try: `npx` and `bunx` work without a global install
+- Built for daily usage review, cost tracking, and model/provider breakdowns
+- Works with `toktrack` exports and legacy `ccusage` JSON
+- Can auto-import local `toktrack` data and run in the background
 
 ## Quick Start
 
-From the npm registry:
+Requirements:
+
+- Node.js `20+`
+- A modern browser on the same machine
+- Typst CLI only if you want PDF export
+
+Run `TTDash` directly from the npm registry:
 
 ```bash
-npx ttdash@latest
+npx --yes @roastcodes/ttdash@latest
 ```
 
 Or with Bun:
 
 ```bash
-bunx ttdash@latest
+bunx @roastcodes/ttdash@latest
+```
+
+Smoke-check the published CLI without starting the dashboard:
+
+```bash
+npx --yes @roastcodes/ttdash@latest --help
+bunx @roastcodes/ttdash@latest --help
 ```
 
 For a persistent global install:
 
 ```bash
-npm install -g ttdash
+npm install -g @roastcodes/ttdash
 ttdash
 ```
 
 ```bash
-bun add -g ttdash
+bun add -g @roastcodes/ttdash
 ttdash
 ```
+
+## First Run
+
+Start the app:
+
+```bash
+ttdash
+```
+
+`TTDash` starts a local server, opens the dashboard in your browser, and automatically retries on the next free port if `3000` is already in use.
+
+Then either:
+
+1. Click `Auto-Import` to load local `toktrack` data
+2. Upload a `toktrack` JSON file manually
+3. Upload a legacy `ccusage` export
+4. Open `Settings` to export or import local backups
+
+The auto-import path prefers:
+
+1. local `toktrack`
+2. `bunx toktrack`
+3. `npx --yes toktrack`
+
+## Common Commands
+
+Run on a specific port:
+
+```bash
+ttdash --port 3010
+```
+
+Disable browser auto-open:
+
+```bash
+ttdash --no-open
+```
+
+Import local data immediately on startup:
+
+```bash
+ttdash --auto-load
+```
+
+Start in the background:
+
+```bash
+ttdash --background
+```
+
+Stop a running background instance:
+
+```bash
+ttdash stop
+```
+
+Combine flags when needed:
+
+```bash
+ttdash --background --port 3010 --auto-load
+ttdash --background --no-open
+```
+
+Environment-variable equivalents:
+
+```bash
+PORT=3010 ttdash
+NO_OPEN_BROWSER=1 ttdash
+HOST=127.0.0.1 ttdash
+```
+
+## Features
+
+- Provider and model filtering across OpenAI, Anthropic, Google, and other imported providers
+- KPI sections for overall usage, today, and current month
+- Cost charts, cumulative projection, forecast, token mix, model mix, heatmap, and weekday analysis
+- Drill-down modal for per-day details
+- CSV export and PDF export
+- Command palette, keyboard shortcuts, and responsive layout
+- Settings-backed defaults, section visibility, and local backups
+
+## Local Storage and Privacy
+
+`TTDash` is designed to stay local:
+
+- No cloud backend
+- No remote database
+- No third-party fonts, analytics, or runtime tracking
+- Imported usage data is stored on your machine
+- Settings such as language, theme, provider limits, filters, and layout are stored on your machine
+
+Platform paths:
+
+- macOS: `~/Library/Application Support/TTDash/`
+- Windows: `%LOCALAPPDATA%\\TTDash\\` for data and `%APPDATA%\\TTDash\\` for settings
+- Linux: `~/.local/share/ttdash/` for data and `~/.config/ttdash/` for settings
+
+## Backups
+
+The `Settings` dialog can export and import:
+
+- app settings backups
+- stored usage data backups
+
+Data-backup import is conservative by design:
+
+- missing days are added
+- identical days are skipped
+- conflicting existing days stay local and are reported instead of being overwritten silently
+
+If you want to fully replace the current dataset with a fresh `toktrack` JSON, keep using the normal upload action in the header.
+
+## Troubleshooting
+
+### `ttdash` not found after install
+
+Make sure your global package manager bin directory is in `PATH`.
+
+For Bun:
+
+```bash
+echo $PATH
+ls -la ~/.bun/bin/ttdash
+```
+
+### Port already in use
+
+`TTDash` automatically retries on the next port. You can also force one:
+
+```bash
+PORT=3010 ttdash
+```
+
+### Auto-import cannot find `toktrack`
+
+Install `toktrack` locally or ensure `bunx` / `npx` can execute it in the same terminal environment where you run `ttdash`.
+
+### PDF export fails
+
+PDF export requires the Typst CLI to be installed locally.
+
+macOS:
+
+```bash
+brew install typst
+```
+
+Other platforms:
+
+- install Typst from `https://typst.app/`
+- make sure `typst --version` works in the same terminal where you run `ttdash`
 
 ## Installation From Source
 
@@ -82,37 +240,13 @@ Or with Bun:
 ```bash
 bun install
 bun run build
-bun add -g file:$(pwd)
+bun add -g "file:$(pwd)"
 ttdash
 ```
-
-## Usage
-
-Start the app:
-
-```bash
-ttdash
-```
-
-Then either:
-
-1. Click `Auto-Import` to load local `toktrack` data
-2. Upload a `toktrack` JSON file manually
-3. Upload a legacy `ccusage` export
-
-The auto-import path prefers:
-
-1. local `toktrack`
-2. `bunx toktrack`
-3. `npx --yes toktrack`
-
-The server automatically picks the next free port if `3000` is occupied.
-
-## Sample Data
-
-A synthetic sample dataset for local verification is included at `examples/sample-usage.json`.
 
 ## Development
+
+Run the app locally from the repo:
 
 ```bash
 npm install
@@ -123,118 +257,38 @@ node server.js
 - Vite dev server: `http://localhost:5173`
 - API / production server: `http://localhost:3000`
 
-Build a production bundle:
+Build the production bundle:
 
 ```bash
 npm run build
 ```
 
-## Testing
-
-Run the fast local verification suite:
+Run automated checks:
 
 ```bash
 npm run test:unit
-```
-
-Create coverage reports in `coverage/` and JUnit output in `test-results/`:
-
-```bash
 npm run test:unit:coverage
-```
-
-Run the browser smoke test against the built app:
-
-```bash
+npm run verify:package
 npm run test:e2e
 ```
 
-The Playwright run starts its own isolated local server and test data directory, so it does not touch your normal `TTDash` app data.
-
-Run the full local test set:
+The Playwright suite uses its own isolated local app directory. If port `3015` is already occupied locally, run it on another isolated port:
 
 ```bash
-npm run test:all
+PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e
 ```
 
-## Project Structure
+## Release and Project Docs
 
-```text
-src/
-  components/
-    cards/        metric sections
-    charts/       Recharts visualizations and chart containers
-    features/     auto-import, forecast, heatmap, drill-down, PDF, help
-    layout/       header and filter controls
-    tables/       model and recent-day breakdowns
-    ui/           shared UI primitives
-  hooks/          data, filter, and metric hooks
-  lib/            calculations, formatters, API helpers, model/provider utils
-  types/          shared TypeScript types
-server.js         local HTTP server and auto-import endpoint
-usage-normalizer.js
-install.sh
-install.bat
-dist/             generated production build output
-docs/             README assets
-examples/         synthetic sample data
-```
-
-## Data & Privacy
-
-- No cloud backend
-- No remote database
-- No third-party fonts, analytics, or remote assets at runtime
-- Imported data is stored in your local app data directory
-- Settings such as language, theme, and provider limits are stored in your local app settings directory
-- Auto-import reads local `toktrack` output and normalizes it for the dashboard
-
-Platform paths:
-
-- macOS: `~/Library/Application Support/TTDash/`
-- Windows: `%LOCALAPPDATA%\\TTDash\\` for data and `%APPDATA%\\TTDash\\` for settings
-- Linux: `~/.local/share/ttdash/` for data and `~/.config/ttdash/` for settings
-
-## Troubleshooting
-
-### `ttdash` not found after install
-
-Make sure your global package manager bin directory is in `PATH`.
-
-For Bun:
-
-```bash
-echo $PATH
-ls -la ~/.bun/bin/ttdash
-```
-
-### Port already in use
-
-`TTDash` automatically retries on the next port. You can also force one:
-
-```bash
-PORT=3010 ttdash
-```
-
-### Auto-import cannot find `toktrack`
-
-Install `toktrack` locally or ensure `bunx` / `npx` can execute it.
-
-## Tech Stack
-
-- React 19
-- TypeScript 6
-- Vite 8
-- Tailwind CSS v4
-- Recharts 3
-- Radix UI
-- Framer Motion
-- Node.js HTTP server
+- Contributor guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- Release guide: [`RELEASING.md`](RELEASING.md)
+- Security policy: [`SECURITY.md`](SECURITY.md)
+- Code of conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 
 ## Status
 
-GitHub Actions runs the build, unit/integration coverage suite, and Playwright smoke test for pull requests and pushes to `main`.
+GitHub Actions runs unit/integration coverage, packaged-artifact verification, and Playwright smoke tests for pull requests and pushes to `main`.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [`LICENSE`](LICENSE).

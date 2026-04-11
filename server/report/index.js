@@ -33,7 +33,7 @@ function compileTypst(workingDir, typPath, pdfPath) {
         resolve();
         return;
       }
-      reject(new Error(stderr.trim() || 'Typst-Kompilierung fehlgeschlagen.'));
+      reject(new Error(stderr.trim() || 'Typst compilation failed.'));
     });
   });
 }
@@ -288,14 +288,14 @@ function createChartAssets(reportData) {
 async function generatePdfReport(allDailyData, options = {}) {
   const typstInstalled = await ensureTypstInstalled();
   if (!typstInstalled) {
-    const error = new Error('Typst CLI nicht gefunden. Unter macOS installieren mit: brew install typst');
+    const error = new Error('Typst CLI not found. On macOS install it with: brew install typst');
     error.code = 'TYPST_MISSING';
     throw error;
   }
 
   const reportData = buildReportData(allDailyData, options);
   if (!reportData.meta.days || !reportData.meta.periods) {
-    throw new Error('Keine Daten für den Report vorhanden.');
+    throw new Error('No data available for the report.');
   }
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ttdash-report-'));

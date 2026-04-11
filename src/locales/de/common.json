@@ -11,6 +11,7 @@
     "import": "Import",
     "upload": "Upload",
     "limits": "Limits",
+    "settings": "Einstellungen",
     "report": "Report",
     "csv": "CSV",
     "delete": "Löschen",
@@ -24,6 +25,7 @@
     "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx toktrack daily --json` oder `npx --yes toktrack daily --json`.",
     "autoImport": "Auto-Import",
     "uploadFile": "Datei hochladen",
+    "openSettings": "Einstellungen & Backups",
     "or": "oder"
   },
   "viewModes": {
@@ -66,6 +68,8 @@
     "no": "Nein",
     "enabled": "Aktiv",
     "disabled": "Inaktiv",
+    "visible": "Sichtbar",
+    "hidden": "Versteckt",
     "open": "Öffnen",
     "close": "Schliessen",
     "startDate": "Startdatum",
@@ -680,9 +684,9 @@
         "label": "Auto-Import starten",
         "description": "Lokalen toktrack Import ausführen"
       },
-      "openLimits": {
-        "label": "Limits öffnen",
-        "description": "Provider Limits und Subscriptions konfigurieren"
+      "openSettings": {
+        "label": "Einstellungen öffnen",
+        "description": "Backups, App-Optionen und Provider Limits verwalten"
       },
       "exportCsv": {
         "label": "CSV exportieren",
@@ -761,6 +765,10 @@
         "label": "Zu Filtern",
         "description": "Springt zur Filterleiste"
       },
+      "goToSection": {
+        "label": "Zu {{section}}",
+        "description": "Springt zur Sektion {{section}}"
+      },
       "insights": {
         "label": "Zu Insights",
         "description": "Springt zur Executive Summary"
@@ -828,6 +836,62 @@
       "help": {
         "label": "Hilfe & Tastenkürzel öffnen",
         "description": "Öffnet die Hilfeübersicht"
+      }
+    }
+  },
+  "settings": {
+    "modal": {
+      "title": "Einstellungen",
+      "description": "Verwalte App-Backups, gespeicherte Daten und Provider Limits an einem Ort.",
+      "dataStatus": "Datenstatus",
+      "lastLoaded": "Zuletzt geladen",
+      "loadedVia": "Geladen über",
+      "cliAutoLoad": "CLI Auto-Load",
+      "defaultFiltersTitle": "Standardfilter fürs Dashboard",
+      "defaultFiltersDescription": "Lege den Filterzustand fest, der beim Öffnen des Dashboards und beim Zurücksetzen verwendet wird.",
+      "defaultViewMode": "Standardansicht",
+      "defaultDateRange": "Standardzeitraum",
+      "filterProviders": "Standard-Anbieterfilter",
+      "filterModels": "Standard-Modellfilter",
+      "noModels": "Keine Modelle im geladenen Report gefunden.",
+      "sectionVisibilityTitle": "Sichtbare Dashboard-Sektionen",
+      "sectionVisibilityDescription": "Steuere, welche Sektionen im Dashboard gerendert werden und in welcher Reihenfolge sie erscheinen.",
+      "sectionOrderHint": "Ziehe die Sektionen per Drag and Drop in die gewünschte Reihenfolge. Die aktuelle Reihenfolge ist das Standardlayout.",
+      "positionLabel": "Position {{position}} von {{total}}",
+      "moveSectionUp": "{{section}} nach oben verschieben",
+      "moveSectionDown": "{{section}} nach unten verschieben",
+      "settingsBackupTitle": "Einstellungen sichern",
+      "settingsBackupDescription": "Exportiert und importiert Sprache, Theme, Limits und die gespeicherten Lade-Metadaten als versioniertes Backup.",
+      "dataBackupTitle": "Daten sichern",
+      "dataBackupDescription": "Exportiert den lokal gespeicherten Nutzungsstand als Backup und importiert Backups konservativ zurück.",
+      "dataImportPolicy": "Beim Datenimport werden nur fehlende Tage ergänzt. Bestehende Tage mit abweichenden Werten bleiben lokal erhalten und werden als Konflikt gemeldet.",
+      "dataImportReplaceHint": "Wenn du einen Datensatz vollständig ersetzen willst, nutze weiter den normalen JSON-Upload im Header.",
+      "providerLimitsTitle": "Provider Limits",
+      "providerLimitsDescription": "Definiere Subscription und Monatslimit pro Anbieter. Nur Anbieter aus dem aktuell geladenen Report sind editierbar.",
+      "noProviders": "Keine Anbieter im geladenen Report gefunden.",
+      "exportSettings": "Einstellungen exportieren",
+      "importSettings": "Einstellungen importieren",
+      "exportData": "Daten exportieren",
+      "importData": "Daten importieren",
+      "close": "Schliessen",
+      "save": "Speichern",
+      "viewModes": {
+        "daily": "Täglich",
+        "monthly": "Monatlich",
+        "yearly": "Jährlich"
+      },
+      "datePresets": {
+        "all": "Alle Daten",
+        "7d": "Letzte 7 Tage",
+        "30d": "Letzte 30 Tage",
+        "month": "Aktueller Monat",
+        "year": "Aktuelles Jahr"
+      },
+      "sources": {
+        "file": "Datei-Upload",
+        "auto-import": "Auto-Import",
+        "cli-auto-load": "CLI Auto-Load",
+        "unknown": "Unbekannt"
       }
     }
   },
@@ -911,6 +975,8 @@
     "fetchUsageFailed": "Fehler beim Laden der Daten",
     "uploadFailed": "Upload fehlgeschlagen",
     "deleteFailed": "Löschen fehlgeschlagen",
+    "importUsageFailed": "Datenimport fehlgeschlagen",
+    "importSettingsFailed": "Einstellungs-Import fehlgeschlagen",
     "pdfFailed": "PDF-Generierung fehlgeschlagen"
   },
   "toasts": {
@@ -918,6 +984,13 @@
     "fileReadFailed": "Datei konnte nicht gelesen werden",
     "dataDeleted": "Daten gelöscht",
     "csvExported": "CSV exportiert",
-    "dataImported": "Daten erfolgreich importiert"
+    "dataImported": "Daten erfolgreich importiert",
+    "settingsExported": "Einstellungs-Backup exportiert",
+    "dataExported": "Daten-Backup exportiert",
+    "noDataToExport": "Keine Daten zum Exportieren vorhanden",
+    "settingsImported": "Einstellungen aus {{name}} importiert",
+    "settingsSaved": "Einstellungen gespeichert",
+    "dataBackupImported": "Backup importiert: {{added}} neue Tage ergänzt, {{unchanged}} identische Tage übersprungen",
+    "dataBackupImportedWithConflicts": "Backup importiert: {{added}} neue Tage ergänzt, {{conflicts}} Konflikttage lokal beibehalten"
   }
 }
