@@ -33,9 +33,19 @@ PLAYWRIGHT_TEST_PORT=3016 npm_config_cache=/tmp/ttdash-npm-cache npm run test:e2
 Example:
 
 ```bash
-VERSION=$(node -p "require('./package.json').version")
-git tag "v$VERSION"
-git push origin "v$VERSION"
+bash scripts/tag-main-release.sh
+```
+
+Optional explicit version:
+
+```bash
+bash scripts/tag-main-release.sh 6.1.3
+```
+
+Dry-run preview:
+
+```bash
+bash scripts/tag-main-release.sh --dry-run
 ```
 
 ## What the Release Workflow Does
