@@ -119,6 +119,47 @@ async function waitForServer(url, child) {
   throw new Error('Timed out waiting for packaged TTDash to start.');
 }
 
+function waitForChildClose(child, timeoutMs) {
+  if (child.exitCode !== null) {
+    return Promise.resolve(true);
+  }
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      child.removeListener('close', handleClose);
+      resolve(false);
+    }, timeoutMs);
+
+    function handleClose() {
+      clearTimeout(timer);
+      resolve(true);
+    }
+
+    child.once('close', handleClose);
+  });
+}
+
+async function terminateChild(child, label) {
+  if (child.exitCode !== null) {
+    await waitForChildClose(child, 1000);
+    return;
+  }
+
+  child.kill('SIGTERM');
+
+  if (await waitForChildClose(child, 5000)) {
+    return;
+  }
+
+  child.kill('SIGKILL');
+
+  if (await waitForChildClose(child, 5000)) {
+    return;
+  }
+
+  throw new Error(`${label} did not exit after SIGTERM/SIGKILL.`);
+}
+
 function verifyInstalledCli(command, tarballPath, npmEnv) {
   const installDir = mktemp('ttdash-install-');
   const installPackageJson = path.join(installDir, 'package.json');
@@ -144,6 +185,11 @@ function verifyInstalledCli(command, tarballPath, npmEnv) {
   }
 
   log('Verified installed tarball CLI help output.');
+
+  return {
+    installDir,
+    installedCliPath,
+  };
 }
 
 async function main() {
@@ -174,7 +220,7 @@ async function main() {
   log(`Packed artifact: ${tarballPath}`);
   log(`Tarball size: ${packInfo.size} bytes`);
 
-  verifyInstalledCli(command, tarballPath, npmEnv);
+  const { installDir, installedCliPath } = verifyInstalledCli(command, tarballPath, npmEnv);
 
   const helpOutput = run(command, ['exec', '--yes', '--package', tarballPath, '--', 'ttdash', '--help'], {
     env: npmEnv,
@@ -188,8 +234,8 @@ async function main() {
 
   const port = await getFreePort();
   const url = `http://127.0.0.1:${port}`;
-  const child = spawn(command, ['exec', '--yes', '--package', tarballPath, '--', 'ttdash', '--no-open', '--port', String(port)], {
-    cwd: ROOT,
+  const child = spawn(installedCliPath, ['--no-open', '--port', String(port)], {
+    cwd: installDir,
     env: {
       ...npmEnv,
       HOME: appDataRoot,
@@ -219,10 +265,7 @@ async function main() {
     }
     log(`Verified packaged startup on ${url}.`);
   } finally {
-    if (child.exitCode === null) {
-      child.kill('SIGTERM');
-      await new Promise((resolve) => child.once('exit', resolve));
-    }
+    await terminateChild(child, 'Packaged TTDash');
   }
 
   if (!output.includes('TTDash v')) {
