@@ -79,35 +79,14 @@ jobs:
           echo "Package was not visible on npm in time."
           exit 1
 
-      - name: Verify npx install path
+      - name: Verify registry install paths
         run: |
           VERSION="$(node -p "require('./package.json').version")"
-          EXPECTED="TTDash v${VERSION}"
-          for attempt in 1 2 3 4 5 6; do
-            OUTPUT="$(npm exec --yes --package "@roastcodes/ttdash@${VERSION}" -- ttdash --help 2>&1)" && {
-              printf '%s\n' "$OUTPUT"
-              printf '%s\n' "$OUTPUT" | grep -F "$EXPECTED" >/dev/null
-              exit 0
-            }
-            sleep 10
-          done
-          echo "npm exec install path did not become ready in time."
-          exit 1
-
-      - name: Verify bunx install path
-        run: |
-          VERSION="$(node -p "require('./package.json').version")"
-          EXPECTED="TTDash v${VERSION}"
-          for attempt in 1 2 3 4 5 6; do
-            OUTPUT="$(bunx "@roastcodes/ttdash@${VERSION}" --help 2>&1)" && {
-              printf '%s\n' "$OUTPUT"
-              printf '%s\n' "$OUTPUT" | grep -F "$EXPECTED" >/dev/null
-              exit 0
-            }
-            sleep 10
-          done
-          echo "bunx install path did not become ready in time."
-          exit 1
+          node scripts/verify-registry-install.js \
+            --package @roastcodes/ttdash \
+            --version "${VERSION}" \
+            --retries 6 \
+            --retry-delay-ms 10000
 
       - name: Create GitHub release
         env:
