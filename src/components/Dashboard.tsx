@@ -1102,7 +1102,7 @@ export function Dashboard() {
           <DrillDownModal
             day={drillDownDay}
             contextData={filteredData}
-            open={drillDownDate !== null}
+            open={true}
             onClose={() => setDrillDownDate(null)}
           />
         )}
