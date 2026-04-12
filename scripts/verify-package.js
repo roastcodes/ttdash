@@ -209,7 +209,7 @@ async function main() {
 
   if (!fs.existsSync(path.join(ROOT, 'dist', 'index.html'))) {
     log('Production bundle missing, running build first.');
-    run(command, ['run', 'build'], { env: npmEnv });
+    run(command, ['run', 'build:app'], { env: npmEnv });
   }
 
   const packJson = run(

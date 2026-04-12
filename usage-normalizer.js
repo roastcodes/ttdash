@@ -1,9 +1,9 @@
 function toNumber(value) {
-  return Number.isFinite(value) ? value : Number(value) || 0
+  return Number.isFinite(value) ? value : Number(value) || 0;
 }
 
 function toStringValue(value) {
-  return typeof value === 'string' ? value : ''
+  return typeof value === 'string' ? value : '';
 }
 
 function normalizeLegacyModelBreakdown(entry) {
@@ -20,13 +20,13 @@ function normalizeLegacyModelBreakdown(entry) {
 }
 
 function withDailyTotals(day) {
-  const totalTokens = toNumber(day.totalTokens) || (
+  const totalTokens =
+    toNumber(day.totalTokens) ||
     toNumber(day.inputTokens) +
-    toNumber(day.outputTokens) +
-    toNumber(day.cacheCreationTokens) +
-    toNumber(day.cacheReadTokens) +
-    toNumber(day.thinkingTokens)
-  );
+      toNumber(day.outputTokens) +
+      toNumber(day.cacheCreationTokens) +
+      toNumber(day.cacheReadTokens) +
+      toNumber(day.thinkingTokens);
 
   return {
     date: toStringValue(day.date),
@@ -38,8 +38,12 @@ function withDailyTotals(day) {
     totalTokens,
     totalCost: toNumber(day.totalCost),
     requestCount: toNumber(day.requestCount),
-    modelsUsed: Array.isArray(day.modelsUsed) ? day.modelsUsed.filter((value) => typeof value === 'string') : [],
-    modelBreakdowns: Array.isArray(day.modelBreakdowns) ? day.modelBreakdowns.map(normalizeLegacyModelBreakdown) : [],
+    modelsUsed: Array.isArray(day.modelsUsed)
+      ? day.modelsUsed.filter((value) => typeof value === 'string')
+      : [],
+    modelBreakdowns: Array.isArray(day.modelBreakdowns)
+      ? day.modelBreakdowns.map(normalizeLegacyModelBreakdown)
+      : [],
   };
 }
 
@@ -66,9 +70,10 @@ function normalizeLegacyDay(entry) {
 }
 
 function normalizeToktrackDay(entry) {
-  const models = entry?.models && typeof entry.models === 'object' && !Array.isArray(entry.models)
-    ? entry.models
-    : {};
+  const models =
+    entry?.models && typeof entry.models === 'object' && !Array.isArray(entry.models)
+      ? entry.models
+      : {};
 
   const modelBreakdowns = Object.entries(models).map(([modelName, modelData]) => ({
     modelName,
@@ -98,25 +103,28 @@ function normalizeToktrackDay(entry) {
 }
 
 function computeTotals(daily) {
-  return daily.reduce((totals, day) => ({
-    inputTokens: totals.inputTokens + day.inputTokens,
-    outputTokens: totals.outputTokens + day.outputTokens,
-    cacheCreationTokens: totals.cacheCreationTokens + day.cacheCreationTokens,
-    cacheReadTokens: totals.cacheReadTokens + day.cacheReadTokens,
-    thinkingTokens: totals.thinkingTokens + day.thinkingTokens,
-    totalCost: totals.totalCost + day.totalCost,
-    totalTokens: totals.totalTokens + day.totalTokens,
-    requestCount: totals.requestCount + day.requestCount,
-  }), {
-    inputTokens: 0,
-    outputTokens: 0,
-    cacheCreationTokens: 0,
-    cacheReadTokens: 0,
-    thinkingTokens: 0,
-    totalCost: 0,
-    totalTokens: 0,
-    requestCount: 0,
-  });
+  return daily.reduce(
+    (totals, day) => ({
+      inputTokens: totals.inputTokens + day.inputTokens,
+      outputTokens: totals.outputTokens + day.outputTokens,
+      cacheCreationTokens: totals.cacheCreationTokens + day.cacheCreationTokens,
+      cacheReadTokens: totals.cacheReadTokens + day.cacheReadTokens,
+      thinkingTokens: totals.thinkingTokens + day.thinkingTokens,
+      totalCost: totals.totalCost + day.totalCost,
+      totalTokens: totals.totalTokens + day.totalTokens,
+      requestCount: totals.requestCount + day.requestCount,
+    }),
+    {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      thinkingTokens: 0,
+      totalCost: 0,
+      totalTokens: 0,
+      requestCount: 0,
+    },
+  );
 }
 
 function normalizeIncomingData(payload) {
@@ -125,7 +133,9 @@ function normalizeIncomingData(payload) {
   if (Array.isArray(payload)) {
     daily = payload.map(normalizeToktrackDay);
   } else if (payload && typeof payload === 'object' && Array.isArray(payload.daily)) {
-    const looksLikeToktrack = payload.daily.some((item) => item && typeof item === 'object' && 'total_input_tokens' in item);
+    const looksLikeToktrack = payload.daily.some(
+      (item) => item && typeof item === 'object' && 'total_input_tokens' in item,
+    );
     daily = looksLikeToktrack
       ? payload.daily.map(normalizeToktrackDay)
       : payload.daily.map(normalizeLegacyDay);
@@ -133,9 +143,7 @@ function normalizeIncomingData(payload) {
     throw new Error('Die JSON-Datei muss ein gültiges tägliches Nutzungsformat enthalten.');
   }
 
-  const filtered = daily
-    .filter((item) => item.date)
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const filtered = daily.filter((item) => item.date).sort((a, b) => a.date.localeCompare(b.date));
 
   if (filtered.length === 0) {
     throw new Error('Keine Nutzungsdaten gefunden.');
