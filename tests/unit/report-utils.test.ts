@@ -64,4 +64,38 @@ describe('report utils', () => {
     expect(formatCompactAxis(1500, 'de')).toBe('1.5 Tsd.')
     expect(formatCompactAxis(2500000, 'de')).toBe('2.5 Mio.')
   })
+
+  it('keeps cache insights visible without request counters when token cache data exists', async () => {
+    const { buildReportData } = await import('../../server/report/utils.js')
+    const dataWithoutRequests = dashboardFixture.map(day => ({
+      ...day,
+      requestCount: 0,
+      modelBreakdowns: day.modelBreakdowns.map(entry => ({
+        ...entry,
+        requestCount: 0,
+      })),
+    }))
+
+    const report = buildReportData(dataWithoutRequests, {
+      viewMode: 'daily',
+      language: 'en',
+    })
+
+    expect(report.metrics.hasRequestData).toBe(false)
+    expect(report.metrics.cacheHitRate).toBeGreaterThan(0)
+    expect(report.insights.items.some((item: { title: string }) => item.title === 'Cache contribution')).toBe(true)
+  })
+
+  it('keeps percent strings in german report output and localizes the report header', async () => {
+    const { buildReportData } = await import('../../server/report/utils.js')
+
+    const report = buildReportData(dashboardFixture, {
+      viewMode: 'daily',
+      language: 'de',
+    })
+
+    expect(report.summaryCards[0].note).toContain('%')
+    expect(report.insights.items.some((item: { body: string }) => item.body.includes('%'))).toBe(true)
+    expect(report.text.headerEyebrow).toBe('TTDash PDF-Bericht')
+  })
 })

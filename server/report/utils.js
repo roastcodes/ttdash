@@ -535,8 +535,11 @@ function formatCompact(value, language = 'de') {
   return formatInteger(value, language);
 }
 
-function formatPercent(value) {
-  return `${(value || 0).toFixed(1)}%`;
+function formatPercent(value, language = 'de') {
+  return `${(value || 0).toLocaleString(getLocale(language), {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
 }
 
 function formatCompactAxis(value, language = 'de') {
@@ -607,17 +610,17 @@ function buildInsights(metrics, { filteredDaily, filtered, language }) {
       title: translate(language, 'report.insights.providerTitle'),
       body: translate(language, 'report.insights.providerBody', {
         provider: metrics.topProvider.name,
-        share: formatPercent(metrics.topProvider.share),
+        share: formatPercent(metrics.topProvider.share, language),
       }),
     });
   }
 
-  if (metrics.hasRequestData && metrics.cacheHitRate > 0) {
+  if (metrics.cacheHitRate > 0) {
     insights.push({
       tone: metrics.cacheHitRate >= 20 ? 'good' : 'accent',
       title: translate(language, 'report.insights.cacheTitle'),
       body: translate(language, 'report.insights.cacheBody', {
-        share: formatPercent(metrics.cacheHitRate),
+        share: formatPercent(metrics.cacheHitRate, language),
       }),
     });
   }
@@ -699,11 +702,11 @@ function buildReportData(allDailyData, options = {}) {
   }));
 
   const summaryCards = [
-    { label: translate(language, 'common.costs'), value: formatCurrency(metrics.totalCost, language), note: metrics.topProvider ? `${metrics.topProvider.name} ${formatPercent(metrics.topProvider.share)}` : notAvailable, tone: 'accent' },
+    { label: translate(language, 'common.costs'), value: formatCurrency(metrics.totalCost, language), note: metrics.topProvider ? `${metrics.topProvider.name} ${formatPercent(metrics.topProvider.share, language)}` : notAvailable, tone: 'accent' },
     { label: translate(language, 'common.tokens'), value: formatCompact(metrics.totalTokens, language), note: `CPM ${formatCurrency(metrics.costPerMillion, language)}`, tone: 'accent' },
-    { label: translate(language, 'common.requests'), value: formatInteger(metrics.totalRequests, language), note: metrics.hasRequestData ? `${formatPercent(metrics.cacheHitRate)} Cache` : notAvailable, tone: 'good' },
+    { label: translate(language, 'common.requests'), value: formatInteger(metrics.totalRequests, language), note: metrics.hasRequestData ? `${formatPercent(metrics.cacheHitRate, language)} Cache` : notAvailable, tone: 'good' },
     { label: `Ø ${translate(language, 'common.cost')} / ${periodLabel}`, value: formatCurrency(metrics.avgDailyCost, language), note: `${reportDataLabel(filters.viewMode, language)}`, tone: 'accent' },
-    { label: translate(language, 'common.model'), value: topModelValue, note: metrics.topModel ? formatPercent(metrics.topModelShare) : notAvailable, tone: 'warn' },
+    { label: translate(language, 'common.model'), value: topModelValue, note: metrics.topModel ? formatPercent(metrics.topModelShare, language) : notAvailable, tone: 'warn' },
     { label: translate(language, 'report.summary.peakPeriod'), value: peakPeriodLabel, note: metrics.topDay ? formatCurrency(metrics.topDay.cost, language) : notAvailable, tone: 'warn' },
   ];
 
