@@ -59,9 +59,8 @@ On a manual `workflow_dispatch` run against `main`, the workflow:
 10. publishes `@roastcodes/ttdash` to npm through Trusted Publishing
 11. waits for npm registry propagation
 12. verifies:
-
-- `npx --yes @roastcodes/ttdash@<version> --help`
-- `bunx @roastcodes/ttdash@<version> --help`
+    - `npx --yes @roastcodes/ttdash@<version> --help`
+    - `bunx @roastcodes/ttdash@<version> --help`
 
 13. creates the GitHub release
 

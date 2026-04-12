@@ -33,10 +33,10 @@
     "test:e2e:ci": "playwright test",
     "test:all": "npm run test:unit && npm run test:e2e",
     "pack:dry-run": "npm pack --dry-run",
-    "verify": "npm run format:check && npm run lint && ./node_modules/.bin/tsc --noEmit && npm run test:unit && npm run build:app && npm run verify:package",
+    "verify": "npm run format:check && npm run lint && tsc --noEmit && npm run test:unit && npm run build:app && npm run verify:package",
     "verify:package": "node scripts/verify-package.js",
     "verify:registry-install": "node scripts/verify-registry-install.js",
-    "verify:release": "npm run format:check && npm run lint && ./node_modules/.bin/tsc --noEmit && npm run test:unit:coverage && npm run build:app && npm run verify:package",
+    "verify:release": "npm run format:check && npm run lint && tsc --noEmit && npm run test:unit:coverage && npm run build:app && npm run verify:package",
     "prepare": "npm run build:app"
   },
   "files": [
