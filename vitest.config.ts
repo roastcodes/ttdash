@@ -2,6 +2,9 @@ import { defineConfig, mergeConfig } from 'vitest/config'
 import viteConfig from './vite.config'
 
 export default defineConfig(async () => {
+  // Resolve the imported Vite config explicitly before mergeConfig because
+  // vite.config may export either a config object or an async config factory.
+  // Vitest needs stable test-mode inputs when reusing that config here.
   const resolvedViteConfig =
     typeof viteConfig === 'function'
       ? await viteConfig({
