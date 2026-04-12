@@ -103,7 +103,13 @@ async function fetchWorkflowRuns(options, token) {
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`GitHub API request failed with ${response.status}: ${body}`);
+    const normalizedBody = body.replace(/\s+/g, ' ').trim();
+    const maxPreviewLength = 200;
+    const bodyPreview = normalizedBody.length > maxPreviewLength
+      ? `${normalizedBody.slice(0, maxPreviewLength)}…`
+      : normalizedBody;
+    const previewSuffix = bodyPreview ? ` Response preview: ${bodyPreview}` : '';
+    throw new Error(`GitHub API request failed with ${response.status}.${previewSuffix}`);
   }
 
   return response.json();
