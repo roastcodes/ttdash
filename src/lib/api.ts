@@ -13,10 +13,30 @@ import type {
 import i18n from '@/lib/i18n'
 import { normalizeAppSettings } from '@/lib/app-settings'
 
+interface ApiErrorPayload {
+  message?: string
+}
+
+async function parseResponseJson<T>(response: Response): Promise<T> {
+  const data: unknown = await response.json()
+  return data as T
+}
+
+async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const payload = await parseResponseJson<ApiErrorPayload>(response)
+    return typeof payload.message === 'string' && payload.message.trim()
+      ? payload.message
+      : fallback
+  } catch {
+    return fallback
+  }
+}
+
 export async function fetchUsage(): Promise<UsageData> {
   const res = await fetch('/api/usage')
   if (!res.ok) throw new Error(i18n.t('api.fetchUsageFailed'))
-  return res.json()
+  return parseResponseJson<UsageData>(res)
 }
 
 export async function uploadData(data: unknown): Promise<{ days: number; totalCost: number }> {
@@ -26,10 +46,9 @@ export async function uploadData(data: unknown): Promise<{ days: number; totalCo
     body: JSON.stringify(data),
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: i18n.t('api.uploadFailed') }))
-    throw new Error(err.message)
+    throw new Error(await readErrorMessage(res, i18n.t('api.uploadFailed')))
   }
-  return res.json()
+  return parseResponseJson<{ days: number; totalCost: number }>(res)
 }
 
 export async function deleteUsage(): Promise<void> {
@@ -44,10 +63,9 @@ export async function importUsageData(data: unknown): Promise<UsageImportSummary
     body: JSON.stringify(data),
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: i18n.t('api.importUsageFailed') }))
-    throw new Error(err.message)
+    throw new Error(await readErrorMessage(res, i18n.t('api.importUsageFailed')))
   }
-  return res.json()
+  return parseResponseJson<UsageImportSummary>(res)
 }
 
 export interface UpdateSettingsRequest {
@@ -62,7 +80,7 @@ export interface UpdateSettingsRequest {
 export async function fetchSettings(): Promise<AppSettings> {
   const res = await fetch('/api/settings')
   if (!res.ok) throw new Error('Failed to load settings')
-  return normalizeAppSettings(await res.json())
+  return normalizeAppSettings(await parseResponseJson<unknown>(res))
 }
 
 export async function updateSettings(patch: UpdateSettingsRequest): Promise<AppSettings> {
@@ -72,10 +90,9 @@ export async function updateSettings(patch: UpdateSettingsRequest): Promise<AppS
     body: JSON.stringify(patch),
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Failed to save settings' }))
-    throw new Error(err.message)
+    throw new Error(await readErrorMessage(res, 'Failed to save settings'))
   }
-  return normalizeAppSettings(await res.json())
+  return normalizeAppSettings(await parseResponseJson<unknown>(res))
 }
 
 export async function importSettings(data: unknown): Promise<AppSettings> {
@@ -85,10 +102,9 @@ export async function importSettings(data: unknown): Promise<AppSettings> {
     body: JSON.stringify(data),
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: i18n.t('api.importSettingsFailed') }))
-    throw new Error(err.message)
+    throw new Error(await readErrorMessage(res, i18n.t('api.importSettingsFailed')))
   }
-  return normalizeAppSettings(await res.json())
+  return normalizeAppSettings(await parseResponseJson<unknown>(res))
 }
 
 export interface PdfReportRequest {
@@ -109,8 +125,7 @@ export async function generatePdfReport(request: PdfReportRequest): Promise<Blob
   })
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: i18n.t('api.pdfFailed') }))
-    throw new Error(err.message)
+    throw new Error(await readErrorMessage(res, i18n.t('api.pdfFailed')))
   }
 
   return res.blob()

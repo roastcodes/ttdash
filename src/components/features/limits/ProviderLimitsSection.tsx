@@ -22,7 +22,7 @@ import { CHART_ANIMATION, CHART_COLORS, CHART_MARGIN } from '@/components/charts
 import { buildProviderMonthlyCosts, getLatestMonth } from '@/lib/provider-limits'
 import i18n from '@/lib/i18n'
 import { CHART_HELP, SECTION_HELP } from '@/lib/help-content'
-import { formatCurrency, formatCurrencyExact, formatMonthYear } from '@/lib/formatters'
+import { coerceNumber, formatCurrency, formatCurrencyExact, formatMonthYear } from '@/lib/formatters'
 import { getProviderBadgeStyle } from '@/lib/model-utils'
 import type { DailyUsage, ProviderLimits } from '@/types'
 
@@ -593,7 +593,7 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.25} />
                     <XAxis dataKey="month" tickFormatter={formatMonthYear} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-                    <YAxis tickFormatter={(value) => formatCurrency(Math.abs(value))} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis tickFormatter={(value) => formatCurrency(Math.abs(coerceNumber(value)))} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
                     <Tooltip
                       formatter={(value: TooltipValueType | undefined, name: string | number | undefined) => [formatCurrencyExact(Math.abs(toTooltipNumber(value))), name ?? '']}
                       labelFormatter={(label) => formatMonthYear(String(label))}

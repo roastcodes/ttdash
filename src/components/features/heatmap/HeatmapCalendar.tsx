@@ -76,7 +76,7 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
 
     const result: { date: string; value: number; week: number; day: number }[] = []
     const monthLabels: { label: string; week: number }[] = []
-    let currentDate = new Date(alignedStart)
+    const currentDate = new Date(alignedStart)
     let week = 0
     let lastMonth = -1
 

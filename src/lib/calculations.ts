@@ -186,7 +186,7 @@ export function computeWeekOverWeekChange(data: DailyUsage[]): number | null {
 }
 
 export function computeMovingAverage(values: number[], window = 7): (number | undefined)[] {
-  const result: (number | undefined)[] = new Array(values.length)
+  const result = Array<number | undefined>(values.length)
   let sum = 0
 
   for (let i = 0; i < values.length; i++) {
@@ -279,10 +279,20 @@ export function computeProviderMetrics(data: DailyUsage[]): Map<string, Aggregat
     }
   }
 
-  return new Map(Array.from(map.entries()).map(([provider, value]) => {
-    const { _dates: _unusedDates, ...metrics } = value
-    return [provider, metrics]
-  }))
+  return new Map(Array.from(map.entries()).map(([provider, value]) => [
+    provider,
+    {
+      cost: value.cost,
+      tokens: value.tokens,
+      input: value.input,
+      output: value.output,
+      cacheRead: value.cacheRead,
+      cacheCreate: value.cacheCreate,
+      thinking: value.thinking,
+      requests: value.requests,
+      days: value.days,
+    },
+  ]))
 }
 
 function computeCacheHitRate(cacheRead: number, cacheCreate: number, input: number, output: number, thinking: number): number {

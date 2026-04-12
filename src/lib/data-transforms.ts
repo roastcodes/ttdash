@@ -270,7 +270,7 @@ export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] 
       point[`${name}_ma7`] = modelMA7[name]?.[i]
     }
 
-    return point as RequestChartDataPoint
+    return point
   })
 }
 

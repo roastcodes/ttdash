@@ -23,7 +23,6 @@ import type {
   DashboardSectionVisibility,
   DataLoadSource,
   ProviderLimits,
-  ViewMode,
 } from '@/types'
 
 interface SettingsModalProps {
@@ -45,7 +44,7 @@ interface SettingsModalProps {
     defaultFilters: DashboardDefaultFilters
     sectionVisibility: DashboardSectionVisibility
     sectionOrder: DashboardSectionOrder
-  }) => Promise<unknown> | unknown
+  }) => Promise<void> | void
   onExportSettings: () => void
   onImportSettings: () => void
   onExportData: () => void
@@ -286,7 +285,7 @@ export function SettingsModal({
                       type="button"
                       aria-pressed={defaultFilterDraft.viewMode === mode}
                       variant={defaultFilterDraft.viewMode === mode ? 'default' : 'outline'}
-                      onClick={() => setDefaultFilterDraft(prev => ({ ...prev, viewMode: mode as ViewMode }))}
+                      onClick={() => setDefaultFilterDraft(prev => ({ ...prev, viewMode: mode }))}
                     >
                       {t(`settings.modal.viewModes.${mode}`)}
                     </Button>

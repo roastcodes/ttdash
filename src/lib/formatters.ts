@@ -15,6 +15,19 @@ export function localMonth(): string {
   return localToday().slice(0, 7)
 }
 
+export function coerceNumber(value: unknown): number {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  return 0
+}
+
 export function formatCurrency(value: number): string {
   if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`
   if (value >= 100) return `$${Math.round(value)}`

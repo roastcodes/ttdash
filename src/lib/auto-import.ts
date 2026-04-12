@@ -7,6 +7,15 @@ export interface ErrorEvent { message: string }
 type AutoImportTranslationVars = Record<string, string | number>
 type AutoImportTranslator = (key: string, vars?: AutoImportTranslationVars) => string
 
+function parseEventData<T>(event: Event): T | null {
+  if (!(event instanceof MessageEvent) || typeof event.data !== 'string') {
+    return null
+  }
+
+  const data: unknown = JSON.parse(event.data)
+  return data as T
+}
+
 function translateAutoImportMessage(message: string, t: AutoImportTranslator) {
   if (message === 'Starte lokalen toktrack-Import...') {
     return t('autoImportModal.startingLocalImport')
@@ -50,24 +59,34 @@ export function startAutoImport(callbacks: {
 }, t: AutoImportTranslator = (key) => key): { close: () => void } {
   const es = new EventSource('/api/auto-import/stream')
 
-  es.addEventListener('check', (e) => {
-    callbacks.onCheck(JSON.parse(e.data))
+  es.addEventListener('check', (event) => {
+    const data = parseEventData<CheckEvent>(event)
+    if (data) {
+      callbacks.onCheck(data)
+    }
   })
-  es.addEventListener('progress', (e) => {
-    const data = JSON.parse(e.data)
-    callbacks.onProgress({ ...data, message: translateAutoImportMessage(data.message, t) })
+  es.addEventListener('progress', (event) => {
+    const data = parseEventData<ProgressEvent>(event)
+    if (data) {
+      callbacks.onProgress({ ...data, message: translateAutoImportMessage(data.message, t) })
+    }
   })
-  es.addEventListener('stderr', (e) => {
-    const data = JSON.parse(e.data)
-    callbacks.onStderr({ ...data, line: translateAutoImportMessage(data.line, t) })
+  es.addEventListener('stderr', (event) => {
+    const data = parseEventData<StderrEvent>(event)
+    if (data) {
+      callbacks.onStderr({ ...data, line: translateAutoImportMessage(data.line, t) })
+    }
   })
-  es.addEventListener('success', (e) => {
-    callbacks.onSuccess(JSON.parse(e.data))
+  es.addEventListener('success', (event) => {
+    const data = parseEventData<SuccessEvent>(event)
+    if (data) {
+      callbacks.onSuccess(data)
+    }
   })
-  es.addEventListener('error', (e) => {
+  es.addEventListener('error', (event) => {
     // SSE 'error' can be both our custom event and a connection error
-    if (e instanceof MessageEvent && e.data) {
-      const data = JSON.parse(e.data)
+    const data = parseEventData<ErrorEvent>(event)
+    if (data) {
       callbacks.onError({ ...data, message: translateAutoImportMessage(data.message, t) })
     } else {
       callbacks.onError({ message: t('autoImportModal.serverConnectionLost') })

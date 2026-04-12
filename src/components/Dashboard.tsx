@@ -117,7 +117,7 @@ export function Dashboard() {
   const [dataSource, setDataSource] = useState<{ type: 'stored' | 'auto-import' | 'file'; label?: string; time?: string; title?: string } | null>(null)
   const [animationSeed, setAnimationSeed] = useState(0)
 
-  const daily = usageData?.daily ?? []
+  const daily = useMemo(() => usageData?.daily ?? [], [usageData])
   const hasData = daily.length > 0
   const allProviders = useMemo(() => getUniqueProviders(daily.map(d => d.modelsUsed)), [daily])
   const allModelsFromData = useMemo(() => getUniqueModels(daily.map(d => d.modelsUsed)), [daily])
@@ -163,11 +163,11 @@ export function Dashboard() {
 
   const persistedLoadedTime = useMemo(
     () => settings.lastLoadedAt ? formatDateTimeCompact(settings.lastLoadedAt) : undefined,
-    [settings.lastLoadedAt, i18n.resolvedLanguage],
+    [settings.lastLoadedAt],
   )
   const persistedLoadedTitle = useMemo(
     () => settings.lastLoadedAt ? t('header.loadedAt', { time: formatDateTimeFull(settings.lastLoadedAt) }) : undefined,
-    [settings.lastLoadedAt, i18n.resolvedLanguage, t],
+    [settings.lastLoadedAt, t],
   )
   const persistedDataSource = useMemo(() => {
     if (!hasData) return null
@@ -189,7 +189,7 @@ export function Dashboard() {
             : t('header.autoLoadActive'),
         }
       : null
-  ), [settings.cliAutoLoadActive, settings.lastLoadedAt, persistedLoadedTime, i18n.resolvedLanguage, t])
+  ), [settings.cliAutoLoadActive, settings.lastLoadedAt, persistedLoadedTime, t])
 
   const {
     viewMode, setViewMode,
@@ -296,7 +296,7 @@ export function Dashboard() {
     if (!file) return
     try {
       const text = await file.text()
-      const json = JSON.parse(text)
+      const json: unknown = JSON.parse(text)
       await uploadMutation.mutateAsync(json)
       void queryClient.invalidateQueries({ queryKey: ['settings'] })
       setAnimationSeed(prev => prev + 1)
@@ -313,7 +313,7 @@ export function Dashboard() {
       addToast(t('toasts.fileReadFailed'), 'error')
     }
     e.target.value = ''
-  }, [uploadMutation, addToast, t])
+  }, [uploadMutation, queryClient, addToast, t])
 
   const handleDelete = useCallback(async () => {
     await deleteMutation.mutateAsync()
@@ -429,7 +429,7 @@ export function Dashboard() {
 
     setSettingsTransferBusy(true)
     try {
-      const parsed = JSON.parse(await file.text())
+      const parsed: unknown = JSON.parse(await file.text())
       const imported = await importSettings(parsed)
       queryClient.setQueryData(['settings'], imported)
       applyDefaultFilters(imported.defaultFilters)
@@ -448,7 +448,7 @@ export function Dashboard() {
 
     setDataTransferBusy(true)
     try {
-      const parsed = JSON.parse(await file.text())
+      const parsed: unknown = JSON.parse(await file.text())
       const summary = await importUsageData(parsed)
       await queryClient.invalidateQueries({ queryKey: ['usage'] })
       await queryClient.invalidateQueries({ queryKey: ['settings'] })

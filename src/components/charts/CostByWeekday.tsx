@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
-import { formatCurrency } from '@/lib/formatters'
+import { coerceNumber, formatCurrency } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
 import type { WeekdayData } from '@/types'
 
@@ -74,7 +74,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
               <XAxis dataKey="day" stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-              <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis tickFormatter={(value) => formatCurrency(coerceNumber(value))} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
               <Tooltip
                 content={<CustomTooltip formatter={(v) => formatCurrency(v)} />}
                 cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }}

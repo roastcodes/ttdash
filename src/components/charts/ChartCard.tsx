@@ -22,6 +22,19 @@ interface ChartCardProps {
   expandedExtra?: ReactNode
 }
 
+function stringifyCsvCell(value: unknown): string {
+  if (value == null) return ''
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value)
+  }
+
+  try {
+    return JSON.stringify(value) ?? ''
+  } catch {
+    return ''
+  }
+}
+
 const ChartAnimationContext = createContext(false)
 
 export function useChartAnimationActive() {
@@ -106,7 +119,7 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
     const firstRow = chartData[0]
     if (!firstRow) return
     const keys = Object.keys(firstRow)
-    const csv = [keys.join(','), ...chartData.map(row => keys.map(k => String(row[k] ?? '')).join(','))].join('\n')
+    const csv = [keys.join(','), ...chartData.map(row => keys.map(k => stringifyCsvCell(row[k])).join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

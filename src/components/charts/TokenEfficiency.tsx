@@ -6,7 +6,7 @@ import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { computeMovingAverage } from '@/lib/calculations'
 import { CHART_HELP } from '@/lib/help-content'
-import { formatCurrency, formatDateAxis } from '@/lib/formatters'
+import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import type { DailyUsage } from '@/types'
 
 interface TokenEfficiencyProps {
@@ -61,7 +61,7 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
               <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-              <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis tickFormatter={(value) => formatCurrency(coerceNumber(value))} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
               <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
               <ReferenceLine y={avg} stroke={CHART_COLORS.axis} strokeDasharray="3 3" strokeOpacity={0.5} />
               <Area

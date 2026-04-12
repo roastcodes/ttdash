@@ -5,7 +5,7 @@ import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import { getModelColor, normalizeModelName } from '@/lib/model-utils'
-import { formatDateAxis, formatPercent } from '@/lib/formatters'
+import { coerceNumber, formatDateAxis, formatPercent } from '@/lib/formatters'
 import type { DailyUsage } from '@/types'
 
 interface ModelMixProps {
@@ -91,7 +91,7 @@ export function ModelMix({ data }: ModelMixProps) {
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
           <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-          <YAxis tickFormatter={(v) => `${Math.round(v)}%`} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} />
+          <YAxis tickFormatter={(value) => formatPercent(Math.round(coerceNumber(value)), 0)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} />
           <Tooltip content={<MixTooltip />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
           {models.map(model => {
             const color = getModelColor(model)

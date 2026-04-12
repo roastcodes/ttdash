@@ -13,7 +13,7 @@ export function useUploadData() {
   return useMutation({
     mutationFn: (data: unknown) => uploadData(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['usage'] })
+      void queryClient.invalidateQueries({ queryKey: ['usage'] })
     },
   })
 }
@@ -23,7 +23,7 @@ export function useDeleteData() {
   return useMutation({
     mutationFn: deleteUsage,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['usage'] })
+      void queryClient.invalidateQueries({ queryKey: ['usage'] })
     },
   })
 }

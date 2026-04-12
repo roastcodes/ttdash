@@ -4,7 +4,7 @@ import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Cartesian
 import { ChartCard, ChartAnimationAware, ChartReveal } from '@/components/charts/ChartCard'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from '@/components/charts/chart-theme'
-import { formatCurrency, formatDateAxis } from '@/lib/formatters'
+import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { computeCurrentMonthForecast } from '@/lib/calculations'
 import { MetricCard } from '@/components/cards/MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
@@ -170,7 +170,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
                 <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-                <YAxis tickFormatter={(v) => formatCurrency(v)} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis tickFormatter={(value) => formatCurrency(coerceNumber(value))} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
                 <Legend />
                 <Area type="monotone" dataKey="lower" stackId="forecast-band" stroke="none" fill="transparent" name={t('forecast.lowerBound')} />
