@@ -68,6 +68,18 @@ function subscriptionLabel(row: ProviderLimitRow) {
   return i18n.t('limits.statuses.belowSubscription')
 }
 
+function formatLimitBadge(row: ProviderLimitRow, subscriptionProgress: number) {
+  if (row.monthlyLimit > 0) {
+    return `${row.utilization?.toFixed(0)}% Limit`
+  }
+
+  if (row.hasSubscription) {
+    return `${Math.min(subscriptionProgress, 999).toFixed(0)}% Sub`
+  }
+
+  return 'Offen'
+}
+
 function toTooltipNumber(value: TooltipValueType | undefined) {
   const numericValue = Array.isArray(value) ? Number(value[0] ?? 0) : Number(value ?? 0)
   return Number.isFinite(numericValue) ? numericValue : 0
@@ -318,11 +330,7 @@ export function ProviderLimitsSection({
                       className="rounded-full border px-2.5 py-1 text-[11px] font-medium"
                       style={providerStyle}
                     >
-                      {row.monthlyLimit > 0
-                        ? `${row.utilization?.toFixed(0)}% Limit`
-                        : row.hasSubscription
-                          ? `${Math.min(subscriptionProgress, 999).toFixed(0)}% Sub`
-                          : 'Offen'}
+                      {formatLimitBadge(row, subscriptionProgress)}
                     </div>
                   </div>
 
