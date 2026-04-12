@@ -103,7 +103,9 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
 
   const handleExport = useCallback(() => {
     if (!chartData || chartData.length === 0) return
-    const keys = Object.keys(chartData[0])
+    const firstRow = chartData[0]
+    if (!firstRow) return
+    const keys = Object.keys(firstRow)
     const csv = [keys.join(','), ...chartData.map(row => keys.map(k => String(row[k] ?? '')).join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)

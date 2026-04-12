@@ -6,7 +6,7 @@ import { InfoButton } from '@/components/features/help/InfoButton'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatDateTimeFull } from '@/lib/formatters'
 import { getProviderBadgeClasses } from '@/lib/model-utils'
-import { syncProviderLimits } from '@/lib/provider-limits'
+import { DEFAULT_PROVIDER_LIMIT_CONFIG, syncProviderLimits } from '@/lib/provider-limits'
 import {
   DASHBOARD_SECTION_DEFINITION_MAP,
   DASHBOARD_DATE_PRESETS,
@@ -82,6 +82,7 @@ function moveSection(order: DashboardSectionOrder, sectionId: DashboardSectionOr
 
   const next = [...order]
   const [moved] = next.splice(currentIndex, 1)
+  if (!moved) return order
   next.splice(targetIndex, 0, moved)
   return next
 }
@@ -98,6 +99,7 @@ function reorderSections(order: DashboardSectionOrder, sourceId: DashboardSectio
 
   const next = [...order]
   const [moved] = next.splice(sourceIndex, 1)
+  if (!moved) return order
   next.splice(targetIndex, 0, moved)
   return next
 }
@@ -156,7 +158,7 @@ export function SettingsModal({
     setLimitDraft(prev => ({
       ...prev,
       [provider]: {
-        ...prev[provider],
+        ...(prev[provider] ?? DEFAULT_PROVIDER_LIMIT_CONFIG),
         ...patch,
       },
     }))
@@ -165,7 +167,7 @@ export function SettingsModal({
   const handleSave = async () => {
     const nextProviderLimits = { ...limits }
     for (const provider of limitProviders) {
-      nextProviderLimits[provider] = limitDraft[provider]
+      nextProviderLimits[provider] = limitDraft[provider] ?? { ...DEFAULT_PROVIDER_LIMIT_CONFIG }
     }
 
     await onSaveSettings({
@@ -207,7 +209,9 @@ export function SettingsModal({
     ? t(`settings.modal.sources.${lastLoadSource}`)
     : t('settings.modal.sources.unknown')
   const orderedSections = useMemo(
-    () => sectionOrderDraft.map((sectionId) => DASHBOARD_SECTION_DEFINITION_MAP[sectionId]),
+    () => sectionOrderDraft
+      .map((sectionId) => DASHBOARD_SECTION_DEFINITION_MAP[sectionId])
+      .filter((section) => section !== undefined),
     [sectionOrderDraft],
   )
 
@@ -584,7 +588,7 @@ export function SettingsModal({
             ) : (
               <div className="space-y-3">
                 {limitProviders.map((provider) => {
-                  const config = limitDraft[provider]
+                  const config = limitDraft[provider] ?? DEFAULT_PROVIDER_LIMIT_CONFIG
 
                   return (
                     <div key={provider} data-provider-id={provider} className="rounded-2xl border border-border/50 bg-background/40 p-4">

@@ -56,8 +56,8 @@ export function formatDate(dateStr: string, mode: 'short' | 'long' | 'weekday' =
 
   // Monthly period: "2026-03"
   if (/^\d{4}-\d{2}$/.test(dateStr)) {
-    const [y, m] = dateStr.split('-')
-    const d = new Date(parseInt(y), parseInt(m) - 1)
+    const [y = '0', m = '1'] = dateStr.split('-')
+    const d = new Date(parseInt(y, 10), parseInt(m, 10) - 1)
     if (mode === 'short') return d.toLocaleDateString(getCurrentLocale(), { month: 'short', year: '2-digit' })
     return d.toLocaleDateString(getCurrentLocale(), { month: 'long', year: 'numeric' })
   }
@@ -84,8 +84,8 @@ export function formatDateAxis(dateStr: string): string {
 
   // Monthly period: "2026-03"
   if (/^\d{4}-\d{2}$/.test(dateStr)) {
-    const [y, m] = dateStr.split('-')
-    const d = new Date(parseInt(y), parseInt(m) - 1)
+    const [y = '0', m = '1'] = dateStr.split('-')
+    const d = new Date(parseInt(y, 10), parseInt(m, 10) - 1)
     return d.toLocaleDateString(getCurrentLocale(), { month: 'short', year: '2-digit' })
   }
 
@@ -108,8 +108,8 @@ export function periodUnit(viewMode: 'daily' | 'monthly' | 'yearly'): string {
 }
 
 export function formatMonthYear(dateStr: string): string {
-  const [year, month] = dateStr.split('-')
-  const date = new Date(parseInt(year), parseInt(month) - 1)
+  const [year = '0', month = '1'] = dateStr.split('-')
+  const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1)
   return date.toLocaleDateString(getCurrentLocale(), { month: 'long', year: 'numeric' })
 }
 

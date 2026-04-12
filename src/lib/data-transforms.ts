@@ -96,10 +96,15 @@ export function getAvailableMonths(data: DailyUsage[]): string[] {
 
 export function getDateRange(data: DailyUsage[]): { start: string; end: string } | null {
   if (data.length === 0) return null
-  let start = data[0].date
-  let end = data[0].date
+  const firstEntry = data[0]
+  if (!firstEntry) return null
+
+  let start = firstEntry.date
+  let end = firstEntry.date
   for (let i = 1; i < data.length; i++) {
-    const date = data[i].date
+    const entry = data[i]
+    if (!entry) continue
+    const date = entry.date
     if (date < start) start = date
     if (date > end) end = date
   }
@@ -118,7 +123,8 @@ export function toCostChartData(data: DailyUsage[]): ChartDataPoint[] {
       cost: d.totalCost,
       cumulative,
     }
-    const costPrev = i > 0 ? sorted[i - 1].totalCost : null
+    const previousPoint = i > 0 ? sorted[i - 1] : undefined
+    const costPrev = previousPoint?.totalCost ?? null
     if (costPrev !== null) point.costPrev = costPrev
     if (ma7[i] !== undefined) point.ma7 = ma7[i]
     return point
@@ -146,13 +152,16 @@ export function toModelCostChartData(data: DailyUsage[]): (ChartDataPoint & Reco
       dayCosts[name] = (dayCosts[name] ?? 0) + mb.cost
     }
     for (const name of modelNames) {
-      modelCostsArrays[name].push(dayCosts[name] ?? 0)
+      const costsForModel = modelCostsArrays[name]
+      if (costsForModel) {
+        costsForModel.push(dayCosts[name] ?? 0)
+      }
     }
   }
 
   const modelMA7: Record<string, (number | undefined)[]> = {}
   for (const name of modelNames) {
-    modelMA7[name] = computeMovingAverage(modelCostsArrays[name])
+    modelMA7[name] = computeMovingAverage(modelCostsArrays[name] ?? [])
   }
 
   return sorted.map((d, i) => {
@@ -163,7 +172,7 @@ export function toModelCostChartData(data: DailyUsage[]): (ChartDataPoint & Reco
     }
     for (const name of modelNames) {
       if (!(name in point)) point[name] = 0
-      point[`${name}_ma7`] = modelMA7[name][i]
+      point[`${name}_ma7`] = modelMA7[name]?.[i]
     }
     return point as ChartDataPoint & Record<string, number>
   })
@@ -193,7 +202,8 @@ export function toTokenChartData(data: DailyUsage[]): TokenChartDataPoint[] {
       Thinking: d.thinkingTokens,
       totalTokens: d.totalTokens,
     }
-    const totalTokensPrev = i > 0 ? sorted[i - 1].totalTokens : null
+    const previousPoint = i > 0 ? sorted[i - 1] : undefined
+    const totalTokensPrev = previousPoint?.totalTokens ?? null
     if (totalTokensPrev !== null) point.totalTokensPrev = totalTokensPrev
     if (ma7[i] !== undefined) point.tokenMA7 = ma7[i]
     if (inputMA7[i] !== undefined) point.inputMA7 = inputMA7[i]
@@ -228,13 +238,16 @@ export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] 
       dayRequests[name] = (dayRequests[name] ?? 0) + mb.requestCount
     }
     for (const name of modelNames) {
-      modelRequestArrays[name].push(dayRequests[name] ?? 0)
+      const requestsForModel = modelRequestArrays[name]
+      if (requestsForModel) {
+        requestsForModel.push(dayRequests[name] ?? 0)
+      }
     }
   }
 
   const modelMA7: Record<string, (number | undefined)[]> = {}
   for (const name of modelNames) {
-    modelMA7[name] = computeMovingAverage(modelRequestArrays[name])
+    modelMA7[name] = computeMovingAverage(modelRequestArrays[name] ?? [])
   }
 
   return sorted.map((d, i) => {
@@ -242,7 +255,8 @@ export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] 
       date: d.date,
       totalRequests: d.requestCount,
     }
-    const totalRequestsPrev = i > 0 ? sorted[i - 1].requestCount : null
+    const previousPoint = i > 0 ? sorted[i - 1] : undefined
+    const totalRequestsPrev = previousPoint?.requestCount ?? null
     if (totalRequestsPrev !== null) point.totalRequestsPrev = totalRequestsPrev
     if (totalMA7[i] !== undefined) point.totalRequestsMA7 = totalMA7[i]
 
@@ -253,7 +267,7 @@ export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] 
 
     for (const name of modelNames) {
       if (!(name in point)) point[name] = 0
-      point[`${name}_ma7`] = modelMA7[name][i]
+      point[`${name}_ma7`] = modelMA7[name]?.[i]
     }
 
     return point as RequestChartDataPoint
@@ -273,10 +287,13 @@ export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {
     if (d.date.length !== 10) continue
     const date = new Date(d.date + 'T00:00:00')
     const dow = (date.getDay() + 6) % 7 // Monday = 0
-    weekdayCosts[dow].push(d.totalCost)
+    const costsForWeekday = weekdayCosts[dow]
+    if (costsForWeekday) {
+      costsForWeekday.push(d.totalCost)
+    }
   }
   return weekdayLabels.map((day, i) => {
-    const costs = weekdayCosts[i]
+    const costs = weekdayCosts[i] ?? []
     const avg = costs.length > 0 ? costs.reduce((s, v) => s + v, 0) / costs.length : 0
     return { day, cost: avg }
   })

@@ -25,7 +25,7 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
   )
 
   const prevMonth = useMemo(() => {
-    const [y, m] = currentMonth.split('-').map(Number)
+    const [y = 0, m = 1] = currentMonth.split('-').map(Number)
     const pm = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`
     return daily.filter(d => d.date.startsWith(pm))
   }, [daily, currentMonth])

@@ -20,6 +20,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
     if (data.length === 0) return null
     const latest = data[data.length - 1]
     const peak = [...data].sort((a, b) => b.cost - a.cost)[0]
+    if (!latest || !peak) return null
     return {
       latest: latest.cost,
       peak: peak.cost,

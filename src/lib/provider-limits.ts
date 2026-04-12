@@ -40,7 +40,7 @@ export function getLatestMonth(data: DailyUsage[]): string | null {
     .filter(month => /^\d{4}-\d{2}$/.test(month))
     .sort()
 
-  return months.length > 0 ? months[months.length - 1] : null
+  return months.length > 0 ? (months[months.length - 1] ?? null) : null
 }
 
 export function buildProviderMonthlyCosts(data: DailyUsage[]) {

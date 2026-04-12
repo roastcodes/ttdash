@@ -92,7 +92,7 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
       const totalCost = providerTotals.get(provider) ?? 0
       const monthlyLimit = config?.monthlyLimit ?? 0
       const hasSubscription = Boolean(config?.hasSubscription)
-      const subscriptionPrice = hasSubscription ? config.subscriptionPrice : 0
+      const subscriptionPrice = hasSubscription ? (config?.subscriptionPrice ?? 0) : 0
       const overrun = monthlyLimit > 0 ? Math.max(cost - monthlyLimit, 0) : 0
       const remaining = monthlyLimit > 0 ? Math.max(monthlyLimit - cost, 0) : null
       const utilization = monthlyLimit > 0 ? (cost / monthlyLimit) * 100 : null

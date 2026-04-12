@@ -14,8 +14,13 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
     }
   }
 
-  let topDay = { date: data[0].date, cost: data[0].totalCost }
-  let cheapestDay = { date: data[0].date, cost: data[0].totalCost }
+  const firstDay = data[0]
+  if (!firstDay) {
+    throw new Error('computeMetrics received empty data unexpectedly')
+  }
+
+  let topDay = { date: firstDay.date, cost: firstDay.totalCost }
+  let cheapestDay = { date: firstDay.date, cost: firstDay.totalCost }
   let totalCost = 0
   let totalTokens = 0
   let totalInput = 0
@@ -138,21 +143,28 @@ function computeBusiestWeek(data: DailyUsage[]): { start: string; end: string; c
   let bestWindow: { start: string; end: string; cost: number } | null = null
 
   for (let start = 0; start < sorted.length; start++) {
-    const startDate = new Date(`${sorted[start].date}T00:00:00`)
+    const startEntry = sorted[start]
+    if (!startEntry) continue
+
+    const startDate = new Date(`${startEntry.date}T00:00:00`)
     const endLimit = new Date(startDate)
     endLimit.setDate(endLimit.getDate() + 6)
     let windowCost = 0
     let end = start
 
-    while (end < sorted.length && new Date(`${sorted[end].date}T00:00:00`) <= endLimit) {
-      windowCost += sorted[end].totalCost
+    while (end < sorted.length) {
+      const endEntry = sorted[end]
+      if (!endEntry) break
+      if (new Date(`${endEntry.date}T00:00:00`) > endLimit) break
+      windowCost += endEntry.totalCost
       end++
     }
 
-    if (!bestWindow || windowCost > bestWindow.cost) {
+    const finalEntry = sorted[end - 1]
+    if (finalEntry && (!bestWindow || windowCost > bestWindow.cost)) {
       bestWindow = {
-        start: sorted[start].date,
-        end: sorted[end - 1].date,
+        start: startEntry.date,
+        end: finalEntry.date,
         cost: windowCost,
       }
     }
@@ -178,10 +190,19 @@ export function computeMovingAverage(values: number[], window = 7): (number | un
   let sum = 0
 
   for (let i = 0; i < values.length; i++) {
-    sum += values[i]
+    const currentValue = values[i]
+    if (currentValue === undefined) {
+      result[i] = undefined
+      continue
+    }
+
+    sum += currentValue
 
     if (i >= window) {
-      sum -= values[i - window]
+      const outgoingValue = values[i - window]
+      if (outgoingValue !== undefined) {
+        sum -= outgoingValue
+      }
     }
 
     result[i] = i < window - 1 ? undefined : sum / window
@@ -381,9 +402,11 @@ export function linearRegression(values: number[]): { slope: number; intercept: 
   if (n < 2) return { slope: 0, intercept: values[0] ?? 0 }
   let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0
   for (let i = 0; i < n; i++) {
+    const value = values[i]
+    if (value === undefined) continue
     sumX += i
-    sumY += values[i]
-    sumXY += i * values[i]
+    sumY += value
+    sumXY += i * value
     sumXX += i * i
   }
   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX)
@@ -408,9 +431,12 @@ function quantile(values: number[], q: number): number {
   const index = (sorted.length - 1) * q
   const lower = Math.floor(index)
   const upper = Math.ceil(index)
-  if (lower === upper) return sorted[lower]
+  const lowerValue = sorted[lower]
+  const upperValue = sorted[upper]
+  if (lowerValue === undefined || upperValue === undefined) return 0
+  if (lower === upper) return lowerValue
   const weight = index - lower
-  return sorted[lower] * (1 - weight) + sorted[upper] * weight
+  return lowerValue * (1 - weight) + upperValue * weight
 }
 
 function winsorizedAverage(values: number[], limit = 0.15): number {
@@ -429,8 +455,11 @@ export function computeCurrentMonthForecast(data: DailyUsage[]) {
   if (data.length < 2) return null
 
   const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
-  const lastDate = new Date(sorted[sorted.length - 1].date + 'T00:00:00')
-  const currentMonth = sorted[sorted.length - 1].date.slice(0, 7)
+  const lastEntry = sorted[sorted.length - 1]
+  if (!lastEntry) return null
+
+  const lastDate = new Date(lastEntry.date + 'T00:00:00')
+  const currentMonth = lastEntry.date.slice(0, 7)
   const monthData = sorted.filter(d => d.date.startsWith(currentMonth))
 
   if (monthData.length < 2) return null

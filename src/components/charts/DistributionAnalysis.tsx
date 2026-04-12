@@ -42,7 +42,10 @@ function toBins(values: number[], formatter: (value: number) => string): Distrib
 
   for (const value of values) {
     const bucketIndex = Math.min(bucketCount - 1, Math.floor((value - min) / bucketSize))
-    bins[bucketIndex].count += 1
+    const bucket = bins[bucketIndex]
+    if (bucket) {
+      bucket.count += 1
+    }
   }
 
   return bins
@@ -53,6 +56,7 @@ function DistributionTooltip({ active, payload }: { active?: boolean; payload?: 
   if (!active || !payload?.length) return null
 
   const entry = payload[0]
+  if (!entry) return null
 
   return (
     <div className="max-w-[280px] bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">

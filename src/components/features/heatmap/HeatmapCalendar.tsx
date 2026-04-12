@@ -62,8 +62,12 @@ export function HeatmapCalendar({ data, viewMode = 'daily', metric = 'cost' }: H
     }
 
     const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
-    const startDate = new Date(sorted[0].date + 'T00:00:00')
-    const endDate = new Date(sorted[sorted.length - 1].date + 'T00:00:00')
+    const firstEntry = sorted[0]
+    const lastEntry = sorted[sorted.length - 1]
+    if (!firstEntry || !lastEntry) return { cells: [], weeks: 0, months: [], maxValue: 0 }
+
+    const startDate = new Date(firstEntry.date + 'T00:00:00')
+    const endDate = new Date(lastEntry.date + 'T00:00:00')
 
     // Align to Monday
     const startDow = (startDate.getDay() + 6) % 7

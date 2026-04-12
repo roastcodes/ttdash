@@ -73,6 +73,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
 
     const totalRequests = data.reduce((sum, point) => sum + point.totalRequests, 0)
     const peak = [...data].sort((a, b) => b.totalRequests - a.totalRequests)[0]
+    if (!peak) return null
 
     return {
       totalRequests,

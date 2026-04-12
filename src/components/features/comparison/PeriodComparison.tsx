@@ -36,7 +36,9 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
     if (sorted.length === 0) return { periodA: [], periodB: [], labelA: '', labelB: '' }
 
     // Use the date string directly to avoid timezone issues with toISOString()
-    const lastStr = sorted[sorted.length - 1].date
+    const lastEntry = sorted[sorted.length - 1]
+    if (!lastEntry) return { periodA: [], periodB: [], labelA: '', labelB: '' }
+    const lastStr = lastEntry.date
     const lastDate = new Date(lastStr + 'T00:00:00')
 
     // Helper: format local date as YYYY-MM-DD without timezone shift

@@ -53,6 +53,7 @@ export function normalizeModelName(raw: string): string {
   const familyMatch = stripped.match(/(gpt|opus|sonnet|haiku|gemini|o\d|oai|grok|llama|mistral|command|deepseek|qwen)[- ]?([a-z0-9.-]+)?/i)
   if (familyMatch) {
     const family = familyMatch[1]
+    if (!family) return stripped
     const suffix = familyMatch[2]?.replace(/-/g, '.') ?? ''
     if (/^gpt$/i.test(family) && suffix) return `GPT-${suffix.toUpperCase()}`
     if (/^(o\d)$/i.test(family)) return family.toUpperCase()

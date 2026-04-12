@@ -65,10 +65,12 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
     const lastActualCost = elapsedCalendarSeries[elapsedCalendarSeries.length - 1]?.cost ?? 0
     if (points.length > 0) {
       const lastPoint = points[points.length - 1]
-      lastPoint.forecast = lastActualCost
-      lastPoint.lower = Math.max(0, lastActualCost - volatility)
-      lastPoint.upper = lastActualCost + volatility
-      lastPoint.band = (lastPoint.upper ?? 0) - (lastPoint.lower ?? 0)
+      if (lastPoint) {
+        lastPoint.forecast = lastActualCost
+        lastPoint.lower = Math.max(0, lastActualCost - volatility)
+        lastPoint.upper = lastActualCost + volatility
+        lastPoint.band = (lastPoint.upper ?? 0) - (lastPoint.lower ?? 0)
+      }
     }
 
     for (let day = elapsedCalendarSeries.length + 1; day <= daysInMonth; day++) {

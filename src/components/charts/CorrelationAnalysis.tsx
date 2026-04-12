@@ -27,7 +27,10 @@ function correlation(valuesA: number[], valuesB: number[]) {
   if (valuesA.length !== valuesB.length || valuesA.length < 2) return 0
   const avgA = valuesA.reduce((sum, value) => sum + value, 0) / valuesA.length
   const avgB = valuesB.reduce((sum, value) => sum + value, 0) / valuesB.length
-  const covariance = valuesA.reduce((sum, value, index) => sum + (value - avgA) * (valuesB[index] - avgB), 0)
+  const covariance = valuesA.reduce((sum, value, index) => {
+    const otherValue = valuesB[index]
+    return otherValue === undefined ? sum : sum + (value - avgA) * (otherValue - avgB)
+  }, 0)
   const varianceA = valuesA.reduce((sum, value) => sum + (value - avgA) ** 2, 0)
   const varianceB = valuesB.reduce((sum, value) => sum + (value - avgB) ** 2, 0)
   if (varianceA === 0 || varianceB === 0) return 0
@@ -38,7 +41,8 @@ function ScatterTooltip({ active, payload, mode }: { active?: boolean; payload?:
   const { t } = useTranslation()
   if (!active || !payload?.length) return null
 
-  const point = payload[0].payload
+  const point = payload[0]?.payload
+  if (!point) return null
 
   return (
     <div className="max-w-[260px] bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">

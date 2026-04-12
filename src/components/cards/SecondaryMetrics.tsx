@@ -24,7 +24,12 @@ export function SecondaryMetrics({ metrics, dailyCosts, viewMode = 'daily' }: Se
     if (!dailyCosts || dailyCosts.length === 0) return null
     const sorted = [...dailyCosts].sort((a, b) => a - b)
     const mid = Math.floor(sorted.length / 2)
-    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+    const midValue = sorted[mid]
+    if (midValue === undefined) return null
+    if (sorted.length % 2) return midValue
+    const previousValue = sorted[mid - 1]
+    if (previousValue === undefined) return null
+    return (previousValue + midValue) / 2
   })()
   const requestLeader = metrics.topRequestModel
     ? t('metricCards.secondary.requestLeader', { model: metrics.topRequestModel.name, requests: formatNumber(metrics.topRequestModel.requests) })

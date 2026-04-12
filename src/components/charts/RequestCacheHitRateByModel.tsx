@@ -42,6 +42,7 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
   const summary = useMemo(() => {
     if (barData.length === 0) return null
     const total = barData[0]
+    if (!total) return null
     const topModel = barData.slice(1).sort((a, b) => b.totalRate - a.totalRate)[0] ?? null
     const dominantModel = barData.slice(1).sort((a, b) => b.totalBaseTokens - a.totalBaseTokens)[0] ?? null
 
@@ -86,11 +87,14 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
 
       for (const model of topModels) {
         const current = byModel.get(model)
-        modelSeries[model].push(
-          current
-            ? computePointRate(current.input, current.output, current.cacheCreate, current.cacheRead, current.thinking)
-            : 0,
-        )
+        const series = modelSeries[model]
+        if (series) {
+          series.push(
+            current
+              ? computePointRate(current.input, current.output, current.cacheCreate, current.cacheRead, current.thinking)
+              : 0,
+          )
+        }
       }
     }
 
@@ -102,7 +106,7 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
       }
 
       for (const model of topModels) {
-        row[model] = modelSeries[model][index]
+        row[model] = modelSeries[model]?.[index] ?? 0
       }
 
       return row

@@ -36,10 +36,15 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
     data.map((d, i) => ({
       date: d.date,
       total: d.Input + d.Output + d['Cache Write'] + d['Cache Read'] + d.Thinking,
-      totalPrev: i > 0 ? data[i - 1].Input + data[i - 1].Output + data[i - 1]['Cache Write'] + data[i - 1]['Cache Read'] + data[i - 1].Thinking : undefined,
+      totalPrev: (() => {
+        const previousDay = i > 0 ? data[i - 1] : undefined
+        return previousDay
+          ? previousDay.Input + previousDay.Output + previousDay['Cache Write'] + previousDay['Cache Read'] + previousDay.Thinking
+          : undefined
+      })(),
       tokenMA7: d.tokenMA7,
     })),
-    [data]
+    [data],
   )
 
   const handleClick = (e: unknown) => {

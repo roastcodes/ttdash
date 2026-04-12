@@ -18,7 +18,7 @@ function translateAutoImportMessage(message: string, t: AutoImportTranslator) {
 
   const processingMatch = message.match(/^Verarbeite Nutzungsdaten\.\.\. \((\d+)s\)$/)
   if (processingMatch) {
-    return t('autoImportModal.processingUsageData', { seconds: processingMatch[1] })
+    return t('autoImportModal.processingUsageData', { seconds: processingMatch[1] ?? '0' })
   }
 
   if (message === 'Verbindung zum Server verloren.') {
