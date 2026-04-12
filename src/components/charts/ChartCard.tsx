@@ -239,25 +239,25 @@ export function ChartCard({
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          Min
+                          {t('dashboard.stats.min')}
                         </div>
                         <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.min)}</div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          Max
+                          {t('dashboard.stats.max')}
                         </div>
                         <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.max)}</div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          Avg
+                          {t('dashboard.stats.avg')}
                         </div>
                         <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.avg)}</div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          Gesamt
+                          {t('dashboard.stats.total')}
                         </div>
                         <div className="font-mono font-medium text-sm mt-0.5">
                           {fmt(stats.total)}
@@ -265,7 +265,7 @@ export function ChartCard({
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          Datenpunkte
+                          {t('dashboard.stats.dataPoints')}
                         </div>
                         <div className="font-mono font-medium text-sm mt-0.5">{stats.count}</div>
                       </div>

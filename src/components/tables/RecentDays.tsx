@@ -180,7 +180,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                 {summary.top ? formatDate(summary.top.date) : '–'}
               </div>
               <div className="text-xs text-muted-foreground">
-                {summary.top ? `${summary.top.totalCost.toFixed(2)} USD` : '–'}
+                {summary.top ? formatCurrency(summary.top.totalCost) : '–'}
               </div>
             </div>
           </div>

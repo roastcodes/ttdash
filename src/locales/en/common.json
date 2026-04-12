@@ -72,6 +72,8 @@
     "hidden": "Hidden",
     "open": "Open",
     "close": "Close",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
     "startDate": "Start date",
     "endDate": "End date",
     "selectedProviders": "Selected providers",
@@ -165,6 +167,9 @@
       "cacheRoi": "Cache ROI"
     },
     "stats": {
+      "min": "Min",
+      "max": "Max",
+      "avg": "Avg",
       "cacheHitRate": "Cache hit rate",
       "totalTokens": "Total tokens",
       "cacheRead": "Cache read",
@@ -206,6 +211,7 @@
       "spread": "Spread: {{value}}",
       "medianPerUnit": "Median/{{unit}}",
       "vsAverage": "{{direction}}{{value}}% vs avg",
+      "vsAverageWithVolatility": "{{direction}}{{value}}% vs avg · σ Req {{volatility}}",
       "medianInfo": "The median shows the typical value and is less sensitive to outliers than the average.",
       "requestLeader": "{{model}} · {{requests}} req",
       "dominantProviderSubtitle": "{{share}} share · {{cost}}{{requestLeader}}"
@@ -250,6 +256,7 @@
       "ioRatio": "I/O ratio: {{value}}:1",
       "topModel": "Top: {{value}}",
       "cacheMix": "In: {{input}} / Out: {{output}}",
+      "costPerRequest": "{{value}} / req",
       "requestsSubtitle": "Avg {{value}}/day · {{cost}}/req",
       "requestCountersMissing": "No request counters",
       "thinkingSubtitle": "{{value}} share"
@@ -919,6 +926,11 @@
       "subscriptionPaysOff": "Subscription pays off",
       "belowSubscription": "Still below subscription"
     },
+    "badge": {
+      "limit": "{{value}}% Limit",
+      "subscription": "{{value}}% Sub",
+      "open": "Open"
+    },
     "tracks": {
       "budgetTitle": "Budget status by provider",
       "budgetSubtitle": "Each track shows the remaining distance to the limit or the already incurred overrun for each provider",
@@ -930,7 +942,9 @@
       "portfolioSubtitle": "Monthly trend of usage, configured limits, and subscription impact",
       "usage": "Usage",
       "limit": "Limit",
+      "limits": "Limits",
       "subscription": "Subscription",
+      "subscriptions": "Subscriptions",
       "breakEven": "Break-even",
       "currentlyUsed": "Currently used",
       "remainingToLimit": "Remaining to limit",

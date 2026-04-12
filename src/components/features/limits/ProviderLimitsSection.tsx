@@ -70,14 +70,16 @@ function subscriptionLabel(row: ProviderLimitRow) {
 
 function formatLimitBadge(row: ProviderLimitRow, subscriptionProgress: number) {
   if (row.monthlyLimit > 0) {
-    return `${row.utilization?.toFixed(0)}% Limit`
+    return i18n.t('limits.badge.limit', { value: row.utilization?.toFixed(0) ?? '0' })
   }
 
   if (row.hasSubscription) {
-    return `${Math.min(subscriptionProgress, 999).toFixed(0)}% Sub`
+    return i18n.t('limits.badge.subscription', {
+      value: Math.min(subscriptionProgress, 999).toFixed(0),
+    })
   }
 
-  return 'Offen'
+  return i18n.t('limits.badge.open')
 }
 
 function toTooltipNumber(value: TooltipValueType | undefined) {
@@ -923,7 +925,7 @@ export function ProviderLimitsSection({
                     <Line
                       type="monotone"
                       dataKey="totalLimit"
-                      name={`${t('limits.tracks.limit')}s`}
+                      name={t('limits.tracks.limits')}
                       stroke="rgb(251 146 60)"
                       strokeDasharray="6 3"
                       strokeWidth={2}
@@ -936,7 +938,7 @@ export function ProviderLimitsSection({
                     <Line
                       type="monotone"
                       dataKey="totalSubscriptions"
-                      name={`${t('limits.tracks.subscription')}s`}
+                      name={t('limits.tracks.subscriptions')}
                       stroke="rgb(125 211 252)"
                       strokeDasharray="3 3"
                       strokeWidth={2}

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FilterBar } from '@/components/layout/FilterBar'
 import { initI18n } from '@/lib/i18n'
@@ -123,5 +123,37 @@ describe('FilterBar', () => {
     )
 
     expect(screen.getByRole('button', { name: 'All' }).className).not.toContain('bg-primary')
+  })
+
+  it('localizes the calendar month navigation aria labels', () => {
+    const noop = vi.fn()
+
+    render(
+      <FilterBar
+        viewMode="daily"
+        onViewModeChange={noop}
+        selectedMonth={null}
+        onMonthChange={noop}
+        availableMonths={['2026-03', '2026-04']}
+        availableProviders={[]}
+        selectedProviders={[]}
+        onToggleProvider={noop}
+        onClearProviders={noop}
+        allModels={[]}
+        selectedModels={[]}
+        onToggleModel={noop}
+        onClearModels={noop}
+        startDate={undefined}
+        endDate={undefined}
+        onStartDateChange={noop}
+        onEndDateChange={noop}
+        onApplyPreset={noop}
+        onResetAll={noop}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start date' }))
+    expect(screen.getByRole('button', { name: 'Previous month' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next month' })).toBeInTheDocument()
   })
 })

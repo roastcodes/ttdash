@@ -62,7 +62,13 @@ export function SecondaryMetrics({
         : null
   const medianSubtitle =
     median !== null && metrics.avgDailyCost > 0
-      ? `${t('metricCards.secondary.vsAverage', { direction: median < metrics.avgDailyCost ? '↓' : '↑', value: Math.abs(((median - metrics.avgDailyCost) / metrics.avgDailyCost) * 100).toFixed(0) })} · σ Req ${Math.round(metrics.requestVolatility)}`
+      ? t('metricCards.secondary.vsAverageWithVolatility', {
+          direction: median < metrics.avgDailyCost ? '↓' : '↑',
+          value: Math.abs(((median - metrics.avgDailyCost) / metrics.avgDailyCost) * 100).toFixed(
+            0,
+          ),
+          volatility: Math.round(metrics.requestVolatility),
+        })
       : null
 
   return (

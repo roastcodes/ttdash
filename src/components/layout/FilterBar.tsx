@@ -242,7 +242,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
                   setDisplayMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
                 }
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                aria-label="Previous month"
+                aria-label={t('common.previousMonth')}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -253,7 +253,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
                   setDisplayMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
                 }
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                aria-label="Next month"
+                aria-label={t('common.nextMonth')}
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

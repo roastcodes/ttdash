@@ -183,7 +183,9 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
                   value={agg.requestCount}
                   type="number"
                   label={t('metricCards.month.requestsInMonth')}
-                  insight={`${formatCurrency(agg.totalCost / agg.requestCount)} / Request`}
+                  insight={t('metricCards.month.costPerRequest', {
+                    value: formatCurrency(agg.totalCost / agg.requestCount),
+                  })}
                 />
               ) : (
                 t('common.notAvailable')

@@ -47,7 +47,7 @@ describe('ProviderLimitsSection', () => {
     )
 
     expect(screen.getByText('0% Limit')).toBeInTheDocument()
-    expect(screen.getByText('0% Sub')).toBeInTheDocument()
+    expect(screen.getByText('0% Abo')).toBeInTheDocument()
     expect(screen.getByText('Offen')).toBeInTheDocument()
   })
 })
