@@ -62,7 +62,7 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
           })}
         </p>
         <div className="space-y-2">
-          {anomalies
+          {[...anomalies]
             .sort((a, b) => b.totalCost - a.totalCost)
             .map((day) => {
               const zScoreNum = stdDev > 0 ? (day.totalCost - mean) / stdDev : 0

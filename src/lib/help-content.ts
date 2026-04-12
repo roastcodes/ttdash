@@ -247,11 +247,16 @@ function dynamicMap<const T extends Record<string, string>>(selector: () => T): 
     get: (_, key) => Reflect.get(selector(), key),
     has: (_, key) => key in selector(),
     ownKeys: () => Reflect.ownKeys(selector()),
-    getOwnPropertyDescriptor: (_, key) => ({
-      value: Reflect.get(selector(), key),
-      enumerable: true,
-      configurable: true,
-    }),
+    getOwnPropertyDescriptor: (_, key) => {
+      const map = selector()
+      if (!Object.prototype.hasOwnProperty.call(map, key)) return undefined
+
+      return {
+        value: Reflect.get(map, key),
+        enumerable: true,
+        configurable: true,
+      }
+    },
   })
 }
 

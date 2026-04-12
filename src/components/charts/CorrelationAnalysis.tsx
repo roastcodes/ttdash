@@ -38,6 +38,22 @@ interface ScatterPoint {
   cacheRate?: number
 }
 
+function getCorrelationInterpretation(
+  t: ReturnType<typeof useTranslation>['t'],
+  correlationValue: number,
+  mode: 'requestCost' | 'cacheEfficiency',
+) {
+  if (mode === 'requestCost') {
+    if (correlationValue >= 0.6) return t('charts.correlation.strongRequestCost')
+    if (correlationValue >= 0.3) return t('charts.correlation.mediumRequestCost')
+    return t('charts.correlation.weakRequestCost')
+  }
+
+  if (correlationValue <= -0.3) return t('charts.correlation.negativeCache')
+  if (correlationValue < 0.2) return t('charts.correlation.neutralCache')
+  return t('charts.correlation.positiveCache')
+}
+
 function correlation(valuesA: number[], valuesB: number[]) {
   if (valuesA.length !== valuesB.length || valuesA.length < 2) return 0
   const avgA = valuesA.reduce((sum, value) => sum + value, 0) / valuesA.length
@@ -282,13 +298,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
           color={CHART_COLORS.cost}
           xAxisName={t('charts.correlation.requestsAxis')}
           yAxisName={t('charts.correlation.cost')}
-          footer={
-            requestCostCorrelation >= 0.6
-              ? t('charts.correlation.strongRequestCost')
-              : requestCostCorrelation >= 0.3
-                ? t('charts.correlation.mediumRequestCost')
-                : t('charts.correlation.weakRequestCost')
-          }
+          footer={getCorrelationInterpretation(t, requestCostCorrelation, 'requestCost')}
           delay={0.02}
         />
 
@@ -302,13 +312,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
           xAxisName={t('charts.correlation.cacheRate')}
           xTickFormatter={(value) => formatPercent(value, 0)}
           yAxisName={t('charts.correlation.costPerRequestAxis')}
-          footer={
-            cacheEfficiencyCorrelation <= -0.3
-              ? t('charts.correlation.negativeCache')
-              : cacheEfficiencyCorrelation < 0.2
-                ? t('charts.correlation.neutralCache')
-                : t('charts.correlation.positiveCache')
-          }
+          footer={getCorrelationInterpretation(t, cacheEfficiencyCorrelation, 'cacheEfficiency')}
           delay={0.08}
         />
       </CardContent>

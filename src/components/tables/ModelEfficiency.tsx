@@ -319,7 +319,7 @@ export function ModelEfficiency({
               {sorted.map((model) => (
                 <tr
                   key={model.name}
-                  className="border-b border-border/50 even:bg-muted/5 hover:bg-muted/10 transition-colors cursor-pointer"
+                  className="border-b border-border/50 even:bg-muted/5 hover:bg-muted/10 transition-colors"
                 >
                   <td className="px-3 py-2.5">
                     <span className="inline-flex items-center gap-2 flex-wrap">

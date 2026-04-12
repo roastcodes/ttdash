@@ -126,7 +126,7 @@ export function ModelMix({ data }: ModelMixProps) {
                   content={<MixTooltip />}
                   cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }}
                 />
-                {models.map((model) => {
+                {models.map((model, index) => {
                   const color = getModelColor(model)
                   const id = `mix-grad-${model.replace(/[\s.]/g, '-')}`
                   return (
@@ -141,7 +141,7 @@ export function ModelMix({ data }: ModelMixProps) {
                       fill={`url(#${id})`}
                       name={model}
                       isAnimationActive={animate}
-                      animationBegin={CHART_ANIMATION.stagger * (models.indexOf(model) % 5)}
+                      animationBegin={CHART_ANIMATION.stagger * (index % 5)}
                       animationDuration={CHART_ANIMATION.duration}
                       animationEasing={CHART_ANIMATION.easing}
                     />

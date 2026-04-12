@@ -7,6 +7,7 @@ type CardProps = React.ComponentPropsWithoutRef<typeof motion.div>
 const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, ...props }, ref) => (
   <motion.div
     ref={ref}
+    {...props}
     initial={{ opacity: 0, y: 14 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, amount: 0.15 }}
@@ -15,7 +16,6 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, ...props 
       'relative rounded-xl border border-border/50 bg-card/80 backdrop-blur-xl text-card-foreground shadow-[var(--shadow-card)] transition-all duration-300 hover:shadow-[var(--shadow-card-hover)] hover:border-border/80',
       className,
     )}
-    {...props}
   />
 ))
 Card.displayName = 'Card'

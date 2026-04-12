@@ -69,7 +69,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                   cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
                 />
                 <Legend />
-                {models.map((model) => (
+                {models.map((model, index) => (
                   <Line
                     key={`${model}_ma7`}
                     type="monotone"
@@ -81,7 +81,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                     strokeDasharray="5 4"
                     connectNulls
                     isAnimationActive={animate}
-                    animationBegin={CHART_ANIMATION.stagger * (models.indexOf(model) % 5)}
+                    animationBegin={CHART_ANIMATION.stagger * (index % 5)}
                     animationDuration={CHART_ANIMATION.slowDuration}
                   />
                 ))}
@@ -139,7 +139,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                   cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
                 />
                 <Legend />
-                {models.map((model) => (
+                {models.map((model, index) => (
                   <Line
                     key={model}
                     type="monotone"
@@ -149,7 +149,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                     dot={false}
                     strokeWidth={1.5}
                     isAnimationActive={animate}
-                    animationBegin={CHART_ANIMATION.stagger * (models.indexOf(model) % 5)}
+                    animationBegin={CHART_ANIMATION.stagger * (index % 5)}
                     animationDuration={CHART_ANIMATION.duration}
                     animationEasing={CHART_ANIMATION.easing}
                   />

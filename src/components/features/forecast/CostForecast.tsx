@@ -183,11 +183,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
             </span>
           </span>
         }
-        value={
-          <>
-            ~<FormattedValue value={forecastTotal} type="currency" />
-          </>
-        }
+        value={<FormattedValue value={forecastTotal} type="currency" />}
         subtitle={`${t('forecast.soFar', { value: formatCurrency(currentMonthTotal) })} · ${t('forecast.remainingDays', { count: remainingDays })}${dailyAvgTrend ? ` · ${t('forecast.projectedPerDay', { value: formatCurrency(projectedDailyBurn) })}` : ''}`}
         icon={<TrendingUp className="h-4 w-4" />}
         trend={
