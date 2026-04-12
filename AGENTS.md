@@ -10,7 +10,9 @@ Install dependencies with `npm install`.
 
 - `npm run dev`: starts the Vite dev server on port `5173`.
 - `node server.js`: runs the local API/static server on port `3000`.
-- `npm run build`: creates the production bundle in `dist/`.
+- `npm run build`: runs `prettier --check`, `eslint`, and then creates the production bundle in `dist/`.
+- `npm run build:app`: creates the production bundle in `dist/` without the lint/format gate.
+- `npm run verify`: runs the main local quality gate (`format:check`, `lint`, `tsc --noEmit`, unit tests, `build:app`, and `verify:package`).
 - `npm run preview`: serves the built frontend for a production-style check.
 - `npm start`: runs the packaged server entrypoint.
 
@@ -22,7 +24,7 @@ Frontend code is TypeScript + React. Follow the existing style: 2-space indentat
 
 ## Testing Guidelines
 
-Automated tests are part of the repo now. Before opening a PR, run `npm run build`, `npm run test:unit`, `npm run verify:package`, and `npm run test:e2e`. If local port `3015` is already in use, run Playwright with `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`. Continue to manually verify the main flows affected by the change: dashboard load, auto-import, JSON upload, filtering, and export actions. If you add tests, prefer focused `*.test.ts` or `*.test.tsx` coverage for data transforms, hooks, or complex UI behavior.
+Automated tests are part of the repo now. Before opening a PR, run `npm run verify` and `npm run test:e2e`. If you want the same gate the release workflow uses, also run `npm run test:unit:coverage`. If local port `3015` is already in use, run Playwright with `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`. Continue to manually verify the main flows affected by the change: dashboard load, auto-import, JSON upload, filtering, and export actions. If you add tests, prefer focused `*.test.ts` or `*.test.tsx` coverage for data transforms, hooks, or complex UI behavior.
 
 ## Commit & Pull Request Guidelines
 
