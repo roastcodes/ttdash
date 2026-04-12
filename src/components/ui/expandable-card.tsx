@@ -12,7 +12,13 @@ interface ExpandableCardProps {
   stats?: { label: string; value: string }[]
 }
 
-export function ExpandableCard({ children, title, className, expandedClassName, stats }: ExpandableCardProps) {
+export function ExpandableCard({
+  children,
+  title,
+  className,
+  expandedClassName,
+  stats,
+}: ExpandableCardProps) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
 
@@ -30,10 +36,12 @@ export function ExpandableCard({ children, title, className, expandedClassName, 
       </div>
 
       <Dialog open={expanded} onOpenChange={setExpanded}>
-        <DialogContent className={cn(
-          'max-w-[96vw] w-[96vw] sm:max-w-[95vw] sm:w-[95vw] max-h-[92vh] h-[92vh] sm:max-h-[90vh] sm:h-[90vh] overflow-auto p-4 sm:p-6',
-          expandedClassName
-        )}>
+        <DialogContent
+          className={cn(
+            'max-w-[96vw] w-[96vw] sm:max-w-[95vw] sm:w-[95vw] max-h-[92vh] h-[92vh] sm:max-h-[90vh] sm:h-[90vh] overflow-auto p-4 sm:p-6',
+            expandedClassName,
+          )}
+        >
           <DialogTitle className="sr-only">{title ?? t('common.expand')}</DialogTitle>
           <DialogDescription className="sr-only">
             Expanded card view with additional metrics and full content.
@@ -41,9 +49,11 @@ export function ExpandableCard({ children, title, className, expandedClassName, 
           <div className="h-full">
             {stats && stats.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                {stats.map(s => (
+                {stats.map((s) => (
                   <div key={s.label} className="p-2.5 rounded-lg bg-muted/20 text-center">
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{s.label}</div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      {s.label}
+                    </div>
                     <div className="font-mono font-medium text-sm mt-0.5">{s.value}</div>
                   </div>
                 ))}

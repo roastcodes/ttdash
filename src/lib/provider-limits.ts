@@ -24,7 +24,7 @@ export function normalizeProviderLimitConfig(value: unknown): ProviderLimitConfi
 }
 
 export function syncProviderLimits(providers: string[], source: unknown): ProviderLimits {
-  const input = source && typeof source === 'object' ? source as Record<string, unknown> : {}
+  const input = source && typeof source === 'object' ? (source as Record<string, unknown>) : {}
   const next: ProviderLimits = {}
 
   for (const provider of providers) {
@@ -36,8 +36,8 @@ export function syncProviderLimits(providers: string[], source: unknown): Provid
 
 export function getLatestMonth(data: DailyUsage[]): string | null {
   const months = data
-    .map(entry => entry.date.slice(0, 7))
-    .filter(month => /^\d{4}-\d{2}$/.test(month))
+    .map((entry) => entry.date.slice(0, 7))
+    .filter((month) => /^\d{4}-\d{2}$/.test(month))
     .sort()
 
   return months.length > 0 ? (months[months.length - 1] ?? null) : null

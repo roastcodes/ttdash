@@ -10,8 +10,8 @@ const MODEL_COLORS = {
   'GPT-5.4': 'rgb(230, 98, 56)',
   'GPT-5': 'rgb(230, 98, 56)',
   'Gemini 3 Flash Preview': 'rgb(237, 188, 8)',
-  'Gemini': 'rgb(237, 188, 8)',
-  'OpenCode': 'rgb(51, 181, 193)',
+  Gemini: 'rgb(237, 188, 8)',
+  OpenCode: 'rgb(51, 181, 193)',
 };
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
@@ -24,7 +24,9 @@ function titleCaseSegment(segment) {
 }
 
 function normalizeModelName(raw) {
-  const lower = String(raw || '').toLowerCase().trim();
+  const lower = String(raw || '')
+    .toLowerCase()
+    .trim();
   if (lower.includes('gpt-5-4') || lower.includes('gpt-5.4')) return 'GPT-5.4';
   if (lower.includes('gpt-5')) return 'GPT-5';
   if (lower.includes('opus-4-6') || lower.includes('opus-4.6')) return 'Opus 4.6';
@@ -47,7 +49,9 @@ function normalizeModelName(raw) {
     .replace(/-{2,}/g, '-')
     .replace(/^-|-$/g, '');
 
-  const familyMatch = stripped.match(/(gpt|opus|sonnet|haiku|gemini|o\d|oai|grok|llama|mistral|command|deepseek|qwen)[- ]?([a-z0-9.-]+)?/i);
+  const familyMatch = stripped.match(
+    /(gpt|opus|sonnet|haiku|gemini|o\d|oai|grok|llama|mistral|command|deepseek|qwen)[- ]?([a-z0-9.-]+)?/i,
+  );
   if (familyMatch) {
     const family = familyMatch[1];
     const suffix = familyMatch[2] ? familyMatch[2].replace(/-/g, '.') : '';
@@ -56,20 +60,30 @@ function normalizeModelName(raw) {
     return `${titleCaseSegment(family)}${suffix ? ` ${suffix}` : ''}`.trim();
   }
 
-  return stripped
-    .split('-')
-    .filter(Boolean)
-    .map(titleCaseSegment)
-    .join(' ') || String(raw || '');
+  return stripped.split('-').filter(Boolean).map(titleCaseSegment).join(' ') || String(raw || '');
 }
 
 function getModelProvider(raw) {
   const lower = String(raw || '').toLowerCase();
-  if (lower.includes('gpt') || lower.includes('openai') || lower.includes('/o1') || lower.includes('/o3') || /\bo\d\b/.test(lower)) return 'OpenAI';
-  if (lower.includes('claude') || lower.includes('opus') || lower.includes('sonnet') || lower.includes('haiku')) return 'Anthropic';
+  if (
+    lower.includes('gpt') ||
+    lower.includes('openai') ||
+    lower.includes('/o1') ||
+    lower.includes('/o3') ||
+    /\bo\d\b/.test(lower)
+  )
+    return 'OpenAI';
+  if (
+    lower.includes('claude') ||
+    lower.includes('opus') ||
+    lower.includes('sonnet') ||
+    lower.includes('haiku')
+  )
+    return 'Anthropic';
   if (lower.includes('gemini')) return 'Google';
   if (lower.includes('grok') || lower.includes('xai')) return 'xAI';
-  if (lower.includes('llama') || lower.includes('meta-llama') || lower.includes('meta/')) return 'Meta';
+  if (lower.includes('llama') || lower.includes('meta-llama') || lower.includes('meta/'))
+    return 'Meta';
   if (lower.includes('command') || lower.includes('cohere')) return 'Cohere';
   if (lower.includes('mistral')) return 'Mistral';
   if (lower.includes('deepseek')) return 'DeepSeek';
@@ -127,7 +141,8 @@ function recalculateDayFromBreakdowns(day, modelBreakdowns) {
     thinkingTokens,
     totalCost,
     requestCount,
-    totalTokens: inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens + thinkingTokens,
+    totalTokens:
+      inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens + thinkingTokens,
     modelsUsed: modelBreakdowns.map((item) => item.modelName),
     modelBreakdowns,
   };
@@ -138,8 +153,12 @@ function filterByProviders(data, selectedProviders) {
   const selected = new Set(selectedProviders);
   return data
     .map((day) => {
-      const filteredBreakdowns = day.modelBreakdowns.filter((entry) => selected.has(getModelProvider(entry.modelName)));
-      return filteredBreakdowns.length > 0 ? recalculateDayFromBreakdowns(day, filteredBreakdowns) : null;
+      const filteredBreakdowns = day.modelBreakdowns.filter((entry) =>
+        selected.has(getModelProvider(entry.modelName)),
+      );
+      return filteredBreakdowns.length > 0
+        ? recalculateDayFromBreakdowns(day, filteredBreakdowns)
+        : null;
     })
     .filter(Boolean);
 }
@@ -149,17 +168,19 @@ function filterByModels(data, selectedModels) {
   const selected = new Set(selectedModels);
   return data
     .map((day) => {
-      const filteredBreakdowns = day.modelBreakdowns.filter((entry) => selected.has(normalizeModelName(entry.modelName)));
-      return filteredBreakdowns.length > 0 ? recalculateDayFromBreakdowns(day, filteredBreakdowns) : null;
+      const filteredBreakdowns = day.modelBreakdowns.filter((entry) =>
+        selected.has(normalizeModelName(entry.modelName)),
+      );
+      return filteredBreakdowns.length > 0
+        ? recalculateDayFromBreakdowns(day, filteredBreakdowns)
+        : null;
     })
     .filter(Boolean);
 }
 
 function aggregateToDailyFormat(data, viewMode) {
   if (viewMode === 'daily') return data;
-  const groupKey = viewMode === 'monthly'
-    ? (date) => date.slice(0, 7)
-    : (date) => date.slice(0, 4);
+  const groupKey = viewMode === 'monthly' ? (date) => date.slice(0, 7) : (date) => date.slice(0, 4);
   const groups = new Map();
 
   for (const day of data) {
@@ -239,7 +260,8 @@ function toWeekdayData(data) {
   }
   return WEEKDAYS.map((label, index) => {
     const values = weekdayCosts[index];
-    const average = values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+    const average =
+      values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
     return { day: label, cost: average };
   });
 }
@@ -338,7 +360,8 @@ function computeMetrics(data) {
     totalCacheCreate += day.cacheCreationTokens;
     totalThinking += day.thinkingTokens;
     activeDays += day._aggregatedDays || 1;
-    if (day.requestCount > 0 || day.modelBreakdowns.some((entry) => entry.requestCount > 0)) hasRequestData = true;
+    if (day.requestCount > 0 || day.modelBreakdowns.some((entry) => entry.requestCount > 0))
+      hasRequestData = true;
     if (day.totalCost > topDay.cost) topDay = { date: day.date, cost: day.totalCost };
     if (day.totalCost < cheapestDay.cost) cheapestDay = { date: day.date, cost: day.totalCost };
 
@@ -416,7 +439,12 @@ function computeModelRows(data) {
         _dates: new Set(),
       };
       current.cost += breakdown.cost;
-      current.tokens += breakdown.inputTokens + breakdown.outputTokens + breakdown.cacheCreationTokens + breakdown.cacheReadTokens + breakdown.thinkingTokens;
+      current.tokens +=
+        breakdown.inputTokens +
+        breakdown.outputTokens +
+        breakdown.cacheCreationTokens +
+        breakdown.cacheReadTokens +
+        breakdown.thinkingTokens;
       current.requests += breakdown.requestCount;
       if (!current._dates.has(day.date)) {
         current._dates.add(day.date);
@@ -454,7 +482,12 @@ function computeProviderRows(data) {
         _dates: new Set(),
       };
       current.cost += breakdown.cost;
-      current.tokens += breakdown.inputTokens + breakdown.outputTokens + breakdown.cacheCreationTokens + breakdown.cacheReadTokens + breakdown.thinkingTokens;
+      current.tokens +=
+        breakdown.inputTokens +
+        breakdown.outputTokens +
+        breakdown.cacheCreationTokens +
+        breakdown.cacheReadTokens +
+        breakdown.thinkingTokens;
       current.requests += breakdown.requestCount;
       if (!current._dates.has(day.date)) {
         current._dates.add(day.date);
@@ -497,7 +530,12 @@ function formatDate(dateStr, mode = 'short', language = 'de') {
   }
   const date = new Date(`${dateStr}T00:00:00`);
   if (mode === 'long') {
-    return date.toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    return date.toLocaleDateString(locale, {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
   }
   return date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
 }
@@ -510,7 +548,10 @@ function formatDateAxis(dateStr, language = 'de') {
     const date = new Date(Number(year), Number(month) - 1);
     return date.toLocaleDateString(locale, { month: 'short', year: '2-digit' });
   }
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString(locale, {
+    day: '2-digit',
+    month: '2-digit',
+  });
 }
 
 function formatFilterValue(value, language = 'de') {
@@ -581,10 +622,12 @@ function formatCompactAxis(value, language = 'de') {
   return formatCompactNumber(value, language);
 }
 
-function summarizeSelection(values, language, { emptyKey, maxVisible = 3, normalize = (value) => value } = {}) {
-  const normalized = (values || [])
-    .map(normalize)
-    .filter(Boolean);
+function summarizeSelection(
+  values,
+  language,
+  { emptyKey, maxVisible = 3, normalize = (value) => value } = {},
+) {
+  const normalized = (values || []).map(normalize).filter(Boolean);
 
   if (normalized.length === 0) {
     return translate(language, emptyKey);
@@ -592,9 +635,8 @@ function summarizeSelection(values, language, { emptyKey, maxVisible = 3, normal
 
   const visible = normalized.slice(0, maxVisible);
   const hidden = normalized.length - visible.length;
-  const suffix = hidden > 0
-    ? ` ${translate(language, 'report.filters.andMore', { count: hidden })}`
-    : '';
+  const suffix =
+    hidden > 0 ? ` ${translate(language, 'report.filters.andMore', { count: hidden })}` : '';
 
   return `${visible.join(', ')}${suffix}`;
 }
@@ -663,7 +705,10 @@ function periodUnit(viewMode, language = 'de') {
 
 function applyReportFilters(allDailyData, filters) {
   const sorted = sortByDate(allDailyData);
-  const preProvider = filterByMonth(filterByDateRange(sorted, filters.startDate, filters.endDate), filters.selectedMonth);
+  const preProvider = filterByMonth(
+    filterByDateRange(sorted, filters.startDate, filters.endDate),
+    filters.selectedMonth,
+  );
   const preModel = filterByProviders(preProvider, filters.selectedProviders || []);
   const filteredDaily = filterByModels(preModel, filters.selectedModels || []);
   const filtered = aggregateToDailyFormat(filteredDaily, filters.viewMode || 'daily');
@@ -698,32 +743,76 @@ function buildReportData(allDailyData, options = {}) {
     emptyKey: 'report.filters.all',
     normalize: normalizeModelName,
   });
-  const monthLabel = formatFilterValue(filters.selectedMonth, language) || translate(language, 'report.filters.all');
-  const startDateLabel = formatFilterValue(filters.startDate || null, language) || translate(language, 'report.filters.noFilter');
-  const endDateLabel = formatFilterValue(filters.endDate || null, language) || translate(language, 'report.filters.noFilter');
-  const peakPeriodLabel = metrics.topDay ? formatDate(metrics.topDay.date, 'long', language) : notAvailable;
+  const monthLabel =
+    formatFilterValue(filters.selectedMonth, language) || translate(language, 'report.filters.all');
+  const startDateLabel =
+    formatFilterValue(filters.startDate || null, language) ||
+    translate(language, 'report.filters.noFilter');
+  const endDateLabel =
+    formatFilterValue(filters.endDate || null, language) ||
+    translate(language, 'report.filters.noFilter');
+  const peakPeriodLabel = metrics.topDay
+    ? formatDate(metrics.topDay.date, 'long', language)
+    : notAvailable;
   const topModelValue = metrics.topModel ? metrics.topModel.name : notAvailable;
   const topProviderValue = metrics.topProvider ? metrics.topProvider.name : notAvailable;
   const insights = buildInsights(metrics, { filteredDaily, filtered, language });
   const avgPeriodCost = filtered.length > 0 ? metrics.totalCost / filtered.length : 0;
-  const recentRows = sortByDate(filtered).slice(-12).reverse().map((entry) => ({
-    period: entry.date,
-    label: formatDate(entry.date, 'long', language),
-    cost: entry.totalCost,
-    costLabel: formatCurrency(entry.totalCost, language),
-    tokens: entry.totalTokens,
-    tokensLabel: formatCompact(entry.totalTokens, language),
-    requests: entry.requestCount,
-    requestsLabel: formatInteger(entry.requestCount, language),
-  }));
+  const recentRows = sortByDate(filtered)
+    .slice(-12)
+    .reverse()
+    .map((entry) => ({
+      period: entry.date,
+      label: formatDate(entry.date, 'long', language),
+      cost: entry.totalCost,
+      costLabel: formatCurrency(entry.totalCost, language),
+      tokens: entry.totalTokens,
+      tokensLabel: formatCompact(entry.totalTokens, language),
+      requests: entry.requestCount,
+      requestsLabel: formatInteger(entry.requestCount, language),
+    }));
 
   const summaryCards = [
-    { label: translate(language, 'common.costs'), value: formatCurrency(metrics.totalCost, language), note: metrics.topProvider ? `${metrics.topProvider.name} ${formatPercent(metrics.topProvider.share, language)}` : notAvailable, tone: 'accent' },
-    { label: translate(language, 'common.tokens'), value: formatCompact(metrics.totalTokens, language), note: `CPM ${formatCurrency(metrics.costPerMillion, language)}`, tone: 'accent' },
-    { label: translate(language, 'common.requests'), value: formatInteger(metrics.totalRequests, language), note: metrics.hasRequestData ? `${formatPercent(metrics.cacheHitRate, language)} Cache` : notAvailable, tone: 'good' },
-    { label: `Ø ${translate(language, 'common.cost')} / ${periodLabel}`, value: formatCurrency(avgPeriodCost, language), note: `${reportDataLabel(filters.viewMode, language)}`, tone: 'accent' },
-    { label: translate(language, 'common.model'), value: topModelValue, note: metrics.topModel ? formatPercent(metrics.topModelShare, language) : notAvailable, tone: 'warn' },
-    { label: translate(language, 'report.summary.peakPeriod'), value: peakPeriodLabel, note: metrics.topDay ? formatCurrency(metrics.topDay.cost, language) : notAvailable, tone: 'warn' },
+    {
+      label: translate(language, 'common.costs'),
+      value: formatCurrency(metrics.totalCost, language),
+      note: metrics.topProvider
+        ? `${metrics.topProvider.name} ${formatPercent(metrics.topProvider.share, language)}`
+        : notAvailable,
+      tone: 'accent',
+    },
+    {
+      label: translate(language, 'common.tokens'),
+      value: formatCompact(metrics.totalTokens, language),
+      note: `CPM ${formatCurrency(metrics.costPerMillion, language)}`,
+      tone: 'accent',
+    },
+    {
+      label: translate(language, 'common.requests'),
+      value: formatInteger(metrics.totalRequests, language),
+      note: metrics.hasRequestData
+        ? `${formatPercent(metrics.cacheHitRate, language)} Cache`
+        : notAvailable,
+      tone: 'good',
+    },
+    {
+      label: `Ø ${translate(language, 'common.cost')} / ${periodLabel}`,
+      value: formatCurrency(avgPeriodCost, language),
+      note: `${reportDataLabel(filters.viewMode, language)}`,
+      tone: 'accent',
+    },
+    {
+      label: translate(language, 'common.model'),
+      value: topModelValue,
+      note: metrics.topModel ? formatPercent(metrics.topModelShare, language) : notAvailable,
+      tone: 'warn',
+    },
+    {
+      label: translate(language, 'report.summary.peakPeriod'),
+      value: peakPeriodLabel,
+      note: metrics.topDay ? formatCurrency(metrics.topDay.cost, language) : notAvailable,
+      tone: 'warn',
+    },
   ];
 
   const interpretationSummary = translate(language, 'report.interpretation.summary', {
@@ -791,10 +880,18 @@ function buildReportData(allDailyData, options = {}) {
     })),
     recentPeriods: recentRows,
     labels: {
-      dateRangeText: dateRange ? `${formatDate(dateRange.start, 'long', language)} - ${formatDate(dateRange.end, 'long', language)}` : translate(language, 'common.noData'),
-      topModel: metrics.topModel ? `${metrics.topModel.name} (${formatPercent(metrics.topModelShare, language)})` : notAvailable,
-      topProvider: metrics.topProvider ? `${metrics.topProvider.name} (${formatPercent(metrics.topProvider.share, language)})` : notAvailable,
-      topDay: metrics.topDay ? `${formatDate(metrics.topDay.date, 'long', language)} (${formatCurrency(metrics.topDay.cost, language)})` : notAvailable,
+      dateRangeText: dateRange
+        ? `${formatDate(dateRange.start, 'long', language)} - ${formatDate(dateRange.end, 'long', language)}`
+        : translate(language, 'common.noData'),
+      topModel: metrics.topModel
+        ? `${metrics.topModel.name} (${formatPercent(metrics.topModelShare, language)})`
+        : notAvailable,
+      topProvider: metrics.topProvider
+        ? `${metrics.topProvider.name} (${formatPercent(metrics.topProvider.share, language)})`
+        : notAvailable,
+      topDay: metrics.topDay
+        ? `${formatDate(metrics.topDay.date, 'long', language)} (${formatCurrency(metrics.topDay.cost, language)})`
+        : notAvailable,
     },
     interpretation: {
       summary: interpretationSummary,
@@ -842,7 +939,10 @@ function buildReportData(allDailyData, options = {}) {
       },
     },
     formatting: {
-      axisDates: filtered.map((entry) => ({ date: entry.date, label: formatDateAxis(entry.date, language) })),
+      axisDates: filtered.map((entry) => ({
+        date: entry.date,
+        label: formatDateAxis(entry.date, language),
+      })),
     },
   };
 }

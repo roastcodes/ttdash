@@ -1,7 +1,13 @@
 import { useMemo } from 'react'
 import type { DailyUsage } from '@/types'
 import { computeMetrics, computeModelCosts, computeProviderMetrics } from '@/lib/calculations'
-import { toCostChartData, toModelCostChartData, toTokenChartData, toRequestChartData, toWeekdayData } from '@/lib/data-transforms'
+import {
+  toCostChartData,
+  toModelCostChartData,
+  toTokenChartData,
+  toRequestChartData,
+  toWeekdayData,
+} from '@/lib/data-transforms'
 import { getUniqueModels } from '@/lib/model-utils'
 
 export function useComputedMetrics(data: DailyUsage[]) {
@@ -13,7 +19,7 @@ export function useComputedMetrics(data: DailyUsage[]) {
   const tokenChartData = useMemo(() => toTokenChartData(data), [data])
   const requestChartData = useMemo(() => toRequestChartData(data), [data])
   const weekdayData = useMemo(() => toWeekdayData(data), [data])
-  const allModels = useMemo(() => getUniqueModels(data.map(d => d.modelsUsed)), [data])
+  const allModels = useMemo(() => getUniqueModels(data.map((d) => d.modelsUsed)), [data])
 
   const modelPieData = useMemo(() => {
     return Array.from(modelCosts.entries())
@@ -21,13 +27,16 @@ export function useComputedMetrics(data: DailyUsage[]) {
       .sort((a, b) => b.value - a.value)
   }, [modelCosts])
 
-  const tokenPieData = useMemo(() => [
-    { name: 'Input', value: metrics.totalInput },
-    { name: 'Output', value: metrics.totalOutput },
-    { name: 'Cache Write', value: metrics.totalCacheCreate },
-    { name: 'Cache Read', value: metrics.totalCacheRead },
-    { name: 'Thinking', value: metrics.totalThinking },
-  ], [metrics])
+  const tokenPieData = useMemo(
+    () => [
+      { name: 'Input', value: metrics.totalInput },
+      { name: 'Output', value: metrics.totalOutput },
+      { name: 'Cache Write', value: metrics.totalCacheCreate },
+      { name: 'Cache Read', value: metrics.totalCacheRead },
+      { name: 'Thinking', value: metrics.totalThinking },
+    ],
+    [metrics],
+  )
 
   return {
     metrics,

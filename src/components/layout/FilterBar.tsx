@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 import { cn } from '@/lib/cn'
 import { getModelColor, getProviderBadgeClasses, getProviderBadgeStyle } from '@/lib/model-utils'
 import { formatDate, formatMonthYear, localToday, toLocalDateStr } from '@/lib/formatters'
@@ -53,7 +59,11 @@ function buildCalendarDays(displayMonth: Date) {
   return cells
 }
 
-function resolveActivePreset(selectedMonth: string | null, startDate?: string, endDate?: string): DashboardDatePreset | null {
+function resolveActivePreset(
+  selectedMonth: string | null,
+  startDate?: string,
+  endDate?: string,
+): DashboardDatePreset | null {
   if (selectedMonth) return null
   if (!startDate && !endDate) return 'all'
   if (!startDate || !endDate) return null
@@ -109,23 +119,30 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const overlayRef = useRef<HTMLDivElement | null>(null)
-  const [overlayStyle, setOverlayStyle] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 292 })
+  const [overlayStyle, setOverlayStyle] = useState<{ top: number; left: number; width: number }>({
+    top: 0,
+    left: 0,
+    width: 292,
+  })
   const selectedDate = useMemo(() => parseLocalDate(value), [value])
-  const [displayMonth, setDisplayMonth] = useState<Date>(() => selectedDate ?? parseLocalDate(localToday()) ?? new Date())
+  const [displayMonth, setDisplayMonth] = useState<Date>(
+    () => selectedDate ?? parseLocalDate(localToday()) ?? new Date(),
+  )
 
   const weekdayLabels = useMemo(
-    () => Array.from({ length: 7 }, (_, index) =>
-      new Intl.DateTimeFormat(getCurrentLocale(), { weekday: 'short' })
-        .format(new Date(Date.UTC(2024, 0, 1 + index)))
-        .replace('.', '')
-        .slice(0, 2)
-    ),
-    []
+    () =>
+      Array.from({ length: 7 }, (_, index) =>
+        new Intl.DateTimeFormat(getCurrentLocale(), { weekday: 'short' })
+          .format(new Date(Date.UTC(2024, 0, 1 + index)))
+          .replace('.', '')
+          .slice(0, 2),
+      ),
+    [],
   )
 
   const monthLabel = useMemo(
     () => displayMonth.toLocaleDateString(getCurrentLocale(), { month: 'long', year: 'numeric' }),
-    [displayMonth]
+    [displayMonth],
   )
 
   const calendarDays = useMemo(() => buildCalendarDays(displayMonth), [displayMonth])
@@ -148,8 +165,11 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
       const viewportHeight = window.innerHeight
       const estimatedHeight = 330
       const left = Math.min(Math.max(12, rect.left), Math.max(12, viewportWidth - width - 12))
-      const showAbove = rect.bottom + estimatedHeight > viewportHeight - 12 && rect.top > estimatedHeight
-      const top = showAbove ? Math.max(12, rect.top - estimatedHeight - 8) : Math.min(viewportHeight - estimatedHeight - 12, rect.bottom + 8)
+      const showAbove =
+        rect.bottom + estimatedHeight > viewportHeight - 12 && rect.top > estimatedHeight
+      const top = showAbove
+        ? Math.max(12, rect.top - estimatedHeight - 8)
+        : Math.min(viewportHeight - estimatedHeight - 12, rect.bottom + 8)
       setOverlayStyle({ top, left, width })
     }
 
@@ -183,7 +203,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen(prev => !prev)}
+        onClick={() => setOpen((prev) => !prev)}
         className="flex h-10 w-full items-center justify-between gap-3 rounded-md border border-border bg-background px-3 text-sm text-left transition-colors hover:bg-accent/40"
       >
         <span className={cn('truncate', value ? 'text-foreground' : 'text-muted-foreground')}>
@@ -207,109 +227,128 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
         </span>
       </button>
 
-      {open && typeof document !== 'undefined' && createPortal(
-        <div
-          ref={overlayRef}
-          className="fixed z-[999] rounded-xl border border-border/80 bg-card/98 p-3 shadow-2xl backdrop-blur-xl"
-          style={{ top: overlayStyle.top, left: overlayStyle.left, width: overlayStyle.width }}
-        >
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => setDisplayMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              aria-label="Previous month"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <div className="text-sm font-medium capitalize">{monthLabel}</div>
-            <button
-              type="button"
-              onClick={() => setDisplayMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              aria-label="Next month"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+      {open &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            ref={overlayRef}
+            className="fixed z-[999] rounded-xl border border-border/80 bg-card/98 p-3 shadow-2xl backdrop-blur-xl"
+            style={{ top: overlayStyle.top, left: overlayStyle.left, width: overlayStyle.width }}
+          >
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setDisplayMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+                }
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                aria-label="Previous month"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div className="text-sm font-medium capitalize">{monthLabel}</div>
+              <button
+                type="button"
+                onClick={() =>
+                  setDisplayMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+                }
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                aria-label="Next month"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
 
-          <div className="mb-2 grid grid-cols-7 gap-1">
-            {weekdayLabels.map((day) => (
-              <div key={day} className="px-1 py-1 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, index) => {
-              if (!day) {
-                return <div key={`empty-${index}`} className="h-9" />
-              }
-
-              const iso = toLocalDateStr(day)
-              const isSelected = value === iso
-              const isToday = iso === today
-
-              return (
-                <button
-                  key={iso}
-                  type="button"
-                  onClick={() => {
-                    onChange(iso)
-                    setOpen(false)
-                  }}
-                  className={cn(
-                    'h-9 rounded-md text-sm font-medium transition-colors',
-                    isSelected
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : isToday
-                        ? 'border border-primary/50 bg-primary/10 text-foreground hover:bg-primary/15'
-                        : 'text-foreground hover:bg-accent'
-                  )}
+            <div className="mb-2 grid grid-cols-7 gap-1">
+              {weekdayLabels.map((day) => (
+                <div
+                  key={day}
+                  className="px-1 py-1 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
                 >
-                  {day.getDate()}
-                </button>
-              )
-            })}
-          </div>
+                  {day}
+                </div>
+              ))}
+            </div>
 
-          <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-3">
-            <button
-              type="button"
-              onClick={() => onChange(undefined)}
-              className="rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              {t('common.reset')}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const current = today
-                setDisplayMonth(parseLocalDate(current) ?? new Date())
-                onChange(current)
-                setOpen(false)
-              }}
-              className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              {t('common.today')}
-            </button>
-          </div>
-        </div>,
-        document.body
-      )}
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDays.map((day, index) => {
+                if (!day) {
+                  return <div key={`empty-${index}`} className="h-9" />
+                }
+
+                const iso = toLocalDateStr(day)
+                const isSelected = value === iso
+                const isToday = iso === today
+
+                return (
+                  <button
+                    key={iso}
+                    type="button"
+                    onClick={() => {
+                      onChange(iso)
+                      setOpen(false)
+                    }}
+                    className={cn(
+                      'h-9 rounded-md text-sm font-medium transition-colors',
+                      isSelected
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : isToday
+                          ? 'border border-primary/50 bg-primary/10 text-foreground hover:bg-primary/15'
+                          : 'text-foreground hover:bg-accent',
+                    )}
+                  >
+                    {day.getDate()}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-3">
+              <button
+                type="button"
+                onClick={() => onChange(undefined)}
+                className="rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                {t('common.reset')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const current = today
+                  setDisplayMonth(parseLocalDate(current) ?? new Date())
+                  onChange(current)
+                  setOpen(false)
+                }}
+                className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                {t('common.today')}
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
 
 export function FilterBar({
-  viewMode, onViewModeChange,
-  selectedMonth, onMonthChange,
-  availableMonths, availableProviders, selectedProviders,
-  onToggleProvider, onClearProviders, allModels,
-  selectedModels, onToggleModel, onClearModels,
-  startDate, endDate,
-  onStartDateChange, onEndDateChange,
+  viewMode,
+  onViewModeChange,
+  selectedMonth,
+  onMonthChange,
+  availableMonths,
+  availableProviders,
+  selectedProviders,
+  onToggleProvider,
+  onClearProviders,
+  allModels,
+  selectedModels,
+  onToggleModel,
+  onClearModels,
+  startDate,
+  endDate,
+  onStartDateChange,
+  onEndDateChange,
   onApplyPreset,
   onResetAll,
 }: FilterBarProps) {
@@ -319,16 +358,33 @@ export function FilterBar({
     [selectedMonth, startDate, endDate],
   )
 
-  const hasCustomFilters = selectedMonth !== null || selectedProviders.length > 0 || selectedModels.length > 0 || Boolean(startDate || endDate) || viewMode !== 'daily'
+  const hasCustomFilters =
+    selectedMonth !== null ||
+    selectedProviders.length > 0 ||
+    selectedModels.length > 0 ||
+    Boolean(startDate || endDate) ||
+    viewMode !== 'daily'
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card/40 px-3 py-3 backdrop-blur-xl">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
           <span className="font-semibold uppercase tracking-[0.14em]">{t('filterBar.status')}</span>
-          <span className="rounded-full bg-muted/30 px-2 py-0.5">{selectedProviders.length > 0 ? t('filterBar.providersActive', { count: selectedProviders.length }) : t('common.allProviders')}</span>
-          <span className="rounded-full bg-muted/30 px-2 py-0.5">{selectedModels.length > 0 ? t('filterBar.modelsActive', { count: selectedModels.length }) : t('common.allModels')}</span>
-          {(startDate || endDate) && <span className="rounded-full bg-muted/30 px-2 py-0.5">{t('filterBar.dateFilterActive')}</span>}
+          <span className="rounded-full bg-muted/30 px-2 py-0.5">
+            {selectedProviders.length > 0
+              ? t('filterBar.providersActive', { count: selectedProviders.length })
+              : t('common.allProviders')}
+          </span>
+          <span className="rounded-full bg-muted/30 px-2 py-0.5">
+            {selectedModels.length > 0
+              ? t('filterBar.modelsActive', { count: selectedModels.length })
+              : t('common.allModels')}
+          </span>
+          {(startDate || endDate) && (
+            <span className="rounded-full bg-muted/30 px-2 py-0.5">
+              {t('filterBar.dateFilterActive')}
+            </span>
+          )}
           <button
             type="button"
             onClick={() => onResetAll()}
@@ -346,19 +402,26 @@ export function FilterBar({
             </SelectTrigger>
             <SelectContent>
               {(['daily', 'monthly', 'yearly'] as ViewMode[]).map((value) => (
-                <SelectItem key={value} value={value}>{t(`viewModes.${value}`)}</SelectItem>
+                <SelectItem key={value} value={value}>
+                  {t(`viewModes.${value}`)}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Select value={selectedMonth ?? 'all'} onValueChange={(v) => onMonthChange(v === 'all' ? null : v)}>
+          <Select
+            value={selectedMonth ?? 'all'}
+            onValueChange={(v) => onMonthChange(v === 'all' ? null : v)}
+          >
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('common.allMonths')}</SelectItem>
-              {availableMonths.map(m => (
-                <SelectItem key={m} value={m}>{formatMonthYear(m)}</SelectItem>
+              {availableMonths.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {formatMonthYear(m)}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -370,7 +433,7 @@ export function FilterBar({
               { key: 'month', label: t('filterBar.presets.month') },
               { key: 'year', label: t('filterBar.presets.year') },
               { key: 'all', label: t('filterBar.presets.all') },
-            ].map(p => (
+            ].map((p) => (
               <button
                 key={p.key}
                 onClick={() => onApplyPreset(p.key)}
@@ -378,7 +441,7 @@ export function FilterBar({
                   'rounded-full px-3 py-1.5 text-xs font-medium border transition-all duration-200 min-w-[48px]',
                   activePreset === p.key
                     ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_0_1px_rgba(255,255,255,0.06)]'
-                    : 'border-border hover:bg-accent hover:border-accent'
+                    : 'border-border hover:bg-accent hover:border-accent',
                 )}
               >
                 {p.label}
@@ -388,9 +451,19 @@ export function FilterBar({
         </div>
 
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] md:items-center">
-          <DatePickerField label={t('common.startDate')} onChange={onStartDateChange} {...(startDate ? { value: startDate } : {})} />
-          <span className="hidden md:inline text-xs text-muted-foreground">{t('filterBar.until')}</span>
-          <DatePickerField label={t('common.endDate')} onChange={onEndDateChange} {...(endDate ? { value: endDate } : {})} />
+          <DatePickerField
+            label={t('common.startDate')}
+            onChange={onStartDateChange}
+            {...(startDate ? { value: startDate } : {})}
+          />
+          <span className="hidden md:inline text-xs text-muted-foreground">
+            {t('filterBar.until')}
+          </span>
+          <DatePickerField
+            label={t('common.endDate')}
+            onChange={onEndDateChange}
+            {...(endDate ? { value: endDate } : {})}
+          />
           <button
             onClick={() => {
               onStartDateChange(undefined)
@@ -404,26 +477,32 @@ export function FilterBar({
 
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t('filterBar.providers')}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {t('filterBar.providers')}
+            </span>
             <div className="flex flex-wrap gap-1.5">
-          {availableProviders.map(provider => {
-            const isSelected = selectedProviders.includes(provider)
-            return (
-              <button
-                key={provider}
-                onClick={() => onToggleProvider(provider)}
-                className={cn(
-                  'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold cursor-pointer border transition-all duration-200',
-                  isSelected || selectedProviders.length === 0
-                    ? getProviderBadgeClasses(provider)
-                    : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'
-                )}
-                style={isSelected || selectedProviders.length === 0 ? getProviderBadgeStyle(provider) : undefined}
-              >
-                {provider}
-              </button>
-            )
-          })}
+              {availableProviders.map((provider) => {
+                const isSelected = selectedProviders.includes(provider)
+                return (
+                  <button
+                    key={provider}
+                    onClick={() => onToggleProvider(provider)}
+                    className={cn(
+                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold cursor-pointer border transition-all duration-200',
+                      isSelected || selectedProviders.length === 0
+                        ? getProviderBadgeClasses(provider)
+                        : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
+                    )}
+                    style={
+                      isSelected || selectedProviders.length === 0
+                        ? getProviderBadgeStyle(provider)
+                        : undefined
+                    }
+                  >
+                    {provider}
+                  </button>
+                )
+              })}
               {selectedProviders.length > 0 && (
                 <button
                   onClick={onClearProviders}
@@ -437,7 +516,9 @@ export function FilterBar({
 
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t('filterBar.models')}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {t('filterBar.models')}
+              </span>
               {selectedModels.length > 0 && (
                 <button
                   onClick={onClearModels}
@@ -448,7 +529,7 @@ export function FilterBar({
               )}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {allModels.map(model => {
+              {allModels.map((model) => {
                 const isSelected = selectedModels.includes(model)
                 const color = getModelColor(model)
                 return (
@@ -460,13 +541,12 @@ export function FilterBar({
                       'border transition-all duration-200 hover:scale-[1.03]',
                       isSelected || selectedModels.length === 0
                         ? 'opacity-100'
-                        : 'opacity-40 hover:opacity-70'
+                        : 'opacity-40 hover:opacity-70',
                     )}
                     style={{
                       borderColor: color,
-                      backgroundColor: isSelected || selectedModels.length === 0
-                        ? `${color}20`
-                        : 'transparent',
+                      backgroundColor:
+                        isSelected || selectedModels.length === 0 ? `${color}20` : 'transparent',
                       color: color,
                     }}
                   >

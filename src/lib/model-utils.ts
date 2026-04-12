@@ -50,7 +50,9 @@ export function normalizeModelName(raw: string): string {
     .replace(/-{2,}/g, '-')
     .replace(/^-|-$/g, '')
 
-  const familyMatch = stripped.match(/(gpt|opus|sonnet|haiku|gemini|o\d|oai|grok|llama|mistral|command|deepseek|qwen)[- ]?([a-z0-9.-]+)?/i)
+  const familyMatch = stripped.match(
+    /(gpt|opus|sonnet|haiku|gemini|o\d|oai|grok|llama|mistral|command|deepseek|qwen)[- ]?([a-z0-9.-]+)?/i,
+  )
   if (familyMatch) {
     const family = familyMatch[1]
     if (!family) return stripped
@@ -60,20 +62,30 @@ export function normalizeModelName(raw: string): string {
     return `${titleCaseSegment(family)}${suffix ? ` ${suffix}` : ''}`.trim()
   }
 
-  return stripped
-    .split('-')
-    .filter(Boolean)
-    .map(titleCaseSegment)
-    .join(' ') || raw
+  return stripped.split('-').filter(Boolean).map(titleCaseSegment).join(' ') || raw
 }
 
 export function getModelProvider(raw: string): string {
   const lower = raw.toLowerCase()
-  if (lower.includes('gpt') || lower.includes('openai') || lower.includes('/o1') || lower.includes('/o3') || /\bo\d\b/.test(lower)) return 'OpenAI'
-  if (lower.includes('claude') || lower.includes('opus') || lower.includes('sonnet') || lower.includes('haiku')) return 'Anthropic'
+  if (
+    lower.includes('gpt') ||
+    lower.includes('openai') ||
+    lower.includes('/o1') ||
+    lower.includes('/o3') ||
+    /\bo\d\b/.test(lower)
+  )
+    return 'OpenAI'
+  if (
+    lower.includes('claude') ||
+    lower.includes('opus') ||
+    lower.includes('sonnet') ||
+    lower.includes('haiku')
+  )
+    return 'Anthropic'
   if (lower.includes('gemini')) return 'Google'
   if (lower.includes('grok') || lower.includes('xai')) return 'xAI'
-  if (lower.includes('llama') || lower.includes('meta-llama') || lower.includes('meta/')) return 'Meta'
+  if (lower.includes('llama') || lower.includes('meta-llama') || lower.includes('meta/'))
+    return 'Meta'
   if (lower.includes('command') || lower.includes('cohere')) return 'Cohere'
   if (lower.includes('mistral')) return 'Mistral'
   if (lower.includes('deepseek')) return 'DeepSeek'
@@ -109,30 +121,78 @@ export function getProviderBadgeClasses(provider: string): string {
   }
 }
 
-export function getProviderBadgeStyle(provider: string): { color: string; backgroundColor: string; borderColor: string } {
+export function getProviderBadgeStyle(provider: string): {
+  color: string
+  backgroundColor: string
+  borderColor: string
+} {
   switch (provider) {
     case 'OpenAI':
-      return { color: 'rgb(52, 211, 153)', backgroundColor: 'rgba(16, 185, 129, 0.10)', borderColor: 'rgba(16, 185, 129, 0.20)' }
+      return {
+        color: 'rgb(52, 211, 153)',
+        backgroundColor: 'rgba(16, 185, 129, 0.10)',
+        borderColor: 'rgba(16, 185, 129, 0.20)',
+      }
     case 'Anthropic':
-      return { color: 'rgb(251, 146, 60)', backgroundColor: 'rgba(249, 115, 22, 0.10)', borderColor: 'rgba(249, 115, 22, 0.20)' }
+      return {
+        color: 'rgb(251, 146, 60)',
+        backgroundColor: 'rgba(249, 115, 22, 0.10)',
+        borderColor: 'rgba(249, 115, 22, 0.20)',
+      }
     case 'Google':
-      return { color: 'rgb(56, 189, 248)', backgroundColor: 'rgba(14, 165, 233, 0.10)', borderColor: 'rgba(14, 165, 233, 0.20)' }
+      return {
+        color: 'rgb(56, 189, 248)',
+        backgroundColor: 'rgba(14, 165, 233, 0.10)',
+        borderColor: 'rgba(14, 165, 233, 0.20)',
+      }
     case 'xAI':
-      return { color: 'rgb(232, 121, 249)', backgroundColor: 'rgba(217, 70, 239, 0.10)', borderColor: 'rgba(217, 70, 239, 0.20)' }
+      return {
+        color: 'rgb(232, 121, 249)',
+        backgroundColor: 'rgba(217, 70, 239, 0.10)',
+        borderColor: 'rgba(217, 70, 239, 0.20)',
+      }
     case 'Meta':
-      return { color: 'rgb(96, 165, 250)', backgroundColor: 'rgba(59, 130, 246, 0.10)', borderColor: 'rgba(59, 130, 246, 0.20)' }
+      return {
+        color: 'rgb(96, 165, 250)',
+        backgroundColor: 'rgba(59, 130, 246, 0.10)',
+        borderColor: 'rgba(59, 130, 246, 0.20)',
+      }
     case 'Cohere':
-      return { color: 'rgb(163, 230, 53)', backgroundColor: 'rgba(132, 204, 22, 0.10)', borderColor: 'rgba(132, 204, 22, 0.20)' }
+      return {
+        color: 'rgb(163, 230, 53)',
+        backgroundColor: 'rgba(132, 204, 22, 0.10)',
+        borderColor: 'rgba(132, 204, 22, 0.20)',
+      }
     case 'Mistral':
-      return { color: 'rgb(252, 211, 77)', backgroundColor: 'rgba(245, 158, 11, 0.10)', borderColor: 'rgba(245, 158, 11, 0.20)' }
+      return {
+        color: 'rgb(252, 211, 77)',
+        backgroundColor: 'rgba(245, 158, 11, 0.10)',
+        borderColor: 'rgba(245, 158, 11, 0.20)',
+      }
     case 'DeepSeek':
-      return { color: 'rgb(45, 212, 191)', backgroundColor: 'rgba(20, 184, 166, 0.10)', borderColor: 'rgba(20, 184, 166, 0.20)' }
+      return {
+        color: 'rgb(45, 212, 191)',
+        backgroundColor: 'rgba(20, 184, 166, 0.10)',
+        borderColor: 'rgba(20, 184, 166, 0.20)',
+      }
     case 'Alibaba':
-      return { color: 'rgb(250, 204, 21)', backgroundColor: 'rgba(234, 179, 8, 0.10)', borderColor: 'rgba(234, 179, 8, 0.20)' }
+      return {
+        color: 'rgb(250, 204, 21)',
+        backgroundColor: 'rgba(234, 179, 8, 0.10)',
+        borderColor: 'rgba(234, 179, 8, 0.20)',
+      }
     case 'OpenCode':
-      return { color: 'rgb(34, 211, 238)', backgroundColor: 'rgba(6, 182, 212, 0.10)', borderColor: 'rgba(6, 182, 212, 0.20)' }
+      return {
+        color: 'rgb(34, 211, 238)',
+        backgroundColor: 'rgba(6, 182, 212, 0.10)',
+        borderColor: 'rgba(6, 182, 212, 0.20)',
+      }
     default:
-      return { color: 'rgb(148, 163, 184)', backgroundColor: 'rgba(100, 116, 139, 0.10)', borderColor: 'rgba(100, 116, 139, 0.20)' }
+      return {
+        color: 'rgb(148, 163, 184)',
+        backgroundColor: 'rgba(100, 116, 139, 0.10)',
+        borderColor: 'rgba(100, 116, 139, 0.20)',
+      }
   }
 }
 

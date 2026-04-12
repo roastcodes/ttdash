@@ -1,4 +1,13 @@
-import { DollarSign, Coins, Calendar, Cpu, Database, TrendingDown, Activity, BrainCircuit } from 'lucide-react'
+import {
+  DollarSign,
+  Coins,
+  Calendar,
+  Cpu,
+  Database,
+  TrendingDown,
+  Activity,
+  BrainCircuit,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
@@ -12,34 +21,60 @@ interface PrimaryMetricsProps {
   viewMode?: ViewMode
 }
 
-export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' }: PrimaryMetricsProps) {
+export function PrimaryMetrics({
+  metrics,
+  totalCalendarDays,
+  viewMode = 'daily',
+}: PrimaryMetricsProps) {
   const { t } = useTranslation()
   // Calculate input/output ratio
-  const ioRatio = metrics.totalInput > 0 && metrics.totalOutput > 0
-    ? (metrics.totalInput / metrics.totalOutput).toFixed(1)
-    : null
+  const ioRatio =
+    metrics.totalInput > 0 && metrics.totalOutput > 0
+      ? (metrics.totalInput / metrics.totalOutput).toFixed(1)
+      : null
 
-  const coverageRate = totalCalendarDays && viewMode === 'daily'
-    ? (metrics.activeDays / totalCalendarDays) * 100
-    : null
+  const coverageRate =
+    totalCalendarDays && viewMode === 'daily'
+      ? (metrics.activeDays / totalCalendarDays) * 100
+      : null
   const topModelSubtitle = metrics.topModel
     ? `${formatCurrency(metrics.topModel.cost)} · ${t('metricCards.primary.share', { value: formatPercent(metrics.topModelShare, 0) })}${metrics.topRequestModel ? ` · ${t('metricCards.primary.requestLead', { value: metrics.topRequestModel.name })}` : ''}`
     : null
-  const cacheHitRateSubtitle = metrics.totalTokens > 0
-    ? t('metricCards.primary.allTokensViaCacheRead', { value: formatPercent((metrics.totalCacheRead / metrics.totalTokens) * 100) })
-    : null
-  const thinkingInsight = metrics.totalTokens > 0
-    ? t('metricCards.primary.thinkingShareOfVolume', { value: formatPercent((metrics.totalThinking / metrics.totalTokens) * 100) })
-    : null
-  const thinkingSubtitle = metrics.totalTokens > 0
-    ? t('metricCards.primary.thinkingSubtitle', { share: formatPercent((metrics.totalThinking / metrics.totalTokens) * 100), tokens: formatTokens(metrics.totalThinking / Math.max(metrics.totalRequests, 1)) })
-    : null
+  const cacheHitRateSubtitle =
+    metrics.totalTokens > 0
+      ? t('metricCards.primary.allTokensViaCacheRead', {
+          value: formatPercent((metrics.totalCacheRead / metrics.totalTokens) * 100),
+        })
+      : null
+  const thinkingInsight =
+    metrics.totalTokens > 0
+      ? t('metricCards.primary.thinkingShareOfVolume', {
+          value: formatPercent((metrics.totalThinking / metrics.totalTokens) * 100),
+        })
+      : null
+  const thinkingSubtitle =
+    metrics.totalTokens > 0
+      ? t('metricCards.primary.thinkingSubtitle', {
+          share: formatPercent((metrics.totalThinking / metrics.totalTokens) * 100),
+          tokens: formatTokens(metrics.totalThinking / Math.max(metrics.totalRequests, 1)),
+        })
+      : null
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
       <MetricCard
         label={t('metricCards.primary.totalCost')}
-        value={<FormattedValue value={metrics.totalCost} type="currency" label={t('metricCards.primary.totalCost')} insight={t('metricCards.primary.avgPerPeriod', { value: formatCurrency(metrics.avgDailyCost), unit: periodUnit(viewMode) })} />}
+        value={
+          <FormattedValue
+            value={metrics.totalCost}
+            type="currency"
+            label={t('metricCards.primary.totalCost')}
+            insight={t('metricCards.primary.avgPerPeriod', {
+              value: formatCurrency(metrics.avgDailyCost),
+              unit: periodUnit(viewMode),
+            })}
+          />
+        }
         subtitle={`Ø ${formatCurrency(metrics.avgDailyCost)}/${periodUnit(viewMode)} · ${formatCurrency(metrics.avgCostPerRequest)}/Req`}
         icon={<DollarSign className="h-4 w-4" />}
         trend={metrics.weekOverWeekChange !== null ? { value: metrics.weekOverWeekChange } : null}
@@ -47,17 +82,35 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
       />
       <MetricCard
         label={t('metricCards.primary.totalTokens')}
-        value={<FormattedValue value={metrics.totalTokens} type="tokens" label={t('metricCards.primary.totalTokens')} insight={t('metricCards.primary.tokensPerRequestAvg', { value: formatTokens(metrics.avgTokensPerRequest) })} />}
-        subtitle={ioRatio ? `I/O ${ioRatio}:1 · ${formatTokens(metrics.avgTokensPerRequest)} / Request` : `${formatTokens(metrics.avgTokensPerRequest)} / Request`}
+        value={
+          <FormattedValue
+            value={metrics.totalTokens}
+            type="tokens"
+            label={t('metricCards.primary.totalTokens')}
+            insight={t('metricCards.primary.tokensPerRequestAvg', {
+              value: formatTokens(metrics.avgTokensPerRequest),
+            })}
+          />
+        }
+        subtitle={
+          ioRatio
+            ? `I/O ${ioRatio}:1 · ${formatTokens(metrics.avgTokensPerRequest)} / Request`
+            : `${formatTokens(metrics.avgTokensPerRequest)} / Request`
+        }
         icon={<Coins className="h-4 w-4" />}
         info={METRIC_HELP.totalTokens}
       />
       <MetricCard
         label={t('metricCards.primary.activeDays')}
         value={String(metrics.activeDays)}
-        subtitle={coverageRate !== null
-          ? t('metricCards.primary.coverageOfDays', { coverage: formatPercent(coverageRate, 0), days: totalCalendarDays })
-          : t('metricCards.primary.providersActive', { count: metrics.providerCount })}
+        subtitle={
+          coverageRate !== null
+            ? t('metricCards.primary.coverageOfDays', {
+                coverage: formatPercent(coverageRate, 0),
+                days: totalCalendarDays,
+              })
+            : t('metricCards.primary.providersActive', { count: metrics.providerCount })
+        }
         icon={<Calendar className="h-4 w-4" />}
         info={METRIC_HELP.activeDays}
       />
@@ -83,15 +136,44 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
       />
       <MetricCard
         label={t('metricCards.primary.requests')}
-        value={metrics.hasRequestData ? <FormattedValue value={metrics.totalRequests} type="number" label={t('metricCards.primary.requests')} insight={t('insights.requestEconomy.summary', { cost: formatCurrency(metrics.avgCostPerRequest), tokens: formatTokens(metrics.avgTokensPerRequest), leader: '' }).trim()} /> : t('common.notAvailable')}
-        subtitle={metrics.hasRequestData
-          ? t('metricCards.primary.requestsSubtitle', { requests: metrics.avgRequestsPerDay.toFixed(1), unit: periodUnit(viewMode), cost: formatCurrency(metrics.avgCostPerRequest), volatility: Math.round(metrics.requestVolatility) })
-          : t('metricCards.primary.requestCountersMissing')}
+        value={
+          metrics.hasRequestData ? (
+            <FormattedValue
+              value={metrics.totalRequests}
+              type="number"
+              label={t('metricCards.primary.requests')}
+              insight={t('insights.requestEconomy.summary', {
+                cost: formatCurrency(metrics.avgCostPerRequest),
+                tokens: formatTokens(metrics.avgTokensPerRequest),
+                leader: '',
+              }).trim()}
+            />
+          ) : (
+            t('common.notAvailable')
+          )
+        }
+        subtitle={
+          metrics.hasRequestData
+            ? t('metricCards.primary.requestsSubtitle', {
+                requests: metrics.avgRequestsPerDay.toFixed(1),
+                unit: periodUnit(viewMode),
+                cost: formatCurrency(metrics.avgCostPerRequest),
+                volatility: Math.round(metrics.requestVolatility),
+              })
+            : t('metricCards.primary.requestCountersMissing')
+        }
         icon={<Activity className="h-4 w-4" />}
       />
       <MetricCard
         label={t('metricCards.primary.thinking')}
-        value={<FormattedValue value={metrics.totalThinking} type="tokens" label={t('metricCards.primary.thinking')} {...(thinkingInsight ? { insight: thinkingInsight } : {})} />}
+        value={
+          <FormattedValue
+            value={metrics.totalThinking}
+            type="tokens"
+            label={t('metricCards.primary.thinking')}
+            {...(thinkingInsight ? { insight: thinkingInsight } : {})}
+          />
+        }
         icon={<BrainCircuit className="h-4 w-4" />}
         {...(thinkingSubtitle ? { subtitle: thinkingSubtitle } : {})}
       />

@@ -9,7 +9,13 @@ interface FadeInProps {
   direction?: 'up' | 'down' | 'left' | 'right' | 'none'
 }
 
-export function FadeIn({ children, delay = 0, duration = 0.5, className, direction = 'up' }: FadeInProps) {
+export function FadeIn({
+  children,
+  delay = 0,
+  duration = 0.5,
+  className,
+  direction = 'up',
+}: FadeInProps) {
   const offsets = {
     up: { y: 20 },
     down: { y: -20 },

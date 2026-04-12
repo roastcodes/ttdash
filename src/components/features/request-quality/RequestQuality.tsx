@@ -16,22 +16,28 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
   const { t } = useTranslation()
   const sectionRef = useRef<HTMLDivElement | null>(null)
   const inView = useInView(sectionRef, { once: true, amount: 0.25 })
-  const cachePerRequest = metrics.totalRequests > 0 ? metrics.totalCacheRead / metrics.totalRequests : 0
-  const thinkingPerRequest = metrics.totalRequests > 0 ? metrics.totalThinking / metrics.totalRequests : 0
+  const cachePerRequest =
+    metrics.totalRequests > 0 ? metrics.totalCacheRead / metrics.totalRequests : 0
+  const thinkingPerRequest =
+    metrics.totalRequests > 0 ? metrics.totalThinking / metrics.totalRequests : 0
   const inputOutputRatio = metrics.totalOutput > 0 ? metrics.totalInput / metrics.totalOutput : 0
   const requestDensity = metrics.activeDays > 0 ? metrics.totalRequests / metrics.activeDays : 0
 
   const qualityMetrics = [
     {
       label: t('requestQuality.tokensPerRequest'),
-      value: metrics.hasRequestData ? formatTokens(metrics.avgTokensPerRequest) : t('common.notAvailable'),
+      value: metrics.hasRequestData
+        ? formatTokens(metrics.avgTokensPerRequest)
+        : t('common.notAvailable'),
       accent: 'var(--chart-2)',
       hint: t('requestQuality.tokensHint'),
       progress: Math.min(metrics.avgTokensPerRequest / 200_000, 1),
     },
     {
       label: t('requestQuality.costPerRequest'),
-      value: metrics.hasRequestData ? formatCurrency(metrics.avgCostPerRequest) : t('common.notAvailable'),
+      value: metrics.hasRequestData
+        ? formatCurrency(metrics.avgCostPerRequest)
+        : t('common.notAvailable'),
       accent: 'var(--chart-4)',
       hint: t('requestQuality.costHint'),
       progress: Math.min(metrics.avgCostPerRequest / 0.25, 1),
@@ -70,7 +76,9 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
               animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
               transition={{ duration: 0.35, delay: 0.05 }}
             >
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{item.label}</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                {item.label}
+              </div>
               <div className="mt-1 text-lg font-semibold tabular-nums">{item.value}</div>
               <div className="mt-1 text-xs text-muted-foreground">{item.hint}</div>
               <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted/40">
@@ -78,7 +86,9 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
                   className="h-full rounded-full transition-all duration-500"
                   style={{ backgroundColor: `hsl(${item.accent})` }}
                   initial={{ width: 0 }}
-                  animate={inView ? { width: `${Math.max(item.progress * 100, 6)}%` } : { width: 0 }}
+                  animate={
+                    inView ? { width: `${Math.max(item.progress * 100, 6)}%` } : { width: 0 }
+                  }
                   transition={{ duration: 0.7, delay: 0.08 }}
                 />
               </div>
@@ -87,26 +97,75 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <motion.div className="rounded-xl border border-border/50 bg-gradient-to-br from-primary/[0.12] via-transparent to-transparent p-4" initial={{ opacity: 0, y: 12 }} animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }} transition={{ duration: 0.35, delay: 0.1 }}>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('requestQuality.requestDensity')}</div>
-            <div className="mt-1 text-xl font-semibold tabular-nums">{formatNumber(Math.round(requestDensity))}</div>
-            <div className="text-xs text-muted-foreground">{t('requestQuality.averagePerActiveUnit', { unit: viewMode === 'yearly' ? t('periods.year') : viewMode === 'monthly' ? t('periods.month') : t('periods.day') })}</div>
+          <motion.div
+            className="rounded-xl border border-border/50 bg-gradient-to-br from-primary/[0.12] via-transparent to-transparent p-4"
+            initial={{ opacity: 0, y: 12 }}
+            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+            transition={{ duration: 0.35, delay: 0.1 }}
+          >
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              {t('requestQuality.requestDensity')}
+            </div>
+            <div className="mt-1 text-xl font-semibold tabular-nums">
+              {formatNumber(Math.round(requestDensity))}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {t('requestQuality.averagePerActiveUnit', {
+                unit:
+                  viewMode === 'yearly'
+                    ? t('periods.year')
+                    : viewMode === 'monthly'
+                      ? t('periods.month')
+                      : t('periods.day'),
+              })}
+            </div>
           </motion.div>
-          <motion.div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-3/[0.12] via-transparent to-transparent p-4" initial={{ opacity: 0, y: 12 }} animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }} transition={{ duration: 0.35, delay: 0.14 }}>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('requestQuality.cacheHitRate')}</div>
-            <div className="mt-1 text-xl font-semibold tabular-nums">{formatPercent(metrics.cacheHitRate, 1)}</div>
+          <motion.div
+            className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-3/[0.12] via-transparent to-transparent p-4"
+            initial={{ opacity: 0, y: 12 }}
+            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+            transition={{ duration: 0.35, delay: 0.14 }}
+          >
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              {t('requestQuality.cacheHitRate')}
+            </div>
+            <div className="mt-1 text-xl font-semibold tabular-nums">
+              {formatPercent(metrics.cacheHitRate, 1)}
+            </div>
             <div className="text-xs text-muted-foreground">{t('requestQuality.cacheHitHint')}</div>
           </motion.div>
-          <motion.div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-4/[0.12] via-transparent to-transparent p-4" initial={{ opacity: 0, y: 12 }} animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }} transition={{ duration: 0.35, delay: 0.18 }}>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('requestQuality.inputOutput')}</div>
-            <div className="mt-1 text-xl font-semibold tabular-nums">{inputOutputRatio.toFixed(2)}:1</div>
-            <div className="text-xs text-muted-foreground">{t('requestQuality.inputOutputHint')}</div>
-          </motion.div>
-          <motion.div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-5/[0.12] via-transparent to-transparent p-4" initial={{ opacity: 0, y: 12 }} animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }} transition={{ duration: 0.35, delay: 0.22 }}>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('requestQuality.topRequestModel')}</div>
-            <div className="mt-1 text-lg font-semibold truncate">{metrics.topRequestModel?.name ?? '–'}</div>
+          <motion.div
+            className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-4/[0.12] via-transparent to-transparent p-4"
+            initial={{ opacity: 0, y: 12 }}
+            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+            transition={{ duration: 0.35, delay: 0.18 }}
+          >
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              {t('requestQuality.inputOutput')}
+            </div>
+            <div className="mt-1 text-xl font-semibold tabular-nums">
+              {inputOutputRatio.toFixed(2)}:1
+            </div>
             <div className="text-xs text-muted-foreground">
-              {metrics.topRequestModel ? `${formatNumber(metrics.topRequestModel.requests)} ${t('common.requests')}` : t('requestQuality.noRequestLeader')}
+              {t('requestQuality.inputOutputHint')}
+            </div>
+          </motion.div>
+          <motion.div
+            className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-5/[0.12] via-transparent to-transparent p-4"
+            initial={{ opacity: 0, y: 12 }}
+            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+            transition={{ duration: 0.35, delay: 0.22 }}
+          >
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              {t('requestQuality.topRequestModel')}
+            </div>
+            <div className="mt-1 text-lg font-semibold truncate">
+              {metrics.topRequestModel?.name ?? '–'}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {metrics.topRequestModel
+                ? `${formatNumber(metrics.topRequestModel.requests)} ${t('common.requests')}`
+                : t('requestQuality.noRequestLeader')}
             </div>
           </motion.div>
         </div>

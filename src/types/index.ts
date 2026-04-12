@@ -130,7 +130,19 @@ export interface AggregatedPeriod {
   thinkingTokens: number
   requestCount: number
   days: number
-  modelBreakdowns: Map<string, { cost: number; tokens: number; input: number; output: number; cacheRead: number; cacheCreate: number; thinking: number; requests: number }>
+  modelBreakdowns: Map<
+    string,
+    {
+      cost: number
+      tokens: number
+      input: number
+      output: number
+      cacheRead: number
+      cacheCreate: number
+      thinking: number
+      requests: number
+    }
+  >
 }
 
 export interface ChartDataPoint {

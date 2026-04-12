@@ -1,9 +1,19 @@
-import type { DailyUsage, ChartDataPoint, TokenChartDataPoint, RequestChartDataPoint, WeekdayData, ViewMode } from '@/types'
+import type {
+  DailyUsage,
+  ChartDataPoint,
+  TokenChartDataPoint,
+  RequestChartDataPoint,
+  WeekdayData,
+  ViewMode,
+} from '@/types'
 import { computeMovingAverage } from './calculations'
 import { getModelProvider, normalizeModelName } from './model-utils'
 import { getCurrentLocale } from './i18n'
 
-function recalculateDayFromBreakdowns(day: DailyUsage, filteredBreakdowns: DailyUsage['modelBreakdowns']): DailyUsage {
+function recalculateDayFromBreakdowns(
+  day: DailyUsage,
+  filteredBreakdowns: DailyUsage['modelBreakdowns'],
+): DailyUsage {
   let totalCost = 0
   let inputTokens = 0
   let outputTokens = 0
@@ -25,7 +35,8 @@ function recalculateDayFromBreakdowns(day: DailyUsage, filteredBreakdowns: Daily
   return {
     ...day,
     totalCost,
-    totalTokens: inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens + thinkingTokens,
+    totalTokens:
+      inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens + thinkingTokens,
     inputTokens,
     outputTokens,
     cacheCreationTokens,
@@ -33,12 +44,12 @@ function recalculateDayFromBreakdowns(day: DailyUsage, filteredBreakdowns: Daily
     thinkingTokens,
     requestCount,
     modelBreakdowns: filteredBreakdowns,
-    modelsUsed: filteredBreakdowns.map(mb => mb.modelName),
+    modelsUsed: filteredBreakdowns.map((mb) => mb.modelName),
   }
 }
 
 export function filterByDateRange(data: DailyUsage[], start?: string, end?: string): DailyUsage[] {
-  return data.filter(d => {
+  return data.filter((d) => {
     if (start && d.date < start) return false
     if (end && d.date > end) return false
     return true
@@ -50,9 +61,9 @@ export function filterByModels(data: DailyUsage[], selectedModels: string[]): Da
   const selected = new Set(selectedModels)
 
   return data
-    .map(d => {
-      const filteredBreakdowns = d.modelBreakdowns.filter(mb =>
-        selected.has(normalizeModelName(mb.modelName))
+    .map((d) => {
+      const filteredBreakdowns = d.modelBreakdowns.filter((mb) =>
+        selected.has(normalizeModelName(mb.modelName)),
       )
 
       if (filteredBreakdowns.length === 0) return null
@@ -66,9 +77,9 @@ export function filterByProviders(data: DailyUsage[], selectedProviders: string[
   const selected = new Set(selectedProviders)
 
   return data
-    .map(d => {
-      const filteredBreakdowns = d.modelBreakdowns.filter(mb =>
-        selected.has(getModelProvider(mb.modelName))
+    .map((d) => {
+      const filteredBreakdowns = d.modelBreakdowns.filter((mb) =>
+        selected.has(getModelProvider(mb.modelName)),
       )
 
       if (filteredBreakdowns.length === 0) return null
@@ -79,7 +90,7 @@ export function filterByProviders(data: DailyUsage[], selectedProviders: string[
 
 export function filterByMonth(data: DailyUsage[], month: string | null): DailyUsage[] {
   if (!month) return data
-  return data.filter(d => d.date.startsWith(month))
+  return data.filter((d) => d.date.startsWith(month))
 }
 
 export function sortByDate(data: DailyUsage[]): DailyUsage[] {
@@ -113,7 +124,7 @@ export function getDateRange(data: DailyUsage[]): { start: string; end: string }
 
 export function toCostChartData(data: DailyUsage[]): ChartDataPoint[] {
   const sorted = sortByDate(data)
-  const costs = sorted.map(d => d.totalCost)
+  const costs = sorted.map((d) => d.totalCost)
   const ma7 = computeMovingAverage(costs)
   let cumulative = 0
   return sorted.map((d, i) => {
@@ -131,7 +142,9 @@ export function toCostChartData(data: DailyUsage[]): ChartDataPoint[] {
   })
 }
 
-export function toModelCostChartData(data: DailyUsage[]): (ChartDataPoint & Record<string, number>)[] {
+export function toModelCostChartData(
+  data: DailyUsage[],
+): (ChartDataPoint & Record<string, number>)[] {
   const sorted = sortByDate(data)
   const allModels = new Set<string>()
   for (const d of sorted) {
@@ -180,12 +193,12 @@ export function toModelCostChartData(data: DailyUsage[]): (ChartDataPoint & Reco
 
 export function toTokenChartData(data: DailyUsage[]): TokenChartDataPoint[] {
   const sorted = sortByDate(data)
-  const totals = sorted.map(d => d.totalTokens)
-  const inputs = sorted.map(d => d.inputTokens)
-  const outputs = sorted.map(d => d.outputTokens)
-  const cacheWrites = sorted.map(d => d.cacheCreationTokens)
-  const cacheReads = sorted.map(d => d.cacheReadTokens)
-  const thinking = sorted.map(d => d.thinkingTokens)
+  const totals = sorted.map((d) => d.totalTokens)
+  const inputs = sorted.map((d) => d.inputTokens)
+  const outputs = sorted.map((d) => d.outputTokens)
+  const cacheWrites = sorted.map((d) => d.cacheCreationTokens)
+  const cacheReads = sorted.map((d) => d.cacheReadTokens)
+  const thinking = sorted.map((d) => d.thinkingTokens)
   const ma7 = computeMovingAverage(totals)
   const inputMA7 = computeMovingAverage(inputs)
   const outputMA7 = computeMovingAverage(outputs)
@@ -217,7 +230,7 @@ export function toTokenChartData(data: DailyUsage[]): TokenChartDataPoint[] {
 
 export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] {
   const sorted = sortByDate(data)
-  const totals = sorted.map(d => d.requestCount)
+  const totals = sorted.map((d) => d.requestCount)
   const totalMA7 = computeMovingAverage(totals)
 
   const allModels = new Set<string>()
@@ -280,7 +293,7 @@ export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {
     new Intl.DateTimeFormat(getCurrentLocale(), { weekday: 'short' })
       .format(new Date(Date.UTC(2024, 0, 1 + index)))
       .replace('.', '')
-      .slice(0, 2)
+      .slice(0, 2),
   )
   for (const d of data) {
     // Skip non-daily entries (monthly "2026-03" or yearly "2026")
@@ -302,9 +315,8 @@ export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {
 export function aggregateToDailyFormat(data: DailyUsage[], mode: ViewMode): DailyUsage[] {
   if (mode === 'daily') return data
 
-  const groupKey = mode === 'monthly'
-    ? (date: string) => date.slice(0, 7)
-    : (date: string) => date.slice(0, 4)
+  const groupKey =
+    mode === 'monthly' ? (date: string) => date.slice(0, 7) : (date: string) => date.slice(0, 4)
 
   const map = new Map<string, DailyUsage>()
 
@@ -336,17 +348,47 @@ export function aggregateToDailyFormat(data: DailyUsage[], mode: ViewMode): Dail
   return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date))
 }
 
-export function aggregateByMonth(data: DailyUsage[]): { period: string; totalCost: number; totalTokens: number; inputTokens: number; outputTokens: number; cacheCreationTokens: number; cacheReadTokens: number; thinkingTokens: number; requestCount: number; days: number; modelBreakdowns: DailyUsage['modelBreakdowns'] }[] {
-  const map = new Map<string, {
-    totalCost: number; totalTokens: number; inputTokens: number; outputTokens: number;
-    cacheCreationTokens: number; cacheReadTokens: number; thinkingTokens: number; requestCount: number; days: number;
-    modelBreakdowns: DailyUsage['modelBreakdowns']
-  }>()
+export function aggregateByMonth(data: DailyUsage[]): {
+  period: string
+  totalCost: number
+  totalTokens: number
+  inputTokens: number
+  outputTokens: number
+  cacheCreationTokens: number
+  cacheReadTokens: number
+  thinkingTokens: number
+  requestCount: number
+  days: number
+  modelBreakdowns: DailyUsage['modelBreakdowns']
+}[] {
+  const map = new Map<
+    string,
+    {
+      totalCost: number
+      totalTokens: number
+      inputTokens: number
+      outputTokens: number
+      cacheCreationTokens: number
+      cacheReadTokens: number
+      thinkingTokens: number
+      requestCount: number
+      days: number
+      modelBreakdowns: DailyUsage['modelBreakdowns']
+    }
+  >()
   for (const d of data) {
     const month = d.date.slice(0, 7)
     const existing = map.get(month) ?? {
-      totalCost: 0, totalTokens: 0, inputTokens: 0, outputTokens: 0,
-      cacheCreationTokens: 0, cacheReadTokens: 0, thinkingTokens: 0, requestCount: 0, days: 0, modelBreakdowns: [],
+      totalCost: 0,
+      totalTokens: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      thinkingTokens: 0,
+      requestCount: 0,
+      days: 0,
+      modelBreakdowns: [],
     }
     existing.totalCost += d.totalCost
     existing.totalTokens += d.totalTokens

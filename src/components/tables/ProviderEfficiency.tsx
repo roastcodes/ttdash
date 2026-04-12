@@ -4,7 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { FEATURE_HELP } from '@/lib/help-content'
-import { formatPercent, formatTokens, periodLabel, periodUnit, formatNumber } from '@/lib/formatters'
+import {
+  formatPercent,
+  formatTokens,
+  periodLabel,
+  periodUnit,
+  formatNumber,
+} from '@/lib/formatters'
 import { getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
@@ -24,31 +30,54 @@ interface ProviderEfficiencyProps {
   viewMode?: ViewMode
 }
 
-type SortKey = 'cost' | 'share' | 'requests' | 'tokens' | 'costPerRequest' | 'costPerMillion' | 'cacheShare'
+type SortKey =
+  | 'cost'
+  | 'share'
+  | 'requests'
+  | 'tokens'
+  | 'costPerRequest'
+  | 'costPerMillion'
+  | 'cacheShare'
 
-export function ProviderEfficiency({ providerMetrics, totalCost, viewMode = 'daily' }: ProviderEfficiencyProps) {
+export function ProviderEfficiency({
+  providerMetrics,
+  totalCost,
+  viewMode = 'daily',
+}: ProviderEfficiencyProps) {
   const { t } = useTranslation()
   const [sortKey, setSortKey] = useState<SortKey>('cost')
   const [sortAsc, setSortAsc] = useState(false)
 
-  const rows = useMemo<ProviderRow[]>(() => (
-    Array.from(providerMetrics.entries()).map(([name, value]) => ({
-      name,
-      ...value,
-      share: totalCost > 0 ? (value.cost / totalCost) * 100 : 0,
-      costPerRequest: value.requests > 0 ? value.cost / value.requests : 0,
-      costPerMillion: value.tokens > 0 ? value.cost / (value.tokens / 1_000_000) : 0,
-      cacheShare: value.tokens > 0 ? (value.cacheRead / value.tokens) * 100 : 0,
-    }))
-  ), [providerMetrics, totalCost])
+  const rows = useMemo<ProviderRow[]>(
+    () =>
+      Array.from(providerMetrics.entries()).map(([name, value]) => ({
+        name,
+        ...value,
+        share: totalCost > 0 ? (value.cost / totalCost) * 100 : 0,
+        costPerRequest: value.requests > 0 ? value.cost / value.requests : 0,
+        costPerMillion: value.tokens > 0 ? value.cost / (value.tokens / 1_000_000) : 0,
+        cacheShare: value.tokens > 0 ? (value.cacheRead / value.tokens) * 100 : 0,
+      })),
+    [providerMetrics, totalCost],
+  )
 
-  const sorted = useMemo(() => [...rows].sort((a, b) => {
-    const diff = a[sortKey] - b[sortKey]
-    return sortAsc ? diff : -diff
-  }), [rows, sortAsc, sortKey])
+  const sorted = useMemo(
+    () =>
+      [...rows].sort((a, b) => {
+        const diff = a[sortKey] - b[sortKey]
+        return sortAsc ? diff : -diff
+      }),
+    [rows, sortAsc, sortKey],
+  )
 
   const lead = sorted[0] ?? null
-  const efficient = useMemo(() => [...rows].filter(row => row.tokens > 0).sort((a, b) => a.costPerMillion - b.costPerMillion)[0] ?? null, [rows])
+  const efficient = useMemo(
+    () =>
+      [...rows]
+        .filter((row) => row.tokens > 0)
+        .sort((a, b) => a.costPerMillion - b.costPerMillion)[0] ?? null,
+    [rows],
+  )
   const totalRequests = useMemo(() => rows.reduce((sum, row) => sum + row.requests, 0), [rows])
 
   const handleSort = (key: SortKey) => {
@@ -60,7 +89,13 @@ export function ProviderEfficiency({ providerMetrics, totalCost, viewMode = 'dai
   }
 
   const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
-    <th className={cn('px-3 py-2 text-right text-xs font-medium cursor-pointer hover:text-foreground transition-colors', sortKey === field ? 'text-foreground' : 'text-muted-foreground')} onClick={() => handleSort(field)}>
+    <th
+      className={cn(
+        'px-3 py-2 text-right text-xs font-medium cursor-pointer hover:text-foreground transition-colors',
+        sortKey === field ? 'text-foreground' : 'text-muted-foreground',
+      )}
+      onClick={() => handleSort(field)}
+    >
       <span className="inline-flex items-center gap-1">
         {label}
         <ArrowUpDown className={cn('h-3 w-3', sortKey === field && 'text-primary')} />
@@ -76,62 +111,111 @@ export function ProviderEfficiency({ providerMetrics, totalCost, viewMode = 'dai
             {t('tables.providerEfficiency.title')}
             <InfoButton text={FEATURE_HELP.providerEfficiency} />
           </CardTitle>
-          <span className="text-xs text-muted-foreground">{t('tables.providerEfficiency.count', { count: rows.length })}</span>
+          <span className="text-xs text-muted-foreground">
+            {t('tables.providerEfficiency.count', { count: rows.length })}
+          </span>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.providerEfficiency.leadProvider')}</div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              {t('tables.providerEfficiency.leadProvider')}
+            </div>
             <div className="mt-1 text-sm font-medium">{lead?.name ?? '–'}</div>
-            <div className="text-xs text-muted-foreground">{lead ? t('tables.providerEfficiency.share', { value: formatPercent(lead.share, 0) }) : '–'}</div>
+            <div className="text-xs text-muted-foreground">
+              {lead
+                ? t('tables.providerEfficiency.share', { value: formatPercent(lead.share, 0) })
+                : '–'}
+            </div>
           </div>
           <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.providerEfficiency.mostEfficient')}</div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              {t('tables.providerEfficiency.mostEfficient')}
+            </div>
             <div className="mt-1 text-sm font-medium">{efficient?.name ?? '–'}</div>
-            <div className="text-xs text-muted-foreground">{efficient ? `${efficient.costPerMillion.toFixed(2)} $/1M` : '–'}</div>
+            <div className="text-xs text-muted-foreground">
+              {efficient ? `${efficient.costPerMillion.toFixed(2)} $/1M` : '–'}
+            </div>
           </div>
           <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.providerEfficiency.totalRequests')}</div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              {t('tables.providerEfficiency.totalRequests')}
+            </div>
             <div className="mt-1 text-sm font-medium">{formatNumber(totalRequests)}</div>
-            <div className="text-xs text-muted-foreground">{rows.length > 0 ? t('tables.providerEfficiency.perProvider', { value: (totalRequests / rows.length).toFixed(0) }) : '–'}</div>
+            <div className="text-xs text-muted-foreground">
+              {rows.length > 0
+                ? t('tables.providerEfficiency.perProvider', {
+                    value: (totalRequests / rows.length).toFixed(0),
+                  })
+                : '–'}
+            </div>
           </div>
           <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{t('tables.providerEfficiency.avgPerUnit', { unit: periodUnit(viewMode) })}</div>
-            <div className="mt-1 text-sm font-medium">{lead ? <FormattedValue value={lead.cost / Math.max(lead.days, 1)} type="currency" /> : '–'}</div>
-            <div className="text-xs text-muted-foreground">{lead ? `${lead.days} ${periodLabel(viewMode, true)}` : '–'}</div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              {t('tables.providerEfficiency.avgPerUnit', { unit: periodUnit(viewMode) })}
+            </div>
+            <div className="mt-1 text-sm font-medium">
+              {lead ? (
+                <FormattedValue value={lead.cost / Math.max(lead.days, 1)} type="currency" />
+              ) : (
+                '–'
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {lead ? `${lead.days} ${periodLabel(viewMode, true)}` : '–'}
+            </div>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="grid gap-2 md:hidden mb-4">
-          {sorted.map(row => (
+          {sorted.map((row) => (
             <div key={row.name} className="rounded-xl border border-border/50 bg-muted/10 p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <span className={cn('inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium leading-none', getProviderBadgeClasses(row.name))}>
+                  <span
+                    className={cn(
+                      'inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium leading-none',
+                      getProviderBadgeClasses(row.name),
+                    )}
+                  >
                     {row.name}
                   </span>
-                  <div className="mt-2 text-xs text-muted-foreground">{t('tables.providerEfficiency.share', { value: formatPercent(row.share, 1) })}</div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    {t('tables.providerEfficiency.share', { value: formatPercent(row.share, 1) })}
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-mono font-semibold"><FormattedValue value={row.cost} type="currency" /></div>
-                  <div className="text-xs text-muted-foreground">{formatNumber(row.requests)} {t('tables.providerEfficiency.req')}</div>
+                  <div className="font-mono font-semibold">
+                    <FormattedValue value={row.cost} type="currency" />
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatNumber(row.requests)} {t('tables.providerEfficiency.req')}
+                  </div>
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                  <div className="text-muted-foreground">{t('tables.providerEfficiency.tokens')}</div>
+                  <div className="text-muted-foreground">
+                    {t('tables.providerEfficiency.tokens')}
+                  </div>
                   <div className="mt-1 font-mono">{formatTokens(row.tokens)}</div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
                   <div className="text-muted-foreground">$/Req</div>
-                  <div className="mt-1 font-mono"><FormattedValue value={row.costPerRequest} type="currency" /></div>
+                  <div className="mt-1 font-mono">
+                    <FormattedValue value={row.costPerRequest} type="currency" />
+                  </div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
                   <div className="text-muted-foreground">$/1M</div>
-                  <div className="mt-1 font-mono"><FormattedValue value={row.costPerMillion} type="currency" /></div>
+                  <div className="mt-1 font-mono">
+                    <FormattedValue value={row.costPerMillion} type="currency" />
+                  </div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                  <div className="text-muted-foreground">{t('tables.providerEfficiency.cacheShare')}</div>
+                  <div className="text-muted-foreground">
+                    {t('tables.providerEfficiency.cacheShare')}
+                  </div>
                   <div className="mt-1 font-mono">{formatPercent(row.cacheShare, 1)}</div>
                 </div>
               </div>
@@ -143,31 +227,61 @@ export function ProviderEfficiency({ providerMetrics, totalCost, viewMode = 'dai
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border">
-                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t('tables.providerEfficiency.provider')}</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                  {t('tables.providerEfficiency.provider')}
+                </th>
                 <SortHeader label={t('tables.providerEfficiency.cost')} field="cost" />
                 <SortHeader label={t('tables.providerEfficiency.shareShort')} field="share" />
                 <SortHeader label={t('tables.providerEfficiency.req')} field="requests" />
                 <SortHeader label={t('tables.providerEfficiency.tokens')} field="tokens" />
-                <SortHeader label={t('tables.providerEfficiency.costPerReq')} field="costPerRequest" />
-                <SortHeader label={t('tables.providerEfficiency.costPerMillion')} field="costPerMillion" />
+                <SortHeader
+                  label={t('tables.providerEfficiency.costPerReq')}
+                  field="costPerRequest"
+                />
+                <SortHeader
+                  label={t('tables.providerEfficiency.costPerMillion')}
+                  field="costPerMillion"
+                />
                 <SortHeader label={t('tables.providerEfficiency.cacheShare')} field="cacheShare" />
               </tr>
             </thead>
             <tbody>
-              {sorted.map(row => (
-                <tr key={row.name} className="border-b border-border/50 even:bg-muted/5 hover:bg-muted/10 transition-colors">
+              {sorted.map((row) => (
+                <tr
+                  key={row.name}
+                  className="border-b border-border/50 even:bg-muted/5 hover:bg-muted/10 transition-colors"
+                >
                   <td className="px-3 py-2.5">
-                    <span className={cn('inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium leading-none', getProviderBadgeClasses(row.name))}>
+                    <span
+                      className={cn(
+                        'inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium leading-none',
+                        getProviderBadgeClasses(row.name),
+                      )}
+                    >
                       {row.name}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 text-right font-mono tabular-nums"><FormattedValue value={row.cost} type="currency" /></td>
-                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatPercent(row.share, 1)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatNumber(row.requests)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatTokens(row.tokens)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono tabular-nums"><FormattedValue value={row.costPerRequest} type="currency" /></td>
-                  <td className="px-3 py-2.5 text-right font-mono tabular-nums"><FormattedValue value={row.costPerMillion} type="currency" /></td>
-                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatPercent(row.cacheShare, 1)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    <FormattedValue value={row.cost} type="currency" />
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    {formatPercent(row.share, 1)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    {formatNumber(row.requests)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    {formatTokens(row.tokens)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    <FormattedValue value={row.costPerRequest} type="currency" />
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    <FormattedValue value={row.costPerMillion} type="currency" />
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                    {formatPercent(row.cacheShare, 1)}
+                  </td>
                 </tr>
               ))}
             </tbody>

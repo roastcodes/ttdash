@@ -7,11 +7,7 @@ describe('dashboard analytics', () => {
   it('recalculates totals when provider filtering removes model breakdowns', () => {
     const filtered = filterByProviders(dashboardFixture, ['OpenAI'])
 
-    expect(filtered.map(entry => entry.date)).toEqual([
-      '2026-03-30',
-      '2026-03-31',
-      '2026-04-06',
-    ])
+    expect(filtered.map((entry) => entry.date)).toEqual(['2026-03-30', '2026-03-31', '2026-04-06'])
     expect(filtered[0]).toMatchObject({
       totalCost: 6,
       totalTokens: 210,
@@ -135,11 +131,6 @@ describe('dashboard analytics', () => {
   })
 
   it('computes moving averages with leading gaps instead of partial windows', () => {
-    expect(computeMovingAverage([1, 2, 3, 4], 3)).toEqual([
-      undefined,
-      undefined,
-      2,
-      3,
-    ])
+    expect(computeMovingAverage([1, 2, 3, 4], 3)).toEqual([undefined, undefined, 2, 3])
   })
 })

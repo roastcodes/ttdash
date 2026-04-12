@@ -59,8 +59,10 @@ On a manual `workflow_dispatch` run against `main`, the workflow:
 9. publishes `@roastcodes/ttdash` to npm through Trusted Publishing
 10. waits for npm registry propagation
 11. verifies:
-   - `npx --yes @roastcodes/ttdash@<version> --help`
-   - `bunx @roastcodes/ttdash@<version> --help`
+
+- `npx --yes @roastcodes/ttdash@<version> --help`
+- `bunx @roastcodes/ttdash@<version> --help`
+
 12. creates the GitHub release
 
 Note: the workflow reruns the release-critical test suite itself after the version bump. This is necessary because the workflow-created push back to `main` should not be relied on to trigger the normal `CI` workflow again.

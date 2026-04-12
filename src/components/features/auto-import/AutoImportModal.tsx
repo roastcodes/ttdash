@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { LoaderCircle, CheckCircle2, XCircle, Terminal } from 'lucide-react'
 import { startAutoImport } from '@/lib/auto-import'
@@ -37,7 +43,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
   const closeRef = useRef<{ close: () => void } | null>(null)
 
   const addLine = useCallback((type: LineType, text: string) => {
-    setLines(prev => [...prev, { type, text }])
+    setLines((prev) => [...prev, { type, text }])
   }, [])
   const autoImportTranslator = useCallback(
     (key: string, vars?: Record<string, string | number>) => (vars ? t(key, vars) : t(key)),
@@ -51,37 +57,50 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
     setLines([])
     setSummary(null)
 
-    const handle = startAutoImport({
-      onCheck: (data: CheckEvent) => {
-        if (data.status === 'checking') {
-          addLine('check', t('autoImportModal.checkingTool', { tool: data.tool }))
-        } else if (data.status === 'found') {
-          addLine('check', t('autoImportModal.toolFound', { tool: data.tool, method: data.method, version: data.version }))
-          setStatus('running')
-        } else if (data.status === 'not_found') {
-          addLine('check', t('autoImportModal.toolNotFound', { tool: data.tool }))
-        }
+    const handle = startAutoImport(
+      {
+        onCheck: (data: CheckEvent) => {
+          if (data.status === 'checking') {
+            addLine('check', t('autoImportModal.checkingTool', { tool: data.tool }))
+          } else if (data.status === 'found') {
+            addLine(
+              'check',
+              t('autoImportModal.toolFound', {
+                tool: data.tool,
+                method: data.method,
+                version: data.version,
+              }),
+            )
+            setStatus('running')
+          } else if (data.status === 'not_found') {
+            addLine('check', t('autoImportModal.toolNotFound', { tool: data.tool }))
+          }
+        },
+        onProgress: (data) => {
+          addLine('progress', data.message)
+        },
+        onStderr: (data) => {
+          addLine('stderr', data.line)
+        },
+        onSuccess: (data: SuccessEvent) => {
+          addLine(
+            'success',
+            t('autoImportModal.importedDays', { days: data.days, cost: data.totalCost.toFixed(2) }),
+          )
+          setSummary(data)
+          setStatus('success')
+          onSuccess()
+        },
+        onError: (data) => {
+          addLine('error', data.message)
+          setStatus('error')
+        },
+        onDone: () => {
+          closeRef.current = null
+        },
       },
-      onProgress: (data) => {
-        addLine('progress', data.message)
-      },
-      onStderr: (data) => {
-        addLine('stderr', data.line)
-      },
-      onSuccess: (data: SuccessEvent) => {
-        addLine('success', t('autoImportModal.importedDays', { days: data.days, cost: data.totalCost.toFixed(2) }))
-        setSummary(data)
-        setStatus('success')
-        onSuccess()
-      },
-      onError: (data) => {
-        addLine('error', data.message)
-        setStatus('error')
-      },
-      onDone: () => {
-        closeRef.current = null
-      },
-    }, autoImportTranslator)
+      autoImportTranslator,
+    )
 
     closeRef.current = handle
 
@@ -101,16 +120,24 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
   const isRunning = status === 'checking' || status === 'running'
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!isRunning) onOpenChange(v) }}>
-      <DialogContent className="max-w-lg" onPointerDownOutside={(e) => { if (isRunning) e.preventDefault() }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!isRunning) onOpenChange(v)
+      }}
+    >
+      <DialogContent
+        className="max-w-lg"
+        onPointerDownOutside={(e) => {
+          if (isRunning) e.preventDefault()
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Terminal className="h-5 w-5" />
             {t('autoImportModal.title')}
           </DialogTitle>
-          <DialogDescription>
-            {t('autoImportModal.description')}
-          </DialogDescription>
+          <DialogDescription>{t('autoImportModal.description')}</DialogDescription>
         </DialogHeader>
 
         {/* Terminal output */}
@@ -137,7 +164,9 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
               <>
                 <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
                 <span className="text-muted-foreground">
-                  {status === 'checking' ? t('autoImportModal.checkingPrerequisites') : t('autoImportModal.importingData')}
+                  {status === 'checking'
+                    ? t('autoImportModal.checkingPrerequisites')
+                    : t('autoImportModal.importingData')}
                 </span>
               </>
             )}
@@ -145,7 +174,10 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
               <>
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                 <span className="text-green-500">
-                  {t('autoImportModal.loadedDays', { days: summary.days, cost: summary.totalCost.toFixed(2) })}
+                  {t('autoImportModal.loadedDays', {
+                    days: summary.days,
+                    cost: summary.totalCost.toFixed(2),
+                  })}
                 </span>
               </>
             )}
@@ -158,7 +190,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
           </div>
 
           {!isRunning && (
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               {t('autoImportModal.close')}
             </Button>
           )}

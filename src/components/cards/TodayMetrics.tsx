@@ -1,4 +1,12 @@
-import { TrendingDown, DollarSign, Coins, Cpu, Database, Activity, BrainCircuit } from 'lucide-react'
+import {
+  TrendingDown,
+  DollarSign,
+  Coins,
+  Cpu,
+  Database,
+  Activity,
+  BrainCircuit,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
@@ -16,27 +24,55 @@ interface TodayMetricsProps {
 
 export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
   const { t } = useTranslation()
-  const cacheHitRate = (today.cacheReadTokens + today.cacheCreationTokens) > 0
-    ? (today.cacheReadTokens / (today.cacheReadTokens + today.cacheCreationTokens + today.inputTokens + today.outputTokens + today.thinkingTokens)) * 100
-    : 0
+  const cacheHitRate =
+    today.cacheReadTokens + today.cacheCreationTokens > 0
+      ? (today.cacheReadTokens /
+          (today.cacheReadTokens +
+            today.cacheCreationTokens +
+            today.inputTokens +
+            today.outputTokens +
+            today.thinkingTokens)) *
+        100
+      : 0
 
   const topModel = today.modelBreakdowns?.length
-    ? today.modelBreakdowns.reduce((a, b) => a.cost > b.cost ? a : b)
+    ? today.modelBreakdowns.reduce((a, b) => (a.cost > b.cost ? a : b))
     : null
 
-  const diffToAvg = metrics.avgDailyCost > 0
-    ? ((today.totalCost - metrics.avgDailyCost) / metrics.avgDailyCost) * 100
+  const diffToAvg =
+    metrics.avgDailyCost > 0
+      ? ((today.totalCost - metrics.avgDailyCost) / metrics.avgDailyCost) * 100
+      : null
+  const costSubtitle =
+    diffToAvg !== null
+      ? t('metricCards.today.avgPerDay', { value: formatCurrency(metrics.avgDailyCost) })
+      : null
+  const tokensSubtitle =
+    today.inputTokens > 0 && today.outputTokens > 0
+      ? t('metricCards.today.ioRatio', {
+          value: (today.inputTokens / today.outputTokens).toFixed(1),
+        })
+      : null
+  const modelSubtitle = topModel
+    ? t('metricCards.today.topModel', { value: normalizeModelName(topModel.modelName) })
     : null
-  const costSubtitle = diffToAvg !== null ? t('metricCards.today.avgPerDay', { value: formatCurrency(metrics.avgDailyCost) }) : null
-  const tokensSubtitle = today.inputTokens > 0 && today.outputTokens > 0
-    ? t('metricCards.today.ioRatio', { value: (today.inputTokens / today.outputTokens).toFixed(1) })
-    : null
-  const modelSubtitle = topModel ? t('metricCards.today.topModel', { value: normalizeModelName(topModel.modelName) }) : null
-  const costPerMillionSubtitle = metrics.costPerMillion > 0 ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) }) : null
-  const requestsSubtitle = today.requestCount > 0 && today.modelsUsed.length > 0
-    ? t('metricCards.today.requestsSubtitle', { value: (today.requestCount / today.modelsUsed.length).toFixed(1), cost: formatCurrency(today.totalCost / today.requestCount) })
-    : t('metricCards.today.requestCountersMissing')
-  const thinkingSubtitle = today.totalTokens > 0 ? t('metricCards.today.thinkingSubtitle', { value: formatPercent((today.thinkingTokens / today.totalTokens) * 100) }) : null
+  const costPerMillionSubtitle =
+    metrics.costPerMillion > 0
+      ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) })
+      : null
+  const requestsSubtitle =
+    today.requestCount > 0 && today.modelsUsed.length > 0
+      ? t('metricCards.today.requestsSubtitle', {
+          value: (today.requestCount / today.modelsUsed.length).toFixed(1),
+          cost: formatCurrency(today.totalCost / today.requestCount),
+        })
+      : t('metricCards.today.requestCountersMissing')
+  const thinkingSubtitle =
+    today.totalTokens > 0
+      ? t('metricCards.today.thinkingSubtitle', {
+          value: formatPercent((today.thinkingTokens / today.totalTokens) * 100),
+        })
+      : null
 
   return (
     <div>
@@ -51,12 +87,23 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
             label={t('metricCards.today.costToday')}
             value={<FormattedValue value={today.totalCost} type="currency" />}
             icon={<DollarSign className="h-4 w-4" />}
-            trend={diffToAvg !== null ? { value: diffToAvg, label: t('metricCards.today.vsAverageShort') } : null}
+            trend={
+              diffToAvg !== null
+                ? { value: diffToAvg, label: t('metricCards.today.vsAverageShort') }
+                : null
+            }
             {...(costSubtitle ? { subtitle: costSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.today.tokensToday')}
-            value={<FormattedValue value={today.totalTokens} type="tokens" label={t('metricCards.today.tokensToday')} insight={`${formatTokens(today.requestCount > 0 ? today.totalTokens / today.requestCount : 0)} / Request`} />}
+            value={
+              <FormattedValue
+                value={today.totalTokens}
+                type="tokens"
+                label={t('metricCards.today.tokensToday')}
+                insight={`${formatTokens(today.requestCount > 0 ? today.totalTokens / today.requestCount : 0)} / Request`}
+              />
+            }
             icon={<Coins className="h-4 w-4" />}
             {...(tokensSubtitle ? { subtitle: tokensSubtitle } : {})}
           />
@@ -68,19 +115,39 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
           />
           <MetricCard
             label={t('metricCards.today.costPerMillion')}
-            value={<FormattedValue value={today.totalTokens > 0 ? today.totalCost / (today.totalTokens / 1_000_000) : 0} type="currency" />}
+            value={
+              <FormattedValue
+                value={
+                  today.totalTokens > 0 ? today.totalCost / (today.totalTokens / 1_000_000) : 0
+                }
+                type="currency"
+              />
+            }
             icon={<TrendingDown className="h-4 w-4" />}
             {...(costPerMillionSubtitle ? { subtitle: costPerMillionSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.today.cacheHitRate')}
             value={<FormattedValue value={cacheHitRate} type="percent" />}
-            subtitle={t('metricCards.today.cacheShare', { value: formatPercent((today.cacheReadTokens / (today.totalTokens || 1)) * 100) })}
+            subtitle={t('metricCards.today.cacheShare', {
+              value: formatPercent((today.cacheReadTokens / (today.totalTokens || 1)) * 100),
+            })}
             icon={<Database className="h-4 w-4" />}
           />
           <MetricCard
             label={t('metricCards.today.requests')}
-            value={today.requestCount > 0 ? <FormattedValue value={today.requestCount} type="number" label={t('metricCards.today.requestsToday')} insight={`${formatCurrency(today.totalCost / today.requestCount)} / Request`} /> : t('common.notAvailable')}
+            value={
+              today.requestCount > 0 ? (
+                <FormattedValue
+                  value={today.requestCount}
+                  type="number"
+                  label={t('metricCards.today.requestsToday')}
+                  insight={`${formatCurrency(today.totalCost / today.requestCount)} / Request`}
+                />
+              ) : (
+                t('common.notAvailable')
+              )
+            }
             subtitle={requestsSubtitle}
             icon={<Activity className="h-4 w-4" />}
           />

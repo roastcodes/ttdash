@@ -1,12 +1,27 @@
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, useInView } from 'framer-motion'
-import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ZAxis } from 'recharts'
+import {
+  ResponsiveContainer,
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ZAxis,
+} from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
-import { formatCurrency, formatDate, formatNumber, formatPercent, formatTokens } from '@/lib/formatters'
+import {
+  formatCurrency,
+  formatDate,
+  formatNumber,
+  formatPercent,
+  formatTokens,
+} from '@/lib/formatters'
 import type { DailyUsage } from '@/types'
 
 interface CorrelationAnalysisProps {
@@ -37,7 +52,15 @@ function correlation(valuesA: number[], valuesB: number[]) {
   return covariance / Math.sqrt(varianceA * varianceB)
 }
 
-function ScatterTooltip({ active, payload, mode }: { active?: boolean; payload?: Array<{ payload: ScatterPoint }>; mode: 'requestCost' | 'cacheEfficiency' }) {
+function ScatterTooltip({
+  active,
+  payload,
+  mode,
+}: {
+  active?: boolean
+  payload?: Array<{ payload: ScatterPoint }>
+  mode: 'requestCost' | 'cacheEfficiency'
+}) {
   const { t } = useTranslation()
   if (!active || !payload?.length) return null
 
@@ -52,7 +75,9 @@ function ScatterTooltip({ active, payload, mode }: { active?: boolean; payload?:
           <>
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">{t('charts.correlation.requestsLabel')}</span>
-              <span className="font-mono font-medium">{point.requests !== undefined ? formatNumber(point.requests) : '–'}</span>
+              <span className="font-mono font-medium">
+                {point.requests !== undefined ? formatNumber(point.requests) : '–'}
+              </span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">{t('charts.correlation.cost')}</span>
@@ -60,22 +85,30 @@ function ScatterTooltip({ active, payload, mode }: { active?: boolean; payload?:
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">{t('charts.correlation.tokensLabel')}</span>
-              <span className="font-mono font-medium">{point.tokens ? formatTokens(point.tokens) : '–'}</span>
+              <span className="font-mono font-medium">
+                {point.tokens ? formatTokens(point.tokens) : '–'}
+              </span>
             </div>
           </>
         ) : (
           <>
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">{t('charts.correlation.cacheRate')}</span>
-              <span className="font-mono font-medium">{point.cacheRate !== undefined ? formatPercent(point.cacheRate, 1) : '–'}</span>
+              <span className="font-mono font-medium">
+                {point.cacheRate !== undefined ? formatPercent(point.cacheRate, 1) : '–'}
+              </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">{t('charts.correlation.costPerRequest')}</span>
+              <span className="text-muted-foreground">
+                {t('charts.correlation.costPerRequest')}
+              </span>
               <span className="font-mono font-medium">{formatCurrency(point.y)}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">{t('charts.correlation.requestsLabel')}</span>
-              <span className="font-mono font-medium">{point.requests !== undefined ? formatNumber(point.requests) : '–'}</span>
+              <span className="font-mono font-medium">
+                {point.requests !== undefined ? formatNumber(point.requests) : '–'}
+              </span>
             </div>
           </>
         )}
@@ -126,14 +159,33 @@ function CorrelationPanel({
     >
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{title}</div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {title}
+          </div>
           <div className="text-[10px] text-muted-foreground">{subtitle}</div>
         </div>
         <ResponsiveContainer width="100%" height={260}>
           <ScatterChart margin={CHART_MARGIN}>
             <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.25} />
-            <XAxis type="number" dataKey="x" stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} name={xAxisName} {...(xTickFormatter ? { tickFormatter: xTickFormatter } : {})} />
-            <YAxis type="number" dataKey="y" stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} name={yAxisName} tickFormatter={formatCurrency} />
+            <XAxis
+              type="number"
+              dataKey="x"
+              stroke={CHART_COLORS.axis}
+              fontSize={10}
+              tickLine={false}
+              name={xAxisName}
+              {...(xTickFormatter ? { tickFormatter: xTickFormatter } : {})}
+            />
+            <YAxis
+              type="number"
+              dataKey="y"
+              stroke={CHART_COLORS.axis}
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              name={yAxisName}
+              tickFormatter={formatCurrency}
+            />
             <ZAxis type="number" dataKey="z" range={[30, 180]} />
             <Tooltip content={<ScatterTooltip mode={mode} />} cursor={{ strokeDasharray: '4 4' }} />
             <Scatter
@@ -155,31 +207,45 @@ function CorrelationPanel({
 
 export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   const { t } = useTranslation()
-  const requestVsCost = useMemo<ScatterPoint[]>(() => data.map(entry => ({
-    x: entry.requestCount,
-    y: entry.totalCost,
-    z: Math.max(5, Math.sqrt(entry.totalTokens / 1000)),
-    label: entry.date,
-    tokens: entry.totalTokens,
-    requests: entry.requestCount,
-  })), [data])
-
-  const cacheVsCostPerRequest = useMemo<ScatterPoint[]>(() => data
-    .filter(entry => entry.requestCount > 0 && entry.totalTokens > 0)
-    .map(entry => {
-      const cacheShare = (entry.cacheReadTokens / entry.totalTokens) * 100
-      return {
-        x: cacheShare,
-        y: entry.totalCost / entry.requestCount,
-        z: Math.max(5, Math.sqrt(entry.requestCount)),
+  const requestVsCost = useMemo<ScatterPoint[]>(
+    () =>
+      data.map((entry) => ({
+        x: entry.requestCount,
+        y: entry.totalCost,
+        z: Math.max(5, Math.sqrt(entry.totalTokens / 1000)),
         label: entry.date,
-        cacheRate: cacheShare,
+        tokens: entry.totalTokens,
         requests: entry.requestCount,
-      }
-    }), [data])
+      })),
+    [data],
+  )
 
-  const requestCostCorrelation = correlation(requestVsCost.map(point => point.x), requestVsCost.map(point => point.y))
-  const cacheEfficiencyCorrelation = correlation(cacheVsCostPerRequest.map(point => point.x), cacheVsCostPerRequest.map(point => point.y))
+  const cacheVsCostPerRequest = useMemo<ScatterPoint[]>(
+    () =>
+      data
+        .filter((entry) => entry.requestCount > 0 && entry.totalTokens > 0)
+        .map((entry) => {
+          const cacheShare = (entry.cacheReadTokens / entry.totalTokens) * 100
+          return {
+            x: cacheShare,
+            y: entry.totalCost / entry.requestCount,
+            z: Math.max(5, Math.sqrt(entry.requestCount)),
+            label: entry.date,
+            cacheRate: cacheShare,
+            requests: entry.requestCount,
+          }
+        }),
+    [data],
+  )
+
+  const requestCostCorrelation = correlation(
+    requestVsCost.map((point) => point.x),
+    requestVsCost.map((point) => point.y),
+  )
+  const cacheEfficiencyCorrelation = correlation(
+    cacheVsCostPerRequest.map((point) => point.x),
+    cacheVsCostPerRequest.map((point) => point.y),
+  )
 
   if (data.length < 2) {
     return (
@@ -216,7 +282,13 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
           color={CHART_COLORS.cost}
           xAxisName={t('charts.correlation.requestsAxis')}
           yAxisName={t('charts.correlation.cost')}
-          footer={requestCostCorrelation >= 0.6 ? t('charts.correlation.strongRequestCost') : requestCostCorrelation >= 0.3 ? t('charts.correlation.mediumRequestCost') : t('charts.correlation.weakRequestCost')}
+          footer={
+            requestCostCorrelation >= 0.6
+              ? t('charts.correlation.strongRequestCost')
+              : requestCostCorrelation >= 0.3
+                ? t('charts.correlation.mediumRequestCost')
+                : t('charts.correlation.weakRequestCost')
+          }
           delay={0.02}
         />
 
@@ -230,7 +302,13 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
           xAxisName={t('charts.correlation.cacheRate')}
           xTickFormatter={(value) => formatPercent(value, 0)}
           yAxisName={t('charts.correlation.costPerRequestAxis')}
-          footer={cacheEfficiencyCorrelation <= -0.3 ? t('charts.correlation.negativeCache') : cacheEfficiencyCorrelation < 0.2 ? t('charts.correlation.neutralCache') : t('charts.correlation.positiveCache')}
+          footer={
+            cacheEfficiencyCorrelation <= -0.3
+              ? t('charts.correlation.negativeCache')
+              : cacheEfficiencyCorrelation < 0.2
+                ? t('charts.correlation.neutralCache')
+                : t('charts.correlation.positiveCache')
+          }
           delay={0.08}
         />
       </CardContent>

@@ -1,0 +1,10 @@
+coverage/
+dist/
+node_modules/
+playwright-report/
+test-results/
+.playwright-mcp/
+.tmp-playwright/
+.tmp-smoke-*/
+package-lock.json
+bun.lock

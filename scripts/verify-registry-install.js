@@ -56,7 +56,9 @@ function parseArgs(argv) {
   }
 
   if (!options.packageName || !options.version) {
-    fail('Usage: node scripts/verify-registry-install.js --package <name> --version <version> [--retries N] [--retry-delay-ms MS]');
+    fail(
+      'Usage: node scripts/verify-registry-install.js --package <name> --version <version> [--retries N] [--retry-delay-ms MS]',
+    );
   }
 
   if (!Number.isInteger(options.retries) || options.retries <= 0) {
@@ -76,10 +78,17 @@ function sleep(ms) {
 
 function createIsolatedWorkingDir(prefix) {
   const cwd = mktemp(prefix);
-  fs.writeFileSync(path.join(cwd, 'package.json'), JSON.stringify({
-    name: 'ttdash-registry-verify',
-    private: true,
-  }, null, 2) + '\n');
+  fs.writeFileSync(
+    path.join(cwd, 'package.json'),
+    JSON.stringify(
+      {
+        name: 'ttdash-registry-verify',
+        private: true,
+      },
+      null,
+      2,
+    ) + '\n',
+  );
   return cwd;
 }
 
@@ -132,22 +141,26 @@ async function verifyNpmExec(packageName, version, retries, retryDelayMs) {
     const cacheDir = mktemp('ttdash-registry-npm-cache-');
 
     try {
-      const output = runCommand('npm', [
-        'exec',
-        '--yes',
-        '--prefer-online',
-        '--package',
-        `${packageName}@${version}`,
-        '--',
-        'ttdash',
-        '--help',
-      ], {
-        cwd,
-        env: buildEnv({
-          npm_config_cache: cacheDir,
-          NPM_CONFIG_CACHE: cacheDir,
-        }),
-      });
+      const output = runCommand(
+        'npm',
+        [
+          'exec',
+          '--yes',
+          '--prefer-online',
+          '--package',
+          `${packageName}@${version}`,
+          '--',
+          'ttdash',
+          '--help',
+        ],
+        {
+          cwd,
+          env: buildEnv({
+            npm_config_cache: cacheDir,
+            NPM_CONFIG_CACHE: cacheDir,
+          }),
+        },
+      );
 
       verifyExpectedVersion(output, expected);
       log(`Verified npm exec install path on attempt ${attempt}.`);
@@ -166,7 +179,9 @@ async function verifyNpmExec(packageName, version, retries, retryDelayMs) {
     }
   }
 
-  throw new Error(`npm exec install path did not become ready in time.\n${formatCommandError(lastError)}`);
+  throw new Error(
+    `npm exec install path did not become ready in time.\n${formatCommandError(lastError)}`,
+  );
 }
 
 async function verifyBunx(packageName, version, retries, retryDelayMs) {
@@ -179,10 +194,7 @@ async function verifyBunx(packageName, version, retries, retryDelayMs) {
     const bunCacheDir = mktemp('ttdash-registry-bun-cache-');
 
     try {
-      const output = runCommand('bunx', [
-        `${packageName}@${version}`,
-        '--help',
-      ], {
+      const output = runCommand('bunx', [`${packageName}@${version}`, '--help'], {
         cwd,
         env: buildEnv({
           BUN_INSTALL: bunInstallDir,
@@ -207,7 +219,9 @@ async function verifyBunx(packageName, version, retries, retryDelayMs) {
     }
   }
 
-  throw new Error(`bunx install path did not become ready in time.\n${formatCommandError(lastError)}`);
+  throw new Error(
+    `bunx install path did not become ready in time.\n${formatCommandError(lastError)}`,
+  );
 }
 
 async function main() {

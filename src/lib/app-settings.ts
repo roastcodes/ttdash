@@ -41,9 +41,7 @@ export function normalizeStoredProviderLimits(value: unknown): ProviderLimits {
 }
 
 export function normalizeDataLoadSource(value: unknown): DataLoadSource {
-  return value === 'file' || value === 'auto-import' || value === 'cli-auto-load'
-    ? value
-    : null
+  return value === 'file' || value === 'auto-import' || value === 'cli-auto-load' ? value : null
 }
 
 export function normalizeStoredTimestamp(value: unknown): string | null {
@@ -56,7 +54,7 @@ export function normalizeStoredTimestamp(value: unknown): string | null {
 }
 
 export function normalizeAppSettings(value: unknown): AppSettings {
-  const source = value && typeof value === 'object' ? value as Partial<AppSettings> : {}
+  const source = value && typeof value === 'object' ? (value as Partial<AppSettings>) : {}
 
   return {
     language: normalizeAppLanguage(source.language),

@@ -17,7 +17,10 @@ export function InfoButton({ text, className }: InfoButtonProps) {
           type="button"
           aria-label={t('common.showInfo')}
           data-info-button="true"
-          className={cn('inline-flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground transition-colors', className)}
+          className={cn(
+            'inline-flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground transition-colors',
+            className,
+          )}
         >
           <Info className="h-3.5 w-3.5" />
         </button>

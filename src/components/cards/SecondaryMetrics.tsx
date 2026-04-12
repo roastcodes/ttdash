@@ -2,7 +2,13 @@ import { TrendingUp, ChartBar, Sigma, Building2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { formatDate, formatCurrency, formatNumber, formatPercent, periodUnit } from '@/lib/formatters'
+import {
+  formatDate,
+  formatCurrency,
+  formatNumber,
+  formatPercent,
+  periodUnit,
+} from '@/lib/formatters'
 import { METRIC_HELP } from '@/lib/help-content'
 import type { DashboardMetrics, ViewMode } from '@/types'
 
@@ -12,12 +18,15 @@ interface SecondaryMetricsProps {
   viewMode?: ViewMode
 }
 
-export function SecondaryMetrics({ metrics, dailyCosts, viewMode = 'daily' }: SecondaryMetricsProps) {
+export function SecondaryMetrics({
+  metrics,
+  dailyCosts,
+  viewMode = 'daily',
+}: SecondaryMetricsProps) {
   const { t } = useTranslation()
   // Calculate spread between most and least expensive days
-  const costSpread = metrics.topDay && metrics.cheapestDay
-    ? metrics.topDay.cost - metrics.cheapestDay.cost
-    : null
+  const costSpread =
+    metrics.topDay && metrics.cheapestDay ? metrics.topDay.cost - metrics.cheapestDay.cost : null
 
   // Calculate median
   const median = (() => {
@@ -32,7 +41,10 @@ export function SecondaryMetrics({ metrics, dailyCosts, viewMode = 'daily' }: Se
     return (previousValue + midValue) / 2
   })()
   const requestLeader = metrics.topRequestModel
-    ? t('metricCards.secondary.requestLeader', { model: metrics.topRequestModel.name, requests: formatNumber(metrics.topRequestModel.requests) })
+    ? t('metricCards.secondary.requestLeader', {
+        model: metrics.topRequestModel.name,
+        requests: formatNumber(metrics.topRequestModel.requests),
+      })
     : null
   const topDaySubtitle = metrics.topDay ? formatDate(metrics.topDay.date, 'long') : null
   const topProviderSubtitle = metrics.topProvider
@@ -42,20 +54,30 @@ export function SecondaryMetrics({ metrics, dailyCosts, viewMode = 'daily' }: Se
         requestLeader: requestLeader ? ` · ${requestLeader}` : '',
       })
     : null
-  const peakSubtitle = viewMode === 'daily' && metrics.busiestWeek
-    ? `${formatDate(metrics.busiestWeek.start)} – ${formatDate(metrics.busiestWeek.end)}`
-    : costSpread !== null
-      ? t('metricCards.secondary.spread', { value: formatCurrency(costSpread) })
+  const peakSubtitle =
+    viewMode === 'daily' && metrics.busiestWeek
+      ? `${formatDate(metrics.busiestWeek.start)} – ${formatDate(metrics.busiestWeek.end)}`
+      : costSpread !== null
+        ? t('metricCards.secondary.spread', { value: formatCurrency(costSpread) })
+        : null
+  const medianSubtitle =
+    median !== null && metrics.avgDailyCost > 0
+      ? `${t('metricCards.secondary.vsAverage', { direction: median < metrics.avgDailyCost ? '↓' : '↑', value: Math.abs(((median - metrics.avgDailyCost) / metrics.avgDailyCost) * 100).toFixed(0) })} · σ Req ${Math.round(metrics.requestVolatility)}`
       : null
-  const medianSubtitle = median !== null && metrics.avgDailyCost > 0
-    ? `${t('metricCards.secondary.vsAverage', { direction: median < metrics.avgDailyCost ? '↓' : '↑', value: Math.abs(((median - metrics.avgDailyCost) / metrics.avgDailyCost) * 100).toFixed(0) })} · σ Req ${Math.round(metrics.requestVolatility)}`
-    : null
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <MetricCard
-        label={viewMode === 'yearly' ? t('metricCards.secondary.mostExpensiveYear') : viewMode === 'monthly' ? t('metricCards.secondary.mostExpensiveMonth') : t('metricCards.secondary.mostExpensiveDay')}
-        value={metrics.topDay ? <FormattedValue value={metrics.topDay.cost} type="currency" /> : '–'}
+        label={
+          viewMode === 'yearly'
+            ? t('metricCards.secondary.mostExpensiveYear')
+            : viewMode === 'monthly'
+              ? t('metricCards.secondary.mostExpensiveMonth')
+              : t('metricCards.secondary.mostExpensiveDay')
+        }
+        value={
+          metrics.topDay ? <FormattedValue value={metrics.topDay.cost} type="currency" /> : '–'
+        }
         icon={<TrendingUp className="h-4 w-4" />}
         info={METRIC_HELP.mostExpensiveDay}
         {...(topDaySubtitle ? { subtitle: topDaySubtitle } : {})}
@@ -68,8 +90,18 @@ export function SecondaryMetrics({ metrics, dailyCosts, viewMode = 'daily' }: Se
         {...(topProviderSubtitle ? { subtitle: topProviderSubtitle } : {})}
       />
       <MetricCard
-        label={viewMode === 'daily' ? t('metricCards.secondary.peak7Days') : t('metricCards.secondary.avgCostPerUnit', { unit: periodUnit(viewMode) })}
-        value={viewMode === 'daily' && metrics.busiestWeek ? <FormattedValue value={metrics.busiestWeek.cost} type="currency" /> : <FormattedValue value={metrics.avgDailyCost} type="currency" />}
+        label={
+          viewMode === 'daily'
+            ? t('metricCards.secondary.peak7Days')
+            : t('metricCards.secondary.avgCostPerUnit', { unit: periodUnit(viewMode) })
+        }
+        value={
+          viewMode === 'daily' && metrics.busiestWeek ? (
+            <FormattedValue value={metrics.busiestWeek.cost} type="currency" />
+          ) : (
+            <FormattedValue value={metrics.avgDailyCost} type="currency" />
+          )
+        }
         icon={<ChartBar className="h-4 w-4" />}
         info={METRIC_HELP.avgCostPerDay}
         {...(peakSubtitle ? { subtitle: peakSubtitle } : {})}

@@ -5,7 +5,10 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import sampleUsage from '../../examples/sample-usage.json'
-import { DEFAULT_DASHBOARD_FILTERS, getDefaultDashboardSectionOrder } from '@/lib/dashboard-preferences'
+import {
+  DEFAULT_DASHBOARD_FILTERS,
+  getDefaultDashboardSectionOrder,
+} from '@/lib/dashboard-preferences'
 
 let child: ChildProcessWithoutNullStreams | null = null
 let baseUrl = ''
@@ -57,7 +60,7 @@ async function waitForServer(url: string) {
       }
     } catch {}
 
-    await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise((resolve) => setTimeout(resolve, 200))
   }
 
   throw new Error(`Timed out waiting for server startup:\n${output}`)
@@ -74,7 +77,7 @@ async function waitForUrlAvailable(url: string) {
       }
     } catch {}
 
-    await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise((resolve) => setTimeout(resolve, 200))
   }
 
   throw new Error(`Timed out waiting for server startup: ${url}`)
@@ -90,7 +93,7 @@ async function waitForServerUnavailable(url: string) {
       return
     }
 
-    await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise((resolve) => setTimeout(resolve, 200))
   }
 
   throw new Error(`Timed out waiting for server shutdown: ${url}`)
@@ -115,7 +118,7 @@ async function waitForProcessServer(
       }
     } catch {}
 
-    await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise((resolve) => setTimeout(resolve, 200))
   }
 
   throw new Error(`Timed out waiting for server startup:\n${getOutput()}`)
@@ -127,7 +130,7 @@ async function stopProcess(currentChild: ChildProcessWithoutNullStreams) {
   }
 
   currentChild.kill('SIGTERM')
-  await new Promise(resolve => currentChild.once('close', resolve))
+  await new Promise((resolve) => currentChild.once('close', resolve))
 }
 
 function createCliEnv(root: string) {
@@ -154,7 +157,7 @@ async function startStandaloneServer({
   args?: string[]
   envOverrides?: NodeJS.ProcessEnv
 }) {
-  const port = Number(envOverrides.PORT) || await getFreePort()
+  const port = Number(envOverrides.PORT) || (await getFreePort())
   const url = `http://127.0.0.1:${port}`
   let serverOutput = ''
 
@@ -168,11 +171,11 @@ async function startStandaloneServer({
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
-  currentChild.stdout.on('data', chunk => {
+  currentChild.stdout.on('data', (chunk) => {
     serverOutput += chunk.toString()
   })
 
-  currentChild.stderr.on('data', chunk => {
+  currentChild.stderr.on('data', (chunk) => {
     serverOutput += chunk.toString()
   })
 
@@ -200,7 +203,11 @@ function getCliConfigDir(root: string) {
 
 function readBackgroundRegistry(root: string) {
   const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
-  return JSON.parse(readFileSync(registryPath, 'utf-8')) as Array<{ url: string, port: number, pid: number }>
+  return JSON.parse(readFileSync(registryPath, 'utf-8')) as Array<{
+    url: string
+    port: number
+    pid: number
+  }>
 }
 
 function writeBackgroundRegistry(root: string, entries: unknown) {
@@ -209,8 +216,8 @@ function writeBackgroundRegistry(root: string, entries: unknown) {
   writeFileSync(registryPath, JSON.stringify(entries, null, 2))
 }
 
-async function runCli(args: string[], { env, input }: { env: NodeJS.ProcessEnv, input?: string }) {
-  return await new Promise<{ code: number | null, output: string }>((resolve, reject) => {
+async function runCli(args: string[], { env, input }: { env: NodeJS.ProcessEnv; input?: string }) {
+  return await new Promise<{ code: number | null; output: string }>((resolve, reject) => {
     const cli = spawn(process.execPath, ['server.js', ...args], {
       cwd: process.cwd(),
       env,
@@ -219,16 +226,16 @@ async function runCli(args: string[], { env, input }: { env: NodeJS.ProcessEnv, 
 
     let cliOutput = ''
 
-    cli.stdout.on('data', chunk => {
+    cli.stdout.on('data', (chunk) => {
       cliOutput += chunk.toString()
     })
 
-    cli.stderr.on('data', chunk => {
+    cli.stderr.on('data', (chunk) => {
       cliOutput += chunk.toString()
     })
 
     cli.on('error', reject)
-    cli.on('close', code => {
+    cli.on('close', (code) => {
       resolve({ code, output: cliOutput })
     })
 
@@ -272,11 +279,11 @@ beforeAll(async () => {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
-  child.stdout.on('data', chunk => {
+  child.stdout.on('data', (chunk) => {
     output += chunk.toString()
   })
 
-  child.stderr.on('data', chunk => {
+  child.stderr.on('data', (chunk) => {
     output += chunk.toString()
   })
 
@@ -560,11 +567,9 @@ describe('local server API', () => {
             {
               ...sampleUsage.daily[1],
               totalCost: 999,
-              modelBreakdowns: sampleUsage.daily[1].modelBreakdowns.map((entry, index) => (
-                index === 0
-                  ? { ...entry, cost: 997 }
-                  : entry
-              )),
+              modelBreakdowns: sampleUsage.daily[1].modelBreakdowns.map((entry, index) =>
+                index === 0 ? { ...entry, cost: 997 } : entry,
+              ),
             },
             newImportedDay,
           ],
@@ -586,7 +591,9 @@ describe('local server API', () => {
     const mergedUsage = await mergedUsageResponse.json()
     expect(mergedUsage.daily).toHaveLength(6)
     expect(mergedUsage.daily[0].date).toBe('2026-03-31')
-    expect(mergedUsage.daily.find((day: { date: string }) => day.date === '2026-04-02')?.totalCost).toBeCloseTo(3.94, 6)
+    expect(
+      mergedUsage.daily.find((day: { date: string }) => day.date === '2026-04-02')?.totalCost,
+    ).toBeCloseTo(3.94, 6)
 
     const mergedSettingsResponse = await fetch(`${baseUrl}/api/settings`)
     expect(mergedSettingsResponse.status).toBe(200)
@@ -802,9 +809,12 @@ describe('local server API', () => {
       expect(firstStart.output).toContain(firstUrl)
       await waitForUrlAvailable(firstUrl)
 
-      const secondStart = await runCli(['--background', '--no-open', '--port', String(secondPort)], {
-        env: backgroundEnv,
-      })
+      const secondStart = await runCli(
+        ['--background', '--no-open', '--port', String(secondPort)],
+        {
+          env: backgroundEnv,
+        },
+      )
 
       expect(secondStart.code).toBe(0)
       expect(secondStart.output).toContain('TTDash is running in the background.')
@@ -867,7 +877,7 @@ describe('local server API', () => {
 
       const registry = readBackgroundRegistry(backgroundRoot)
       expect(registry).toHaveLength(2)
-      expect(registry.map(instance => instance.url).sort()).toEqual([firstUrl, secondUrl].sort())
+      expect(registry.map((instance) => instance.url).sort()).toEqual([firstUrl, secondUrl].sort())
     } finally {
       await stopAllBackgroundServers(backgroundEnv)
       rmSync(backgroundRoot, { recursive: true, force: true })
@@ -883,15 +893,17 @@ describe('local server API', () => {
       expect(runtimeResponse.status).toBe(200)
       const runtime = await runtimeResponse.json()
 
-      writeBackgroundRegistry(backgroundRoot, [{
-        id: 'stale-entry',
-        pid: child?.pid,
-        port: runtime.port,
-        url: baseUrl,
-        host: '127.0.0.1',
-        startedAt: new Date().toISOString(),
-        logFile: null,
-      }])
+      writeBackgroundRegistry(backgroundRoot, [
+        {
+          id: 'stale-entry',
+          pid: child?.pid,
+          port: runtime.port,
+          url: baseUrl,
+          host: '127.0.0.1',
+          startedAt: new Date().toISOString(),
+          logFile: null,
+        },
+      ])
 
       const stopResult = await runCli(['stop'], {
         env: backgroundEnv,
@@ -912,23 +924,30 @@ describe('local server API', () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-runtime-dir-test-'))
     const explicitConfigDir = path.join(runtimeRoot, 'explicit-config')
 
-    const expectedPlatformPaths = process.platform === 'darwin'
-      ? {
-          dataFile: path.join(runtimeRoot, 'Library', 'Application Support', 'TTDash', 'data.json'),
-          settingsFile: path.join(explicitConfigDir, 'settings.json'),
-          cacheDir: path.join(runtimeRoot, 'Library', 'Caches', 'TTDash'),
-        }
-      : process.platform === 'win32'
+    const expectedPlatformPaths =
+      process.platform === 'darwin'
         ? {
-            dataFile: path.join(runtimeRoot, 'AppData', 'Local', 'TTDash', 'data.json'),
+            dataFile: path.join(
+              runtimeRoot,
+              'Library',
+              'Application Support',
+              'TTDash',
+              'data.json',
+            ),
             settingsFile: path.join(explicitConfigDir, 'settings.json'),
-            cacheDir: path.join(runtimeRoot, 'AppData', 'Local', 'TTDash', 'Cache'),
+            cacheDir: path.join(runtimeRoot, 'Library', 'Caches', 'TTDash'),
           }
-        : {
-            dataFile: path.join(runtimeRoot, 'data', 'ttdash', 'data.json'),
-            settingsFile: path.join(explicitConfigDir, 'settings.json'),
-            cacheDir: path.join(runtimeRoot, 'cache', 'ttdash'),
-          }
+        : process.platform === 'win32'
+          ? {
+              dataFile: path.join(runtimeRoot, 'AppData', 'Local', 'TTDash', 'data.json'),
+              settingsFile: path.join(explicitConfigDir, 'settings.json'),
+              cacheDir: path.join(runtimeRoot, 'AppData', 'Local', 'TTDash', 'Cache'),
+            }
+          : {
+              dataFile: path.join(runtimeRoot, 'data', 'ttdash', 'data.json'),
+              settingsFile: path.join(explicitConfigDir, 'settings.json'),
+              cacheDir: path.join(runtimeRoot, 'cache', 'ttdash'),
+            }
 
     let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
 
@@ -954,8 +973,12 @@ describe('local server API', () => {
       })
       expect(settingsResponse.status).toBe(200)
 
-      expect(standaloneServer.getOutput()).toContain(`Data File:      ${expectedPlatformPaths.dataFile}`)
-      expect(standaloneServer.getOutput()).toContain(`Settings File:  ${expectedPlatformPaths.settingsFile}`)
+      expect(standaloneServer.getOutput()).toContain(
+        `Data File:      ${expectedPlatformPaths.dataFile}`,
+      )
+      expect(standaloneServer.getOutput()).toContain(
+        `Settings File:  ${expectedPlatformPaths.settingsFile}`,
+      )
       expect(existsSync(expectedPlatformPaths.dataFile)).toBe(true)
       expect(existsSync(expectedPlatformPaths.settingsFile)).toBe(true)
       expect(existsSync(path.join(expectedPlatformPaths.cacheDir, 'npx-cache'))).toBe(true)
@@ -986,7 +1009,7 @@ describe('local server API', () => {
       expect(result.output).toContain('No free port found (65535-65535)')
       expect(result.output).not.toContain('trying 65536')
     } finally {
-      await new Promise(resolve => occupiedPortServer.close(() => resolve(undefined)))
+      await new Promise((resolve) => occupiedPortServer.close(() => resolve(undefined)))
       rmSync(cliRoot, { recursive: true, force: true })
     }
   }, 20_000)

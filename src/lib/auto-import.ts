@@ -1,8 +1,22 @@
-export interface CheckEvent { tool: string; status: string; method?: string; version?: string }
-export interface ProgressEvent { message: string }
-export interface StderrEvent { line: string }
-export interface SuccessEvent { days: number; totalCost: number }
-export interface ErrorEvent { message: string }
+export interface CheckEvent {
+  tool: string
+  status: string
+  method?: string
+  version?: string
+}
+export interface ProgressEvent {
+  message: string
+}
+export interface StderrEvent {
+  line: string
+}
+export interface SuccessEvent {
+  days: number
+  totalCost: number
+}
+export interface ErrorEvent {
+  message: string
+}
 
 type AutoImportTranslationVars = Record<string, string | number>
 type AutoImportTranslator = (key: string, vars?: AutoImportTranslationVars) => string
@@ -22,7 +36,9 @@ function translateAutoImportMessage(message: string, t: AutoImportTranslator) {
   }
 
   if (message.startsWith('Lade Nutzungsdaten via ')) {
-    return t('autoImportModal.loadingUsageData', { command: message.replace('Lade Nutzungsdaten via ', '').replace(/\.\.\.$/, '') })
+    return t('autoImportModal.loadingUsageData', {
+      command: message.replace('Lade Nutzungsdaten via ', '').replace(/\.\.\.$/, ''),
+    })
   }
 
   const processingMatch = message.match(/^Verarbeite Nutzungsdaten\.\.\. \((\d+)s\)$/)
@@ -49,14 +65,17 @@ function translateAutoImportMessage(message: string, t: AutoImportTranslator) {
   return message
 }
 
-export function startAutoImport(callbacks: {
-  onCheck: (data: CheckEvent) => void
-  onProgress: (data: ProgressEvent) => void
-  onStderr: (data: StderrEvent) => void
-  onSuccess: (data: SuccessEvent) => void
-  onError: (data: ErrorEvent) => void
-  onDone: () => void
-}, t: AutoImportTranslator = (key) => key): { close: () => void } {
+export function startAutoImport(
+  callbacks: {
+    onCheck: (data: CheckEvent) => void
+    onProgress: (data: ProgressEvent) => void
+    onStderr: (data: StderrEvent) => void
+    onSuccess: (data: SuccessEvent) => void
+    onError: (data: ErrorEvent) => void
+    onDone: () => void
+  },
+  t: AutoImportTranslator = (key) => key,
+): { close: () => void } {
   const es = new EventSource('/api/auto-import/stream')
 
   es.addEventListener('check', (event) => {

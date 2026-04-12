@@ -71,7 +71,8 @@ export function formatDate(dateStr: string, mode: 'short' | 'long' | 'weekday' =
   if (/^\d{4}-\d{2}$/.test(dateStr)) {
     const [y = '0', m = '1'] = dateStr.split('-')
     const d = new Date(parseInt(y, 10), parseInt(m, 10) - 1)
-    if (mode === 'short') return d.toLocaleDateString(getCurrentLocale(), { month: 'short', year: '2-digit' })
+    if (mode === 'short')
+      return d.toLocaleDateString(getCurrentLocale(), { month: 'short', year: '2-digit' })
     return d.toLocaleDateString(getCurrentLocale(), { month: 'long', year: 'numeric' })
   }
 
