@@ -139,11 +139,23 @@ function current() {
   return HELP_CONTENT[getCurrentLanguage()]
 }
 
-function dynamicMap<T extends Record<string, string>>(selector: () => T): Record<string, string> {
-  return new Proxy({} as Record<string, string>, {
-    get: (_, key) => selector()[String(key)] ?? '',
+type AppHelpContent = typeof HELP_CONTENT.en
+type HelpMap<T extends Record<string, string>> = { [K in keyof T]: string }
+export type MetricHelp = HelpMap<AppHelpContent['metric']>
+export type ChartHelp = HelpMap<AppHelpContent['chart']>
+export type SectionHelp = HelpMap<AppHelpContent['section']>
+export type FeatureHelp = HelpMap<AppHelpContent['feature']>
+
+function dynamicMap<const T extends Record<string, string>>(selector: () => T): T {
+  return new Proxy({} as T, {
+    get: (_, key) => Reflect.get(selector(), key),
+    has: (_, key) => key in selector(),
     ownKeys: () => Reflect.ownKeys(selector()),
-    getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
+    getOwnPropertyDescriptor: (_, key) => ({
+      value: Reflect.get(selector(), key),
+      enumerable: true,
+      configurable: true,
+    }),
   })
 }
 
@@ -151,7 +163,7 @@ export function getKeyboardShortcuts() {
   return current().keyboardShortcuts
 }
 
-export const METRIC_HELP = dynamicMap(() => current().metric)
-export const CHART_HELP = dynamicMap(() => current().chart)
-export const SECTION_HELP = dynamicMap(() => current().section)
-export const FEATURE_HELP = dynamicMap(() => current().feature)
+export const METRIC_HELP: MetricHelp = dynamicMap(() => current().metric)
+export const CHART_HELP: ChartHelp = dynamicMap(() => current().chart)
+export const SECTION_HELP: SectionHelp = dynamicMap(() => current().section)
+export const FEATURE_HELP: FeatureHelp = dynamicMap(() => current().feature)
