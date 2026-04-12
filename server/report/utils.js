@@ -1,5 +1,15 @@
 const { version: APP_VERSION } = require('../../package.json');
 const { getLanguage, getLocale, translate } = require('./i18n');
+const modelNormalizationSpec = require('../model-normalization.json');
+
+const DISPLAY_ALIASES = modelNormalizationSpec.displayAliases.map((alias) => ({
+  ...alias,
+  matcher: new RegExp(alias.pattern, 'i'),
+}));
+const PROVIDER_MATCHERS = modelNormalizationSpec.providerMatchers.map((matcher) => ({
+  ...matcher,
+  matcher: new RegExp(matcher.pattern, 'i'),
+}));
 
 const MODEL_COLORS = {
   'Opus 4.6': 'rgb(175, 92, 224)',
@@ -23,72 +33,158 @@ function titleCaseSegment(segment) {
   return segment.charAt(0).toUpperCase() + segment.slice(1);
 }
 
-function normalizeModelName(raw) {
-  const lower = String(raw || '')
-    .toLowerCase()
-    .trim();
-  if (lower.includes('gpt-5-4') || lower.includes('gpt-5.4')) return 'GPT-5.4';
-  if (lower.includes('gpt-5')) return 'GPT-5';
-  if (lower.includes('opus-4-6') || lower.includes('opus-4.6')) return 'Opus 4.6';
-  if (lower.includes('opus-4-5') || lower.includes('opus-4.5')) return 'Opus 4.5';
-  if (lower.includes('sonnet-4-6') || lower.includes('sonnet-4.6')) return 'Sonnet 4.6';
-  if (lower.includes('sonnet-4-5') || lower.includes('sonnet-4.5')) return 'Sonnet 4.5';
-  if (lower.includes('haiku-4-5') || lower.includes('haiku-4.5')) return 'Haiku 4.5';
-  if (lower.includes('gemini-3-flash-preview')) return 'Gemini 3 Flash Preview';
-  if (lower.includes('gemini')) return 'Gemini';
-  if (lower.includes('opencode')) return 'OpenCode';
-  if (lower.includes('haiku')) return 'Haiku';
+function capitalize(segment) {
+  if (!segment) return '';
+  return segment.charAt(0).toUpperCase() + segment.slice(1);
+}
 
-  const stripped = String(raw || '')
+function formatVersion(version) {
+  return version.replace(/-/g, '.');
+}
+
+function canonicalizeModelName(raw) {
+  const normalized = String(raw || '')
     .trim()
-    .replace(/^(claude|anthropic|openai|google|vertex|models)\//i, '')
-    .replace(/^(claude|anthropic|openai|google|vertex|models)-/i, '')
+    .toLowerCase()
     .replace(/^model[:/ -]*/i, '')
+    .replace(/^(anthropic|openai|google|vertex|models)[/-]/i, '')
+    .replace(/\./g, '-')
     .replace(/[_/]+/g, '-')
     .replace(/\s+/g, '-')
     .replace(/-{2,}/g, '-')
     .replace(/^-|-$/g, '');
 
-  const familyMatch = stripped.match(
-    /(gpt|opus|sonnet|haiku|gemini|o\d|oai|grok|llama|mistral|command|deepseek|qwen)[- ]?([a-z0-9.-]+)?/i,
+  const suffixStart = normalized.lastIndexOf('-');
+  if (suffixStart > 0) {
+    const suffix = normalized.slice(suffixStart + 1);
+    if (suffix.length === 8 && suffix.startsWith('20') && /^\d+$/.test(suffix)) {
+      return normalized.slice(0, suffixStart);
+    }
+  }
+
+  return normalized;
+}
+
+function parseClaudeName(rest) {
+  const parts = rest.split('-', 2);
+  if (parts.length < 2) {
+    return `Claude ${capitalize(rest)}`;
+  }
+
+  return `${capitalize(parts[0] || '')} ${formatVersion(parts[1] || '')}`.trim();
+}
+
+function parseGptName(rest) {
+  const parts = rest.split('-');
+  const variant = parts[0] || '';
+  const minor = parts[1] || '';
+
+  if (minor && minor.length <= 2 && /^\d+$/.test(minor)) {
+    const version = `${variant}.${minor}`;
+    if (parts.length > 2) {
+      const suffix = parts.slice(2).map(capitalize).join(' ');
+      return `GPT-${version}${suffix ? ` ${suffix}` : ''}`;
+    }
+    return `GPT-${version}`;
+  }
+
+  if (parts.length > 1) {
+    const suffix = parts.slice(1).map(capitalize).join(' ');
+    return `GPT-${variant}${suffix ? ` ${suffix}` : ''}`;
+  }
+
+  return `GPT-${rest}`;
+}
+
+function parseGeminiName(rest) {
+  const parts = rest.split('-');
+  if (parts.length < 2) {
+    return `Gemini ${rest}`;
+  }
+
+  const versionParts = [];
+  const tierParts = [];
+
+  for (const part of parts) {
+    if (/^\d+$/.test(part) && tierParts.length === 0) {
+      versionParts.push(part);
+    } else {
+      tierParts.push(capitalize(part));
+    }
+  }
+
+  const version = versionParts.join('.');
+  const tier = tierParts.join(' ');
+
+  return tier ? `Gemini ${version} ${tier}` : `Gemini ${version}`;
+}
+
+function parseCodexName(rest) {
+  const normalized = rest.replace(/-latest$/i, '');
+  if (!normalized) {
+    return 'Codex';
+  }
+  return `Codex ${normalized.split('-').map(capitalize).join(' ')}`;
+}
+
+function parseOSeries(name) {
+  const separatorIndex = name.indexOf('-');
+  if (separatorIndex === -1) {
+    return name;
+  }
+  return `${name.slice(0, separatorIndex)} ${capitalize(name.slice(separatorIndex + 1))}`;
+}
+
+function normalizeModelName(raw) {
+  const canonical = canonicalizeModelName(raw);
+
+  for (const alias of DISPLAY_ALIASES) {
+    if (alias.matcher.test(canonical)) return alias.name;
+  }
+
+  if (canonical.startsWith('claude-')) {
+    return parseClaudeName(canonical.slice('claude-'.length));
+  }
+
+  if (canonical.startsWith('gpt-')) {
+    return parseGptName(canonical.slice('gpt-'.length));
+  }
+
+  if (canonical.startsWith('gemini-')) {
+    return parseGeminiName(canonical.slice('gemini-'.length));
+  }
+
+  if (canonical.startsWith('codex-')) {
+    return parseCodexName(canonical.slice('codex-'.length));
+  }
+
+  if (/^o\d/i.test(canonical)) {
+    return parseOSeries(canonical);
+  }
+
+  const familyMatch = canonical.match(
+    /^(gpt|opus|sonnet|haiku|gemini|codex|o\d|oai|grok|llama|mistral|command|deepseek|qwen)(?:-([a-z0-9-]+))?$/i,
   );
   if (familyMatch) {
     const family = familyMatch[1];
-    const suffix = familyMatch[2] ? familyMatch[2].replace(/-/g, '.') : '';
+    if (/^codex$/i.test(family)) {
+      return parseCodexName(familyMatch[2] || '');
+    }
+    if (/^(o\d)$/i.test(family)) return parseOSeries(canonical);
+
+    const suffix = familyMatch[2] ? formatVersion(familyMatch[2]) : '';
     if (/^gpt$/i.test(family) && suffix) return `GPT-${suffix.toUpperCase()}`;
-    if (/^(o\d)$/i.test(family)) return family.toUpperCase();
     return `${titleCaseSegment(family)}${suffix ? ` ${suffix}` : ''}`.trim();
   }
 
-  return stripped.split('-').filter(Boolean).map(titleCaseSegment).join(' ') || String(raw || '');
+  return canonical.split('-').filter(Boolean).map(titleCaseSegment).join(' ') || String(raw || '');
 }
 
 function getModelProvider(raw) {
-  const lower = String(raw || '').toLowerCase();
-  if (
-    lower.includes('gpt') ||
-    lower.includes('openai') ||
-    lower.includes('/o1') ||
-    lower.includes('/o3') ||
-    /\bo\d\b/.test(lower)
-  )
-    return 'OpenAI';
-  if (
-    lower.includes('claude') ||
-    lower.includes('opus') ||
-    lower.includes('sonnet') ||
-    lower.includes('haiku')
-  )
-    return 'Anthropic';
-  if (lower.includes('gemini')) return 'Google';
-  if (lower.includes('grok') || lower.includes('xai')) return 'xAI';
-  if (lower.includes('llama') || lower.includes('meta-llama') || lower.includes('meta/'))
-    return 'Meta';
-  if (lower.includes('command') || lower.includes('cohere')) return 'Cohere';
-  if (lower.includes('mistral')) return 'Mistral';
-  if (lower.includes('deepseek')) return 'DeepSeek';
-  if (lower.includes('qwen') || lower.includes('alibaba')) return 'Alibaba';
-  if (lower.includes('opencode')) return 'OpenCode';
+  const canonical = canonicalizeModelName(raw);
+  for (const matcher of PROVIDER_MATCHERS) {
+    if (matcher.matcher.test(canonical)) return matcher.provider;
+  }
   return 'Other';
 }
 
@@ -968,4 +1064,8 @@ module.exports = {
   formatDateAxis,
   getModelColor,
   truncateLabel,
+  __test__: {
+    getModelProvider,
+    normalizeModelName,
+  },
 };
