@@ -1,4 +1,4 @@
-import i18n, { getCurrentLanguage } from '@/lib/i18n'
+import { getCurrentLanguage } from '@/lib/i18n'
 
 const HELP_CONTENT = {
   de: {

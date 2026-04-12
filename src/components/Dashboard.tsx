@@ -212,7 +212,7 @@ export function Dashboard() {
   const {
     metrics, modelCosts, providerMetrics, costChartData, modelCostChartData,
     tokenChartData, requestChartData, weekdayData, allModels, modelPieData, tokenPieData,
-  } = useComputedMetrics(filteredData, viewMode)
+  } = useComputedMetrics(filteredData)
 
   // Full dataset with only model filter applied (no date/month filter) for PeriodComparison
   const comparisonData = filteredDailyData

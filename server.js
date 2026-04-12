@@ -1331,23 +1331,6 @@ function json(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
-function sendFile(res, status, headers, filePath) {
-  const stream = fs.createReadStream(filePath);
-  res.writeHead(status, {
-    ...headers,
-    ...SECURITY_HEADERS,
-  });
-  stream.on('error', () => {
-    if (!res.headersSent) {
-      res.writeHead(500, SECURITY_HEADERS);
-      res.end('Internal Server Error');
-      return;
-    }
-    res.destroy();
-  });
-  stream.pipe(res);
-}
-
 function sendBuffer(res, status, headers, buffer) {
   res.writeHead(status, {
     'Content-Length': buffer.length,

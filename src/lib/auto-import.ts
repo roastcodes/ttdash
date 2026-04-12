@@ -4,7 +4,10 @@ export interface StderrEvent { line: string }
 export interface SuccessEvent { days: number; totalCost: number }
 export interface ErrorEvent { message: string }
 
-function translateAutoImportMessage(message, t) {
+type AutoImportTranslationVars = Record<string, string | number>
+type AutoImportTranslator = (key: string, vars?: AutoImportTranslationVars) => string
+
+function translateAutoImportMessage(message: string, t: AutoImportTranslator) {
   if (message === 'Starte lokalen toktrack-Import...') {
     return t('autoImportModal.startingLocalImport')
   }
@@ -44,7 +47,7 @@ export function startAutoImport(callbacks: {
   onSuccess: (data: SuccessEvent) => void
   onError: (data: ErrorEvent) => void
   onDone: () => void
-}, t = (key, vars) => key): { close: () => void } {
+}, t: AutoImportTranslator = (key) => key): { close: () => void } {
   const es = new EventSource('/api/auto-import/stream')
 
   es.addEventListener('check', (e) => {

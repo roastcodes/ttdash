@@ -8,7 +8,7 @@ import { CHART_HELP } from '@/lib/help-content'
 import { computeCacheHitRateByModel, computeMovingAverage } from '@/lib/calculations'
 import { formatDateAxis, formatPercent, periodUnit } from '@/lib/formatters'
 import { getModelColor, normalizeModelName } from '@/lib/model-utils'
-import type { CacheHitRateByModelChartDataPoint, DailyUsage, ViewMode } from '@/types'
+import type { DailyUsage, ViewMode } from '@/types'
 
 interface RequestCacheHitRateByModelProps {
   timelineData: DailyUsage[]

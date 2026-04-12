@@ -10,6 +10,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
+  type TooltipValueType,
   XAxis,
   YAxis,
 } from 'recharts'
@@ -60,6 +61,11 @@ function subscriptionLabel(row: ProviderLimitRow) {
   if (!row.hasSubscription) return i18n.t('limits.statuses.noSubscription')
   if (row.subscriptionStatus === 'gain') return i18n.t('limits.statuses.subscriptionPaysOff')
   return i18n.t('limits.statuses.belowSubscription')
+}
+
+function toTooltipNumber(value: TooltipValueType | undefined) {
+  const numericValue = Array.isArray(value) ? Number(value[0] ?? 0) : Number(value ?? 0)
+  return Number.isFinite(numericValue) ? numericValue : 0
 }
 
 export function ProviderLimitsSection({ data, providers, limits, selectedMonth }: ProviderLimitsSectionProps) {
@@ -589,7 +595,7 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
                     <XAxis dataKey="month" tickFormatter={formatMonthYear} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
                     <YAxis tickFormatter={(value) => formatCurrency(Math.abs(value))} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
                     <Tooltip
-                      formatter={(value: number, name: string) => [formatCurrencyExact(Math.abs(value)), name]}
+                      formatter={(value: TooltipValueType | undefined, name: string | number | undefined) => [formatCurrencyExact(Math.abs(toTooltipNumber(value))), name ?? '']}
                       labelFormatter={(label) => formatMonthYear(String(label))}
                       contentStyle={{ borderRadius: 12, borderColor: 'hsl(var(--border))', background: 'color-mix(in srgb, hsl(var(--popover)) 90%, transparent)' }}
                     />
