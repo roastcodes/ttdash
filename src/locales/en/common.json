@@ -969,7 +969,70 @@
     }
   },
   "report": {
-    "title": "TTDash Report"
+    "title": "TTDash Report",
+    "common": {
+      "notAvailable": "n/a"
+    },
+    "header": {
+      "eyebrow": "TTDash PDF Report"
+    },
+    "summary": {
+      "peakPeriod": "Peak period"
+    },
+    "sections": {
+      "overview": "Overview",
+      "insights": "Key insights",
+      "filters": "Filters",
+      "modelsProviders": "Models & Providers",
+      "recentPeriods": "Recent periods",
+      "interpretation": "Interpretation"
+    },
+    "fields": {
+      "dateRange": "Date range",
+      "view": "View",
+      "generated": "Generated",
+      "month": "Month",
+      "selectedProviders": "Selected providers",
+      "selectedModels": "Selected models",
+      "startDate": "Start date",
+      "endDate": "End date"
+    },
+    "filters": {
+      "all": "All",
+      "noFilter": "No filter",
+      "andMore": "+{{count}} more"
+    },
+    "tables": {
+      "topModels": "Top models",
+      "providers": "Providers",
+      "columns": {
+        "model": "Model",
+        "provider": "Provider",
+        "cost": "Cost",
+        "tokens": "Tokens",
+        "requests": "Requests",
+        "period": "Period"
+      }
+    },
+    "charts": {
+      "costTrend": "Cost trend",
+      "topModels": "Top models by cost",
+      "tokenTrend": "Token mix by period"
+    },
+    "interpretation": {
+      "summary": "This report covers {{days}} raw days and {{periods}} aggregated periods. Peak period: {{peak}}. Top model: {{topModel}}. Leading provider: {{topProvider}}.",
+      "footer": "Created with TTDash v{{version}} and server-side Typst compilation."
+    },
+    "insights": {
+      "coverageTitle": "Data coverage",
+      "coverageBody": "This report is based on a narrow slice of data with {{days}} raw days and {{periods}} aggregated periods. Treat trend statements cautiously.",
+      "providerTitle": "Provider concentration",
+      "providerBody": "{{provider}} accounts for {{share}} of total report cost.",
+      "cacheTitle": "Cache contribution",
+      "cacheBody": "Cache reads contribute {{share}} of token activity in the selected period.",
+      "peakWindowTitle": "Peak 7-day window",
+      "peakWindowBody": "The strongest rolling 7-day window ran from {{start}} to {{end}} with {{cost}} total cost."
+    }
   },
   "api": {
     "fetchUsageFailed": "Failed to load data",

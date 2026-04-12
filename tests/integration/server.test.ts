@@ -1,5 +1,5 @@
 import { createServer } from 'node:net'
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -11,6 +11,11 @@ let child: ChildProcessWithoutNullStreams | null = null
 let baseUrl = ''
 let tempRoot = ''
 let output = ''
+const hasTypst = (() => {
+  const result = spawnSync('typst', ['--version'], { stdio: 'ignore' })
+  return !result.error && result.status === 0
+})()
+const itIfTypst = hasTypst ? it : it.skip
 
 async function getFreePort() {
   return new Promise<number>((resolve, reject) => {
@@ -730,6 +735,33 @@ describe('local server API', () => {
     expect(await response.json()).toEqual({
       message: 'No data available for the report.',
     })
+  })
+
+  itIfTypst('generates a PDF report for valid requests', async () => {
+    const seedResponse = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sampleUsage),
+    })
+    expect(seedResponse.status).toBe(200)
+
+    const response = await fetch(`${baseUrl}/api/report/pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        viewMode: 'daily',
+        language: 'en',
+        selectedProviders: ['OpenAI'],
+      }),
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('application/pdf')
+    expect(response.headers.get('content-disposition')).toContain('ttdash-report-')
+
+    const pdf = Buffer.from(await response.arrayBuffer())
+    expect(pdf.subarray(0, 5).toString('ascii')).toBe('%PDF-')
+    expect(pdf.length).toBeGreaterThan(1000)
   })
 
   it('rejects malformed report payloads before report generation starts', async () => {

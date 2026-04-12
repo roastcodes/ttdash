@@ -2,7 +2,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
-const { buildReportData, formatDateAxis } = require('./utils');
+const { buildReportData, formatCompactAxis, formatDateAxis } = require('./utils');
+const { translate } = require('./i18n');
 const { horizontalBarChart, lineChart, stackedBarChart } = require('./charts');
 
 function ensureTypstInstalled() {
@@ -33,7 +34,7 @@ function compileTypst(workingDir, typPath, pdfPath) {
         resolve();
         return;
       }
-      reject(new Error(stderr.trim() || 'Typst compilation failed.'));
+      reject(new Error(`Typst compilation failed: ${stderr.trim() || 'unknown error'}`));
     });
   });
 }
@@ -48,7 +49,7 @@ function buildTemplate() {
   fill: rgb("#f3f6f9"),
 )
 
-#set text(font: "Arial", lang: if report.meta.language == "en" { "en" } else { "de" })
+#set text(font: ("Liberation Sans", "DejaVu Sans", "Arial"), lang: if report.meta.language == "en" { "en" } else { "de" })
 #set par(justify: false, leading: 0.55em)
 
 #let ink = rgb("#102132")
@@ -76,6 +77,18 @@ function buildTemplate() {
   ],
 )
 
+#let insight-card(title, body, tone: accent) = rect(
+  inset: 11pt,
+  radius: 14pt,
+  fill: panel,
+  stroke: (paint: line, thickness: 0.8pt),
+  [
+    #text(size: 9pt, fill: tone, weight: "bold")[#title]
+    #v(4pt)
+    #text(size: 9.6pt, fill: ink)[#body]
+  ],
+)
+
 #show heading.where(level: 1): it => block(above: 0pt, below: 10pt)[
   #text(size: 24pt, fill: ink, weight: "bold")[#it.body]
 ]
@@ -91,7 +104,7 @@ function buildTemplate() {
 
 #box(fill: rgb("#f0f6ff"), inset: 16pt, radius: 18pt, width: 100%)[
   #align(left)[
-    #text(size: 9pt, fill: accent, weight: "bold")[TTDash PDF Report]
+    #text(size: 9pt, fill: accent, weight: "bold")[#report.text.headerEyebrow]
     #v(6pt)
     #text(size: 26pt, fill: ink, weight: "bold")[#report.meta.reportTitle]
     #v(4pt)
@@ -100,9 +113,9 @@ function buildTemplate() {
     #grid(
       columns: (1fr, 1fr, 1fr),
       gutter: 8pt,
-      metric-card(if report.meta.language == "en" { "Date range" } else { "Zeitraum" }, report.labels.dateRangeText),
-      metric-card(if report.meta.language == "en" { "View" } else { "Ansicht" }, report.meta.filterSummary.viewMode),
-      metric-card(if report.meta.language == "en" { "Generated" } else { "Generiert" }, report.meta.generatedAtLabel),
+      metric-card(report.text.fields.dateRange, report.labels.dateRangeText),
+      metric-card(report.text.fields.view, report.meta.filterSummary.viewMode),
+      metric-card(report.text.fields.generated, report.meta.generatedAtLabel),
     )
   ]
 ]
@@ -115,9 +128,24 @@ function buildTemplate() {
   ..report.summaryCards.map(card => metric-card(card.label, card.value, note: card.note, tone: if card.tone == "warn" { warn } else if card.tone == "good" { good } else { accent })),
 )
 
+#if report.insights.items.len() > 0 [
+  #v(12pt)
+  = #report.text.sections.insights
+
+  #grid(
+    columns: (1fr, 1fr),
+    gutter: 8pt,
+    ..report.insights.items.map(item => insight-card(
+      item.title,
+      item.body,
+      tone: if item.tone == "warn" { warn } else if item.tone == "good" { good } else { accent },
+    )),
+  )
+]
+
 #v(12pt)
 
-= #if report.meta.language == "en" { "Overview" } else { "Überblick" }
+= #report.text.sections.overview
 
 #grid(
   columns: (1fr, 1fr),
@@ -136,107 +164,95 @@ function buildTemplate() {
   #image("token-trend.svg", width: 100%)
 ]
 
+#pagebreak()
+
 #v(12pt)
 
-= #if report.meta.language == "en" { "Filters" } else { "Filter" }
+= #report.text.sections.filters
 
 #grid(
-  columns: (1fr, 1fr, 1fr),
+  columns: (1fr, 1fr),
   gutter: 8pt,
-  metric-card(if report.meta.language == "en" { "Month" } else { "Monat" }, if report.meta.filterSummary.selectedMonthLabel != none { report.meta.filterSummary.selectedMonthLabel } else { if report.meta.language == "en" { "All" } else { "Alle" } }),
-  metric-card(if report.meta.language == "en" { "Selected providers" } else { "Ausgewählte Provider" }, if report.meta.filterSummary.selectedProviders.len() > 0 { report.meta.filterSummary.selectedProviders.join(", ") } else { if report.meta.language == "en" { "All" } else { "Alle" } }),
-  metric-card(if report.meta.language == "en" { "Selected models" } else { "Ausgewählte Modelle" }, if report.meta.filterSummary.selectedModels.len() > 0 { report.meta.filterSummary.selectedModels.join(", ") } else { if report.meta.language == "en" { "All" } else { "Alle" } }),
-  metric-card(if report.meta.language == "en" { "Start date" } else { "Startdatum" }, if report.meta.filterSummary.startDateLabel != none { report.meta.filterSummary.startDateLabel } else { if report.meta.language == "en" { "No filter" } else { "Kein Filter" } }),
-  metric-card(if report.meta.language == "en" { "End date" } else { "Enddatum" }, if report.meta.filterSummary.endDateLabel != none { report.meta.filterSummary.endDateLabel } else { if report.meta.language == "en" { "No filter" } else { "Kein Filter" } }),
+  metric-card(report.text.fields.month, report.meta.filterSummary.selectedMonthLabel),
+  metric-card(report.text.fields.selectedProviders, report.meta.filterSummary.selectedProvidersLabel),
+  metric-card(report.text.fields.selectedModels, report.meta.filterSummary.selectedModelsLabel),
+  metric-card(report.text.fields.startDate, report.meta.filterSummary.startDateLabel),
+  metric-card(report.text.fields.endDate, report.meta.filterSummary.endDateLabel),
 )
 
 #v(10pt)
 
-= #if report.meta.language == "en" { "Models & Providers" } else { "Modelle & Provider" }
+= #report.text.sections.modelsProviders
 
-#grid(
-  columns: (1fr, 1fr),
-  gutter: 10pt,
-  rect(inset: 10pt, radius: 14pt, fill: panel, stroke: (paint: line, thickness: 0.8pt))[
-    #text(size: 12pt, weight: "bold", fill: ink)[#if report.meta.language == "en" { "Top models" } else { "Top-Modelle" }]
-    #v(6pt)
-    #set text(size: 8.8pt)
+#if report.topModels.len() > 0 or report.providers.len() > 0 [
+  #grid(
+    columns: (1fr, 1fr),
+    gutter: 10pt,
+    rect(inset: 10pt, radius: 14pt, fill: panel, stroke: (paint: line, thickness: 0.8pt))[
+      #text(size: 12pt, weight: "bold", fill: ink)[#report.text.tables.topModels]
+      #v(6pt)
+      #set text(size: 8.8pt)
+      #table(
+        columns: (2.2fr, 1.4fr, 1fr, 0.9fr),
+        column-gutter: 8pt,
+        align: (x, y) => if x < 2 { left } else { right },
+        table.header([*#report.text.tables.columns.model*], [*#report.text.tables.columns.provider*], [*#report.text.tables.columns.cost*], [*#report.text.tables.columns.requests*]),
+        ..report.topModels.map(model => (
+          [#model.name],
+          [#model.provider],
+          [#model.costLabel],
+          [#model.requestsLabel],
+        )).flatten(),
+      )
+    ],
+    rect(inset: 10pt, radius: 14pt, fill: panel, stroke: (paint: line, thickness: 0.8pt))[
+      #text(size: 12pt, weight: "bold", fill: ink)[#report.text.tables.providers]
+      #v(6pt)
+      #set text(size: 8.8pt)
+      #table(
+        columns: (1.8fr, 1fr, 1fr, 1fr),
+        column-gutter: 8pt,
+        align: (x, y) => if x == 0 { left } else { right },
+        table.header([*#report.text.tables.columns.provider*], [*#report.text.tables.columns.cost*], [*#report.text.tables.columns.tokens*], [*#report.text.tables.columns.requests*]),
+        ..report.providers.map(provider => (
+          [#provider.name],
+          [#provider.costLabel],
+          [#provider.tokensLabel],
+          [#provider.requestsLabel],
+        )).flatten(),
+      )
+    ],
+  )
+]
+
+#if report.recentPeriods.len() > 0 [
+  = #report.text.sections.recentPeriods
+
+  #rect(inset: 10pt, radius: 14pt, fill: panel, stroke: (paint: line, thickness: 0.8pt))[
+    #set text(size: 8.9pt)
     #table(
-      columns: (2.5fr, 1.5fr, 1fr, 1fr),
-      column-gutter: 8pt,
-      align: (x, y) => if x < 2 { left } else { right },
-      table.header([*#if report.meta.language == "en" { "Model" } else { "Modell" }*], [*Provider*], [*#if report.meta.language == "en" { "Cost" } else { "Kosten" }*], [*Requests*]),
-      ..report.topModels.map(model => (
-        [#model.name],
-        [#model.provider],
-        [#model.costLabel],
-        [#model.requestsLabel],
-      )).flatten(),
-    )
-  ],
-  rect(inset: 10pt, radius: 14pt, fill: panel, stroke: (paint: line, thickness: 0.8pt))[
-    #text(size: 12pt, weight: "bold", fill: ink)[#if report.meta.language == "en" { "Providers" } else { "Provider" }]
-    #v(6pt)
-    #set text(size: 8.8pt)
-    #table(
-      columns: (1.8fr, 1fr, 1fr, 1fr),
+      columns: (2fr, 1fr, 1fr, 1fr),
       column-gutter: 8pt,
       align: (x, y) => if x == 0 { left } else { right },
-      table.header([*Provider*], [*#if report.meta.language == "en" { "Cost" } else { "Kosten" }*], [*Tokens*], [*Requests*]),
-      ..report.providers.map(provider => (
-        [#provider.name],
-        [#provider.costLabel],
-        [#provider.tokensLabel],
-        [#provider.requestsLabel],
+      table.header([*#report.text.tables.columns.period*], [*#report.text.tables.columns.cost*], [*#report.text.tables.columns.tokens*], [*#report.text.tables.columns.requests*]),
+      ..report.recentPeriods.map(item => (
+        [#item.label],
+        [#item.costLabel],
+        [#item.tokensLabel],
+        [#item.requestsLabel],
       )).flatten(),
     )
-  ],
-)
-
-#pagebreak()
-
-= #if report.meta.language == "en" { "Recent periods" } else { "Letzte Zeiträume" }
-
-#rect(inset: 10pt, radius: 14pt, fill: panel, stroke: (paint: line, thickness: 0.8pt))[
-  #set text(size: 8.9pt)
-  #table(
-    columns: (2fr, 1fr, 1fr, 1fr),
-    column-gutter: 8pt,
-    align: (x, y) => if x == 0 { left } else { right },
-    table.header([*#if report.meta.language == "en" { "Period" } else { "Zeitraum" }*], [*#if report.meta.language == "en" { "Cost" } else { "Kosten" }*], [*Tokens*], [*Requests*]),
-    ..report.recentPeriods.map(item => (
-      [#item.label],
-      [#item.costLabel],
-      [#item.tokensLabel],
-      [#item.requestsLabel],
-    )).flatten(),
-  )
+  ]
 ]
 
 #v(12pt)
 
-= #if report.meta.language == "en" { "Interpretation" } else { "Interpretation" }
+= #report.text.sections.interpretation
 
 #rect(inset: 12pt, radius: 14pt, fill: panel, stroke: (paint: line, thickness: 0.8pt))[
-  #text(size: 10pt, fill: ink)[
-    #if report.meta.language == "en" [
-      This report is based on #report.meta.days daily raw entries and #report.meta.periods aggregated periods.
-      The highest-cost period is #report.labels.topDay.
-      The dominant model family is #report.labels.topModel, and the leading provider is #report.labels.topProvider.
-    ] else [
-      Der Report basiert auf #report.meta.days täglichen Rohdaten und #report.meta.periods aggregierten Perioden.
-      Der kostenstärkste Zeitraum liegt bei #report.labels.topDay.
-      Die dominanteste Modellfamilie ist #report.labels.topModel, der führende Provider ist #report.labels.topProvider.
-    ]
-  ]
+  #text(size: 10pt, fill: ink)[#report.interpretation.summary]
   #v(8pt)
-  #text(size: 9pt, fill: muted)[
-    #if report.meta.language == "en" [
-      Created with TTDash v#report.meta.appVersion and server-side Typst compilation.
-    ] else [
-      Erstellt mit TTDash v#report.meta.appVersion und serverseitiger Typst-Kompilierung.
-    ]
-  ]
+  #text(size: 9pt, fill: muted)[#report.interpretation.footer]
 ]
 `;
 }
@@ -260,26 +276,27 @@ function createChartAssets(reportData) {
 
   return {
     'cost-trend.svg': lineChart(costTrend, {
-      title: reportData.meta.language === 'en' ? 'Cost trend' : 'Kostenverlauf',
+      title: reportData.text.charts.costTrend,
       valueKey: 'cost',
-      secondaryKey: reportData.meta.filterSummary.viewMode === 'daily' ? 'ma7' : null,
+      secondaryKey: reportData.meta.filterSummary.viewModeKey === 'daily' ? 'ma7' : null,
       formatter: (value) => `$${Math.round(value)}`,
     }),
     'top-models.svg': horizontalBarChart(topModels, {
-      title: reportData.meta.language === 'en' ? 'Top models by cost' : 'Top-Modelle nach Kosten',
+      title: reportData.text.charts.topModels,
       getValue: (entry) => entry.cost,
       getLabel: (entry) => entry.name,
       getColor: (entry) => entry.color,
       formatter: (value) => `$${value.toFixed(value >= 100 ? 0 : 2)}`,
     }),
     'token-trend.svg': stackedBarChart(tokenTrend, {
-      title: reportData.meta.language === 'en' ? 'Token mix by period' : 'Token-Mix pro Zeitraum',
+      title: reportData.text.charts.tokenTrend,
+      formatter: (value) => formatCompactAxis(value, reportData.meta.language),
       segments: [
-        { key: 'input', label: 'Input', color: '#0f766e' },
-        { key: 'output', label: 'Output', color: '#1d4ed8' },
-        { key: 'cacheWrite', label: 'Cache Write', color: '#b45309' },
-        { key: 'cacheRead', label: 'Cache Read', color: '#7c3aed' },
-        { key: 'thinking', label: 'Thinking', color: '#be185d' },
+        { key: 'input', label: translate(reportData.meta.language, 'common.input'), color: '#0f766e' },
+        { key: 'output', label: translate(reportData.meta.language, 'common.output'), color: '#1d4ed8' },
+        { key: 'cacheWrite', label: translate(reportData.meta.language, 'common.cacheWrite'), color: '#b45309' },
+        { key: 'cacheRead', label: translate(reportData.meta.language, 'common.cacheRead'), color: '#7c3aed' },
+        { key: 'thinking', label: translate(reportData.meta.language, 'common.thinking'), color: '#be185d' },
       ],
     }),
   };
@@ -303,22 +320,25 @@ async function generatePdfReport(allDailyData, options = {}) {
   const pdfPath = path.join(tempDir, 'report.pdf');
   const jsonPath = path.join(tempDir, 'report.json');
 
-  writeTextFile(typPath, buildTemplate());
-  writeTextFile(jsonPath, JSON.stringify(reportData, null, 2));
+  try {
+    writeTextFile(typPath, buildTemplate());
+    writeTextFile(jsonPath, JSON.stringify(reportData, null, 2));
 
-  const charts = createChartAssets(reportData);
-  for (const [filename, content] of Object.entries(charts)) {
-    writeTextFile(path.join(tempDir, filename), content);
+    const charts = createChartAssets(reportData);
+    for (const [filename, content] of Object.entries(charts)) {
+      writeTextFile(path.join(tempDir, filename), content);
+    }
+
+    await compileTypst(tempDir, typPath, pdfPath);
+
+    return {
+      buffer: fs.readFileSync(pdfPath),
+      filename: `ttdash-report-${new Date().toISOString().slice(0, 10)}.pdf`,
+      reportData,
+    };
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
-
-  await compileTypst(tempDir, typPath, pdfPath);
-
-  return {
-    pdfPath,
-    tempDir,
-    filename: `ttdash-report-${new Date().toISOString().slice(0, 10)}.pdf`,
-    reportData,
-  };
 }
 
 module.exports = {

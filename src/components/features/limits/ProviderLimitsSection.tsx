@@ -3,10 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, useInView } from 'framer-motion'
 import {
   Area,
-  Bar,
-  BarChart,
   CartesianGrid,
-  Cell,
   ComposedChart,
   Legend,
   Line,
@@ -16,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AlertTriangle, BadgeDollarSign, CreditCard, ShieldCheck, TrendingUp } from 'lucide-react'
+import { AlertTriangle, CreditCard, ShieldCheck, TrendingUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { SectionHeader } from '@/components/ui/section-header'
 import { ChartAnimationAware, ChartCard, ChartReveal } from '@/components/charts/ChartCard'
@@ -65,70 +62,6 @@ function subscriptionLabel(row: ProviderLimitRow) {
   return i18n.t('limits.statuses.belowSubscription')
 }
 
-function RiskTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ payload: ProviderLimitRow }>; label?: string }) {
-  if (!active || !payload?.length) return null
-  const row = payload[0].payload
-
-  return (
-    <div className="max-w-[300px] rounded-lg border border-border/50 bg-popover/90 p-3 text-xs shadow-lg backdrop-blur-xl">
-      <div className="font-medium text-muted-foreground">{label}</div>
-      <div className="mt-2 space-y-1.5">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">{i18n.t('common.cost')}</span>
-          <span className="font-mono font-medium">{formatCurrencyExact(row.cost)}</span>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">{i18n.t('limits.modal.monthlyLimit')}</span>
-          <span className="font-mono font-medium">{row.monthlyLimit > 0 ? formatCurrencyExact(row.monthlyLimit) : i18n.t('limits.statuses.noLimit')}</span>
-        </div>
-        {row.monthlyLimit > 0 && (
-          <>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Utilization</span>
-              <span className="font-mono font-medium">{row.utilization?.toFixed(1)}%</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">{row.overrun > 0 ? 'Overrun' : 'Remaining budget'}</span>
-              <span className={row.overrun > 0 ? 'font-mono font-medium text-red-300' : 'font-mono font-medium'}>
-                {formatCurrencyExact(row.overrun > 0 ? row.overrun : row.remaining ?? 0)}
-              </span>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function SubscriptionTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ payload: ProviderLimitRow }>; label?: string }) {
-  if (!active || !payload?.length) return null
-  const row = payload[0].payload
-
-  return (
-    <div className="max-w-[300px] rounded-lg border border-border/50 bg-popover/90 p-3 text-xs shadow-lg backdrop-blur-xl">
-      <div className="font-medium text-muted-foreground">{label}</div>
-      <div className="mt-2 space-y-1.5">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">{i18n.t('limits.tracks.usage')}</span>
-          <span className="font-mono font-medium">{formatCurrencyExact(row.cost)}</span>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">{i18n.t('limits.tracks.subscription')}</span>
-          <span className="font-mono font-medium">{row.hasSubscription ? formatCurrencyExact(row.subscriptionPrice) : i18n.t('common.notAvailable')}</span>
-        </div>
-        {row.hasSubscription && (
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-muted-foreground">{row.subscriptionStatus === 'gain' ? i18n.t('limits.cards.subscriptionValue') : i18n.t('limits.tracks.remainingToBreakEven')}</span>
-            <span className={row.subscriptionStatus === 'gain' ? 'font-mono font-medium text-emerald-300' : 'font-mono font-medium text-amber-200'}>
-              {formatCurrencyExact(row.subscriptionStatus === 'gain' ? row.subscriptionGain : row.subscriptionGap)}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 export function ProviderLimitsSection({ data, providers, limits, selectedMonth }: ProviderLimitsSectionProps) {
   const { t } = useTranslation()
   const sectionRef = useRef<HTMLDivElement | null>(null)
@@ -140,7 +73,6 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
     timelineData,
     atLimitCount,
     nearLimitCount,
-    configuredLimitTotal,
     subscriptionTotal,
     subscriptionGainTotal,
   } = useMemo(() => {
@@ -243,20 +175,10 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
       timelineData: nextTimeline,
       atLimitCount: nextRows.filter(row => row.riskStatus === 'limit').length,
       nearLimitCount: nextRows.filter(row => row.riskStatus === 'warning').length,
-      configuredLimitTotal: nextRows.reduce((sum, row) => sum + (row.monthlyLimit > 0 ? row.monthlyLimit : 0), 0),
       subscriptionTotal: nextRows.reduce((sum, row) => sum + row.subscriptionPrice, 0),
       subscriptionGainTotal: nextRows.reduce((sum, row) => sum + row.subscriptionGain, 0),
     }
   }, [data, limits, providers, selectedMonth])
-
-  const riskChartData = useMemo(() => (
-    rows.map((row) => ({
-      ...row,
-      spendWithinLimit: row.monthlyLimit > 0 ? Math.min(row.cost, row.monthlyLimit) : row.cost,
-      limitHeadroom: row.monthlyLimit > 0 ? Math.max(row.monthlyLimit - row.cost, 0) : 0,
-      limitOverrun: row.overrun,
-    }))
-  ), [rows])
 
   if (providers.length === 0) return null
 

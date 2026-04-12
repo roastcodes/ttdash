@@ -1348,6 +1348,15 @@ function sendFile(res, status, headers, filePath) {
   stream.pipe(res);
 }
 
+function sendBuffer(res, status, headers, buffer) {
+  res.writeHead(status, {
+    'Content-Length': buffer.length,
+    ...headers,
+    ...SECURITY_HEADERS,
+  });
+  res.end(buffer);
+}
+
 function resolveApiPath(pathname) {
   if (pathname.startsWith(API_PREFIX + '/')) {
     return pathname.slice(API_PREFIX.length);
@@ -1753,19 +1762,10 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const result = await generatePdfReport(data.daily, body || {});
-      const cleanup = () => {
-        try {
-          fs.rmSync(result.tempDir, { recursive: true, force: true });
-        } catch {}
-      };
-
-      res.on('close', cleanup);
-      res.on('finish', cleanup);
-
-      return sendFile(res, 200, {
+      return sendBuffer(res, 200, {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${result.filename}"`,
-      }, result.pdfPath);
+      }, result.buffer);
     } catch (error) {
       const message = error && error.message ? error.message : 'PDF generation failed';
       const status = error && error.code === 'TYPST_MISSING' ? 503 : 500;
