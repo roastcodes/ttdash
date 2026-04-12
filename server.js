@@ -401,7 +401,9 @@ function readBackgroundInstancesRaw() {
     if (Array.isArray(parsed)) {
       return parsed;
     }
-  } catch {}
+  } catch {
+    // Ignore missing or invalid background registry state.
+  }
 
   return [];
 }
@@ -459,17 +461,21 @@ async function withBackgroundInstancesLock(callback, timeoutMs = BACKGROUND_INST
       try {
         const stats = fs.statSync(BACKGROUND_INSTANCES_LOCK_DIR);
         lockIsStale = (Date.now() - stats.mtimeMs) > BACKGROUND_INSTANCES_LOCK_STALE_MS;
-      } catch {}
+      } catch {
+        // Ignore stat races while the lock directory is changing.
+      }
 
       if (lockIsStale) {
         try {
           fs.rmSync(BACKGROUND_INSTANCES_LOCK_DIR, { recursive: true, force: true });
           continue;
-        } catch {}
+        } catch {
+          // Ignore lock cleanup races and retry until timeout.
+        }
       }
 
       if (Date.now() - startedAt >= timeoutMs) {
-        throw new Error('Could not acquire background registry lock.');
+        throw new Error('Could not acquire background registry lock.', { cause: error });
       }
 
       await sleep(50);
@@ -481,7 +487,9 @@ async function withBackgroundInstancesLock(callback, timeoutMs = BACKGROUND_INST
   } finally {
     try {
       fs.rmSync(BACKGROUND_INSTANCES_LOCK_DIR, { recursive: true, force: true });
-    } catch {}
+    } catch {
+      // Ignore cleanup races after the lock holder exits.
+    }
   }
 }
 
@@ -765,7 +773,9 @@ function migrateLegacyDataFile() {
     fs.copyFileSync(LEGACY_DATA_FILE, DATA_FILE);
     try {
       fs.unlinkSync(LEGACY_DATA_FILE);
-    } catch {}
+    } catch {
+      // Ignore best-effort cleanup failures after copying legacy data.
+    }
     console.log(`Copying existing data to ${DATA_FILE}`);
   }
 }
@@ -1574,7 +1584,11 @@ const server = http.createServer(async (req, res) => {
       });
     }
     if (req.method === 'DELETE') {
-      try { fs.unlinkSync(DATA_FILE); } catch {}
+      try {
+        fs.unlinkSync(DATA_FILE);
+      } catch {
+        // Ignore missing data files during reset.
+      }
       clearDataLoadState();
       return json(res, 200, { success: true });
     }
@@ -1602,7 +1616,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'DELETE') {
-      try { fs.unlinkSync(SETTINGS_FILE); } catch {}
+      try {
+        fs.unlinkSync(SETTINGS_FILE);
+      } catch {
+        // Ignore missing settings files during reset.
+      }
       return json(res, 200, { success: true, settings: readSettings() });
     }
 
@@ -1735,7 +1753,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 400, { message: 'No data available for the report.' });
     }
 
-    let body = {};
+    let body;
     try {
       body = await readBody(req);
     } catch (e) {

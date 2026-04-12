@@ -65,7 +65,9 @@ function parsePackJson(output) {
 
     try {
       return JSON.parse(line);
-    } catch {}
+    } catch {
+      // Ignore non-JSON log lines and keep searching for the pack payload.
+    }
   }
 
   throw new Error(`npm pack did not produce JSON output.\n${output}`);
@@ -111,7 +113,9 @@ async function waitForServer(url, child) {
       if (response.ok) {
         return;
       }
-    } catch {}
+    } catch {
+      // Ignore transient startup failures while the server is still booting.
+    }
 
     await new Promise((resolve) => setTimeout(resolve, 200));
   }

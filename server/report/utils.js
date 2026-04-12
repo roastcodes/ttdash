@@ -464,7 +464,13 @@ function computeProviderRows(data) {
     }
   }
   return Array.from(rows.values())
-    .map(({ _dates, ...entry }) => entry)
+    .map((entry) => ({
+      name: entry.name,
+      cost: entry.cost,
+      tokens: entry.tokens,
+      requests: entry.requests,
+      days: entry.days,
+    }))
     .sort((a, b) => b.cost - a.cost);
 }
 
