@@ -21,13 +21,21 @@ export interface ErrorEvent {
 type AutoImportTranslationVars = Record<string, string | number>
 type AutoImportTranslator = (key: string, vars?: AutoImportTranslationVars) => string
 
-function parseEventData<T>(event: Event): T | null {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+export function parseEventData<T>(event: Event): T | null {
   if (!(event instanceof MessageEvent) || typeof event.data !== 'string') {
     return null
   }
 
-  const data: unknown = JSON.parse(event.data)
-  return data as T
+  try {
+    const data: unknown = JSON.parse(event.data)
+    return isPlainObject(data) ? (data as T) : null
+  } catch {
+    return null
+  }
 }
 
 function translateAutoImportMessage(message: string, t: AutoImportTranslator) {

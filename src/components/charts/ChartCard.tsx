@@ -30,7 +30,9 @@ interface ChartCardProps {
   expandedExtra?: ReactNode
 }
 
-function stringifyCsvCell(value: unknown): string {
+export function stringifyCsvCell(value: unknown): string {
+  let stringValue = ''
+
   if (value == null) return ''
   if (
     typeof value === 'string' ||
@@ -38,14 +40,29 @@ function stringifyCsvCell(value: unknown): string {
     typeof value === 'boolean' ||
     typeof value === 'bigint'
   ) {
-    return String(value)
+    stringValue = String(value)
+  } else {
+    try {
+      stringValue = JSON.stringify(value) ?? ''
+    } catch {
+      stringValue = ''
+    }
   }
 
-  try {
-    return JSON.stringify(value) ?? ''
-  } catch {
-    return ''
-  }
+  return `"${stringValue.replace(/"/g, '""')}"`
+}
+
+export function buildChartCsv(chartData: Record<string, unknown>[]): string {
+  if (chartData.length === 0) return ''
+
+  const firstRow = chartData[0]
+  if (!firstRow) return ''
+
+  const keys = Object.keys(firstRow)
+  return [
+    keys.map((key) => stringifyCsvCell(key)).join(','),
+    ...chartData.map((row) => keys.map((key) => stringifyCsvCell(row[key])).join(',')),
+  ].join('\n')
 }
 
 const ChartAnimationContext = createContext(false)
@@ -149,13 +166,8 @@ export function ChartCard({
 
   const handleExport = useCallback(() => {
     if (!chartData || chartData.length === 0) return
-    const firstRow = chartData[0]
-    if (!firstRow) return
-    const keys = Object.keys(firstRow)
-    const csv = [
-      keys.join(','),
-      ...chartData.map((row) => keys.map((k) => stringifyCsvCell(row[k])).join(',')),
-    ].join('\n')
+    const csv = buildChartCsv(chartData)
+    if (!csv) return
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

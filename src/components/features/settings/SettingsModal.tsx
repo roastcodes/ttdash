@@ -88,6 +88,19 @@ function normalizeSelection(values: string[]) {
   )
 }
 
+export function buildProviderLimitsState(
+  providers: string[],
+  draft: ProviderLimits,
+): ProviderLimits {
+  const nextProviderLimits: ProviderLimits = {}
+
+  for (const provider of providers) {
+    nextProviderLimits[provider] = draft[provider] ?? { ...DEFAULT_PROVIDER_LIMIT_CONFIG }
+  }
+
+  return nextProviderLimits
+}
+
 function moveSection(
   order: DashboardSectionOrder,
   sectionId: DashboardSectionOrder[number],
@@ -107,7 +120,7 @@ function moveSection(
   return next
 }
 
-function reorderSections(
+export function reorderSections(
   order: DashboardSectionOrder,
   sourceId: DashboardSectionOrder[number],
   targetId: DashboardSectionOrder[number],
@@ -124,7 +137,8 @@ function reorderSections(
   const next = [...order]
   const [moved] = next.splice(sourceIndex, 1)
   if (!moved) return order
-  next.splice(targetIndex, 0, moved)
+  const insertionIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
+  next.splice(insertionIndex, 0, moved)
   return next
 }
 
@@ -197,13 +211,8 @@ export function SettingsModal({
   }
 
   const handleSave = async () => {
-    const nextProviderLimits = { ...limits }
-    for (const provider of limitProviders) {
-      nextProviderLimits[provider] = limitDraft[provider] ?? { ...DEFAULT_PROVIDER_LIMIT_CONFIG }
-    }
-
     await onSaveSettings({
-      providerLimits: nextProviderLimits,
+      providerLimits: buildProviderLimitsState(limitProviders, limitDraft),
       defaultFilters: {
         ...defaultFilterDraft,
         providers: normalizeSelection(defaultFilterDraft.providers),
