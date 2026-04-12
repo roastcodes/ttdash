@@ -971,7 +971,7 @@
   "report": {
     "title": "TTDash Report",
     "common": {
-      "notAvailable": "n/a"
+      "notAvailable": "n/v"
     },
     "header": {
       "eyebrow": "TTDash PDF Report"

@@ -590,7 +590,7 @@ function truncateLabel(value, maxLength = 28) {
 function buildInsights(metrics, { filteredDaily, filtered, language }) {
   const insights = [];
 
-  if (filteredDaily.length > 0 && (filteredDaily.length < 7 || filtered.length < 4)) {
+  if (filteredDaily.length > 0 && filteredDaily.length < 7) {
     insights.push({
       tone: 'warn',
       title: translate(language, 'report.insights.coverageTitle'),
