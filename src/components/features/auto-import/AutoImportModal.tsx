@@ -39,6 +39,10 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
   const addLine = useCallback((type: LineType, text: string) => {
     setLines(prev => [...prev, { type, text }])
   }, [])
+  const autoImportTranslator = useCallback(
+    (key: string, vars?: Record<string, string | number>) => (vars ? t(key, vars) : t(key)),
+    [t],
+  )
 
   useEffect(() => {
     if (!open) return
@@ -77,7 +81,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
       onDone: () => {
         closeRef.current = null
       },
-    }, t)
+    }, autoImportTranslator)
 
     closeRef.current = handle
 
@@ -85,7 +89,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
       handle.close()
       closeRef.current = null
     }
-  }, [open, addLine, onSuccess, t])
+  }, [open, addLine, autoImportTranslator, onSuccess, t])
 
   // Auto-scroll
   useEffect(() => {

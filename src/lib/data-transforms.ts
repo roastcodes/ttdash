@@ -113,13 +113,15 @@ export function toCostChartData(data: DailyUsage[]): ChartDataPoint[] {
   let cumulative = 0
   return sorted.map((d, i) => {
     cumulative += d.totalCost
-    return {
+    const point: ChartDataPoint = {
       date: d.date,
       cost: d.totalCost,
-      costPrev: i > 0 ? sorted[i - 1].totalCost : undefined,
-      ma7: ma7[i],
       cumulative,
     }
+    const costPrev = i > 0 ? sorted[i - 1].totalCost : null
+    if (costPrev !== null) point.costPrev = costPrev
+    if (ma7[i] !== undefined) point.ma7 = ma7[i]
+    return point
   })
 }
 
@@ -181,22 +183,26 @@ export function toTokenChartData(data: DailyUsage[]): TokenChartDataPoint[] {
   const cacheWriteMA7 = computeMovingAverage(cacheWrites)
   const cacheReadMA7 = computeMovingAverage(cacheReads)
   const thinkingMA7 = computeMovingAverage(thinking)
-  return sorted.map((d, i) => ({
-    date: d.date,
-    Input: d.inputTokens,
-    Output: d.outputTokens,
-    'Cache Write': d.cacheCreationTokens,
-    'Cache Read': d.cacheReadTokens,
-    Thinking: d.thinkingTokens,
-    totalTokens: d.totalTokens,
-    totalTokensPrev: i > 0 ? sorted[i - 1].totalTokens : undefined,
-    tokenMA7: ma7[i],
-    inputMA7: inputMA7[i],
-    outputMA7: outputMA7[i],
-    cacheWriteMA7: cacheWriteMA7[i],
-    cacheReadMA7: cacheReadMA7[i],
-    thinkingMA7: thinkingMA7[i],
-  }))
+  return sorted.map((d, i) => {
+    const point: TokenChartDataPoint = {
+      date: d.date,
+      Input: d.inputTokens,
+      Output: d.outputTokens,
+      'Cache Write': d.cacheCreationTokens,
+      'Cache Read': d.cacheReadTokens,
+      Thinking: d.thinkingTokens,
+      totalTokens: d.totalTokens,
+    }
+    const totalTokensPrev = i > 0 ? sorted[i - 1].totalTokens : null
+    if (totalTokensPrev !== null) point.totalTokensPrev = totalTokensPrev
+    if (ma7[i] !== undefined) point.tokenMA7 = ma7[i]
+    if (inputMA7[i] !== undefined) point.inputMA7 = inputMA7[i]
+    if (outputMA7[i] !== undefined) point.outputMA7 = outputMA7[i]
+    if (cacheWriteMA7[i] !== undefined) point.cacheWriteMA7 = cacheWriteMA7[i]
+    if (cacheReadMA7[i] !== undefined) point.cacheReadMA7 = cacheReadMA7[i]
+    if (thinkingMA7[i] !== undefined) point.thinkingMA7 = thinkingMA7[i]
+    return point
+  })
 }
 
 export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] {
@@ -232,12 +238,13 @@ export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] 
   }
 
   return sorted.map((d, i) => {
-    const point: Record<string, unknown> = {
+    const point: RequestChartDataPoint = {
       date: d.date,
       totalRequests: d.requestCount,
-      totalRequestsPrev: i > 0 ? sorted[i - 1].requestCount : undefined,
-      totalRequestsMA7: totalMA7[i],
     }
+    const totalRequestsPrev = i > 0 ? sorted[i - 1].requestCount : null
+    if (totalRequestsPrev !== null) point.totalRequestsPrev = totalRequestsPrev
+    if (totalMA7[i] !== undefined) point.totalRequestsMA7 = totalMA7[i]
 
     for (const mb of d.modelBreakdowns) {
       const name = normalizeModelName(mb.modelName)

@@ -388,9 +388,9 @@ export function FilterBar({
         </div>
 
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] md:items-center">
-          <DatePickerField label={t('common.startDate')} value={startDate} onChange={onStartDateChange} />
+          <DatePickerField label={t('common.startDate')} onChange={onStartDateChange} {...(startDate ? { value: startDate } : {})} />
           <span className="hidden md:inline text-xs text-muted-foreground">{t('filterBar.until')}</span>
-          <DatePickerField label={t('common.endDate')} value={endDate} onChange={onEndDateChange} />
+          <DatePickerField label={t('common.endDate')} onChange={onEndDateChange} {...(endDate ? { value: endDate } : {})} />
           <button
             onClick={() => {
               onStartDateChange(undefined)

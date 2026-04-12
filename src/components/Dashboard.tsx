@@ -49,7 +49,7 @@ import { applyTheme } from '@/lib/app-settings'
 import { downloadCSV } from '@/lib/csv-export'
 import { VERSION } from '@/lib/constants'
 import { SECTION_HELP } from '@/lib/help-content'
-import { generatePdfReport, importSettings, importUsageData } from '@/lib/api'
+import { generatePdfReport, importSettings, importUsageData, type PdfReportRequest } from '@/lib/api'
 import { formatCurrency, formatDateTimeCompact, formatDateTimeFull, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
 import { getUniqueModels, getUniqueProviders } from '@/lib/model-utils'
@@ -174,8 +174,8 @@ export function Dashboard() {
 
     return {
       type: 'stored' as const,
-      time: persistedLoadedTime,
-      title: persistedLoadedTitle,
+      ...(persistedLoadedTime ? { time: persistedLoadedTime } : {}),
+      ...(persistedLoadedTitle ? { title: persistedLoadedTitle } : {}),
     }
   }, [hasData, persistedLoadedTime, persistedLoadedTitle])
   const headerDataSource = dataSource ?? persistedDataSource
@@ -183,7 +183,7 @@ export function Dashboard() {
     settings.cliAutoLoadActive
       ? {
           active: true,
-          time: persistedLoadedTime,
+          ...(persistedLoadedTime ? { time: persistedLoadedTime } : {}),
           title: settings.lastLoadedAt
             ? t('header.autoLoadAt', { time: formatDateTimeFull(settings.lastLoadedAt) })
             : t('header.autoLoadActive'),
@@ -333,15 +333,17 @@ export function Dashboard() {
     setReportGenerating(true)
 
     try {
-      const blob = await generatePdfReport({
+      const requestLanguage: PdfReportRequest['language'] = i18n.language === 'en' ? 'en' : 'de'
+      const request: PdfReportRequest = {
         viewMode,
         selectedMonth,
         selectedProviders,
         selectedModels,
-        startDate,
-        endDate,
-        language: i18n.language === 'en' ? 'en' : 'de',
-      })
+        language: requestLanguage,
+        ...(startDate ? { startDate } : {}),
+        ...(endDate ? { endDate } : {}),
+      }
+      const blob = await generatePdfReport(request)
       const objectUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = objectUrl
@@ -371,7 +373,7 @@ export function Dashboard() {
     const time = now.toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' })
     setDataSource({
       type: 'auto-import',
-      time,
+      ...(time ? { time } : {}),
       title: t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) }),
     })
     addToast(t('toasts.dataImported'), 'success')
@@ -456,7 +458,7 @@ export function Dashboard() {
       setDataSource({
         type: 'file',
         label: file.name,
-        time,
+        ...(time ? { time } : {}),
         title: `${file.name} · ${t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) })}`,
       })
 
@@ -810,8 +812,8 @@ export function Dashboard() {
           selectedModels={selectedModels}
           onToggleModel={toggleModel}
           onClearModels={clearModels}
-          startDate={startDate}
-          endDate={endDate}
+          {...(startDate ? { startDate } : {})}
+          {...(endDate ? { endDate } : {})}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onApplyPreset={applyPreset}

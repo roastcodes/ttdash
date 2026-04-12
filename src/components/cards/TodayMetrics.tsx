@@ -27,6 +27,16 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
   const diffToAvg = metrics.avgDailyCost > 0
     ? ((today.totalCost - metrics.avgDailyCost) / metrics.avgDailyCost) * 100
     : null
+  const costSubtitle = diffToAvg !== null ? t('metricCards.today.avgPerDay', { value: formatCurrency(metrics.avgDailyCost) }) : null
+  const tokensSubtitle = today.inputTokens > 0 && today.outputTokens > 0
+    ? t('metricCards.today.ioRatio', { value: (today.inputTokens / today.outputTokens).toFixed(1) })
+    : null
+  const modelSubtitle = topModel ? t('metricCards.today.topModel', { value: normalizeModelName(topModel.modelName) }) : null
+  const costPerMillionSubtitle = metrics.costPerMillion > 0 ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) }) : null
+  const requestsSubtitle = today.requestCount > 0 && today.modelsUsed.length > 0
+    ? t('metricCards.today.requestsSubtitle', { value: (today.requestCount / today.modelsUsed.length).toFixed(1), cost: formatCurrency(today.totalCost / today.requestCount) })
+    : t('metricCards.today.requestCountersMissing')
+  const thinkingSubtitle = today.totalTokens > 0 ? t('metricCards.today.thinkingSubtitle', { value: formatPercent((today.thinkingTokens / today.totalTokens) * 100) }) : null
 
   return (
     <div>
@@ -40,29 +50,27 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
           <MetricCard
             label={t('metricCards.today.costToday')}
             value={<FormattedValue value={today.totalCost} type="currency" />}
-            subtitle={diffToAvg !== null ? t('metricCards.today.avgPerDay', { value: formatCurrency(metrics.avgDailyCost) }) : undefined}
             icon={<DollarSign className="h-4 w-4" />}
             trend={diffToAvg !== null ? { value: diffToAvg, label: t('metricCards.today.vsAverageShort') } : null}
+            {...(costSubtitle ? { subtitle: costSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.today.tokensToday')}
             value={<FormattedValue value={today.totalTokens} type="tokens" label={t('metricCards.today.tokensToday')} insight={`${formatTokens(today.requestCount > 0 ? today.totalTokens / today.requestCount : 0)} / Request`} />}
-            subtitle={today.inputTokens > 0 && today.outputTokens > 0
-              ? t('metricCards.today.ioRatio', { value: (today.inputTokens / today.outputTokens).toFixed(1) })
-              : undefined}
             icon={<Coins className="h-4 w-4" />}
+            {...(tokensSubtitle ? { subtitle: tokensSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.today.models')}
             value={String(today.modelsUsed?.length ?? 0)}
-            subtitle={topModel ? t('metricCards.today.topModel', { value: normalizeModelName(topModel.modelName) }) : undefined}
             icon={<Cpu className="h-4 w-4" />}
+            {...(modelSubtitle ? { subtitle: modelSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.today.costPerMillion')}
             value={<FormattedValue value={today.totalTokens > 0 ? today.totalCost / (today.totalTokens / 1_000_000) : 0} type="currency" />}
-            subtitle={metrics.costPerMillion > 0 ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) }) : undefined}
             icon={<TrendingDown className="h-4 w-4" />}
+            {...(costPerMillionSubtitle ? { subtitle: costPerMillionSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.today.cacheHitRate')}
@@ -73,16 +81,14 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
           <MetricCard
             label={t('metricCards.today.requests')}
             value={today.requestCount > 0 ? <FormattedValue value={today.requestCount} type="number" label={t('metricCards.today.requestsToday')} insight={`${formatCurrency(today.totalCost / today.requestCount)} / Request`} /> : t('common.notAvailable')}
-            subtitle={today.requestCount > 0 && today.modelsUsed?.length
-              ? t('metricCards.today.requestsSubtitle', { value: (today.requestCount / today.modelsUsed.length).toFixed(1), cost: formatCurrency(today.totalCost / today.requestCount) })
-              : t('metricCards.today.requestCountersMissing')}
+            subtitle={requestsSubtitle}
             icon={<Activity className="h-4 w-4" />}
           />
           <MetricCard
             label={t('metricCards.today.thinking')}
             value={<FormattedValue value={today.thinkingTokens} type="tokens" />}
-            subtitle={today.totalTokens > 0 ? t('metricCards.today.thinkingSubtitle', { value: formatPercent((today.thinkingTokens / today.totalTokens) * 100) }) : undefined}
             icon={<BrainCircuit className="h-4 w-4" />}
+            {...(thinkingSubtitle ? { subtitle: thinkingSubtitle } : {})}
           />
         </div>
       </FadeIn>

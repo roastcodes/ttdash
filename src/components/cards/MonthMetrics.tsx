@@ -84,6 +84,12 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
     : null
 
   const ioTotal = agg.inputTokens + agg.outputTokens
+  const tokensSubtitle = agg.inputTokens > 0 && agg.outputTokens > 0
+    ? t('metricCards.month.ioRatio', { value: (agg.inputTokens / agg.outputTokens).toFixed(1) })
+    : null
+  const modelsSubtitle = agg.topModel ? t('metricCards.month.topModel', { value: agg.topModel.name }) : null
+  const costPerMillionSubtitle = metrics.costPerMillion > 0 ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) }) : null
+  const thinkingSubtitle = agg.totalTokens > 0 ? t('metricCards.month.thinkingSubtitle', { value: `${((agg.thinkingTokens / agg.totalTokens) * 100).toFixed(1)}%` }) : null
 
   return (
     <div>
@@ -105,10 +111,8 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
           <MetricCard
             label={t('metricCards.month.tokensMonth')}
             value={<FormattedValue value={agg.totalTokens} type="tokens" />}
-            subtitle={agg.inputTokens > 0 && agg.outputTokens > 0
-              ? t('metricCards.month.ioRatio', { value: (agg.inputTokens / agg.outputTokens).toFixed(1) })
-              : undefined}
             icon={<Coins className="h-4 w-4" />}
+            {...(tokensSubtitle ? { subtitle: tokensSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.month.activeDays')}
@@ -119,14 +123,14 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
           <MetricCard
             label={t('metricCards.month.models')}
             value={String(agg.modelCount)}
-            subtitle={agg.topModel ? t('metricCards.month.topModel', { value: agg.topModel.name }) : undefined}
             icon={<Cpu className="h-4 w-4" />}
+            {...(modelsSubtitle ? { subtitle: modelsSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.month.costPerMillion')}
             value={<FormattedValue value={agg.costPerMillion} type="currency" />}
-            subtitle={metrics.costPerMillion > 0 ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) }) : undefined}
             icon={<TrendingDown className="h-4 w-4" />}
+            {...(costPerMillionSubtitle ? { subtitle: costPerMillionSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.month.cacheHitRate')}
@@ -148,8 +152,8 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
           <MetricCard
             label={t('metricCards.month.thinking')}
             value={<FormattedValue value={agg.thinkingTokens} type="tokens" />}
-            subtitle={agg.totalTokens > 0 ? t('metricCards.month.thinkingSubtitle', { value: `${((agg.thinkingTokens / agg.totalTokens) * 100).toFixed(1)}%` }) : undefined}
             icon={<BrainCircuit className="h-4 w-4" />}
+            {...(thinkingSubtitle ? { subtitle: thinkingSubtitle } : {})}
           />
         </div>
       </FadeIn>

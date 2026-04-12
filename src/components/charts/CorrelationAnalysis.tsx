@@ -128,7 +128,7 @@ function CorrelationPanel({
         <ResponsiveContainer width="100%" height={260}>
           <ScatterChart margin={CHART_MARGIN}>
             <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.25} />
-            <XAxis type="number" dataKey="x" stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} name={xAxisName} tickFormatter={xTickFormatter} />
+            <XAxis type="number" dataKey="x" stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} name={xAxisName} {...(xTickFormatter ? { tickFormatter: xTickFormatter } : {})} />
             <YAxis type="number" dataKey="y" stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} name={yAxisName} tickFormatter={formatCurrency} />
             <ZAxis type="number" dataKey="z" range={[30, 180]} />
             <Tooltip content={<ScatterTooltip mode={mode} />} cursor={{ strokeDasharray: '4 4' }} />

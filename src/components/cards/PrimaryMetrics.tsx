@@ -22,6 +22,18 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
   const coverageRate = totalCalendarDays && viewMode === 'daily'
     ? (metrics.activeDays / totalCalendarDays) * 100
     : null
+  const topModelSubtitle = metrics.topModel
+    ? `${formatCurrency(metrics.topModel.cost)} · ${t('metricCards.primary.share', { value: formatPercent(metrics.topModelShare, 0) })}${metrics.topRequestModel ? ` · ${t('metricCards.primary.requestLead', { value: metrics.topRequestModel.name })}` : ''}`
+    : null
+  const cacheHitRateSubtitle = metrics.totalTokens > 0
+    ? t('metricCards.primary.allTokensViaCacheRead', { value: formatPercent((metrics.totalCacheRead / metrics.totalTokens) * 100) })
+    : null
+  const thinkingInsight = metrics.totalTokens > 0
+    ? t('metricCards.primary.thinkingShareOfVolume', { value: formatPercent((metrics.totalThinking / metrics.totalTokens) * 100) })
+    : null
+  const thinkingSubtitle = metrics.totalTokens > 0
+    ? t('metricCards.primary.thinkingSubtitle', { share: formatPercent((metrics.totalThinking / metrics.totalTokens) * 100), tokens: formatTokens(metrics.totalThinking / Math.max(metrics.totalRequests, 1)) })
+    : null
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
@@ -52,18 +64,16 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
       <MetricCard
         label={t('metricCards.primary.topModel')}
         value={metrics.topModel?.name ?? '–'}
-        subtitle={metrics.topModel
-          ? `${formatCurrency(metrics.topModel.cost)} · ${t('metricCards.primary.share', { value: formatPercent(metrics.topModelShare, 0) })}${metrics.topRequestModel ? ` · ${t('metricCards.primary.requestLead', { value: metrics.topRequestModel.name })}` : ''}`
-          : undefined}
         icon={<Cpu className="h-4 w-4" />}
         info={METRIC_HELP.topModel}
+        {...(topModelSubtitle ? { subtitle: topModelSubtitle } : {})}
       />
       <MetricCard
         label={t('metricCards.primary.cacheHitRate')}
         value={<FormattedValue value={metrics.cacheHitRate} type="percent" />}
-        subtitle={metrics.totalTokens > 0 ? t('metricCards.primary.allTokensViaCacheRead', { value: formatPercent((metrics.totalCacheRead / metrics.totalTokens) * 100) }) : undefined}
         icon={<Database className="h-4 w-4" />}
         info={METRIC_HELP.cacheHitRate}
+        {...(cacheHitRateSubtitle ? { subtitle: cacheHitRateSubtitle } : {})}
       />
       <MetricCard
         label={t('metricCards.primary.costPerMillion')}
@@ -81,11 +91,9 @@ export function PrimaryMetrics({ metrics, totalCalendarDays, viewMode = 'daily' 
       />
       <MetricCard
         label={t('metricCards.primary.thinking')}
-        value={<FormattedValue value={metrics.totalThinking} type="tokens" label={t('metricCards.primary.thinking')} insight={metrics.totalTokens > 0 ? t('metricCards.primary.thinkingShareOfVolume', { value: formatPercent((metrics.totalThinking / metrics.totalTokens) * 100) }) : undefined} />}
-        subtitle={metrics.totalTokens > 0
-          ? t('metricCards.primary.thinkingSubtitle', { share: formatPercent((metrics.totalThinking / metrics.totalTokens) * 100), tokens: formatTokens(metrics.totalThinking / Math.max(metrics.totalRequests, 1)) })
-          : undefined}
+        value={<FormattedValue value={metrics.totalThinking} type="tokens" label={t('metricCards.primary.thinking')} {...(thinkingInsight ? { insight: thinkingInsight } : {})} />}
         icon={<BrainCircuit className="h-4 w-4" />}
+        {...(thinkingSubtitle ? { subtitle: thinkingSubtitle } : {})}
       />
     </div>
   )

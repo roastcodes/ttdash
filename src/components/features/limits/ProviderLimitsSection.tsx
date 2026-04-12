@@ -296,10 +296,10 @@ export function ProviderLimitsSection({ data, providers, limits, selectedMonth }
                         {row.monthlyLimit > 0 ? (
                           <motion.div
                             className={row.riskStatus === 'limit' ? 'h-full bg-red-400' : row.riskStatus === 'warning' ? 'h-full bg-amber-400' : 'h-full'}
-                            style={row.riskStatus === 'limit' || row.riskStatus === 'warning' ? undefined : { backgroundColor: providerStyle.color }}
                             initial={{ width: 0 }}
                             animate={inView ? { width: `${riskProgress}%` } : { width: 0 }}
                             transition={{ duration: 0.8, delay: 0.08 + index * 0.04, ease: 'easeOut' }}
+                            {...(row.riskStatus === 'limit' || row.riskStatus === 'warning' ? {} : { style: { backgroundColor: providerStyle.color } })}
                           />
                         ) : (
                           <div className="h-full w-full bg-muted/20" />

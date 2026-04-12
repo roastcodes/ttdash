@@ -234,11 +234,11 @@ export function CommandPalette({
         label: t('commandPalette.commands.goToSection.label', { section: sectionLabel }),
         description: t('commandPalette.commands.goToSection.description', { section: sectionLabel }),
         keywords: [sectionLabel, section.domId, ...SECTION_COMMAND_KEYWORDS[section.id]],
-        aliases: SECTION_COMMAND_ALIASES[section.id],
         icon: SECTION_COMMAND_ICON_MAP[section.id],
         action: () => onScrollTo(section.domId),
         group: t('commandPalette.groups.navigation'),
         testId: `command-section-${section.id}`,
+        ...(SECTION_COMMAND_ALIASES[section.id] ? { aliases: SECTION_COMMAND_ALIASES[section.id] } : {}),
       }]
     })
   ), [onScrollTo, sectionAvailability, sectionOrder, sectionVisibility, t])

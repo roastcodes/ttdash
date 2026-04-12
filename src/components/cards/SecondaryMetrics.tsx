@@ -29,46 +29,52 @@ export function SecondaryMetrics({ metrics, dailyCosts, viewMode = 'daily' }: Se
   const requestLeader = metrics.topRequestModel
     ? t('metricCards.secondary.requestLeader', { model: metrics.topRequestModel.name, requests: formatNumber(metrics.topRequestModel.requests) })
     : null
+  const topDaySubtitle = metrics.topDay ? formatDate(metrics.topDay.date, 'long') : null
+  const topProviderSubtitle = metrics.topProvider
+    ? t('metricCards.secondary.dominantProviderSubtitle', {
+        share: formatPercent(metrics.topProvider.share, 0),
+        cost: formatCurrency(metrics.topProvider.cost),
+        requestLeader: requestLeader ? ` · ${requestLeader}` : '',
+      })
+    : null
+  const peakSubtitle = viewMode === 'daily' && metrics.busiestWeek
+    ? `${formatDate(metrics.busiestWeek.start)} – ${formatDate(metrics.busiestWeek.end)}`
+    : costSpread !== null
+      ? t('metricCards.secondary.spread', { value: formatCurrency(costSpread) })
+      : null
+  const medianSubtitle = median !== null && metrics.avgDailyCost > 0
+    ? `${t('metricCards.secondary.vsAverage', { direction: median < metrics.avgDailyCost ? '↓' : '↑', value: Math.abs(((median - metrics.avgDailyCost) / metrics.avgDailyCost) * 100).toFixed(0) })} · σ Req ${Math.round(metrics.requestVolatility)}`
+    : null
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <MetricCard
         label={viewMode === 'yearly' ? t('metricCards.secondary.mostExpensiveYear') : viewMode === 'monthly' ? t('metricCards.secondary.mostExpensiveMonth') : t('metricCards.secondary.mostExpensiveDay')}
         value={metrics.topDay ? <FormattedValue value={metrics.topDay.cost} type="currency" /> : '–'}
-        subtitle={metrics.topDay ? formatDate(metrics.topDay.date, 'long') : undefined}
         icon={<TrendingUp className="h-4 w-4" />}
         info={METRIC_HELP.mostExpensiveDay}
+        {...(topDaySubtitle ? { subtitle: topDaySubtitle } : {})}
       />
       <MetricCard
         label={t('metricCards.secondary.dominantProvider')}
         value={metrics.topProvider?.name ?? '–'}
-        subtitle={metrics.topProvider
-          ? t('metricCards.secondary.dominantProviderSubtitle', {
-              share: formatPercent(metrics.topProvider.share, 0),
-              cost: formatCurrency(metrics.topProvider.cost),
-              requestLeader: requestLeader ? ` · ${requestLeader}` : '',
-            })
-          : undefined}
         icon={<Building2 className="h-4 w-4" />}
         info={t('metricCards.secondary.medianInfo')}
+        {...(topProviderSubtitle ? { subtitle: topProviderSubtitle } : {})}
       />
       <MetricCard
         label={viewMode === 'daily' ? t('metricCards.secondary.peak7Days') : t('metricCards.secondary.avgCostPerUnit', { unit: periodUnit(viewMode) })}
         value={viewMode === 'daily' && metrics.busiestWeek ? <FormattedValue value={metrics.busiestWeek.cost} type="currency" /> : <FormattedValue value={metrics.avgDailyCost} type="currency" />}
-        subtitle={viewMode === 'daily' && metrics.busiestWeek
-          ? `${formatDate(metrics.busiestWeek.start)} – ${formatDate(metrics.busiestWeek.end)}`
-          : costSpread !== null ? t('metricCards.secondary.spread', { value: formatCurrency(costSpread) }) : undefined}
         icon={<ChartBar className="h-4 w-4" />}
         info={METRIC_HELP.avgCostPerDay}
+        {...(peakSubtitle ? { subtitle: peakSubtitle } : {})}
       />
       <MetricCard
         label={t('metricCards.secondary.medianPerUnit', { unit: periodUnit(viewMode) })}
         value={median !== null ? <FormattedValue value={median} type="currency" /> : '–'}
-        subtitle={median !== null && metrics.avgDailyCost > 0
-          ? `${t('metricCards.secondary.vsAverage', { direction: median < metrics.avgDailyCost ? '↓' : '↑', value: Math.abs(((median - metrics.avgDailyCost) / metrics.avgDailyCost) * 100).toFixed(0) })} · σ Req ${Math.round(metrics.requestVolatility)}`
-          : undefined}
         icon={<Sigma className="h-4 w-4" />}
         info={t('metricCards.secondary.medianInfo')}
+        {...(medianSubtitle ? { subtitle: medianSubtitle } : {})}
       />
     </div>
   )

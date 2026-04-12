@@ -50,10 +50,13 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
     chronological.forEach((day, index) => {
       const previous = index > 0 ? chronological[index - 1] : null
       const window = chronological.slice(Math.max(0, index - 7), index)
+      const prevCostDelta = previous && previous.totalCost > 0 ? ((day.totalCost - previous.totalCost) / previous.totalCost) * 100 : null
+      const avgCost7 = window.length > 0 ? window.reduce((sum, item) => sum + item.totalCost, 0) / window.length : null
+      const avgRequests7 = window.length > 0 ? window.reduce((sum, item) => sum + item.requestCount, 0) / window.length : null
       map.set(day.date, {
-        prevCostDelta: previous && previous.totalCost > 0 ? ((day.totalCost - previous.totalCost) / previous.totalCost) * 100 : undefined,
-        avgCost7: window.length > 0 ? window.reduce((sum, item) => sum + item.totalCost, 0) / window.length : undefined,
-        avgRequests7: window.length > 0 ? window.reduce((sum, item) => sum + item.requestCount, 0) / window.length : undefined,
+        ...(prevCostDelta !== null ? { prevCostDelta } : {}),
+        ...(avgCost7 !== null ? { avgCost7 } : {}),
+        ...(avgRequests7 !== null ? { avgRequests7 } : {}),
       })
     })
     return map
