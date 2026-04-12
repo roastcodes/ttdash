@@ -86,7 +86,7 @@ function ScatterTooltip({
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">{t('charts.correlation.tokensLabel')}</span>
               <span className="font-mono font-medium">
-                {point.tokens ? formatTokens(point.tokens) : '–'}
+                {point.tokens !== undefined ? formatTokens(point.tokens) : '–'}
               </span>
             </div>
           </>

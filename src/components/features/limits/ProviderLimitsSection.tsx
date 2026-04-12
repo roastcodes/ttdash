@@ -300,8 +300,9 @@ export function ProviderLimitsSection({
             row.monthlyLimit > 0 ? Math.min((row.cost / row.monthlyLimit) * 100, 100) : 0
           const subscriptionProgress =
             row.hasSubscription && row.subscriptionPrice > 0
-              ? Math.min((row.cost / row.subscriptionPrice) * 100, 100)
+              ? (row.cost / row.subscriptionPrice) * 100
               : 0
+          const subscriptionProgressWidth = Math.min(subscriptionProgress, 100)
 
           return (
             <motion.div
@@ -427,7 +428,7 @@ export function ProviderLimitsSection({
                             initial={{ width: 0 }}
                             animate={
                               inView
-                                ? { width: `${Math.max(8, subscriptionProgress)}%` }
+                                ? { width: `${Math.max(8, subscriptionProgressWidth)}%` }
                                 : { width: 0 }
                             }
                             transition={{
@@ -869,7 +870,10 @@ export function ProviderLimitsSection({
                       tickLine={false}
                     />
                     <YAxis
-                      tickFormatter={(value) => formatCurrency(Math.abs(coerceNumber(value)))}
+                      tickFormatter={(value) => {
+                        const numericValue = coerceNumber(value)
+                        return numericValue === null ? '' : formatCurrency(Math.abs(numericValue))
+                      }}
                       stroke={CHART_COLORS.axis}
                       fontSize={11}
                       tickLine={false}

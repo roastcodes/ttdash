@@ -55,7 +55,10 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                   tickLine={false}
                 />
                 <YAxis
-                  tickFormatter={(value) => formatCurrency(coerceNumber(value))}
+                  tickFormatter={(value) => {
+                    const numericValue = coerceNumber(value)
+                    return numericValue === null ? '' : formatCurrency(numericValue)
+                  }}
                   stroke={CHART_COLORS.axis}
                   fontSize={11}
                   tickLine={false}
@@ -122,7 +125,10 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                   tickLine={false}
                 />
                 <YAxis
-                  tickFormatter={(value) => formatCurrency(coerceNumber(value))}
+                  tickFormatter={(value) => {
+                    const numericValue = coerceNumber(value)
+                    return numericValue === null ? '' : formatCurrency(numericValue)
+                  }}
                   stroke={CHART_COLORS.axis}
                   fontSize={11}
                   tickLine={false}

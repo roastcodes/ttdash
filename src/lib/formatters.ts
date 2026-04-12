@@ -15,17 +15,17 @@ export function localMonth(): string {
   return localToday().slice(0, 7)
 }
 
-export function coerceNumber(value: unknown): number {
+export function coerceNumber(value: unknown): number | null {
   if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : 0
+    return Number.isFinite(value) ? value : null
   }
 
   if (typeof value === 'string') {
     const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : 0
+    return Number.isFinite(parsed) ? parsed : null
   }
 
-  return 0
+  return null
 }
 
 export function formatCurrency(value: number): string {
@@ -122,8 +122,16 @@ export function periodUnit(viewMode: 'daily' | 'monthly' | 'yearly'): string {
 }
 
 export function formatMonthYear(dateStr: string): string {
-  const [year = '0', month = '1'] = dateStr.split('-')
-  const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1)
+  if (!/^\d{4}-\d{2}$/.test(dateStr)) return ''
+
+  const [year = '', month = ''] = dateStr.split('-')
+  const parsedYear = Number.parseInt(year, 10)
+  const parsedMonth = Number.parseInt(month, 10)
+
+  if (!Number.isInteger(parsedYear) || !Number.isInteger(parsedMonth)) return ''
+  if (parsedMonth < 1 || parsedMonth > 12) return ''
+
+  const date = new Date(parsedYear, parsedMonth - 1)
   return date.toLocaleDateString(getCurrentLocale(), { month: 'long', year: 'numeric' })
 }
 

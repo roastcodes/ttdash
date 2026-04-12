@@ -87,7 +87,10 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
                 <XAxis dataKey="day" stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
                 <YAxis
-                  tickFormatter={(value) => formatCurrency(coerceNumber(value))}
+                  tickFormatter={(value) => {
+                    const numericValue = coerceNumber(value)
+                    return numericValue === null ? '' : formatCurrency(numericValue)
+                  }}
                   stroke={CHART_COLORS.axis}
                   fontSize={11}
                   tickLine={false}

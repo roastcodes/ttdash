@@ -44,7 +44,7 @@ function recalculateDayFromBreakdowns(
     thinkingTokens,
     requestCount,
     modelBreakdowns: filteredBreakdowns,
-    modelsUsed: filteredBreakdowns.map((mb) => mb.modelName),
+    modelsUsed: [...new Set(filteredBreakdowns.map((mb) => normalizeModelName(mb.modelName)))],
   }
 }
 

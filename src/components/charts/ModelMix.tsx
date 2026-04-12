@@ -111,7 +111,10 @@ export function ModelMix({ data }: ModelMixProps) {
                   tickLine={false}
                 />
                 <YAxis
-                  tickFormatter={(value) => formatPercent(Math.round(coerceNumber(value)), 0)}
+                  tickFormatter={(value) => {
+                    const numericValue = coerceNumber(value)
+                    return numericValue === null ? '' : formatPercent(Math.round(numericValue), 0)
+                  }}
                   stroke={CHART_COLORS.axis}
                   fontSize={11}
                   tickLine={false}

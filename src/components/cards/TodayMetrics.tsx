@@ -24,6 +24,7 @@ interface TodayMetricsProps {
 
 export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
   const { t } = useTranslation()
+  const modelsCount = today.modelsUsed?.length ?? 0
   const cacheHitRate =
     today.cacheReadTokens + today.cacheCreationTokens > 0
       ? (today.cacheReadTokens /
@@ -61,9 +62,9 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
       ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) })
       : null
   const requestsSubtitle =
-    today.requestCount > 0 && today.modelsUsed.length > 0
+    today.requestCount > 0 && modelsCount > 0
       ? t('metricCards.today.requestsSubtitle', {
-          value: (today.requestCount / today.modelsUsed.length).toFixed(1),
+          value: (today.requestCount / modelsCount).toFixed(1),
           cost: formatCurrency(today.totalCost / today.requestCount),
         })
       : t('metricCards.today.requestCountersMissing')
@@ -109,7 +110,7 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
           />
           <MetricCard
             label={t('metricCards.today.models')}
-            value={String(today.modelsUsed?.length ?? 0)}
+            value={String(modelsCount)}
             icon={<Cpu className="h-4 w-4" />}
             {...(modelSubtitle ? { subtitle: modelSubtitle } : {})}
           />

@@ -22,7 +22,32 @@ describe('ProviderLimitsSection', () => {
     render(
       <TooltipProvider>
         <ProviderLimitsSection
-          data={[]}
+          data={[
+            {
+              date: '2026-04-06',
+              inputTokens: 50,
+              outputTokens: 25,
+              cacheCreationTokens: 0,
+              cacheReadTokens: 0,
+              thinkingTokens: 0,
+              totalTokens: 75,
+              totalCost: 120,
+              requestCount: 2,
+              modelsUsed: ['claude-sonnet-4-6'],
+              modelBreakdowns: [
+                {
+                  modelName: 'claude-sonnet-4-6',
+                  inputTokens: 50,
+                  outputTokens: 25,
+                  cacheCreationTokens: 0,
+                  cacheReadTokens: 0,
+                  thinkingTokens: 0,
+                  cost: 120,
+                  requestCount: 2,
+                },
+              ],
+            },
+          ]}
           providers={['OpenAI', 'Anthropic', 'OpenCode']}
           limits={{
             OpenAI: {
@@ -41,13 +66,13 @@ describe('ProviderLimitsSection', () => {
               monthlyLimit: 0,
             },
           }}
-          selectedMonth={null}
+          selectedMonth="2026-04"
         />
       </TooltipProvider>,
     )
 
     expect(screen.getByText('0% Limit')).toBeInTheDocument()
-    expect(screen.getByText('0% Abo')).toBeInTheDocument()
+    expect(screen.getByText('240% Abo')).toBeInTheDocument()
     expect(screen.getByText('Offen')).toBeInTheDocument()
   })
 })

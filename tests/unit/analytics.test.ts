@@ -12,7 +12,7 @@ describe('dashboard analytics', () => {
       totalCost: 6,
       totalTokens: 210,
       requestCount: 3,
-      modelsUsed: ['gpt-5.4'],
+      modelsUsed: ['GPT-5.4'],
     })
   })
 

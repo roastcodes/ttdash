@@ -76,6 +76,8 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
 
   if (!day) return null
 
+  const hasTokens = day.totalTokens > 0
+
   const cacheRate =
     day.cacheReadTokens +
       day.cacheCreationTokens +
@@ -95,6 +97,7 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
   const pieData = modelData.map((m) => ({ name: m.name, value: m.cost }))
   const avgTokensPerRequest = day.requestCount > 0 ? day.totalTokens / day.requestCount : 0
   const avgCostPerRequest = day.requestCount > 0 ? day.totalCost / day.requestCount : 0
+  const costPerMillion = hasTokens ? day.totalCost / (day.totalTokens / 1_000_000) : null
   const costRanking =
     [...contextData]
       .sort((a, b) => b.totalCost - a.totalCost)
@@ -122,6 +125,8 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
     },
     null as (typeof modelData)[number] | null,
   )
+  const formatTokenShare = (value: number) =>
+    hasTokens ? formatPercent((value / day.totalTokens) * 100) : '–'
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -146,10 +151,11 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
           <div className="p-2 rounded-lg bg-muted/30">
             <div className="text-xs text-muted-foreground">$/1M</div>
             <div className="font-mono font-medium">
-              <FormattedValue
-                value={day.totalCost / (day.totalTokens / 1_000_000)}
-                type="currency"
-              />
+              {costPerMillion !== null ? (
+                <FormattedValue value={costPerMillion} type="currency" />
+              ) : (
+                '–'
+              )}
             </div>
           </div>
           <div className="p-2 rounded-lg bg-muted/30">
@@ -225,7 +231,7 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
         <div>
           <div className="text-xs text-muted-foreground mb-1.5">Token-Verteilung</div>
           <div className="flex h-3 rounded-full overflow-hidden">
-            {day.totalTokens > 0 &&
+            {hasTokens &&
               (
                 [
                   { value: day.cacheReadTokens, color: 'hsl(160, 50%, 42%)', label: 'Cache Read' },
@@ -256,35 +262,35 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: 'hsl(160, 50%, 42%)' }}
               />
-              Cache Read {formatPercent((day.cacheReadTokens / day.totalTokens) * 100)}
+              Cache Read {formatTokenShare(day.cacheReadTokens)}
             </span>
             <span className="flex items-center gap-1">
               <span
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: 'hsl(262, 60%, 55%)' }}
               />
-              Cache Write {formatPercent((day.cacheCreationTokens / day.totalTokens) * 100)}
+              Cache Write {formatTokenShare(day.cacheCreationTokens)}
             </span>
             <span className="flex items-center gap-1">
               <span
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: 'hsl(340, 55%, 52%)' }}
               />
-              Input {formatPercent((day.inputTokens / day.totalTokens) * 100)}
+              Input {formatTokenShare(day.inputTokens)}
             </span>
             <span className="flex items-center gap-1">
               <span
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: 'hsl(35, 80%, 52%)' }}
               />
-              Output {formatPercent((day.outputTokens / day.totalTokens) * 100)}
+              Output {formatTokenShare(day.outputTokens)}
             </span>
             <span className="flex items-center gap-1">
               <span
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: 'hsl(12, 78%, 56%)' }}
               />
-              Thinking {formatPercent((day.thinkingTokens / day.totalTokens) * 100)}
+              Thinking {formatTokenShare(day.thinkingTokens)}
             </span>
           </div>
         </div>
