@@ -58,10 +58,13 @@ describe('report utils', () => {
   })
 
   it('formats compact chart axes for the current language', async () => {
-    const { formatCompactAxis } = await import('../../server/report/utils.js')
+    const { formatCompact, formatCompactAxis } = await import('../../server/report/utils.js')
 
+    expect(formatCompact(1500, 'en')).toBe('1.5k')
+    expect(formatCompact(1500, 'de')).toBe('1.5 Tsd.')
     expect(formatCompactAxis(1500, 'en')).toBe('1.5k')
     expect(formatCompactAxis(1500, 'de')).toBe('1.5 Tsd.')
+    expect(formatCompact(2500000, 'de')).toBe('2.5 Mio.')
     expect(formatCompactAxis(2500000, 'de')).toBe('2.5 Mio.')
   })
 
@@ -109,5 +112,25 @@ describe('report utils', () => {
 
     expect(report.labels.topModel).toContain(report.summaryCards[4].note)
     expect(report.labels.topProvider).toContain(report.summaryCards[0].note.replace(`${report.metrics.topProvider?.name} `, ''))
+  })
+
+  it('uses period averages for aggregated summary cards', async () => {
+    const { buildReportData } = await import('../../server/report/utils.js')
+
+    const monthlyReport = buildReportData(dashboardFixture, {
+      viewMode: 'monthly',
+      language: 'en',
+    })
+    const yearlyReport = buildReportData(dashboardFixture, {
+      viewMode: 'yearly',
+      language: 'en',
+    })
+
+    expect(monthlyReport.summaryCards[3].label).toBe('Ø Cost / month')
+    expect(monthlyReport.meta.periods).toBe(2)
+    expect(monthlyReport.summaryCards[3].value).toBe('$15.00')
+    expect(yearlyReport.summaryCards[3].label).toBe('Ø Cost / year')
+    expect(yearlyReport.summaryCards[3].value).toBe('$30.00')
+    expect(monthlyReport.summaryCards[3].value).not.toBe('$7.50')
   })
 })

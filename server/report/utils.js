@@ -527,14 +527,6 @@ function formatInteger(value, language = 'de') {
   return Math.round(value || 0).toLocaleString(getLocale(language));
 }
 
-function formatCompact(value, language = 'de') {
-  if (!Number.isFinite(value)) return '0';
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`;
-  return formatInteger(value, language);
-}
-
 function formatPercent(value, language = 'de') {
   return `${(value || 0).toLocaleString(getLocale(language), {
     minimumFractionDigits: 1,
@@ -542,7 +534,7 @@ function formatPercent(value, language = 'de') {
   })}%`;
 }
 
-function formatCompactAxis(value, language = 'de') {
+function formatCompactNumber(value, language = 'de') {
   if (!Number.isFinite(value)) return '0';
 
   const abs = Math.abs(value);
@@ -550,20 +542,37 @@ function formatCompactAxis(value, language = 'de') {
 
   if (abs >= 1e9) {
     const suffix = language === 'en' ? 'B' : ' Mrd.';
-    return `${(value / 1e9).toLocaleString(locale, { maximumFractionDigits: 1 })}${suffix}`;
+    return `${(value / 1e9).toLocaleString(locale, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })}${suffix}`;
   }
 
   if (abs >= 1e6) {
     const suffix = language === 'en' ? 'M' : ' Mio.';
-    return `${(value / 1e6).toLocaleString(locale, { maximumFractionDigits: 1 })}${suffix}`;
+    return `${(value / 1e6).toLocaleString(locale, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })}${suffix}`;
   }
 
   if (abs >= 1e3) {
     const suffix = language === 'en' ? 'k' : ' Tsd.';
-    return `${(value / 1e3).toLocaleString(locale, { maximumFractionDigits: 1 })}${suffix}`;
+    return `${(value / 1e3).toLocaleString(locale, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })}${suffix}`;
   }
 
   return formatInteger(value, language);
+}
+
+function formatCompact(value, language = 'de') {
+  return formatCompactNumber(value, language);
+}
+
+function formatCompactAxis(value, language = 'de') {
+  return formatCompactNumber(value, language);
 }
 
 function summarizeSelection(values, language, { emptyKey, maxVisible = 3, normalize = (value) => value } = {}) {
@@ -690,6 +699,7 @@ function buildReportData(allDailyData, options = {}) {
   const topModelValue = metrics.topModel ? metrics.topModel.name : notAvailable;
   const topProviderValue = metrics.topProvider ? metrics.topProvider.name : notAvailable;
   const insights = buildInsights(metrics, { filteredDaily, filtered, language });
+  const avgPeriodCost = filtered.length > 0 ? metrics.totalCost / filtered.length : 0;
   const recentRows = sortByDate(filtered).slice(-12).reverse().map((entry) => ({
     period: entry.date,
     label: formatDate(entry.date, 'long', language),
@@ -705,7 +715,7 @@ function buildReportData(allDailyData, options = {}) {
     { label: translate(language, 'common.costs'), value: formatCurrency(metrics.totalCost, language), note: metrics.topProvider ? `${metrics.topProvider.name} ${formatPercent(metrics.topProvider.share, language)}` : notAvailable, tone: 'accent' },
     { label: translate(language, 'common.tokens'), value: formatCompact(metrics.totalTokens, language), note: `CPM ${formatCurrency(metrics.costPerMillion, language)}`, tone: 'accent' },
     { label: translate(language, 'common.requests'), value: formatInteger(metrics.totalRequests, language), note: metrics.hasRequestData ? `${formatPercent(metrics.cacheHitRate, language)} Cache` : notAvailable, tone: 'good' },
-    { label: `Ø ${translate(language, 'common.cost')} / ${periodLabel}`, value: formatCurrency(metrics.avgDailyCost, language), note: `${reportDataLabel(filters.viewMode, language)}`, tone: 'accent' },
+    { label: `Ø ${translate(language, 'common.cost')} / ${periodLabel}`, value: formatCurrency(avgPeriodCost, language), note: `${reportDataLabel(filters.viewMode, language)}`, tone: 'accent' },
     { label: translate(language, 'common.model'), value: topModelValue, note: metrics.topModel ? formatPercent(metrics.topModelShare, language) : notAvailable, tone: 'warn' },
     { label: translate(language, 'report.summary.peakPeriod'), value: peakPeriodLabel, note: metrics.topDay ? formatCurrency(metrics.topDay.cost, language) : notAvailable, tone: 'warn' },
   ];
