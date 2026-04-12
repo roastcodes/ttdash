@@ -98,4 +98,16 @@ describe('report utils', () => {
     expect(report.insights.items.some((item: { body: string }) => item.body.includes('%'))).toBe(true)
     expect(report.text.headerEyebrow).toBe('TTDash PDF-Bericht')
   })
+
+  it('uses locale-aware percent formatting for top model and provider labels', async () => {
+    const { buildReportData } = await import('../../server/report/utils.js')
+
+    const report = buildReportData(dashboardFixture, {
+      viewMode: 'daily',
+      language: 'de',
+    })
+
+    expect(report.labels.topModel).toContain(report.summaryCards[4].note)
+    expect(report.labels.topProvider).toContain(report.summaryCards[0].note.replace(`${report.metrics.topProvider?.name} `, ''))
+  })
 })

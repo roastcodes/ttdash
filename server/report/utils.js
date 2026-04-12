@@ -776,8 +776,8 @@ function buildReportData(allDailyData, options = {}) {
     recentPeriods: recentRows,
     labels: {
       dateRangeText: dateRange ? `${formatDate(dateRange.start, 'long', language)} - ${formatDate(dateRange.end, 'long', language)}` : translate(language, 'common.noData'),
-      topModel: metrics.topModel ? `${metrics.topModel.name} (${metrics.topModelShare.toFixed(1)}%)` : notAvailable,
-      topProvider: metrics.topProvider ? `${metrics.topProvider.name} (${metrics.topProvider.share.toFixed(1)}%)` : notAvailable,
+      topModel: metrics.topModel ? `${metrics.topModel.name} (${formatPercent(metrics.topModelShare, language)})` : notAvailable,
+      topProvider: metrics.topProvider ? `${metrics.topProvider.name} (${formatPercent(metrics.topProvider.share, language)})` : notAvailable,
       topDay: metrics.topDay ? `${formatDate(metrics.topDay.date, 'long', language)} (${formatCurrency(metrics.topDay.cost, language)})` : notAvailable,
     },
     interpretation: {
