@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [6.1.6] - 2026-04-13
+
+### Added
+
+- **Striktere Code-Quality-Gates** — ESLint, typed TypeScript-ESLint-Regeln und Prettier sind jetzt vollständig im Repo eingerichtet und als verbindliche Prüfungen in den lokalen Verify-Pfad sowie die GitHub-Workflows integriert
+- **Gezielte Infrastruktur-Tests** — neue Unit-Tests decken die Server-Helfer für Runner-Auflösung und Portsuche sowie die gemeinsame Modellnormalisierung und die Limits-Badge-Logik explizit ab
+
+### Improved
+
+- **TypeScript-Hardening** — die Compiler-Konfiguration ist jetzt deutlich strenger und nutzt zusätzliche Best-Practice-Flags wie `noImplicitReturns`, `noImplicitOverride`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` und weitere Konsistenz-Gates
+- **Konsistente Modellnormalisierung** — UI und PDF-/Report-Pfad verwenden jetzt dieselbe datengetriebene Normalisierung und Provider-Zuordnung für aktuelle `toktrack`-Modellfamilien wie Claude, GPT, Gemini, Codex, OpenAI-`o` und OpenCode
+- **Maintainer- und Release-Tooling** — README, Contribution-, Release- und Agent-Dokumentation wurden an die neuen Lint-, Format- und Verify-Workflows angepasst; GitHub Actions nutzt jetzt zusätzlich SHA-gepinnte Actions, minimale App-Token-Rechte und ein dediziertes Release-Environment
+- **Konfigurationsklarheit** — die Vitest-Konfiguration dokumentiert jetzt explizit, warum die asynchrone Vite-Config vor dem Mergen manuell aufgelöst wird
+
+### Fixed
+
+- **Unbenutzter Code und Compiler-Warnpfade** — ungenutzte Imports, Helpers und Parameter wurden entfernt oder bereinigt, sodass die neuen Compiler- und Lint-Gates auf dem gesamten Repo sauber greifen
+- **Server-Runner und Portsuche** — die Windows-/Cross-Platform-Runner-Auflösung ist weniger dupliziert, und die Portsuche für den lokalen Server läuft jetzt iterativ statt rekursiv
+- **Kleine UI-Wartbarkeitsprobleme** — redundante Drill-Down-Modal-Logik und schwer lesbare Badge-Bedingungen in der Limits-Sektion wurden vereinfacht, ohne das Verhalten zu ändern
+
 ## [6.1.5] - 2026-04-12
 
 ### Added
