@@ -539,6 +539,104 @@ function formatPercent(value) {
   return `${(value || 0).toFixed(1)}%`;
 }
 
+function formatCompactAxis(value, language = 'de') {
+  if (!Number.isFinite(value)) return '0';
+
+  const abs = Math.abs(value);
+  const locale = getLocale(language);
+
+  if (abs >= 1e9) {
+    const suffix = language === 'en' ? 'B' : ' Mrd.';
+    return `${(value / 1e9).toLocaleString(locale, { maximumFractionDigits: 1 })}${suffix}`;
+  }
+
+  if (abs >= 1e6) {
+    const suffix = language === 'en' ? 'M' : ' Mio.';
+    return `${(value / 1e6).toLocaleString(locale, { maximumFractionDigits: 1 })}${suffix}`;
+  }
+
+  if (abs >= 1e3) {
+    const suffix = language === 'en' ? 'k' : ' Tsd.';
+    return `${(value / 1e3).toLocaleString(locale, { maximumFractionDigits: 1 })}${suffix}`;
+  }
+
+  return formatInteger(value, language);
+}
+
+function summarizeSelection(values, language, { emptyKey, maxVisible = 3, normalize = (value) => value } = {}) {
+  const normalized = (values || [])
+    .map(normalize)
+    .filter(Boolean);
+
+  if (normalized.length === 0) {
+    return translate(language, emptyKey);
+  }
+
+  const visible = normalized.slice(0, maxVisible);
+  const hidden = normalized.length - visible.length;
+  const suffix = hidden > 0
+    ? ` ${translate(language, 'report.filters.andMore', { count: hidden })}`
+    : '';
+
+  return `${visible.join(', ')}${suffix}`;
+}
+
+function truncateLabel(value, maxLength = 28) {
+  const stringValue = String(value || '');
+  if (stringValue.length <= maxLength) return stringValue;
+  return `${stringValue.slice(0, Math.max(1, maxLength - 1)).trimEnd()}…`;
+}
+
+function buildInsights(metrics, { filteredDaily, filtered, language }) {
+  const insights = [];
+
+  if (filteredDaily.length > 0 && (filteredDaily.length < 7 || filtered.length < 4)) {
+    insights.push({
+      tone: 'warn',
+      title: translate(language, 'report.insights.coverageTitle'),
+      body: translate(language, 'report.insights.coverageBody', {
+        days: formatInteger(filteredDaily.length, language),
+        periods: formatInteger(filtered.length, language),
+      }),
+    });
+  }
+
+  if (metrics.topProvider) {
+    insights.push({
+      tone: metrics.topProvider.share >= 60 ? 'warn' : 'accent',
+      title: translate(language, 'report.insights.providerTitle'),
+      body: translate(language, 'report.insights.providerBody', {
+        provider: metrics.topProvider.name,
+        share: formatPercent(metrics.topProvider.share),
+      }),
+    });
+  }
+
+  if (metrics.hasRequestData && metrics.cacheHitRate > 0) {
+    insights.push({
+      tone: metrics.cacheHitRate >= 20 ? 'good' : 'accent',
+      title: translate(language, 'report.insights.cacheTitle'),
+      body: translate(language, 'report.insights.cacheBody', {
+        share: formatPercent(metrics.cacheHitRate),
+      }),
+    });
+  }
+
+  if (metrics.busiestWeek) {
+    insights.push({
+      tone: 'accent',
+      title: translate(language, 'report.insights.peakWindowTitle'),
+      body: translate(language, 'report.insights.peakWindowBody', {
+        start: formatDate(metrics.busiestWeek.start, 'long', language),
+        end: formatDate(metrics.busiestWeek.end, 'long', language),
+        cost: formatCurrency(metrics.busiestWeek.cost, language),
+      }),
+    });
+  }
+
+  return insights.slice(0, 4);
+}
+
 function periodUnit(viewMode, language = 'de') {
   if (viewMode === 'monthly') return translate(language, 'periods.month');
   if (viewMode === 'yearly') return translate(language, 'periods.year');
@@ -573,6 +671,22 @@ function buildReportData(allDailyData, options = {}) {
   const metrics = computeMetrics(filtered);
   const modelRows = computeModelRows(filtered).slice(0, 12);
   const providerRows = computeProviderRows(filtered).slice(0, 8);
+  const periodLabel = periodUnit(filters.viewMode, language);
+  const notAvailable = translate(language, 'report.common.notAvailable');
+  const selectedProvidersLabel = summarizeSelection(filters.selectedProviders, language, {
+    emptyKey: 'report.filters.all',
+  });
+  const selectedModelsLabel = summarizeSelection(filters.selectedModels, language, {
+    emptyKey: 'report.filters.all',
+    normalize: normalizeModelName,
+  });
+  const monthLabel = formatFilterValue(filters.selectedMonth, language) || translate(language, 'report.filters.all');
+  const startDateLabel = formatFilterValue(filters.startDate || null, language) || translate(language, 'report.filters.noFilter');
+  const endDateLabel = formatFilterValue(filters.endDate || null, language) || translate(language, 'report.filters.noFilter');
+  const peakPeriodLabel = metrics.topDay ? formatDate(metrics.topDay.date, 'long', language) : notAvailable;
+  const topModelValue = metrics.topModel ? metrics.topModel.name : notAvailable;
+  const topProviderValue = metrics.topProvider ? metrics.topProvider.name : notAvailable;
+  const insights = buildInsights(metrics, { filteredDaily, filtered, language });
   const recentRows = sortByDate(filtered).slice(-12).reverse().map((entry) => ({
     period: entry.date,
     label: formatDate(entry.date, 'long', language),
@@ -585,13 +699,25 @@ function buildReportData(allDailyData, options = {}) {
   }));
 
   const summaryCards = [
-    { label: translate(language, 'common.costs'), value: formatCurrency(metrics.totalCost, language), note: metrics.topProvider ? `${metrics.topProvider.name} ${formatPercent(metrics.topProvider.share)}` : 'n/a', tone: 'accent' },
+    { label: translate(language, 'common.costs'), value: formatCurrency(metrics.totalCost, language), note: metrics.topProvider ? `${metrics.topProvider.name} ${formatPercent(metrics.topProvider.share)}` : notAvailable, tone: 'accent' },
     { label: translate(language, 'common.tokens'), value: formatCompact(metrics.totalTokens, language), note: `CPM ${formatCurrency(metrics.costPerMillion, language)}`, tone: 'accent' },
-    { label: translate(language, 'common.requests'), value: formatInteger(metrics.totalRequests, language), note: metrics.hasRequestData ? `${formatPercent(metrics.cacheHitRate)} Cache` : 'n/a', tone: 'good' },
-    { label: `Ø ${translate(language, 'common.cost')} / ${periodUnit(filters.viewMode, language)}`, value: formatCurrency(metrics.avgDailyCost, language), note: `${reportDataLabel(filters.viewMode, language)}`, tone: 'accent' },
-    { label: translate(language, 'common.model'), value: metrics.topModel ? metrics.topModel.name : 'n/a', note: metrics.topModel ? formatPercent(metrics.topModelShare) : 'n/a', tone: 'warn' },
-    { label: translate(language, 'common.dateRange'), value: metrics.topDay ? metrics.topDay.date : 'n/a', note: metrics.topDay ? formatCurrency(metrics.topDay.cost, language) : 'n/a', tone: 'warn' },
+    { label: translate(language, 'common.requests'), value: formatInteger(metrics.totalRequests, language), note: metrics.hasRequestData ? `${formatPercent(metrics.cacheHitRate)} Cache` : notAvailable, tone: 'good' },
+    { label: `Ø ${translate(language, 'common.cost')} / ${periodLabel}`, value: formatCurrency(metrics.avgDailyCost, language), note: `${reportDataLabel(filters.viewMode, language)}`, tone: 'accent' },
+    { label: translate(language, 'common.model'), value: topModelValue, note: metrics.topModel ? formatPercent(metrics.topModelShare) : notAvailable, tone: 'warn' },
+    { label: translate(language, 'report.summary.peakPeriod'), value: peakPeriodLabel, note: metrics.topDay ? formatCurrency(metrics.topDay.cost, language) : notAvailable, tone: 'warn' },
   ];
+
+  const interpretationSummary = translate(language, 'report.interpretation.summary', {
+    days: formatInteger(filteredDaily.length, language),
+    periods: formatInteger(filtered.length, language),
+    peak: peakPeriodLabel,
+    topModel: topModelValue,
+    topProvider: topProviderValue,
+  });
+
+  const interpretationFooter = translate(language, 'report.interpretation.footer', {
+    version: APP_VERSION,
+  });
 
   return {
     meta: {
@@ -607,20 +733,23 @@ function buildReportData(allDailyData, options = {}) {
       }),
       reportTitle: options.reportTitle || translate(language, 'report.title'),
       filterSummary: {
+        viewModeKey: filters.viewMode,
         viewMode: translate(language, `viewModes.${filters.viewMode}`),
         selectedMonth: filters.selectedMonth,
-        selectedMonthLabel: formatFilterValue(filters.selectedMonth, language),
+        selectedMonthLabel: monthLabel,
         selectedProviders: filters.selectedProviders,
+        selectedProvidersLabel,
         selectedModels: filters.selectedModels,
+        selectedModelsLabel,
         startDate: filters.startDate || null,
-        startDateLabel: formatFilterValue(filters.startDate || null, language),
+        startDateLabel,
         endDate: filters.endDate || null,
-        endDateLabel: formatFilterValue(filters.endDate || null, language),
+        endDateLabel,
       },
       dateRange,
       periods: filtered.length,
       days: filteredDaily.length,
-      periodUnit: periodUnit(filters.viewMode, language),
+      periodUnit: periodLabel,
     },
     metrics,
     summaryCards,
@@ -644,9 +773,54 @@ function buildReportData(allDailyData, options = {}) {
     recentPeriods: recentRows,
     labels: {
       dateRangeText: dateRange ? `${formatDate(dateRange.start, 'long', language)} - ${formatDate(dateRange.end, 'long', language)}` : translate(language, 'common.noData'),
-      topModel: metrics.topModel ? `${metrics.topModel.name} (${metrics.topModelShare.toFixed(1)}%)` : 'n/a',
-      topProvider: metrics.topProvider ? `${metrics.topProvider.name} (${metrics.topProvider.share.toFixed(1)}%)` : 'n/a',
-      topDay: metrics.topDay ? `${formatDate(metrics.topDay.date, 'long', language)} (${metrics.topDay.cost.toFixed(2)} USD)` : 'n/a',
+      topModel: metrics.topModel ? `${metrics.topModel.name} (${metrics.topModelShare.toFixed(1)}%)` : notAvailable,
+      topProvider: metrics.topProvider ? `${metrics.topProvider.name} (${metrics.topProvider.share.toFixed(1)}%)` : notAvailable,
+      topDay: metrics.topDay ? `${formatDate(metrics.topDay.date, 'long', language)} (${formatCurrency(metrics.topDay.cost, language)})` : notAvailable,
+    },
+    interpretation: {
+      summary: interpretationSummary,
+      footer: interpretationFooter,
+    },
+    insights: {
+      items: insights,
+    },
+    text: {
+      headerEyebrow: translate(language, 'report.header.eyebrow'),
+      sections: {
+        overview: translate(language, 'report.sections.overview'),
+        insights: translate(language, 'report.sections.insights'),
+        filters: translate(language, 'report.sections.filters'),
+        modelsProviders: translate(language, 'report.sections.modelsProviders'),
+        recentPeriods: translate(language, 'report.sections.recentPeriods'),
+        interpretation: translate(language, 'report.sections.interpretation'),
+      },
+      fields: {
+        dateRange: translate(language, 'report.fields.dateRange'),
+        view: translate(language, 'report.fields.view'),
+        generated: translate(language, 'report.fields.generated'),
+        month: translate(language, 'report.fields.month'),
+        selectedProviders: translate(language, 'report.fields.selectedProviders'),
+        selectedModels: translate(language, 'report.fields.selectedModels'),
+        startDate: translate(language, 'report.fields.startDate'),
+        endDate: translate(language, 'report.fields.endDate'),
+      },
+      tables: {
+        topModels: translate(language, 'report.tables.topModels'),
+        providers: translate(language, 'report.tables.providers'),
+        columns: {
+          model: translate(language, 'report.tables.columns.model'),
+          provider: translate(language, 'report.tables.columns.provider'),
+          cost: translate(language, 'report.tables.columns.cost'),
+          tokens: translate(language, 'report.tables.columns.tokens'),
+          requests: translate(language, 'report.tables.columns.requests'),
+          period: translate(language, 'report.tables.columns.period'),
+        },
+      },
+      charts: {
+        costTrend: translate(language, 'report.charts.costTrend'),
+        topModels: translate(language, 'report.charts.topModels'),
+        tokenTrend: translate(language, 'report.charts.tokenTrend'),
+      },
     },
     formatting: {
       axisDates: filtered.map((entry) => ({ date: entry.date, label: formatDateAxis(entry.date, language) })),
@@ -668,7 +842,11 @@ function reportDataLabel(viewMode, language = 'de') {
 module.exports = {
   applyReportFilters,
   buildReportData,
+  formatCompact,
+  formatCompactAxis,
+  formatCurrency,
   formatDate,
   formatDateAxis,
   getModelColor,
+  truncateLabel,
 };

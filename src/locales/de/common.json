@@ -969,7 +969,70 @@
     }
   },
   "report": {
-    "title": "TTDash Report"
+    "title": "TTDash Report",
+    "common": {
+      "notAvailable": "n/a"
+    },
+    "header": {
+      "eyebrow": "TTDash PDF Report"
+    },
+    "summary": {
+      "peakPeriod": "Spitzenzeitraum"
+    },
+    "sections": {
+      "overview": "Überblick",
+      "insights": "Wichtigste Erkenntnisse",
+      "filters": "Filter",
+      "modelsProviders": "Modelle & Provider",
+      "recentPeriods": "Letzte Zeiträume",
+      "interpretation": "Interpretation"
+    },
+    "fields": {
+      "dateRange": "Zeitraum",
+      "view": "Ansicht",
+      "generated": "Generiert",
+      "month": "Monat",
+      "selectedProviders": "Ausgewählte Provider",
+      "selectedModels": "Ausgewählte Modelle",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum"
+    },
+    "filters": {
+      "all": "Alle",
+      "noFilter": "Kein Filter",
+      "andMore": "+{{count}} weitere"
+    },
+    "tables": {
+      "topModels": "Top-Modelle",
+      "providers": "Provider",
+      "columns": {
+        "model": "Modell",
+        "provider": "Provider",
+        "cost": "Kosten",
+        "tokens": "Tokens",
+        "requests": "Requests",
+        "period": "Zeitraum"
+      }
+    },
+    "charts": {
+      "costTrend": "Kostenverlauf",
+      "topModels": "Top-Modelle nach Kosten",
+      "tokenTrend": "Token-Mix pro Zeitraum"
+    },
+    "interpretation": {
+      "summary": "Dieser Report umfasst {{days}} Rohdaten-Tage und {{periods}} aggregierte Zeiträume. Spitzenzeitraum: {{peak}}. Top-Modell: {{topModel}}. Führender Provider: {{topProvider}}.",
+      "footer": "Erstellt mit TTDash v{{version}} und serverseitiger Typst-Kompilierung."
+    },
+    "insights": {
+      "coverageTitle": "Datenbasis",
+      "coverageBody": "Dieser Report basiert auf einer schmalen Datenbasis mit {{days}} Rohdaten-Tagen und {{periods}} aggregierten Zeiträumen. Trend-Aussagen sollten vorsichtig gelesen werden.",
+      "providerTitle": "Provider-Konzentration",
+      "providerBody": "{{provider}} steht für {{share}} der gesamten Report-Kosten.",
+      "cacheTitle": "Cache-Beitrag",
+      "cacheBody": "Cache-Reads machen im gewählten Zeitraum {{share}} der Token-Aktivität aus.",
+      "peakWindowTitle": "Stärkstes 7-Tage-Fenster",
+      "peakWindowBody": "Das stärkste rollierende 7-Tage-Fenster lag zwischen {{start}} und {{end}} mit insgesamt {{cost}} Kosten."
+    }
   },
   "api": {
     "fetchUsageFailed": "Fehler beim Laden der Daten",

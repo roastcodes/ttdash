@@ -7,15 +7,19 @@ const { generatePdfReport } = require('../server/report');
 const { buildReportData } = require('../server/report/utils');
 
 const root = path.resolve(__dirname, '..');
-const data = JSON.parse(fs.readFileSync(path.join(root, 'data.json'), 'utf8')).daily;
+const fixturePath = process.argv[2]
+  ? path.resolve(process.cwd(), process.argv[2])
+  : path.join(root, 'examples', 'sample-usage.json');
+const data = JSON.parse(fs.readFileSync(fixturePath, 'utf8')).daily;
 const outDir = path.join('/tmp', 'ttdash-report-matrix');
 
 fs.mkdirSync(outDir, { recursive: true });
 
 const cases = [
-  { name: 'daily-all', viewMode: 'daily', selectedMonth: null, selectedProviders: [], selectedModels: [] },
-  { name: 'monthly-all', viewMode: 'monthly', selectedMonth: null, selectedProviders: [], selectedModels: [] },
-  { name: 'yearly-all', viewMode: 'yearly', selectedMonth: null, selectedProviders: [], selectedModels: [] },
+  { name: 'daily-all-de', viewMode: 'daily', language: 'de', selectedMonth: null, selectedProviders: [], selectedModels: [] },
+  { name: 'daily-all-en', viewMode: 'daily', language: 'en', selectedMonth: null, selectedProviders: [], selectedModels: [] },
+  { name: 'monthly-all', viewMode: 'monthly', language: 'en', selectedMonth: null, selectedProviders: [], selectedModels: [] },
+  { name: 'yearly-all', viewMode: 'yearly', language: 'de', selectedMonth: null, selectedProviders: [], selectedModels: [] },
   { name: 'daily-anthropic', viewMode: 'daily', selectedMonth: null, selectedProviders: ['Anthropic'], selectedModels: [] },
   { name: 'daily-openai', viewMode: 'daily', selectedMonth: null, selectedProviders: ['OpenAI'], selectedModels: [] },
   { name: 'daily-google', viewMode: 'daily', selectedMonth: null, selectedProviders: ['Google'], selectedModels: [] },
@@ -43,10 +47,9 @@ async function main() {
         continue;
       }
 
-      const { pdfPath, tempDir, reportData: generated } = await generatePdfReport(data, testCase);
+      const { buffer, reportData: generated } = await generatePdfReport(data, testCase);
       const targetPdf = path.join(outDir, `${testCase.name}.pdf`);
-      fs.copyFileSync(pdfPath, targetPdf);
-      fs.rmSync(tempDir, { recursive: true, force: true });
+      fs.writeFileSync(targetPdf, buffer);
 
       const info = execFileSync('pdfinfo', [targetPdf], { encoding: 'utf8' });
       const text = execFileSync('pdftotext', [targetPdf, '-'], { encoding: 'utf8' });
@@ -56,8 +59,17 @@ async function main() {
       if (!text.includes(generated.meta.filterSummary.viewMode)) {
         throw new Error(`PDF text does not contain view mode ${generated.meta.filterSummary.viewMode}`);
       }
-      if (!text.includes(generated.labels.dateRangeText.split(' bis ')[0].slice(0, 6))) {
-        throw new Error('PDF text does not contain expected date range fragment');
+      if (!text.includes(generated.text.sections.overview)) {
+        throw new Error(`PDF text does not contain overview heading ${generated.text.sections.overview}`);
+      }
+      if (!text.includes(generated.text.sections.interpretation)) {
+        throw new Error(`PDF text does not contain interpretation heading ${generated.text.sections.interpretation}`);
+      }
+      if (!text.includes(generated.summaryCards[0].label)) {
+        throw new Error(`PDF text does not contain summary label ${generated.summaryCards[0].label}`);
+      }
+      if (generated.insights.items.length > 0 && !text.includes(generated.text.sections.insights)) {
+        throw new Error(`PDF text does not contain insights heading ${generated.text.sections.insights}`);
       }
 
       console.log(`[ok] ${testCase.name}: ${generated.meta.days} days, ${generated.meta.periods} periods`);
