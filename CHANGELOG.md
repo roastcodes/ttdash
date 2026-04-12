@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [6.1.5] - 2026-04-12
+
+### Added
+- **Report insight callouts** — the Typst PDF report now highlights key findings such as sparse data coverage, provider concentration, cache contribution, and the strongest rolling 7-day cost window
+- **Report chart test coverage** — dedicated unit tests now cover SVG chart formatting, localized axis rendering, and long-label truncation for the Typst report assets
+
+### Improved
+- **GitHub Actions Node 24 readiness** — the release workflow now pins `actions/create-github-app-token` to `v2.1.4`, aligning the release path with the current Node 24-compatible action runtime guidance
+- **Typst report structure** — the PDF layout now uses a clearer executive-summary flow with localized headings, prepared report text blocks, and more robust section rendering for filtered report scenarios
+- **Report localization and semantics** — peak-period labeling, interpretation text, filter summaries, and report-specific strings are now more precise and consistently localized in both German and English
+- **Report smoke verification** — the report smoke runner now works from checked-in fixture data, covers multiple language/view combinations, and validates generated PDF content more thoroughly
+
+### Fixed
+- **Report temp-file cleanup** — server-side PDF generation now cleans up Typst working directories internally even when compilation fails
+- **PDF response lifecycle** — the report API now returns the compiled PDF from memory instead of exposing temporary file paths, avoiding leaked temp directories and simplifying cleanup
+- **Chart formatting consistency** — token-axis labels and font fallbacks no longer depend on hardcoded locale/font assumptions that caused inconsistent PDF output across environments
+
 ## [6.1.4] - 2026-04-11
 
 ### Added
