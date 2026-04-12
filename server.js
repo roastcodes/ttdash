@@ -1410,6 +1410,22 @@ function shouldUseShell(command) {
   return IS_WINDOWS && /\.(cmd|bat)$/i.test(command);
 }
 
+function getExecutableName(baseName, isWindows = IS_WINDOWS) {
+  if (!isWindows) {
+    return baseName;
+  }
+
+  switch (baseName) {
+    case 'bun':
+    case 'bunx':
+      return 'bun.exe';
+    case 'npx':
+      return 'npx.cmd';
+    default:
+      return baseName;
+  }
+}
+
 function spawnCommand(command, args, options = {}) {
   return spawn(command, args, {
     ...options,
@@ -1438,9 +1454,9 @@ async function resolveToktrackRunner() {
     };
   }
 
-  if (await commandExists(IS_WINDOWS ? 'bun.exe' : 'bun')) {
+  if (await commandExists(getExecutableName('bun'))) {
     return {
-      command: IS_WINDOWS ? 'bun.exe' : 'bunx',
+      command: getExecutableName('bunx'),
       prefixArgs: IS_WINDOWS ? ['x', 'toktrack'] : ['toktrack'],
       env: process.env,
       method: 'bunx',
@@ -1449,9 +1465,9 @@ async function resolveToktrackRunner() {
     };
   }
 
-  if (await commandExists(IS_WINDOWS ? 'npx.cmd' : 'npx')) {
+  if (await commandExists(getExecutableName('npx'))) {
     return {
-      command: IS_WINDOWS ? 'npx.cmd' : 'npx',
+      command: getExecutableName('npx'),
       prefixArgs: ['--yes', 'toktrack'],
       env: {
         ...process.env,
@@ -1845,36 +1861,58 @@ const server = http.createServer(async (req, res) => {
   serveFile(res, filePath);
 });
 
-function tryListen(port) {
-  return new Promise((resolve, reject) => {
-    if (port > MAX_PORT) {
-      reject(new Error(`No free port found (${START_PORT}-${MAX_PORT})`));
-      return;
-    }
+function createNoFreePortError(rangeStartPort, maxPort) {
+  return new Error(`No free port found (${rangeStartPort}-${maxPort})`);
+}
 
-    const onError = (err) => {
-      server.off('listening', onListening);
-      if (err.code === 'EADDRINUSE') {
-        if (port >= MAX_PORT) {
-          reject(new Error(`No free port found (${START_PORT}-${MAX_PORT})`));
-          return;
+async function listenOnAvailablePort(
+  serverInstance,
+  port,
+  maxPort,
+  bindHost,
+  log = console.log,
+  rangeStartPort = port,
+) {
+  if (port > maxPort) {
+    throw createNoFreePortError(rangeStartPort, maxPort);
+  }
+
+  for (let currentPort = port; currentPort <= maxPort; currentPort += 1) {
+    try {
+      await new Promise((resolve, reject) => {
+        const onError = (err) => {
+          serverInstance.off('listening', onListening);
+          reject(err);
+        };
+
+        const onListening = () => {
+          serverInstance.off('error', onError);
+          resolve();
+        };
+
+        serverInstance.once('error', onError);
+        serverInstance.once('listening', onListening);
+        serverInstance.listen(currentPort, bindHost);
+      });
+
+      return currentPort;
+    } catch (err) {
+      if (err && err.code === 'EADDRINUSE') {
+        if (currentPort >= maxPort) {
+          throw createNoFreePortError(rangeStartPort, maxPort);
         }
-        console.log(`Port ${port} is in use, trying ${port + 1}...`);
-        resolve(tryListen(port + 1));
-      } else {
-        reject(err);
+        log(`Port ${currentPort} is in use, trying ${currentPort + 1}...`);
+        continue;
       }
-    };
+      throw err;
+    }
+  }
 
-    const onListening = () => {
-      server.off('error', onError);
-      resolve(port);
-    };
+  throw createNoFreePortError(rangeStartPort, maxPort);
+}
 
-    server.once('error', onError);
-    server.once('listening', onListening);
-    server.listen(port, BIND_HOST);
-  });
+function tryListen(port) {
+  return listenOnAvailablePort(server, port, MAX_PORT, BIND_HOST, console.log, START_PORT);
 }
 
 async function start() {
@@ -1915,18 +1953,40 @@ async function runCli() {
   await start();
 }
 
-runCli().catch((error) => {
-  Promise.resolve()
-    .then(async () => {
-      if (IS_BACKGROUND_CHILD) {
-        await unregisterBackgroundInstance(process.pid);
-      }
-    })
-    .finally(() => {
-      console.error(error);
-      process.exit(1);
-    });
-});
+function registerShutdownHandlers() {
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
+function bootstrapCli() {
+  runCli().catch((error) => {
+    Promise.resolve()
+      .then(async () => {
+        if (IS_BACKGROUND_CHILD) {
+          await unregisterBackgroundInstance(process.pid);
+        }
+      })
+      .finally(() => {
+        console.error(error);
+        process.exit(1);
+      });
+  });
+
+  registerShutdownHandlers();
+}
+
+module.exports = {
+  bootstrapCli,
+  runCli,
+  __test__: {
+    getExecutableName,
+    listenOnAvailablePort,
+  },
+};
+
+if (require.main === module) {
+  bootstrapCli();
+}
 
 // Graceful shutdown on Ctrl+C / kill
 function shutdown(signal) {
@@ -1947,6 +2007,3 @@ function shutdown(signal) {
     process.exit(0);
   }, 3000);
 }
-
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));

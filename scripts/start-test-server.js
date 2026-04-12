@@ -21,4 +21,4 @@ process.env.XDG_CACHE_HOME = path.join(runtimeRoot, 'cache');
 process.env.XDG_CONFIG_HOME = path.join(runtimeRoot, 'config');
 process.env.XDG_DATA_HOME = path.join(runtimeRoot, 'data');
 
-require(path.join(root, 'server.js'));
+require(path.join(root, 'server.js')).bootstrapCli();
