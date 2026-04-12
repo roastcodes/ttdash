@@ -108,6 +108,9 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
     }
   }
 
+  const getAriaSort = (field: SortKey): 'ascending' | 'descending' | 'none' =>
+    sortKey === field ? (sortAsc ? 'ascending' : 'descending') : 'none'
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -287,42 +290,61 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border">
                 <th
+                  aria-sort={getAriaSort('date')}
                   className={cn(
-                    'px-2 py-2 text-left text-xs font-medium cursor-pointer hover:text-foreground transition-colors',
+                    'px-2 py-2 text-left text-xs font-medium',
                     sortKey === 'date' ? 'text-foreground' : 'text-muted-foreground',
                   )}
-                  onClick={() => handleSort('date')}
                 >
-                  <span className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('date')}
+                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
                     {t('tables.recentDays.date')}{' '}
-                    <ArrowUpDown className={cn('h-3 w-3', sortKey === 'date' && 'text-primary')} />
-                  </span>
+                    <ArrowUpDown
+                      aria-hidden="true"
+                      className={cn('h-3 w-3', sortKey === 'date' && 'text-primary')}
+                    />
+                  </button>
                 </th>
                 <th
+                  aria-sort={getAriaSort('cost')}
                   className={cn(
-                    'px-2 py-2 text-right text-xs font-medium cursor-pointer hover:text-foreground transition-colors',
+                    'px-2 py-2 text-right text-xs font-medium',
                     sortKey === 'cost' ? 'text-foreground' : 'text-muted-foreground',
                   )}
-                  onClick={() => handleSort('cost')}
                 >
-                  <span className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('cost')}
+                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
                     {t('tables.recentDays.cost')}{' '}
-                    <ArrowUpDown className={cn('h-3 w-3', sortKey === 'cost' && 'text-primary')} />
-                  </span>
+                    <ArrowUpDown
+                      aria-hidden="true"
+                      className={cn('h-3 w-3', sortKey === 'cost' && 'text-primary')}
+                    />
+                  </button>
                 </th>
                 <th
+                  aria-sort={getAriaSort('tokens')}
                   className={cn(
-                    'px-2 py-2 text-right text-xs font-medium cursor-pointer hover:text-foreground transition-colors',
+                    'px-2 py-2 text-right text-xs font-medium',
                     sortKey === 'tokens' ? 'text-foreground' : 'text-muted-foreground',
                   )}
-                  onClick={() => handleSort('tokens')}
                 >
-                  <span className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('tokens')}
+                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
                     {t('tables.recentDays.tokens')}{' '}
                     <ArrowUpDown
+                      aria-hidden="true"
                       className={cn('h-3 w-3', sortKey === 'tokens' && 'text-primary')}
                     />
-                  </span>
+                  </button>
                 </th>
                 <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden md:table-cell">
                   {t('common.input')}
@@ -343,18 +365,23 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   {t('common.requestsShort')}
                 </th>
                 <th
+                  aria-sort={getAriaSort('costPerM')}
                   className={cn(
-                    'px-2 py-2 text-right text-xs font-medium cursor-pointer hover:text-foreground transition-colors',
+                    'px-2 py-2 text-right text-xs font-medium',
                     sortKey === 'costPerM' ? 'text-foreground' : 'text-muted-foreground',
                   )}
-                  onClick={() => handleSort('costPerM')}
                 >
-                  <span className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('costPerM')}
+                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
                     $/1M{' '}
                     <ArrowUpDown
+                      aria-hidden="true"
                       className={cn('h-3 w-3', sortKey === 'costPerM' && 'text-primary')}
                     />
-                  </span>
+                  </button>
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
                   {t('tables.recentDays.models')}

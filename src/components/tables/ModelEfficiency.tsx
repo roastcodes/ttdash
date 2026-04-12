@@ -135,18 +135,28 @@ export function ModelEfficiency({
     }
   }
 
+  const getAriaSort = (field: SortKey): 'ascending' | 'descending' | 'none' =>
+    sortKey === field ? (sortAsc ? 'ascending' : 'descending') : 'none'
+
   const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
     <th
+      aria-sort={getAriaSort(field)}
       className={cn(
-        'px-3 py-2 text-right text-xs font-medium cursor-pointer hover:text-foreground transition-colors',
+        'px-3 py-2 text-right text-xs font-medium',
         sortKey === field ? 'text-foreground' : 'text-muted-foreground',
       )}
-      onClick={() => handleSort(field)}
     >
-      <span className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => handleSort(field)}
+        className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
         {label}
-        <ArrowUpDown className={cn('h-3 w-3', sortKey === field && 'text-primary')} />
-      </span>
+        <ArrowUpDown
+          aria-hidden="true"
+          className={cn('h-3 w-3', sortKey === field && 'text-primary')}
+        />
+      </button>
     </th>
   )
 
