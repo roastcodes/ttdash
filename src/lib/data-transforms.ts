@@ -107,12 +107,18 @@ export function getAvailableMonths(data: DailyUsage[]): string[] {
 
 export function getDateRange(data: DailyUsage[]): { start: string; end: string } | null {
   if (data.length === 0) return null
-  const firstEntry = data[0]
+  let firstEntry: DailyUsage | null = null
+  for (const entry of data) {
+    if (entry) {
+      firstEntry = entry
+      break
+    }
+  }
   if (!firstEntry) return null
 
   let start = firstEntry.date
   let end = firstEntry.date
-  for (let i = 1; i < data.length; i++) {
+  for (let i = 0; i < data.length; i++) {
     const entry = data[i]
     if (!entry) continue
     const date = entry.date
@@ -289,8 +295,12 @@ export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] 
 
 export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {
   const weekdayCosts: Record<number, number[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
+  const weekdayFormatter = new Intl.DateTimeFormat(getCurrentLocale(), {
+    weekday: 'short',
+    timeZone: 'UTC',
+  })
   const weekdayLabels = Array.from({ length: 7 }, (_, index) =>
-    new Intl.DateTimeFormat(getCurrentLocale(), { weekday: 'short' })
+    weekdayFormatter
       .format(new Date(Date.UTC(2024, 0, 1 + index)))
       .replace('.', '')
       .slice(0, 2),

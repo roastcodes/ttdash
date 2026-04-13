@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { filterByModels } from '@/lib/data-transforms'
+import { filterByModels, getDateRange, toWeekdayData } from '@/lib/data-transforms'
 import { coerceNumber, formatMonthYear } from '@/lib/formatters'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
@@ -63,5 +63,48 @@ describe('phase 4 correctness helpers', () => {
     ]
 
     expect(filterByModels(data, ['GPT-5.4'])[0]?.modelsUsed).toEqual(['GPT-5.4'])
+  })
+
+  it('finds the date range from the first valid entry instead of assuming index zero is usable', () => {
+    const validEntry: DailyUsage = {
+      date: '2026-04-03',
+      inputTokens: 1,
+      outputTokens: 1,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      thinkingTokens: 0,
+      totalTokens: 2,
+      totalCost: 1,
+      requestCount: 1,
+      modelsUsed: ['gpt-5.4'],
+      modelBreakdowns: [],
+    }
+    const laterEntry: DailyUsage = { ...validEntry, date: '2026-04-06' }
+
+    expect(getDateRange([undefined, validEntry, laterEntry] as unknown as DailyUsage[])).toEqual({
+      start: '2026-04-03',
+      end: '2026-04-06',
+    })
+  })
+
+  it('keeps weekday labels aligned with Monday-first buckets', () => {
+    const weekdayData = toWeekdayData([
+      {
+        date: '2026-04-06',
+        inputTokens: 10,
+        outputTokens: 5,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        totalTokens: 15,
+        totalCost: 9,
+        requestCount: 1,
+        modelsUsed: ['gpt-5.4'],
+        modelBreakdowns: [],
+      },
+    ])
+
+    expect(weekdayData[0]?.day).toBe('Mo')
+    expect(weekdayData[0]?.cost).toBe(9)
   })
 })

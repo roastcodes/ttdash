@@ -28,10 +28,10 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
     models
       .map((model) => ({
         model,
-        total: data.reduce(
-          (sum, point) => sum + (typeof point[model] === 'number' ? point[model] : 0),
-          0,
-        ),
+        total: data.reduce((sum, point) => {
+          const value = coerceNumber(point[model])
+          return sum + (value ?? 0)
+        }, 0),
       }))
       .sort((a, b) => b.total - a.total)[0] ?? null
 
