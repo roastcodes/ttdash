@@ -31,20 +31,24 @@ import {
   Filter,
   GripVertical,
   LayoutPanelTop,
+  Languages,
   Settings2,
   Upload,
 } from 'lucide-react'
 import type {
+  AppLanguage,
   DashboardDefaultFilters,
   DashboardSectionOrder,
   DashboardSectionVisibility,
   DataLoadSource,
   ProviderLimits,
 } from '@/types'
+import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 
 interface SettingsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  language: AppLanguage
   limitProviders: string[]
   filterProviders: string[]
   models: string[]
@@ -57,6 +61,7 @@ interface SettingsModalProps {
   cliAutoLoadActive?: boolean
   hasData: boolean
   onSaveSettings: (settings: {
+    language: AppLanguage
     providerLimits: ProviderLimits
     defaultFilters: DashboardDefaultFilters
     sectionVisibility: DashboardSectionVisibility
@@ -145,6 +150,7 @@ export function reorderSections(
 export function SettingsModal({
   open,
   onOpenChange,
+  language,
   limitProviders,
   filterProviders,
   models,
@@ -165,6 +171,7 @@ export function SettingsModal({
   dataBusy = false,
 }: SettingsModalProps) {
   const { t } = useTranslation()
+  const [languageDraft, setLanguageDraft] = useState<AppLanguage>(language)
   const [limitDraft, setLimitDraft] = useState<ProviderLimits>(() =>
     syncProviderLimits(limitProviders, limits),
   )
@@ -183,13 +190,14 @@ export function SettingsModal({
   useEffect(() => {
     if (!open) return
 
+    setLanguageDraft(language)
     setLimitDraft(syncProviderLimits(limitProviders, limits))
     setDefaultFilterDraft(defaultFilters)
     setSectionVisibilityDraft(sectionVisibility)
     setSectionOrderDraft(sectionOrder)
     setDraggedSectionId(null)
     setDragOverSectionId(null)
-  }, [open, limitProviders, limits, defaultFilters, sectionVisibility, sectionOrder])
+  }, [open, language, limitProviders, limits, defaultFilters, sectionVisibility, sectionOrder])
 
   const providerOptions = useMemo(
     () => normalizeSelection([...filterProviders, ...defaultFilterDraft.providers]),
@@ -212,6 +220,7 @@ export function SettingsModal({
 
   const handleSave = async () => {
     await onSaveSettings({
+      language: languageDraft,
       providerLimits: buildProviderLimitsState(limitProviders, limitDraft),
       defaultFilters: {
         ...defaultFilterDraft,
@@ -225,6 +234,7 @@ export function SettingsModal({
   }
 
   const handleResetDrafts = () => {
+    setLanguageDraft(DEFAULT_APP_SETTINGS.language)
     setLimitDraft(syncProviderLimits(limitProviders, {}))
     setDefaultFilterDraft(DEFAULT_DASHBOARD_FILTERS)
     setSectionVisibilityDraft(getDefaultDashboardSectionVisibility())
@@ -299,6 +309,37 @@ export function SettingsModal({
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
+                <Languages className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 space-y-1">
+                <div className="text-sm font-medium text-foreground">
+                  {t('settings.modal.languageTitle')}
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t('settings.modal.languageDescription')}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(['de', 'en'] as const).map((nextLanguage) => (
+                <Button
+                  key={nextLanguage}
+                  type="button"
+                  data-testid={`settings-language-${nextLanguage}`}
+                  aria-pressed={languageDraft === nextLanguage}
+                  variant={languageDraft === nextLanguage ? 'default' : 'outline'}
+                  onClick={() => setLanguageDraft(nextLanguage)}
+                >
+                  {t(`app.languages.${nextLanguage}`)}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">

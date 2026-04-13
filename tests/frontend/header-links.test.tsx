@@ -57,4 +57,12 @@ describe('Header external links', () => {
       GITHUB_ISSUES_URL,
     )
   })
+
+  it('labels the shared dialog close button accessibly', () => {
+    render(<HeaderTestHarness />)
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Help & shortcuts' })[0])
+
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
+  })
 })

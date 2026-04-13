@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TodayMetrics } from '@/components/cards/TodayMetrics'
+import { ChartCard } from '@/components/charts/ChartCard'
 import { DrillDownModal } from '@/components/features/drill-down/DrillDownModal'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
@@ -153,5 +154,68 @@ describe('phase 4 UI correctness', () => {
     expect(screen.getAllByText('100').length).toBeGreaterThan(0)
     expect(screen.getByText(/\$50\.0k/)).toBeInTheDocument()
     expect(screen.getByText('Cache Read 10.0%')).toBeInTheDocument()
+  })
+
+  it('localizes drill-down labels in English', async () => {
+    await initI18n('en')
+
+    const day: DailyUsage = {
+      date: '2026-04-07',
+      inputTokens: 60,
+      outputTokens: 20,
+      cacheCreationTokens: 10,
+      cacheReadTokens: 10,
+      thinkingTokens: 0,
+      totalTokens: 100,
+      totalCost: 5,
+      requestCount: 2,
+      modelsUsed: ['gpt-5.4'],
+      modelBreakdowns: [
+        {
+          modelName: 'gpt-5.4',
+          inputTokens: 60,
+          outputTokens: 20,
+          cacheCreationTokens: 10,
+          cacheReadTokens: 10,
+          thinkingTokens: 0,
+          cost: 5,
+          requestCount: 2,
+        },
+      ],
+    }
+
+    render(
+      <TooltipProvider>
+        <DrillDownModal day={day} contextData={[day]} open onClose={() => {}} />
+      </TooltipProvider>,
+    )
+
+    expect(
+      screen.getByText(
+        'Detailed daily view with token distribution, model shares, requests, and thinking tokens.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Token distribution')).toBeInTheDocument()
+    expect(screen.getByText('Cost rank')).toBeInTheDocument()
+  })
+
+  it('localizes expanded chart actions in German', async () => {
+    await initI18n('de')
+
+    render(
+      <TooltipProvider>
+        <ChartCard
+          title="Kosten im Verlauf"
+          chartData={[{ date: '2026-04-07', cost: 5 }]}
+          valueKey="cost"
+        >
+          <div>Chart</div>
+        </ChartCard>
+      </TooltipProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /vergrössern/i }))
+
+    expect(screen.getByRole('button', { name: 'CSV exportieren' })).toBeInTheDocument()
   })
 })

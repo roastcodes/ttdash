@@ -101,6 +101,7 @@
     "providersActive": "{{count}} Anbieter aktiv",
     "modelsActive": "{{count}} Modelle aktiv",
     "dateFilterActive": "Datumsfilter aktiv",
+    "clearDate": "{{label}} zurücksetzen",
     "presets": {
       "7d": "7T",
       "30d": "30T",
@@ -858,6 +859,8 @@
     "modal": {
       "title": "Einstellungen",
       "description": "Verwalte App-Backups, gespeicherte Daten und Provider Limits an einem Ort.",
+      "languageTitle": "Dashboard-Sprache",
+      "languageDescription": "Lege fest, welche Sprache im Dashboard, in Dialogen und in Reports verwendet wird.",
       "dataStatus": "Datenstatus",
       "lastLoaded": "Zuletzt geladen",
       "loadedVia": "Geladen über",
@@ -909,6 +912,29 @@
         "unknown": "Unbekannt"
       }
     }
+  },
+  "drillDown": {
+    "description": "Detaillierte Tagesansicht mit Token-Verteilung, Modellanteilen, Requests und Thinking Tokens.",
+    "cacheRate": "Cache-Rate",
+    "tokensPerRequest": "Tokens / Req",
+    "costPerRequest": "Kosten / Req",
+    "costRank": "Kosten-Rang",
+    "requestRank": "Request-Rang",
+    "topRequestModel": "Dominant nach Requests",
+    "costVsAverage7d": "Kosten vs. 7T-Ø",
+    "requestsVsAverage7d": "Requests vs. 7T-Ø",
+    "tokenDistribution": "Token-Verteilung",
+    "requestCountShort": "{{count}} Req",
+    "modelRequestSummary": "{{costPerRequest}}/Req · {{tokensPerRequest}}/Req",
+    "noRequests": "Keine Requests",
+    "tokenSegments": {
+      "cacheRead": "Cache Read",
+      "cacheWrite": "Cache Write"
+    }
+  },
+  "chartCard": {
+    "expandedDescription": "Erweiterte Chart-Ansicht mit Kennzahlenübersicht und optionalem CSV-Export.",
+    "exportCsv": "CSV exportieren"
   },
   "limits": {
     "sectionTitle": "Limits & Subscriptions",

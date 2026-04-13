@@ -981,6 +981,7 @@ export function Dashboard() {
         <SettingsModal
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
+          language={settings.language}
           limitProviders={allProviders}
           filterProviders={settingsProviderOptions}
           models={settingsModelOptions}
@@ -1157,6 +1158,7 @@ export function Dashboard() {
       <SettingsModal
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+        language={settings.language}
         limitProviders={allProviders}
         filterProviders={settingsProviderOptions}
         models={settingsModelOptions}

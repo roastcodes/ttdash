@@ -216,7 +216,7 @@ export function ChartCard({
           <DialogContent className="max-w-[96vw] w-[96vw] sm:max-w-[95vw] sm:w-[95vw] max-h-[92vh] h-[92vh] sm:max-h-[90vh] sm:h-[90vh] overflow-auto p-0">
             <DialogTitle className="sr-only">{title}</DialogTitle>
             <DialogDescription className="sr-only">
-              Expanded chart view with metric summary and optional CSV export.
+              {t('chartCard.expandedDescription')}
             </DialogDescription>
             <ChartAnimationContext.Provider value={expanded}>
               <div className="relative h-full flex flex-col">
@@ -231,7 +231,7 @@ export function ChartCard({
                         onClick={handleExport}
                         className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-muted-foreground hover:text-foreground"
                       >
-                        CSV Export
+                        {t('chartCard.exportCsv')}
                       </button>
                     )}
                   </div>

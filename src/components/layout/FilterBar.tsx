@@ -204,28 +204,23 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-10 w-full items-center justify-between gap-3 rounded-md border border-border bg-background px-3 text-sm text-left transition-colors hover:bg-accent/40"
+        className="flex h-10 w-full items-center justify-between gap-3 rounded-md border border-border bg-background px-3 pr-14 text-left text-sm transition-colors hover:bg-accent/40"
       >
         <span className={cn('truncate', value ? 'text-foreground' : 'text-muted-foreground')}>
           {value ? formatDate(value, 'long') : label}
         </span>
-        <span className="flex items-center gap-1.5 shrink-0">
-          {value && (
-            <span
-              role="button"
-              aria-label={t('common.reset')}
-              onClick={(event) => {
-                event.stopPropagation()
-                onChange(undefined)
-              }}
-              className="inline-flex h-5 w-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </span>
-          )}
-          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-        </span>
       </button>
+      {value && (
+        <button
+          type="button"
+          aria-label={t('filterBar.clearDate', { label })}
+          onClick={() => onChange(undefined)}
+          className="absolute right-8 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
       {open &&
         typeof document !== 'undefined' &&

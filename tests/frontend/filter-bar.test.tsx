@@ -156,4 +156,39 @@ describe('FilterBar', () => {
     expect(screen.getByRole('button', { name: 'Previous month' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Next month' })).toBeInTheDocument()
   })
+
+  it('renders a separate clear button for populated date fields and clears the value', () => {
+    const onStartDateChange = vi.fn()
+    const noop = vi.fn()
+
+    render(
+      <FilterBar
+        viewMode="daily"
+        onViewModeChange={noop}
+        selectedMonth={null}
+        onMonthChange={noop}
+        availableMonths={['2026-03', '2026-04']}
+        availableProviders={[]}
+        selectedProviders={[]}
+        onToggleProvider={noop}
+        onClearProviders={noop}
+        allModels={[]}
+        selectedModels={[]}
+        onToggleModel={noop}
+        onClearModels={noop}
+        startDate="2026-04-06"
+        endDate={undefined}
+        onStartDateChange={onStartDateChange}
+        onEndDateChange={noop}
+        onApplyPreset={noop}
+        onResetAll={noop}
+      />,
+    )
+
+    const clearButton = screen.getByRole('button', { name: 'Clear Start date' })
+
+    expect(clearButton).toBeInTheDocument()
+    fireEvent.click(clearButton)
+    expect(onStartDateChange).toHaveBeenCalledWith(undefined)
+  })
 })
