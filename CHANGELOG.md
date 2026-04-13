@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [6.1.7] - Unreleased
+
+### Added
+
+- **Projektlinks direkt in der App** — die Versionsanzeige im Header öffnet jetzt die exakt laufende npm-Version, und das Help-/Info-Popup bietet direkte Links zu npm, GitHub und den GitHub Issues
+- **Reproduzierbare README-Screenshots** — ein eigener Capture-Flow erzeugt datenreiche Dashboard-, Analyse- und Settings-Screenshots direkt aus geladenen Beispieldaten für die Projektdokumentation
+- **Gezielte React-Query-Regressions-Tests** — neue Frontend-Tests decken optimistic Updates und Rollback-Verhalten in den App-Settings-Hooks explizit ab
+
+### Improved
+
+- **Release-Workflow auf aktuelle GitHub-App-Action aktualisiert** — der Publish-Pfad nutzt jetzt `actions/create-github-app-token@v3.1.1` und die nicht mehr empfohlene `app-id`-Konfiguration wurde auf `client-id` umgestellt; die Maintainer-Dokumentation wurde entsprechend angepasst
+- **Dependency-Stand im Datenlayer** — `@tanstack/react-query` wurde auf `5.99.0` aktualisiert, ohne das Query-Verhalten im Dashboard oder in den Settings zu ändern
+- **README als öffentliche Projektübersicht** — Badges, CLI-Referenz, Entwicklungsdokumentation und visuelle Projektpräsentation wurden auf einen kompakteren, release-tauglichen Stand gebracht
+
+### Fixed
+
+- **Flakey Background-Registry-Integrationstests** — die Tests für parallele `--background`-Starts und das Aufräumen veralteter Registry-Einträge warten jetzt auf stabile Zustände statt auf transiente Dateisnapshots, wodurch `npm run verify` wieder zuverlässig grün läuft
+
 ## [6.1.6] - 2026-04-13
 
 ### Added

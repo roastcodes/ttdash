@@ -19,7 +19,8 @@
     "loaded": "Loaded",
     "loadedAt": "Last loaded: {{time}}",
     "autoLoadActive": "Auto-load on start",
-    "autoLoadAt": "Automatically loaded on start: {{time}}"
+    "autoLoadAt": "Automatically loaded on start: {{time}}",
+    "versionLinkTitle": "Open TTDash v{{version}} on npm"
   },
   "emptyState": {
     "description": "Upload a `toktrack` or legacy JSON file, or start local auto-import with local `toktrack`, `bunx toktrack daily --json`, or `npx --yes toktrack daily --json`.",
@@ -591,6 +592,13 @@
     }
   },
   "helpPanel": {
+    "projectLinks": {
+      "title": "Project links",
+      "description": "Open the published npm package for v{{version}}, the GitHub repository, or the issue tracker.",
+      "npm": "npm",
+      "github": "GitHub",
+      "issues": "GitHub Issues"
+    },
     "chartsAndFeatures": "Charts & features",
     "metricLabels": {
       "totalCost": "Total cost",

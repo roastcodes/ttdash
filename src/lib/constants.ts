@@ -1,4 +1,7 @@
 export const VERSION = __APP_VERSION__
+export const GITHUB_REPO_URL = 'https://github.com/roastcodes/ttdash'
+export const GITHUB_ISSUES_URL = 'https://github.com/roastcodes/ttdash/issues'
+export const NPM_PACKAGE_URL = `https://www.npmjs.com/package/@roastcodes/ttdash/v/${VERSION}`
 
 export const MODEL_COLORS: Record<string, string> = {
   'Opus 4.6': 'hsl(262, 60%, 55%)',

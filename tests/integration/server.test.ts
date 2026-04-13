@@ -210,10 +210,59 @@ function readBackgroundRegistry(root: string) {
   }>
 }
 
+function tryReadBackgroundRegistry(root: string) {
+  const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
+  if (!existsSync(registryPath)) {
+    return [] as Array<{
+      url: string
+      port: number
+      pid: number
+    }>
+  }
+
+  try {
+    return JSON.parse(readFileSync(registryPath, 'utf-8')) as Array<{
+      url: string
+      port: number
+      pid: number
+    }>
+  } catch {
+    return []
+  }
+}
+
 function writeBackgroundRegistry(root: string, entries: unknown) {
   const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
   mkdirSync(path.dirname(registryPath), { recursive: true })
   writeFileSync(registryPath, JSON.stringify(entries, null, 2))
+}
+
+async function waitForBackgroundRegistry(
+  root: string,
+  predicate: (
+    entries: Array<{
+      url: string
+      port: number
+      pid: number
+    }>,
+  ) => boolean,
+  timeoutMs = 15_000,
+) {
+  const startedAt = Date.now()
+  let lastEntries = tryReadBackgroundRegistry(root)
+
+  while (Date.now() - startedAt < timeoutMs) {
+    lastEntries = tryReadBackgroundRegistry(root)
+    if (predicate(lastEntries)) {
+      return lastEntries
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+
+  throw new Error(
+    `Timed out waiting for background registry state: ${JSON.stringify(lastEntries, null, 2)}`,
+  )
 }
 
 async function runCli(args: string[], { env, input }: { env: NodeJS.ProcessEnv; input?: string }) {
@@ -246,14 +295,27 @@ async function runCli(args: string[], { env, input }: { env: NodeJS.ProcessEnv; 
   })
 }
 
-async function stopAllBackgroundServers(env: NodeJS.ProcessEnv) {
-  for (let attempt = 0; attempt < 5; attempt += 1) {
+async function stopAllBackgroundServers(env: NodeJS.ProcessEnv, root?: string) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    if (root) {
+      const existingEntries = tryReadBackgroundRegistry(root)
+      if (existingEntries.length === 0) {
+        return
+      }
+    }
+
     const result = await runCli(['stop'], {
       env,
       input: '1\n',
     })
 
-    if (result.output.includes('No running TTDash background servers found.')) {
+    if (root) {
+      const entriesAfterStop = tryReadBackgroundRegistry(root)
+      if (entriesAfterStop.length === 0) {
+        await waitForBackgroundRegistry(root, (entries) => entries.length === 0)
+        return
+      }
+    } else if (result.output.includes('No running TTDash background servers found.')) {
       return
     }
   }
@@ -844,7 +906,7 @@ describe('local server API', () => {
       expect(stopFirst.output).toContain(`Stopped TTDash background server: ${firstUrl}`)
       await waitForServerUnavailable(firstUrl)
     } finally {
-      await stopAllBackgroundServers(backgroundEnv)
+      await stopAllBackgroundServers(backgroundEnv, backgroundRoot)
       rmSync(backgroundRoot, { recursive: true, force: true })
     }
   }, 45_000)
@@ -875,11 +937,17 @@ describe('local server API', () => {
       await waitForUrlAvailable(firstUrl)
       await waitForUrlAvailable(secondUrl)
 
-      const registry = readBackgroundRegistry(backgroundRoot)
+      const registry = await waitForBackgroundRegistry(
+        backgroundRoot,
+        (entries) =>
+          entries.length === 2 &&
+          [firstUrl, secondUrl].every((url) => entries.some((entry) => entry.url === url)),
+      )
+
       expect(registry).toHaveLength(2)
       expect(registry.map((instance) => instance.url).sort()).toEqual([firstUrl, secondUrl].sort())
     } finally {
-      await stopAllBackgroundServers(backgroundEnv)
+      await stopAllBackgroundServers(backgroundEnv, backgroundRoot)
       rmSync(backgroundRoot, { recursive: true, force: true })
     }
   }, 45_000)
