@@ -1,8 +1,9 @@
 # TTDash
 
 [![CI](https://github.com/roastcodes/ttdash/actions/workflows/ci.yml/badge.svg)](https://github.com/roastcodes/ttdash/actions/workflows/ci.yml)
-![GitHub Release](https://img.shields.io/github/v/release/roastcodes/ttdash)
 [![npm](https://img.shields.io/npm/v/%40roastcodes%2Fttdash)](https://www.npmjs.com/package/@roastcodes/ttdash)
+[![License](https://img.shields.io/github/license/roastcodes/ttdash)](LICENSE)
+[![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://github.com/roastcodes/ttdash/blob/main/package.json)
 
 `TTDash` is a local-first dashboard and CLI for `toktrack` usage data. It runs entirely on your machine, turns raw usage exports into charts and operational summaries, and keeps your stored data, settings, and imports on local disk instead of a hosted backend.
 
@@ -17,6 +18,16 @@
 - Built for daily usage review, cost tracking, and model/provider breakdowns
 - Works with `toktrack` exports and legacy `ccusage` JSON
 - Can auto-import local `toktrack` data and run in the background
+
+## Dashboard At A Glance
+
+Deeper cost and model analysis:
+
+![TTDash analytics screenshot](docs/ttdash-dashboard-analytics.png)
+
+Settings, local backups, and saved defaults:
+
+![TTDash settings screenshot](docs/ttdash-dashboard-settings.png)
 
 ## Quick Start
 
@@ -82,6 +93,8 @@ The auto-import path prefers:
 
 ## Common Commands
 
+Quick examples:
+
 Run on a specific port:
 
 ```bash
@@ -126,6 +139,39 @@ PORT=3010 ttdash
 NO_OPEN_BROWSER=1 ttdash
 HOST=127.0.0.1 ttdash
 ```
+
+## CLI Reference
+
+Usage:
+
+```bash
+ttdash [options]
+ttdash stop
+```
+
+Options:
+
+| Option              | Description                                  |
+| ------------------- | -------------------------------------------- |
+| `-p, --port <port>` | Set the start port                           |
+| `-h, --help`        | Show CLI help                                |
+| `-no, --no-open`    | Disable browser auto-open                    |
+| `-al, --auto-load`  | Run local auto-import immediately on startup |
+| `-b, --background`  | Start TTDash as a background process         |
+
+Commands:
+
+| Command       | Description                                                                                                             |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `ttdash stop` | Stop one or more running background instances. If multiple instances are running, TTDash prompts for which one to stop. |
+
+Environment variables:
+
+| Variable            | Description                                               |
+| ------------------- | --------------------------------------------------------- |
+| `PORT`              | Override the start port                                   |
+| `NO_OPEN_BROWSER=1` | Disable browser auto-open                                 |
+| `HOST`              | Override the bind host, for example `HOST=0.0.0.0 ttdash` |
 
 ## Features
 
@@ -286,6 +332,12 @@ The Playwright suite uses its own isolated local app directory. If port `3015` i
 
 ```bash
 PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e
+```
+
+Refresh the README screenshots:
+
+```bash
+npm run docs:screenshots
 ```
 
 ## Release and Project Docs

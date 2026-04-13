@@ -32,6 +32,7 @@
     "test:e2e": "npm run build:app && playwright test",
     "test:e2e:ci": "playwright test",
     "test:all": "npm run test:unit && npm run test:e2e",
+    "docs:screenshots": "node scripts/capture-readme-screenshots.js",
     "pack:dry-run": "npm pack --dry-run",
     "verify": "npm run format:check && npm run lint && tsc --noEmit && npm run test:unit && npm run build:app && npm run verify:package",
     "verify:package": "node scripts/verify-package.js",
