@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchSettings, updateSettings } from '@/lib/api'
+import { fetchSettings, loadBootstrapSettings, updateSettings } from '@/lib/api'
+import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { initI18n } from '@/lib/i18n'
 
 describe('api error handling', () => {
@@ -53,5 +54,23 @@ describe('api error handling', () => {
     )
 
     await expect(fetchSettings()).rejects.toThrow('Settings file is unreadable or corrupted.')
+  })
+
+  it('returns bootstrap defaults together with the localized error message', async () => {
+    await initI18n('en')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('{}', {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+
+    await expect(loadBootstrapSettings()).resolves.toEqual({
+      settings: DEFAULT_APP_SETTINGS,
+      errorMessage: 'Failed to load settings',
+    })
   })
 })

@@ -6,6 +6,7 @@ import type {
   DashboardSectionVisibility,
   ViewMode,
 } from '@/types'
+import dashboardPreferences from '../../shared/dashboard-preferences.json'
 
 export interface DashboardSectionDefinition {
   id: DashboardSectionId
@@ -13,39 +14,10 @@ export interface DashboardSectionDefinition {
   labelKey: string
 }
 
-export const DASHBOARD_DATE_PRESETS: DashboardDatePreset[] = ['all', '7d', '30d', 'month', 'year']
-export const DASHBOARD_VIEW_MODES: ViewMode[] = ['daily', 'monthly', 'yearly']
-export const DASHBOARD_SECTION_DEFINITIONS: DashboardSectionDefinition[] = [
-  { id: 'insights', domId: 'insights', labelKey: 'helpPanel.sectionLabels.insights' },
-  { id: 'metrics', domId: 'metrics', labelKey: 'helpPanel.sectionLabels.metrics' },
-  { id: 'today', domId: 'today', labelKey: 'helpPanel.sectionLabels.today' },
-  { id: 'currentMonth', domId: 'current-month', labelKey: 'helpPanel.sectionLabels.currentMonth' },
-  { id: 'activity', domId: 'activity', labelKey: 'helpPanel.sectionLabels.activity' },
-  {
-    id: 'forecastCache',
-    domId: 'forecast-cache',
-    labelKey: 'helpPanel.sectionLabels.forecastCache',
-  },
-  { id: 'limits', domId: 'limits', labelKey: 'helpPanel.sectionLabels.limits' },
-  { id: 'costAnalysis', domId: 'charts', labelKey: 'helpPanel.sectionLabels.costAnalysis' },
-  {
-    id: 'tokenAnalysis',
-    domId: 'token-analysis',
-    labelKey: 'helpPanel.sectionLabels.tokenAnalysis',
-  },
-  {
-    id: 'requestAnalysis',
-    domId: 'request-analysis',
-    labelKey: 'helpPanel.sectionLabels.requestAnalysis',
-  },
-  {
-    id: 'advancedAnalysis',
-    domId: 'advanced-analysis',
-    labelKey: 'helpPanel.sectionLabels.advancedAnalysis',
-  },
-  { id: 'comparisons', domId: 'comparisons', labelKey: 'helpPanel.sectionLabels.comparisons' },
-  { id: 'tables', domId: 'tables', labelKey: 'helpPanel.sectionLabels.tables' },
-]
+export const DASHBOARD_DATE_PRESETS = dashboardPreferences.datePresets as DashboardDatePreset[]
+export const DASHBOARD_VIEW_MODES = dashboardPreferences.viewModes as ViewMode[]
+export const DASHBOARD_SECTION_DEFINITIONS =
+  dashboardPreferences.sectionDefinitions as DashboardSectionDefinition[]
 export const DASHBOARD_SECTION_DEFINITION_MAP = Object.fromEntries(
   DASHBOARD_SECTION_DEFINITIONS.map((section) => [section.id, section]),
 ) as Record<DashboardSectionId, DashboardSectionDefinition>

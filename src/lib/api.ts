@@ -11,7 +11,7 @@ import type {
   ViewMode,
 } from '@/types'
 import i18n from '@/lib/i18n'
-import { normalizeAppSettings } from '@/lib/app-settings'
+import { DEFAULT_APP_SETTINGS, normalizeAppSettings } from '@/lib/app-settings'
 
 interface ApiErrorPayload {
   message?: string
@@ -31,6 +31,11 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
   } catch {
     return fallback
   }
+}
+
+export interface BootstrapSettingsResult {
+  settings: AppSettings
+  errorMessage: string | null
 }
 
 export async function fetchUsage(): Promise<UsageData> {
@@ -85,6 +90,29 @@ export async function fetchSettings(): Promise<AppSettings> {
     throw new Error(await readErrorMessage(res, i18n.t('api.fetchSettingsFailed')))
   }
   return normalizeAppSettings(await parseResponseJson<unknown>(res))
+}
+
+export async function loadBootstrapSettings(): Promise<BootstrapSettingsResult> {
+  try {
+    const response = await fetch('/api/settings')
+
+    if (!response.ok) {
+      return {
+        settings: DEFAULT_APP_SETTINGS,
+        errorMessage: await readErrorMessage(response, i18n.t('api.fetchSettingsFailed')),
+      }
+    }
+
+    return {
+      settings: normalizeAppSettings(await parseResponseJson<unknown>(response)),
+      errorMessage: null,
+    }
+  } catch {
+    return {
+      settings: DEFAULT_APP_SETTINGS,
+      errorMessage: null,
+    }
+  }
 }
 
 export async function updateSettings(patch: UpdateSettingsRequest): Promise<AppSettings> {

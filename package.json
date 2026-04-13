@@ -44,6 +44,7 @@
     "server.js",
     "usage-normalizer.js",
     "server/",
+    "shared/",
     "src/locales/",
     "dist/"
   ],

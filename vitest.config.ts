@@ -30,7 +30,12 @@ export default defineConfig(async () => {
           provider: 'v8',
           reporter: ['text', 'html', 'lcov'],
           reportsDirectory: './coverage',
-          include: ['src/hooks/**/*.ts', 'src/lib/**/*.ts', 'usage-normalizer.js'],
+          include: [
+            'src/hooks/**/*.ts',
+            'src/lib/**/*.ts',
+            'src/components/Dashboard.tsx',
+            'usage-normalizer.js',
+          ],
           exclude: [
             'src/lib/i18n.ts',
             'src/lib/constants.ts',

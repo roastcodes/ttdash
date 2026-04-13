@@ -11,6 +11,13 @@ const { parseArgs } = require('util');
 const { normalizeIncomingData } = require('./usage-normalizer');
 const { generatePdfReport } = require('./server/report');
 const { version: APP_VERSION } = require('./package.json');
+const dashboardPreferences = require('./shared/dashboard-preferences.json');
+const { createHttpUtils } = require('./server/http-utils');
+const {
+  ensureBindHostAllowed,
+  isLoopbackHost,
+  listenOnAvailablePort,
+} = require('./server/runtime');
 
 const ROOT = __dirname;
 const STATIC_ROOT = path.join(ROOT, 'dist');
@@ -50,22 +57,8 @@ const USAGE_BACKUP_KIND = 'ttdash-usage-backup';
 const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
 const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
-const DASHBOARD_DATE_PRESETS = ['all', '7d', '30d', 'month', 'year'];
-const DASHBOARD_SECTION_IDS = [
-  'insights',
-  'metrics',
-  'today',
-  'currentMonth',
-  'activity',
-  'forecastCache',
-  'limits',
-  'costAnalysis',
-  'tokenAnalysis',
-  'requestAnalysis',
-  'advancedAnalysis',
-  'comparisons',
-  'tables',
-];
+const DASHBOARD_DATE_PRESETS = dashboardPreferences.datePresets;
+const DASHBOARD_SECTION_IDS = dashboardPreferences.sectionDefinitions.map((section) => section.id);
 const DEFAULT_SETTINGS = {
   language: 'de',
   theme: 'dark',
@@ -320,22 +313,6 @@ function writeJsonAtomic(filePath, data) {
     fs.chmodSync(tempPath, SECURE_FILE_MODE);
   }
   fs.renameSync(tempPath, filePath);
-}
-
-function isLoopbackHost(host) {
-  return host === '127.0.0.1' || host === 'localhost' || host === '::1';
-}
-
-function ensureBindHostAllowed() {
-  if (isLoopbackHost(BIND_HOST) || ALLOW_REMOTE_BIND) {
-    return;
-  }
-
-  const error = new Error(
-    `Refusing to bind TTDash to non-loopback host "${BIND_HOST}" without TTDASH_ALLOW_REMOTE=1.`,
-  );
-  error.code = 'REMOTE_BIND_REQUIRES_OPT_IN';
-  throw error;
 }
 
 function sleep(ms) {
@@ -783,7 +760,7 @@ function shouldBackgroundChildOpenBrowser() {
 }
 
 async function startInBackground() {
-  ensureBindHostAllowed();
+  ensureBindHostAllowed(BIND_HOST, ALLOW_REMOTE_BIND);
   ensureAppDirs();
 
   const logFile = buildBackgroundLogFilePath();
@@ -1487,160 +1464,11 @@ function clearDataLoadState() {
   writeSettings(next);
   return toSettingsResponse(next);
 }
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    let totalSize = 0;
-    let settled = false;
-
-    const cleanup = () => {
-      req.off('data', onData);
-      req.off('end', onEnd);
-      req.off('error', onError);
-    };
-
-    const rejectOnce = (error) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      cleanup();
-      reject(error);
-    };
-
-    const resolveOnce = (value) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      cleanup();
-      resolve(value);
-    };
-
-    const onData = (c) => {
-      totalSize += c.length;
-      if (totalSize > MAX_BODY_SIZE) {
-        const error = new Error('Payload too large');
-        error.code = 'PAYLOAD_TOO_LARGE';
-        rejectOnce(error);
-        req.resume();
-        return;
-      }
-      chunks.push(c);
-    };
-
-    const onEnd = () => {
-      try {
-        resolveOnce(JSON.parse(Buffer.concat(chunks).toString()));
-      } catch (e) {
-        rejectOnce(e);
-      }
-    };
-
-    const onError = (error) => {
-      if (settled && error && error.code === 'ECONNRESET') {
-        return;
-      }
-      rejectOnce(error);
-    };
-
-    req.on('data', onData);
-    req.on('end', onEnd);
-    req.on('error', onError);
-  });
-}
-
-function json(res, status, data) {
-  res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    ...SECURITY_HEADERS,
-  });
-  res.end(JSON.stringify(data));
-}
-
-function sendBuffer(res, status, headers, buffer) {
-  res.writeHead(status, {
-    'Content-Length': buffer.length,
-    ...headers,
-    ...SECURITY_HEADERS,
-  });
-  res.end(buffer);
-}
-
-function resolveApiPath(pathname) {
-  if (pathname.startsWith(API_PREFIX + '/')) {
-    return pathname.slice(API_PREFIX.length);
-  }
-  if (pathname === API_PREFIX) {
-    return '/';
-  }
-  if (pathname.startsWith('/api/')) {
-    return pathname.slice(4);
-  }
-  if (pathname === '/api') {
-    return '/';
-  }
-  return null;
-}
-
-function getHeaderValue(req, name) {
-  const value = req.headers[name];
-  if (Array.isArray(value)) {
-    return value[0] || '';
-  }
-  return typeof value === 'string' ? value : '';
-}
-
-function hasJsonContentType(req) {
-  const contentType = getHeaderValue(req, 'content-type');
-  if (!contentType) {
-    return false;
-  }
-
-  return contentType.split(';', 1)[0].trim().toLowerCase() === 'application/json';
-}
-
-function hasTrustedOrigin(req) {
-  const originHeader = getHeaderValue(req, 'origin').trim();
-  if (!originHeader) {
-    return true;
-  }
-
-  const hostHeader = getHeaderValue(req, 'host').trim();
-  if (!hostHeader || originHeader === 'null') {
-    return false;
-  }
-
-  try {
-    const origin = new URL(originHeader);
-    return origin.host === hostHeader;
-  } catch {
-    return false;
-  }
-}
-
-function isCrossSiteFetch(req) {
-  return getHeaderValue(req, 'sec-fetch-site').trim().toLowerCase() === 'cross-site';
-}
-
-function validateMutationRequest(req, { requiresJsonContentType = false } = {}) {
-  if (isCrossSiteFetch(req) || !hasTrustedOrigin(req)) {
-    return {
-      status: 403,
-      message: 'Cross-site requests are not allowed',
-    };
-  }
-
-  if (requiresJsonContentType && !hasJsonContentType(req)) {
-    return {
-      status: 415,
-      message: 'Content-Type must be application/json',
-    };
-  }
-
-  return null;
-}
+const { json, readBody, resolveApiPath, sendBuffer, validateMutationRequest } = createHttpUtils({
+  apiPrefix: API_PREFIX,
+  maxBodySize: MAX_BODY_SIZE,
+  securityHeaders: SECURITY_HEADERS,
+});
 
 // --- SSE helpers ---
 
@@ -2189,62 +2017,12 @@ const server = http.createServer(async (req, res) => {
   serveFile(res, filePath);
 });
 
-function createNoFreePortError(rangeStartPort, maxPort) {
-  return new Error(`No free port found (${rangeStartPort}-${maxPort})`);
-}
-
-async function listenOnAvailablePort(
-  serverInstance,
-  port,
-  maxPort,
-  bindHost,
-  log = console.log,
-  rangeStartPort = port,
-) {
-  if (port > maxPort) {
-    throw createNoFreePortError(rangeStartPort, maxPort);
-  }
-
-  for (let currentPort = port; currentPort <= maxPort; currentPort += 1) {
-    try {
-      await new Promise((resolve, reject) => {
-        const onError = (err) => {
-          serverInstance.off('listening', onListening);
-          reject(err);
-        };
-
-        const onListening = () => {
-          serverInstance.off('error', onError);
-          resolve();
-        };
-
-        serverInstance.once('error', onError);
-        serverInstance.once('listening', onListening);
-        serverInstance.listen(currentPort, bindHost);
-      });
-
-      return currentPort;
-    } catch (err) {
-      if (err && err.code === 'EADDRINUSE') {
-        if (currentPort >= maxPort) {
-          throw createNoFreePortError(rangeStartPort, maxPort);
-        }
-        log(`Port ${currentPort} is in use, trying ${currentPort + 1}...`);
-        continue;
-      }
-      throw err;
-    }
-  }
-
-  throw createNoFreePortError(rangeStartPort, maxPort);
-}
-
 function tryListen(port) {
   return listenOnAvailablePort(server, port, MAX_PORT, BIND_HOST, console.log, START_PORT);
 }
 
 async function start() {
-  ensureBindHostAllowed();
+  ensureBindHostAllowed(BIND_HOST, ALLOW_REMOTE_BIND);
   ensureAppDirs();
   migrateLegacyDataFile();
 
