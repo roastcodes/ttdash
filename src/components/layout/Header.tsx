@@ -177,7 +177,7 @@ export function Header({
             {streak != null && streak > 1 && (
               <span className="text-xs font-medium inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-400 border border-orange-500/20 shrink-0">
                 <Flame className="h-3 w-3" />
-                {streak}D Streak
+                {t('header.streak', { count: streak })}
               </span>
             )}
           </div>

@@ -102,7 +102,11 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
                 value={today.totalTokens}
                 type="tokens"
                 label={t('metricCards.today.tokensToday')}
-                insight={`${formatTokens(today.requestCount > 0 ? today.totalTokens / today.requestCount : 0)} / Request`}
+                insight={t('metricCards.today.tokensInsight', {
+                  value: formatTokens(
+                    today.requestCount > 0 ? today.totalTokens / today.requestCount : 0,
+                  ),
+                })}
               />
             }
             icon={<Coins className="h-4 w-4" />}
@@ -143,7 +147,9 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
                   value={today.requestCount}
                   type="number"
                   label={t('metricCards.today.requestsToday')}
-                  insight={`${formatCurrency(today.totalCost / today.requestCount)} / Request`}
+                  insight={t('metricCards.today.requestsInsight', {
+                    value: formatCurrency(today.totalCost / today.requestCount),
+                  })}
                 />
               ) : (
                 t('common.notAvailable')

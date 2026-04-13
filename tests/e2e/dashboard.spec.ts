@@ -104,7 +104,7 @@ test('manages settings and backup imports through the settings dialog using isol
   })
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
-  await expect(dialog.locator('[data-section-id="insights"]')).toContainText('Insights')
+  await expect(dialog.locator('[data-section-id="insights"]')).toContainText(/Insights|Einblicke/)
 
   await dialog.getByRole('button', { name: monthlySettingsPattern }).click()
   await dialog.getByRole('button', { name: last30DaysPattern }).click()

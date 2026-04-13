@@ -20,7 +20,8 @@
     "loadedAt": "Last loaded: {{time}}",
     "autoLoadActive": "Auto-load on start",
     "autoLoadAt": "Automatically loaded on start: {{time}}",
-    "versionLinkTitle": "Open TTDash v{{version}} on npm"
+    "versionLinkTitle": "Open TTDash v{{version}} on npm",
+    "streak": "{{count}}D streak"
   },
   "emptyState": {
     "description": "Upload a `toktrack` or legacy JSON file, or start local auto-import with local `toktrack`, `bunx toktrack daily --json`, or `npx --yes toktrack daily --json`.",
@@ -86,6 +87,7 @@
     "focusMonth": "Focus month",
     "showInfo": "Show info",
     "expand": "Expand",
+    "expandedCardDescription": "Expanded card view with additional metrics and full content.",
     "input": "Input",
     "output": "Output",
     "cacheWrite": "Cache write",
@@ -200,6 +202,9 @@
       "allTokensViaCacheRead": "{{value}} of all tokens via cache read",
       "requestCountersMissing": "No request counters in the dataset",
       "thinkingShareOfVolume": "{{value}} of total token volume",
+      "totalCostSubtitle": "Avg {{average}}/{{unit}} · {{costPerRequest}} per request",
+      "totalTokensSubtitle": "{{tokensPerRequest}} per request",
+      "totalTokensSubtitleWithRatio": "Input/Output {{ratio}}:1 · {{tokensPerRequest}} per request",
       "requestsSubtitle": "Avg {{requests}} / {{unit}} · {{cost}} / req · σ {{volatility}}",
       "thinkingSubtitle": "{{share}} share · {{tokens}} / request"
     },
@@ -236,6 +241,8 @@
       "ioRatio": "I/O ratio: {{value}}:1",
       "topModel": "Top: {{value}}",
       "requestsSubtitle": "{{value}} / model · {{cost}}/req",
+      "tokensInsight": "{{value}} per request",
+      "requestsInsight": "{{value}} per request",
       "requestCountersMissing": "No request counters",
       "thinkingSubtitle": "{{value}} share"
     },
@@ -382,6 +389,7 @@
       "costTitle": "Cost heatmap",
       "requestsTitle": "Request heatmap",
       "tokensTitle": "Token heatmap",
+      "cellLabel": "{{date}}: {{value}}",
       "costEmpty": "Cost heatmap is only available in daily view",
       "requestsEmpty": "Request heatmap is only available in daily view",
       "tokensEmpty": "Token heatmap is only available in daily view",
@@ -633,7 +641,8 @@
       "forecast": "Forecast",
       "cacheROI": "Cache ROI",
       "periodComparison": "Period comparison",
-      "anomalyDetection": "Anomaly detection"
+      "anomalyDetection": "Anomaly detection",
+      "cellLabel": "{{date}}: {{value}}"
     },
     "sectionLabels": {
       "insights": "Insights",

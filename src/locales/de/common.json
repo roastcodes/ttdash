@@ -20,7 +20,8 @@
     "loadedAt": "Zuletzt geladen: {{time}}",
     "autoLoadActive": "Auto-Load beim Start",
     "autoLoadAt": "Beim Start automatisch geladen: {{time}}",
-    "versionLinkTitle": "TTDash v{{version}} auf npm öffnen"
+    "versionLinkTitle": "TTDash v{{version}} auf npm öffnen",
+    "streak": "{{count}} Tage in Folge"
   },
   "emptyState": {
     "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx toktrack daily --json` oder `npx --yes toktrack daily --json`.",
@@ -86,6 +87,7 @@
     "focusMonth": "Fokusmonat",
     "showInfo": "Info anzeigen",
     "expand": "Vergrössern",
+    "expandedCardDescription": "Erweiterte Kartenansicht mit zusätzlichen Kennzahlen und vollständigem Inhalt.",
     "input": "Input",
     "output": "Output",
     "cacheWrite": "Cache Write",
@@ -118,10 +120,10 @@
   },
   "dashboard": {
     "insights": {
-      "title": "Insights",
+      "title": "Einblicke",
       "badge": "Verdichtete Signale",
       "description": "Konzentrierte Aussagen aus Kosten-, Modell- und Request-Daten",
-      "quickRead": "Quick Read"
+      "quickRead": "Kurzfazit"
     },
     "metrics": {
       "title": "Metriken",
@@ -196,12 +198,15 @@
       "coverageOfDays": "{{coverage}} Abdeckung von {{days}} Tagen",
       "providersActive": "{{count}} Anbieter aktiv",
       "share": "{{value}} Anteil",
-      "requestLead": "Req-Lead: {{value}}",
+      "requestLead": "Top bei Requests: {{value}}",
       "allTokensViaCacheRead": "{{value}} aller Tokens via Cache Read",
       "requestCountersMissing": "Keine Request-Zähler im Datensatz",
       "thinkingShareOfVolume": "{{value}} des gesamten Tokenvolumens",
-      "requestsSubtitle": "Ø {{requests}} / {{unit}} · {{cost}} / Req · σ {{volatility}}",
-      "thinkingSubtitle": "{{share}} Anteil · {{tokens}} / Request"
+      "totalCostSubtitle": "Ø {{average}}/{{unit}} · {{costPerRequest}} pro Request",
+      "totalTokensSubtitle": "{{tokensPerRequest}} pro Request",
+      "totalTokensSubtitleWithRatio": "Input/Output-Verhältnis {{ratio}}:1 · {{tokensPerRequest}} pro Request",
+      "requestsSubtitle": "Ø {{requests}} / {{unit}} · {{cost}} pro Request · σ {{volatility}}",
+      "thinkingSubtitle": "{{share}} Anteil · {{tokens}} pro Request"
     },
     "secondary": {
       "mostExpensiveDay": "Teuerster Tag",
@@ -233,9 +238,11 @@
       "cacheShare": "{{value}} Cache-Anteil",
       "requestsToday": "Requests heute",
       "avgPerDay": "Ø {{value}}/Tag",
-      "ioRatio": "I/O Ratio: {{value}}:1",
+      "ioRatio": "Input/Output-Verhältnis: {{value}}:1",
       "topModel": "Top: {{value}}",
-      "requestsSubtitle": "{{value}} / Modell · {{cost}}/Req",
+      "requestsSubtitle": "{{value}} / Modell · {{cost}} pro Request",
+      "tokensInsight": "{{value}} pro Request",
+      "requestsInsight": "{{value}} pro Request",
       "requestCountersMissing": "Keine Request-Zähler",
       "thinkingSubtitle": "{{value}} Anteil"
     },
@@ -255,11 +262,11 @@
       "coverage": "{{value}} Abdeckung",
       "requestsInMonth": "Requests im Monat",
       "avgPerDay": "Ø {{value}}/Tag",
-      "ioRatio": "I/O Ratio: {{value}}:1",
+      "ioRatio": "Input/Output-Verhältnis: {{value}}:1",
       "topModel": "Top: {{value}}",
       "cacheMix": "In: {{input}} / Out: {{output}}",
-      "costPerRequest": "{{value}} / Req",
-      "requestsSubtitle": "Ø {{value}}/Tag · {{cost}}/Req",
+      "costPerRequest": "{{value}} pro Request",
+      "requestsSubtitle": "Ø {{value}}/Tag · {{cost}} pro Request",
       "requestCountersMissing": "Keine Request-Zähler",
       "thinkingSubtitle": "{{value}} Anteil"
     }
@@ -382,6 +389,7 @@
       "costTitle": "Kosten-Heatmap",
       "requestsTitle": "Request-Heatmap",
       "tokensTitle": "Token-Heatmap",
+      "cellLabel": "{{date}}: {{value}}",
       "costEmpty": "Kosten-Heatmap nur in der Tagesansicht verfügbar",
       "requestsEmpty": "Request-Heatmap nur in der Tagesansicht verfügbar",
       "tokensEmpty": "Token-Heatmap nur in der Tagesansicht verfügbar",
@@ -633,10 +641,11 @@
       "forecast": "Prognose",
       "cacheROI": "Cache-ROI",
       "periodComparison": "Periodenvergleich",
-      "anomalyDetection": "Anomalie-Erkennung"
+      "anomalyDetection": "Anomalie-Erkennung",
+      "cellLabel": "{{date}}: {{value}}"
     },
     "sectionLabels": {
-      "insights": "Insights",
+      "insights": "Einblicke",
       "metrics": "Metriken",
       "today": "Heute",
       "currentMonth": "Monat",
@@ -786,7 +795,7 @@
         "description": "Springt zur Sektion {{section}}"
       },
       "insights": {
-        "label": "Zu Insights",
+        "label": "Zu Einblicke",
         "description": "Springt zur Executive Summary"
       },
       "metrics": {

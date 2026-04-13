@@ -18,6 +18,7 @@ interface FormattedValueProps {
   decimals?: number // for percent type
   label?: string
   insight?: string
+  interactive?: boolean
 }
 
 // Maps type to abbreviated formatter
@@ -43,6 +44,7 @@ export function FormattedValue({
   decimals,
   label,
   insight,
+  interactive = true,
 }: FormattedValueProps) {
   const abbreviated = FORMATTERS[type](value, decimals)
   const exact = EXACT_FORMATTERS[type](value)
@@ -54,17 +56,39 @@ export function FormattedValue({
     return <span className={className}>{abbreviated}</span>
   }
 
+  const accessibleLabel = label ? `${label}: ${exact}` : exact
+
+  if (!interactive) {
+    return (
+      <span
+        className={cn(
+          'cursor-help decoration-dotted underline underline-offset-4 decoration-muted-foreground/40',
+          className,
+        )}
+        title={insight ? `${exact} — ${insight}` : exact}
+      >
+        <span aria-hidden="true">{abbreviated}</span>
+        <span className="sr-only">
+          {accessibleLabel}
+          {insight ? `. ${insight}` : ''}
+        </span>
+      </span>
+    )
+  }
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span
+        <button
+          type="button"
+          aria-label={accessibleLabel}
           className={cn(
-            'cursor-help decoration-dotted underline underline-offset-4 decoration-muted-foreground/40',
+            'inline rounded-sm border-0 bg-transparent p-0 text-inherit cursor-help decoration-dotted underline underline-offset-4 decoration-muted-foreground/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             className,
           )}
         >
           {abbreviated}
-        </span>
+        </button>
       </TooltipTrigger>
       <TooltipContent className="max-w-[260px]">
         <div className="space-y-1">

@@ -3,8 +3,11 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TodayMetrics } from '@/components/cards/TodayMetrics'
+import { PrimaryMetrics } from '@/components/cards/PrimaryMetrics'
 import { ChartCard } from '@/components/charts/ChartCard'
 import { DrillDownModal } from '@/components/features/drill-down/DrillDownModal'
+import { UsageInsights } from '@/components/features/insights/UsageInsights'
+import { Header } from '@/components/layout/Header'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage, DashboardMetrics } from '@/types'
@@ -217,5 +220,95 @@ describe('phase 4 UI correctness', () => {
     fireEvent.click(screen.getByRole('button', { name: /vergrössern/i }))
 
     expect(screen.getByRole('button', { name: 'CSV exportieren' })).toBeInTheDocument()
+  })
+
+  it('uses consistent German terminology on primary information paths', async () => {
+    await initI18n('de')
+
+    render(
+      <TooltipProvider delayDuration={0}>
+        <div>
+          <Header
+            dateRange={{ start: '2026-04-01', end: '2026-04-13' }}
+            isDark={false}
+            currentLanguage="de"
+            helpOpen={false}
+            streak={22}
+            dataSource={null}
+            startupAutoLoad={null}
+            onHelpOpenChange={() => {}}
+            onLanguageChange={() => {}}
+            onToggleTheme={() => {}}
+            onExportCSV={() => {}}
+            onDelete={() => {}}
+            onUpload={() => {}}
+            onAutoImport={() => {}}
+          />
+          <PrimaryMetrics
+            metrics={{
+              ...emptyMetrics,
+              totalCost: 5046.25,
+              totalTokens: 7_742_241_363,
+              activeDays: 63,
+              topModel: { name: 'Opus 4.6', cost: 4000 },
+              topRequestModel: { name: 'Opus 4.6', requests: 49999 },
+              topModelShare: 79,
+              providerCount: 3,
+              hasRequestData: true,
+              cacheHitRate: 95.1,
+              costPerMillion: 0.65,
+              avgTokensPerRequest: 96700,
+              avgCostPerRequest: 0.06,
+              avgDailyCost: 80.1,
+              avgRequestsPerDay: 1270.3,
+              totalInput: 10,
+              totalOutput: 5,
+              totalCacheRead: 100,
+              totalRequests: 80029,
+              requestVolatility: 1319,
+            }}
+            totalCalendarDays={92}
+          />
+          <UsageInsights
+            metrics={{
+              ...emptyMetrics,
+              topProvider: { name: 'Anthropic', share: 96, cost: 4800 },
+              topModel: { name: 'Opus 4.6', cost: 4000 },
+              topRequestModel: { name: 'Opus 4.6', requests: 49999 },
+              topTokenModel: { name: 'Opus 4.6', tokens: 5300000000 },
+              topThreeModelsShare: 91,
+              topModelShare: 79,
+              activeDays: 63,
+              avgDailyCost: 80.1,
+              avgRequestsPerDay: 1270.3,
+              avgTokensPerRequest: 96700,
+              avgCostPerRequest: 0.06,
+              hasRequestData: true,
+              costPerMillion: 0.65,
+              providerCount: 3,
+              avgModelsPerEntry: 2.6,
+              weekendCostShare: 35,
+              totalThinking: 1200,
+              totalTokens: 7742241363,
+              totalRequests: 80029,
+              requestVolatility: 1319,
+              busiestWeek: { start: '2026-03-28', end: '2026-04-03', cost: 1218 },
+              topDay: { date: '2026-03-06', cost: 366 },
+            }}
+            viewMode="daily"
+            totalCalendarDays={92}
+          />
+        </div>
+      </TooltipProvider>,
+    )
+
+    expect(screen.getByText('22 Tage in Folge')).toBeInTheDocument()
+    expect(screen.getByText('Einblicke')).toBeInTheDocument()
+    expect(screen.getByText('Kurzfazit')).toBeInTheDocument()
+    expect(document.body.textContent).toContain('Input/Output-Verhältnis')
+    expect(document.body.textContent).toContain('pro Request')
+    expect(document.body.textContent).not.toContain('Req-Lead')
+    expect(document.body.textContent).not.toContain('Quick Read')
+    expect(document.body.textContent).not.toContain('Streak')
   })
 })

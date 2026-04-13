@@ -61,6 +61,15 @@ export function HeatmapCalendar({
       ),
     [],
   )
+  const fullDateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(getCurrentLocale(), {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+    [],
+  )
   const config = {
     cost: {
       title: t('charts.heatmap.costTitle'),
@@ -222,6 +231,11 @@ export function HeatmapCalendar({
               {/* Cells */}
               {cells.map((cell, i) => {
                 const isToday = cell.date === todayStr
+                const formattedDate = fullDateFormatter.format(new Date(`${cell.date}T00:00:00`))
+                const accessibleLabel = t('charts.heatmap.cellLabel', {
+                  date: formattedDate,
+                  value: config.formatter(cell.value),
+                })
                 return (
                   <g key={i}>
                     <rect
@@ -231,7 +245,13 @@ export function HeatmapCalendar({
                       height={CELL_SIZE}
                       rx={2}
                       fill={getColor(cell.value, maxValue, config.hue)}
-                      className="transition-all duration-150 cursor-pointer"
+                      stroke="transparent"
+                      strokeWidth={1.5}
+                      className="transition-all duration-150 cursor-pointer focus-visible:stroke-primary"
+                      tabIndex={0}
+                      role="img"
+                      aria-label={accessibleLabel}
+                      aria-current={isToday ? 'date' : undefined}
                       onMouseEnter={(event) => {
                         const bounds = overlayRef.current?.getBoundingClientRect()
                         if (!bounds) return
@@ -242,8 +262,22 @@ export function HeatmapCalendar({
                           value: cell.value,
                         })
                       }}
+                      onFocus={(event) => {
+                        const bounds = overlayRef.current?.getBoundingClientRect()
+                        if (!bounds) return
+                        const rect = event.currentTarget.getBoundingClientRect()
+                        setTooltip({
+                          x: rect.left - bounds.left + rect.width / 2,
+                          y: rect.top - bounds.top - 8,
+                          date: cell.date,
+                          value: cell.value,
+                        })
+                      }}
+                      onBlur={() => setTooltip(null)}
                       onMouseLeave={() => setTooltip(null)}
-                    />
+                    >
+                      <title>{accessibleLabel}</title>
+                    </rect>
                     {isToday && (
                       <rect
                         x={LEFT_GUTTER + cell.week * TOTAL - 1}

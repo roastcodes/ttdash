@@ -210,10 +210,10 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   </div>
                   <div className="text-right">
                     <div className="font-mono font-semibold">
-                      <FormattedValue value={day.totalCost} type="currency" />
+                      <FormattedValue value={day.totalCost} type="currency" interactive={false} />
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      <FormattedValue value={day.totalTokens} type="tokens" />
+                      <FormattedValue value={day.totalTokens} type="tokens" interactive={false} />
                     </div>
                     {viewMode === 'daily' &&
                       benchmarkMap.get(day.date)?.prevCostDelta !== undefined && (
@@ -229,19 +229,19 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   <div className="rounded-lg bg-muted/20 px-2.5 py-2">
                     <div className="text-muted-foreground">{t('common.input')}</div>
                     <div className="mt-1 font-mono">
-                      <FormattedValue value={day.inputTokens} type="tokens" />
+                      <FormattedValue value={day.inputTokens} type="tokens" interactive={false} />
                     </div>
                   </div>
                   <div className="rounded-lg bg-muted/20 px-2.5 py-2">
                     <div className="text-muted-foreground">{t('common.output')}</div>
                     <div className="mt-1 font-mono">
-                      <FormattedValue value={day.outputTokens} type="tokens" />
+                      <FormattedValue value={day.outputTokens} type="tokens" interactive={false} />
                     </div>
                   </div>
                   <div className="rounded-lg bg-muted/20 px-2.5 py-2">
                     <div className="text-muted-foreground">$/1M</div>
                     <div className="mt-1 font-mono">
-                      <FormattedValue value={costPerM} type="currency" />
+                      <FormattedValue value={costPerM} type="currency" interactive={false} />
                     </div>
                   </div>
                 </div>

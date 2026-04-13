@@ -75,7 +75,11 @@ export function PrimaryMetrics({
             })}
           />
         }
-        subtitle={`Ø ${formatCurrency(metrics.avgDailyCost)}/${periodUnit(viewMode)} · ${formatCurrency(metrics.avgCostPerRequest)}/Req`}
+        subtitle={t('metricCards.primary.totalCostSubtitle', {
+          average: formatCurrency(metrics.avgDailyCost),
+          unit: periodUnit(viewMode),
+          costPerRequest: formatCurrency(metrics.avgCostPerRequest),
+        })}
         icon={<DollarSign className="h-4 w-4" />}
         trend={metrics.weekOverWeekChange !== null ? { value: metrics.weekOverWeekChange } : null}
         info={METRIC_HELP.totalCost}
@@ -94,8 +98,13 @@ export function PrimaryMetrics({
         }
         subtitle={
           ioRatio
-            ? `I/O ${ioRatio}:1 · ${formatTokens(metrics.avgTokensPerRequest)} / Request`
-            : `${formatTokens(metrics.avgTokensPerRequest)} / Request`
+            ? t('metricCards.primary.totalTokensSubtitleWithRatio', {
+                ratio: ioRatio,
+                tokensPerRequest: formatTokens(metrics.avgTokensPerRequest),
+              })
+            : t('metricCards.primary.totalTokensSubtitle', {
+                tokensPerRequest: formatTokens(metrics.avgTokensPerRequest),
+              })
         }
         icon={<Coins className="h-4 w-4" />}
         info={METRIC_HELP.totalTokens}
