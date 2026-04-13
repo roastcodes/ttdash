@@ -106,6 +106,8 @@ export function startAutoImport(
   const controller = new AbortController()
   const decoder = new TextDecoder()
   let done = false
+  let receivedDoneFrame = false
+  let receivedErrorFrame = false
 
   const finish = () => {
     if (done) return
@@ -141,6 +143,7 @@ export function startAutoImport(
         return
       }
       case 'error': {
+        receivedErrorFrame = true
         const data = parseJsonRecord<ErrorEvent>(dataText)
         if (data) {
           callbacks.onError({
@@ -152,6 +155,7 @@ export function startAutoImport(
         return
       }
       case 'done':
+        receivedDoneFrame = true
         finish()
     }
   }
@@ -229,9 +233,11 @@ export function startAutoImport(
         buffer += decoder.decode()
         if (buffer) {
           processLines(buffer.split(/\r?\n/), state)
-          buffer = ''
         }
         flushEvent(state.currentEvent, state.dataLines)
+        if (!receivedDoneFrame && !receivedErrorFrame) {
+          callbacks.onError({ message: t('autoImportModal.serverConnectionLost') })
+        }
         finish()
         return
       }

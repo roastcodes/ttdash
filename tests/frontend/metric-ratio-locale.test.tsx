@@ -44,6 +44,35 @@ const metrics: DashboardMetrics = {
 }
 
 describe('metric ratio localization', () => {
+  const daily: DailyUsage[] = [
+    {
+      date: '2026-04-02',
+      inputTokens: 10,
+      outputTokens: 6,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      thinkingTokens: 2,
+      totalTokens: 18,
+      totalCost: 4,
+      requestCount: 2,
+      modelsUsed: ['gpt-5.4'],
+      modelBreakdowns: [],
+    },
+    {
+      date: '2026-04-04',
+      inputTokens: 5,
+      outputTokens: 4,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      thinkingTokens: 1,
+      totalTokens: 10,
+      totalCost: 6,
+      requestCount: 2,
+      modelsUsed: ['gpt-5.4'],
+      modelBreakdowns: [],
+    },
+  ]
+
   beforeEach(async () => {
     vi.stubGlobal(
       'IntersectionObserver',
@@ -77,35 +106,6 @@ describe('metric ratio localization', () => {
       maximumFractionDigits: 1,
     }).format(1.5)
 
-    const daily: DailyUsage[] = [
-      {
-        date: '2026-04-02',
-        inputTokens: 10,
-        outputTokens: 6,
-        cacheCreationTokens: 0,
-        cacheReadTokens: 0,
-        thinkingTokens: 0,
-        totalTokens: 16,
-        totalCost: 4,
-        requestCount: 2,
-        modelsUsed: ['gpt-5.4'],
-        modelBreakdowns: [],
-      },
-      {
-        date: '2026-04-04',
-        inputTokens: 5,
-        outputTokens: 4,
-        cacheCreationTokens: 0,
-        cacheReadTokens: 0,
-        thinkingTokens: 0,
-        totalTokens: 9,
-        totalCost: 6,
-        requestCount: 2,
-        modelsUsed: ['gpt-5.4'],
-        modelBreakdowns: [],
-      },
-    ]
-
     render(
       <TooltipProvider delayDuration={0}>
         <MonthMetrics daily={daily} metrics={metrics} />
@@ -113,5 +113,27 @@ describe('metric ratio localization', () => {
     )
 
     expect(document.body.textContent).toContain(`${ratio}:1`)
+  })
+
+  it('formats month percentage subtitles with the active locale', () => {
+    const thinkingShare = new Intl.NumberFormat(getCurrentLocale(), {
+      style: 'percent',
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(3 / 28)
+    const coverage = new Intl.NumberFormat(getCurrentLocale(), {
+      style: 'percent',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(2 / new Date().getDate())
+
+    render(
+      <TooltipProvider delayDuration={0}>
+        <MonthMetrics daily={daily} metrics={metrics} />
+      </TooltipProvider>,
+    )
+
+    expect(document.body.textContent).toContain(thinkingShare)
+    expect(document.body.textContent).toContain(coverage)
   })
 })

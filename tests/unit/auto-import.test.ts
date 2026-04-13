@@ -177,7 +177,7 @@ describe('startAutoImport', () => {
     const stream = new ReadableStream({
       start(controller) {
         controller.enqueue(encoder.encode('event: success\ndata: {"days":7,'))
-        controller.enqueue(encoder.encode('"totalCost":12.5}'))
+        controller.enqueue(encoder.encode('"totalCost":12.5}\n\nevent: done\ndata: {}\n\n'))
         controller.close()
       },
     })
@@ -211,5 +211,49 @@ describe('startAutoImport', () => {
 
     expect(callbacks.onSuccess).toHaveBeenCalledWith({ days: 7, totalCost: 12.5 })
     expect(callbacks.onError).not.toHaveBeenCalled()
+  })
+
+  it('treats an unexpected EOF without a terminal done frame as a lost server connection', async () => {
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(['event: success', 'data: {"days":7,"totalCost":12.5}', ''].join('\n')),
+        )
+        controller.close()
+      },
+    })
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(stream, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/event-stream',
+          },
+        }),
+      ),
+    )
+
+    const callbacks = {
+      onCheck: vi.fn(),
+      onProgress: vi.fn(),
+      onStderr: vi.fn(),
+      onSuccess: vi.fn(),
+      onError: vi.fn(),
+      onDone: vi.fn(),
+    }
+
+    startAutoImport(callbacks, translate)
+
+    await vi.waitFor(() => {
+      expect(callbacks.onDone).toHaveBeenCalledTimes(1)
+    })
+
+    expect(callbacks.onSuccess).toHaveBeenCalledWith({ days: 7, totalCost: 12.5 })
+    expect(callbacks.onError).toHaveBeenCalledWith({
+      message: 'autoImportModal.serverConnectionLost',
+    })
   })
 })

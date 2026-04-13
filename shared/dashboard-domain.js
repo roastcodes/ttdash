@@ -312,24 +312,25 @@ function aggregateToDailyFormat(data, viewMode) {
 function computeMovingAverage(values, window = 7) {
   const result = Array(values.length)
   let sum = 0
+  let definedCount = 0
 
   for (let index = 0; index < values.length; index += 1) {
     const currentValue = values[index]
-    if (currentValue === undefined) {
-      result[index] = undefined
-      continue
+    if (currentValue !== undefined) {
+      sum += currentValue
+      definedCount += 1
     }
-
-    sum += currentValue
 
     if (index >= window) {
       const outgoingValue = values[index - window]
       if (outgoingValue !== undefined) {
         sum -= outgoingValue
+        definedCount -= 1
       }
     }
 
-    result[index] = index < window - 1 ? undefined : sum / window
+    result[index] =
+      index < window - 1 ? undefined : definedCount > 0 ? sum / definedCount : undefined
   }
 
   return result

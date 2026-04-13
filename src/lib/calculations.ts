@@ -19,7 +19,10 @@ export function computeWeekOverWeekChange(data: DailyUsage[]): number | null {
   return computeSharedWeekOverWeekChange(data)
 }
 
-export function computeMovingAverage(values: number[], window = 7): (number | undefined)[] {
+export function computeMovingAverage(
+  values: Array<number | undefined>,
+  window = 7,
+): (number | undefined)[] {
   return computeSharedMovingAverage(values, window)
 }
 

@@ -3,12 +3,9 @@ function isLoopbackHost(host) {
     .trim()
     .toLowerCase()
     .replace(/^\[|\]$/g, '');
-  return (
-    normalized === '127.0.0.1' ||
-    normalized === 'localhost' ||
-    normalized === '::1' ||
-    normalized === '::ffff:127.0.0.1'
-  );
+  const ipv4Loopback = /^127(?:\.\d{1,3}){3}$/.test(normalized);
+  const ipv4MappedLoopback = /^::ffff:127(?:\.\d{1,3}){3}$/.test(normalized);
+  return ipv4Loopback || normalized === 'localhost' || normalized === '::1' || ipv4MappedLoopback;
 }
 
 function ensureBindHostAllowed(bindHost, allowRemoteBind) {

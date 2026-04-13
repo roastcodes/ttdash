@@ -10,14 +10,35 @@ describe('dashboard preferences config', () => {
     const parsed = parseDashboardPreferencesConfig(dashboardPreferences)
 
     expect(parsed.sectionDefinitions).toEqual(DASHBOARD_SECTION_DEFINITIONS)
-    expect(parsed.viewModes).toContain('monthly')
+    expect(parsed.viewModes).toEqual(dashboardPreferences.viewModes)
+    expect(parsed.datePresets).toEqual(dashboardPreferences.datePresets)
   })
 
-  it('fails fast when the shared preferences JSON drifts from the expected shape', () => {
+  it('fails fast when datePresets contain unsupported values', () => {
     expect(() =>
       parseDashboardPreferencesConfig({
-        datePresets: ['all'],
+        datePresets: ['all', 'ever'],
+        viewModes: dashboardPreferences.viewModes,
+        sectionDefinitions: dashboardPreferences.sectionDefinitions,
+      }),
+    ).toThrow('Invalid dashboard preferences')
+  })
+
+  it('fails fast when viewModes contain unsupported values', () => {
+    expect(() =>
+      parseDashboardPreferencesConfig({
+        datePresets: dashboardPreferences.datePresets,
         viewModes: ['daily', 'weekly'],
+        sectionDefinitions: dashboardPreferences.sectionDefinitions,
+      }),
+    ).toThrow('Invalid dashboard preferences')
+  })
+
+  it('fails fast when sectionDefinitions entries are malformed', () => {
+    expect(() =>
+      parseDashboardPreferencesConfig({
+        datePresets: dashboardPreferences.datePresets,
+        viewModes: dashboardPreferences.viewModes,
         sectionDefinitions: [{ id: 'metrics', domId: 'metrics' }],
       }),
     ).toThrow('Invalid dashboard preferences')

@@ -343,11 +343,12 @@ async function fetchRuntimeIdentity(url, timeoutMs = 1000) {
     return null;
   }
 
+  const runtimePath = `${API_PREFIX.replace(/\/+$/, '')}/runtime`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(new URL('/api/runtime', `${url}/`), {
+    const response = await fetch(new URL(runtimePath, `${url}/`), {
       signal: controller.signal,
     });
 
@@ -765,6 +766,9 @@ async function startInBackground() {
   const logFile = buildBackgroundLogFilePath();
   const childArgs = NORMALIZED_CLI_ARGS.filter((arg) => arg !== '--background');
   const logFd = fs.openSync(logFile, 'a', SECURE_FILE_MODE);
+  if (!IS_WINDOWS) {
+    fs.fchmodSync(logFd, SECURE_FILE_MODE);
+  }
 
   let child;
   try {

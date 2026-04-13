@@ -64,10 +64,13 @@ describe('server helper utilities', () => {
 
   it('accepts common loopback host variants', () => {
     expect(isLoopbackHost('127.0.0.1')).toBe(true)
+    expect(isLoopbackHost('127.0.0.2')).toBe(true)
+    expect(isLoopbackHost('127.255.255.255')).toBe(true)
     expect(isLoopbackHost('localhost')).toBe(true)
     expect(isLoopbackHost('::1')).toBe(true)
     expect(isLoopbackHost('[::1]')).toBe(true)
     expect(isLoopbackHost(' ::ffff:127.0.0.1 ')).toBe(true)
+    expect(isLoopbackHost('::ffff:127.0.0.2')).toBe(true)
     expect(isLoopbackHost('0.0.0.0')).toBe(false)
   })
 

@@ -133,4 +133,13 @@ describe('dashboard analytics', () => {
   it('computes moving averages with leading gaps instead of partial windows', () => {
     expect(computeMovingAverage([1, 2, 3, 4], 3)).toEqual([undefined, undefined, 2, 3])
   })
+
+  it('computes moving averages from defined values only when windows contain gaps', () => {
+    expect(computeMovingAverage([1, undefined, 3, 5], 3)).toEqual([undefined, undefined, 2, 4])
+    expect(computeMovingAverage([undefined, undefined, undefined], 2)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ])
+  })
 })

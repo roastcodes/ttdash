@@ -254,6 +254,7 @@ function readBackgroundRegistry(root: string) {
     url: string
     port: number
     pid: number
+    logFile?: string | null
   }>
 }
 
@@ -264,6 +265,7 @@ function tryReadBackgroundRegistry(root: string) {
       url: string
       port: number
       pid: number
+      logFile?: string | null
     }>
   }
 
@@ -272,6 +274,7 @@ function tryReadBackgroundRegistry(root: string) {
       url: string
       port: number
       pid: number
+      logFile?: string | null
     }>
   } catch {
     return []
@@ -291,6 +294,7 @@ async function waitForBackgroundRegistry(
       url: string
       port: number
       pid: number
+      logFile?: string | null
     }>,
   ) => boolean,
   timeoutMs = 15_000,
@@ -310,6 +314,23 @@ async function waitForBackgroundRegistry(
   throw new Error(
     `Timed out waiting for background registry state: ${JSON.stringify(lastEntries, null, 2)}`,
   )
+}
+
+async function waitForHttpOk(url: string, timeoutMs = 15_000) {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      const response = await fetch(url)
+      if (response.ok) {
+        return
+      }
+    } catch {}
+
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
+
+  throw new Error(`Timed out waiting for server startup: ${url}`)
 }
 
 async function runCli(args: string[], { env, input }: { env: NodeJS.ProcessEnv; input?: string }) {
@@ -715,6 +736,54 @@ describe('local server API', () => {
       rmSync(runtimeRoot, { recursive: true, force: true })
     }
   })
+
+  itIfPosix(
+    'hardens background log files and stops background instances with a custom API prefix',
+    async () => {
+      const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-prefix-test-'))
+      const backgroundEnv = {
+        ...createCliEnv(backgroundRoot),
+        API_PREFIX: '/custom-api',
+      }
+      const backgroundPort = await getFreePort()
+      const backgroundUrl = `http://127.0.0.1:${backgroundPort}`
+
+      try {
+        const startResult = await runCli(
+          ['--background', '--no-open', '--port', String(backgroundPort)],
+          {
+            env: backgroundEnv,
+          },
+        )
+
+        expect(startResult.code).toBe(0)
+        expect(startResult.output).toContain('TTDash is running in the background.')
+        expect(startResult.output).toContain(backgroundUrl)
+
+        await waitForHttpOk(`${backgroundUrl}/custom-api/usage`)
+
+        const [instance] = await waitForBackgroundRegistry(
+          backgroundRoot,
+          (entries) => entries.length === 1,
+        )
+        expect(instance).toBeDefined()
+        expect(instance?.logFile).toBeTruthy()
+        expect(permissionBits(instance!.logFile!)).toBe(0o600)
+
+        const stopResult = await runCli(['stop'], {
+          env: backgroundEnv,
+        })
+
+        expect(stopResult.code).toBe(0)
+        expect(stopResult.output).toContain(`Stopped TTDash background server: ${backgroundUrl}`)
+        await waitForServerUnavailable(backgroundUrl)
+      } finally {
+        await stopAllBackgroundServers(backgroundEnv, backgroundRoot)
+        rmSync(backgroundRoot, { recursive: true, force: true })
+      }
+    },
+    45_000,
+  )
 
   itIfPosix('tightens existing app directories to restrictive permissions on startup', async () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-existing-dir-permissions-test-'))

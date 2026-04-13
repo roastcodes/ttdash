@@ -30,6 +30,22 @@ vi.mock('@/hooks/use-usage-data', () => usageHookMocks)
 vi.mock('@/hooks/use-app-settings', () => settingsHookMocks)
 vi.mock('@/lib/api', () => apiMocks)
 
+function makeEmptyUsageData() {
+  return {
+    daily: [],
+    totals: {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      thinkingTokens: 0,
+      totalCost: 0,
+      totalTokens: 0,
+      requestCount: 0,
+    },
+  }
+}
+
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -94,19 +110,7 @@ describe('Dashboard fatal load state', () => {
 
   it('renders a fatal settings error state instead of the normal empty state and resets settings', async () => {
     usageHookMocks.useUsageData.mockReturnValue({
-      data: {
-        daily: [],
-        totals: {
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheCreationTokens: 0,
-          cacheReadTokens: 0,
-          thinkingTokens: 0,
-          totalCost: 0,
-          totalTokens: 0,
-          requestCount: 0,
-        },
-      },
+      data: makeEmptyUsageData(),
       isLoading: false,
       error: null,
     })
@@ -160,19 +164,7 @@ describe('Dashboard fatal load state', () => {
     const mutateAsync = vi.fn().mockRejectedValue(new Error('Usage payload is invalid'))
 
     usageHookMocks.useUsageData.mockReturnValue({
-      data: {
-        daily: [],
-        totals: {
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheCreationTokens: 0,
-          cacheReadTokens: 0,
-          thinkingTokens: 0,
-          totalCost: 0,
-          totalTokens: 0,
-          requestCount: 0,
-        },
-      },
+      data: makeEmptyUsageData(),
       isLoading: false,
       error: null,
     })
@@ -200,19 +192,7 @@ describe('Dashboard fatal load state', () => {
     const mutateAsync = vi.fn()
 
     usageHookMocks.useUsageData.mockReturnValue({
-      data: {
-        daily: [],
-        totals: {
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheCreationTokens: 0,
-          cacheReadTokens: 0,
-          thinkingTokens: 0,
-          totalCost: 0,
-          totalTokens: 0,
-          requestCount: 0,
-        },
-      },
+      data: makeEmptyUsageData(),
       isLoading: false,
       error: null,
     })
