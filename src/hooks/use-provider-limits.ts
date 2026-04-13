@@ -6,7 +6,7 @@ export function useProviderLimits(availableProviders: string[]) {
   const [limits, setLimits] = useState<ProviderLimits>({})
 
   useEffect(() => {
-    setLimits(prev => syncProviderLimits(availableProviders, prev))
+    setLimits((prev) => syncProviderLimits(availableProviders, prev))
   }, [availableProviders])
 
   return {

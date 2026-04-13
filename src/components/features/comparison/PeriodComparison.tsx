@@ -15,14 +15,23 @@ interface PeriodComparisonProps {
 
 type Preset = 'week' | 'month' | 'custom'
 
-function getDelta(a: number, b: number, higherIsGood = false): { value: number; color: string; arrow: string; hasData: boolean } {
-  if (b === 0 && a === 0) return { value: 0, color: 'text-muted-foreground', arrow: '', hasData: false }
+function getDelta(
+  a: number,
+  b: number,
+  higherIsGood = false,
+): { value: number; color: string; arrow: string; hasData: boolean } {
+  if (b === 0 && a === 0)
+    return { value: 0, color: 'text-muted-foreground', arrow: '', hasData: false }
   if (b === 0) return { value: 0, color: 'text-muted-foreground', arrow: '↑', hasData: false }
   const pct = ((a - b) / b) * 100
   const isPositive = pct > 0
   // For costs: higher is bad (red). For cache-rate: higher is good (green).
-  const color = pct === 0 ? 'text-muted-foreground'
-    : (isPositive === higherIsGood) ? 'text-green-400' : 'text-red-400'
+  const color =
+    pct === 0
+      ? 'text-muted-foreground'
+      : isPositive === higherIsGood
+        ? 'text-green-400'
+        : 'text-red-400'
   const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : ''
   return { value: Math.abs(pct), color, arrow, hasData: true }
 }
@@ -36,7 +45,9 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
     if (sorted.length === 0) return { periodA: [], periodB: [], labelA: '', labelB: '' }
 
     // Use the date string directly to avoid timezone issues with toISOString()
-    const lastStr = sorted[sorted.length - 1].date
+    const lastEntry = sorted[sorted.length - 1]
+    if (!lastEntry) return { periodA: [], periodB: [], labelA: '', labelB: '' }
+    const lastStr = lastEntry.date
     const lastDate = new Date(lastStr + 'T00:00:00')
 
     // Helper: format local date as YYYY-MM-DD without timezone shift
@@ -65,8 +76,8 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
       const twoWeeksAgoStr = fmtLocal(lastMonday)
 
       return {
-        periodA: sorted.filter(d => d.date >= weekAgoStr && d.date <= lastStr),
-        periodB: sorted.filter(d => d.date >= twoWeeksAgoStr && d.date < weekAgoStr),
+        periodA: sorted.filter((d) => d.date >= weekAgoStr && d.date <= lastStr),
+        periodB: sorted.filter((d) => d.date >= twoWeeksAgoStr && d.date < weekAgoStr),
         labelA: t('comparison.thisWeek'),
         labelB: t('comparison.lastWeek'),
       }
@@ -80,8 +91,8 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
     const prevMonth = fmtLocal(prevDate).slice(0, 7)
 
     return {
-      periodA: sorted.filter(d => d.date.startsWith(currentMonth)),
-      periodB: sorted.filter(d => d.date.startsWith(prevMonth)),
+      periodA: sorted.filter((d) => d.date.startsWith(currentMonth)),
+      periodB: sorted.filter((d) => d.date.startsWith(prevMonth)),
       labelA: t('comparison.thisMonth'),
       labelB: t('comparison.lastMonth'),
     }
@@ -102,7 +113,9 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-sm text-muted-foreground">{t('comparison.notEnoughData')}</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">{t('comparison.requiresDays', { count: data.length })}</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              {t('comparison.requiresDays', { count: data.length })}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -110,15 +123,45 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
   }
 
   const hasPrevData = periodB.length > 0
-  const fmtB = (val: string) => hasPrevData ? val : '–'
+  const fmtB = (val: string) => (hasPrevData ? val : '–')
 
   const comparisons = [
-    { label: t('comparison.cost'), a: formatCurrency(metricsA.totalCost), b: fmtB(formatCurrency(metricsB.totalCost)), delta: getDelta(metricsA.totalCost, metricsB.totalCost) },
-    { label: t('comparison.tokens'), a: formatTokens(metricsA.totalTokens), b: fmtB(formatTokens(metricsB.totalTokens)), delta: getDelta(metricsA.totalTokens, metricsB.totalTokens) },
-    { label: '$/1M', a: `$${metricsA.costPerMillion.toFixed(2)}`, b: fmtB(`$${metricsB.costPerMillion.toFixed(2)}`), delta: getDelta(metricsA.costPerMillion, metricsB.costPerMillion) },
-    { label: t('comparison.avgPerDay'), a: formatCurrency(metricsA.avgDailyCost), b: fmtB(formatCurrency(metricsB.avgDailyCost)), delta: getDelta(metricsA.avgDailyCost, metricsB.avgDailyCost) },
-    { label: t('comparison.cacheRate'), a: formatPercent(metricsA.cacheHitRate), b: fmtB(formatPercent(metricsB.cacheHitRate)), delta: getDelta(metricsA.cacheHitRate, metricsB.cacheHitRate, true) },
-    { label: t('comparison.days'), a: String(metricsA.activeDays), b: fmtB(String(metricsB.activeDays)), delta: getDelta(metricsA.activeDays, metricsB.activeDays) },
+    {
+      label: t('comparison.cost'),
+      a: formatCurrency(metricsA.totalCost),
+      b: fmtB(formatCurrency(metricsB.totalCost)),
+      delta: getDelta(metricsA.totalCost, metricsB.totalCost),
+    },
+    {
+      label: t('comparison.tokens'),
+      a: formatTokens(metricsA.totalTokens),
+      b: fmtB(formatTokens(metricsB.totalTokens)),
+      delta: getDelta(metricsA.totalTokens, metricsB.totalTokens),
+    },
+    {
+      label: '$/1M',
+      a: `$${metricsA.costPerMillion.toFixed(2)}`,
+      b: fmtB(`$${metricsB.costPerMillion.toFixed(2)}`),
+      delta: getDelta(metricsA.costPerMillion, metricsB.costPerMillion),
+    },
+    {
+      label: t('comparison.avgPerDay'),
+      a: formatCurrency(metricsA.avgDailyCost),
+      b: fmtB(formatCurrency(metricsB.avgDailyCost)),
+      delta: getDelta(metricsA.avgDailyCost, metricsB.avgDailyCost),
+    },
+    {
+      label: t('comparison.cacheRate'),
+      a: formatPercent(metricsA.cacheHitRate),
+      b: fmtB(formatPercent(metricsB.cacheHitRate)),
+      delta: getDelta(metricsA.cacheHitRate, metricsB.cacheHitRate, true),
+    },
+    {
+      label: t('comparison.days'),
+      a: String(metricsA.activeDays),
+      b: fmtB(String(metricsB.activeDays)),
+      delta: getDelta(metricsA.activeDays, metricsB.activeDays),
+    },
   ]
 
   return (
@@ -154,29 +197,43 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">{t('comparison.metric')}</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+                  {t('comparison.metric')}
+                </th>
                 <th className="px-2 py-2 text-right text-xs font-medium text-primary">{labelB}</th>
                 <th className="px-2 py-2 text-center text-xs text-muted-foreground w-8"></th>
                 <th className="px-2 py-2 text-right text-xs font-medium text-primary">{labelA}</th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground">{t('comparison.delta')}</th>
+                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground">
+                  {t('comparison.delta')}
+                </th>
               </tr>
             </thead>
             <tbody>
-              {comparisons.map(row => (
+              {comparisons.map((row) => (
                 <tr key={row.label} className="border-b border-border/50">
                   <td className="px-2 py-2 text-muted-foreground">{row.label}</td>
                   <td className="px-2 py-2 text-right font-mono">{row.b}</td>
-                  <td className="px-2 py-2 text-center"><ArrowRight className="h-3 w-3 text-muted-foreground inline" /></td>
+                  <td className="px-2 py-2 text-center">
+                    <ArrowRight className="h-3 w-3 text-muted-foreground inline" />
+                  </td>
                   <td className="px-2 py-2 text-right font-mono font-medium">{row.a}</td>
                   <td className="px-2 py-2 text-right">
                     {row.delta.hasData ? (
-                      <span className={`inline-flex items-center gap-1 font-mono font-medium text-xs px-1.5 py-0.5 rounded ${row.delta.color} ${
-                        row.delta.color === 'text-red-400' ? 'bg-red-400/10' :
-                        row.delta.color === 'text-green-400' ? 'bg-green-400/10' : ''
-                      }`}>
-                        {row.delta.arrow}{formatPercent(row.delta.value)}
+                      <span
+                        className={`inline-flex items-center gap-1 font-mono font-medium text-xs px-1.5 py-0.5 rounded ${row.delta.color} ${
+                          row.delta.color === 'text-red-400'
+                            ? 'bg-red-400/10'
+                            : row.delta.color === 'text-green-400'
+                              ? 'bg-green-400/10'
+                              : ''
+                        }`}
+                      >
+                        {row.delta.arrow}
+                        {formatPercent(row.delta.value)}
                       </span>
-                    ) : '–'}
+                    ) : (
+                      '–'
+                    )}
                   </td>
                 </tr>
               ))}

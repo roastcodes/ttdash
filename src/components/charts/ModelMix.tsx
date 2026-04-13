@@ -1,11 +1,19 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import { getModelColor, normalizeModelName } from '@/lib/model-utils'
-import { formatDateAxis, formatPercent } from '@/lib/formatters'
+import { coerceNumber, formatDateAxis, formatPercent } from '@/lib/formatters'
 import type { DailyUsage } from '@/types'
 
 interface ModelMixProps {
@@ -27,9 +35,14 @@ function MixTooltip({ active, payload, label }: MixTooltipProps) {
       <div className="space-y-1">
         {sorted.map((entry, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: entry.color }}
+            />
             <span className="text-muted-foreground">{entry.name}:</span>
-            <span className="font-mono font-medium text-foreground ml-auto">{formatPercent(entry.value)}</span>
+            <span className="font-mono font-medium text-foreground ml-auto">
+              {formatPercent(entry.value)}
+            </span>
           </div>
         ))}
       </div>
@@ -47,7 +60,7 @@ export function ModelMix({ data }: ModelMixProps) {
     }
     const models = Array.from(modelSet).sort()
 
-    const chartData = sorted.map(d => {
+    const chartData = sorted.map((d) => {
       const total = d.totalCost
       const point: Record<string, unknown> = { date: d.date }
       const costs: Record<string, number> = {}
@@ -77,43 +90,63 @@ export function ModelMix({ data }: ModelMixProps) {
           <ChartReveal variant="line" delay={0.05}>
             <ResponsiveContainer width="100%" height={250}>
               <AreaChart data={chartData} margin={CHART_MARGIN} stackOffset="none">
-          <defs>
-            {models.map(model => {
-              const color = getModelColor(model)
-              const id = `mix-grad-${model.replace(/[\s.]/g, '-')}`
-              return (
-                <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.85} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0.45} />
-                </linearGradient>
-              )
-            })}
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
-          <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-          <YAxis tickFormatter={(v) => `${Math.round(v)}%`} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} />
-          <Tooltip content={<MixTooltip />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
-          {models.map(model => {
-            const color = getModelColor(model)
-            const id = `mix-grad-${model.replace(/[\s.]/g, '-')}`
-            return (
-                <Area
-                  key={model}
-                  type="monotone"
-                  dataKey={model}
-                  stackId="1"
-                  stroke={color}
-                  strokeWidth={0.5}
-                  strokeOpacity={0.6}
-                  fill={`url(#${id})`}
-                  name={model}
-                  isAnimationActive={animate}
-                  animationBegin={CHART_ANIMATION.stagger * (models.indexOf(model) % 5)}
-                  animationDuration={CHART_ANIMATION.duration}
-                  animationEasing={CHART_ANIMATION.easing}
+                <defs>
+                  {models.map((model) => {
+                    const color = getModelColor(model)
+                    const id = `mix-grad-${model.replace(/[\s.]/g, '-')}`
+                    return (
+                      <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={color} stopOpacity={0.85} />
+                        <stop offset="100%" stopColor={color} stopOpacity={0.45} />
+                      </linearGradient>
+                    )
+                  })}
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={formatDateAxis}
+                  stroke={CHART_COLORS.axis}
+                  fontSize={11}
+                  tickLine={false}
                 />
-              )
-            })}
+                <YAxis
+                  tickFormatter={(value) => {
+                    const numericValue = coerceNumber(value)
+                    return numericValue === null ? '' : formatPercent(Math.round(numericValue), 0)
+                  }}
+                  stroke={CHART_COLORS.axis}
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  domain={[0, 100]}
+                  ticks={[0, 25, 50, 75, 100]}
+                />
+                <Tooltip
+                  content={<MixTooltip />}
+                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }}
+                />
+                {models.map((model, index) => {
+                  const color = getModelColor(model)
+                  const id = `mix-grad-${model.replace(/[\s.]/g, '-')}`
+                  return (
+                    <Area
+                      key={model}
+                      type="monotone"
+                      dataKey={model}
+                      stackId="1"
+                      stroke={color}
+                      strokeWidth={0.5}
+                      strokeOpacity={0.6}
+                      fill={`url(#${id})`}
+                      name={model}
+                      isAnimationActive={animate}
+                      animationBegin={CHART_ANIMATION.stagger * (index % 5)}
+                      animationDuration={CHART_ANIMATION.duration}
+                      animationEasing={CHART_ANIMATION.easing}
+                    />
+                  )
+                })}
               </AreaChart>
             </ResponsiveContainer>
           </ChartReveal>

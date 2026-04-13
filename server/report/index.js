@@ -292,11 +292,31 @@ function createChartAssets(reportData) {
       title: reportData.text.charts.tokenTrend,
       formatter: (value) => formatCompactAxis(value, reportData.meta.language),
       segments: [
-        { key: 'input', label: translate(reportData.meta.language, 'common.input'), color: '#0f766e' },
-        { key: 'output', label: translate(reportData.meta.language, 'common.output'), color: '#1d4ed8' },
-        { key: 'cacheWrite', label: translate(reportData.meta.language, 'common.cacheWrite'), color: '#b45309' },
-        { key: 'cacheRead', label: translate(reportData.meta.language, 'common.cacheRead'), color: '#7c3aed' },
-        { key: 'thinking', label: translate(reportData.meta.language, 'common.thinking'), color: '#be185d' },
+        {
+          key: 'input',
+          label: translate(reportData.meta.language, 'common.input'),
+          color: '#0f766e',
+        },
+        {
+          key: 'output',
+          label: translate(reportData.meta.language, 'common.output'),
+          color: '#1d4ed8',
+        },
+        {
+          key: 'cacheWrite',
+          label: translate(reportData.meta.language, 'common.cacheWrite'),
+          color: '#b45309',
+        },
+        {
+          key: 'cacheRead',
+          label: translate(reportData.meta.language, 'common.cacheRead'),
+          color: '#7c3aed',
+        },
+        {
+          key: 'thinking',
+          label: translate(reportData.meta.language, 'common.thinking'),
+          color: '#be185d',
+        },
       ],
     }),
   };

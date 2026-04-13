@@ -19,21 +19,19 @@ export async function initI18n(language: AppLanguage = 'de') {
   const nextLanguage = normalizeLanguage(language)
 
   if (!i18n.isInitialized) {
-    await i18n
-      .use(initReactI18next)
-      .init({
-        resources: {
-          de: { common: de },
-          en: { common: en },
-        },
-        lng: nextLanguage,
-        fallbackLng: 'de',
-        defaultNS: 'common',
-        ns: ['common'],
-        interpolation: {
-          escapeValue: false,
-        },
-      })
+    await i18n.use(initReactI18next).init({
+      resources: {
+        de: { common: de },
+        en: { common: en },
+      },
+      lng: nextLanguage,
+      fallbackLng: 'de',
+      defaultNS: 'common',
+      ns: ['common'],
+      interpolation: {
+        escapeValue: false,
+      },
+    })
   } else if (i18n.resolvedLanguage !== nextLanguage) {
     await i18n.changeLanguage(nextLanguage)
   }

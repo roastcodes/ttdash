@@ -263,13 +263,23 @@ Build the production bundle:
 npm run build
 ```
 
+`npm run build` is the gated build and runs `format:check` and `lint` before bundling. If you only want the Vite production bundle, use:
+
+```bash
+npm run build:app
+```
+
 Run automated checks:
 
 ```bash
-npm run test:unit
-npm run test:unit:coverage
-npm run verify:package
+npm run verify
 npm run test:e2e
+```
+
+If you want the release-style coverage run as well, execute:
+
+```bash
+npm run test:unit:coverage
 ```
 
 The Playwright suite uses its own isolated local app directory. If port `3015` is already occupied locally, run it on another isolated port:
@@ -287,7 +297,7 @@ PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e
 
 ## Status
 
-GitHub Actions runs unit/integration coverage, packaged-artifact verification, and Playwright smoke tests for pull requests and pushes to `main`.
+GitHub Actions now runs formatting checks, ESLint, `tsc --noEmit`, unit/integration coverage, the production bundle, packaged-artifact verification, and Playwright smoke tests for pull requests and pushes to `main`.
 
 ## License
 

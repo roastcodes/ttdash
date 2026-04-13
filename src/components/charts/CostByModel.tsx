@@ -20,7 +20,14 @@ function CenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number };
       <text x={cx} y={cy - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={11}>
         {t('charts.costByModel.total')}
       </text>
-      <text x={cx} y={cy + 14} textAnchor="middle" className="fill-foreground" fontSize={16} fontWeight={600}>
+      <text
+        x={cx}
+        y={cy + 14}
+        textAnchor="middle"
+        className="fill-foreground"
+        fontSize={16}
+        fontWeight={600}
+      >
         {total}
       </text>
     </g>
@@ -32,7 +39,14 @@ export function CostByModel({ data }: CostByModelProps) {
   const total = data.reduce((sum, d) => sum + d.value, 0)
 
   return (
-    <ChartCard title={t('charts.costByModel.title')} subtitle={t('charts.costByModel.subtitle')} info={CHART_HELP.costByModel} chartData={data as unknown as Record<string, unknown>[]} valueKey="value" valueFormatter={formatCurrency}>
+    <ChartCard
+      title={t('charts.costByModel.title')}
+      subtitle={t('charts.costByModel.subtitle')}
+      info={CHART_HELP.costByModel}
+      chartData={data as unknown as Record<string, unknown>[]}
+      valueKey="value"
+      valueFormatter={formatCurrency}
+    >
       {(expanded) => {
         const chartHeight = expanded ? 560 : 320
         const pieCenterY = expanded ? '66%' : '57%'
@@ -69,8 +83,12 @@ export function CostByModel({ data }: CostByModelProps) {
                     <Legend
                       wrapperStyle={{ fontSize: '12px', paddingTop: expanded ? '22px' : '8px' }}
                       formatter={(value: string) => {
-                        const entry = data.find(d => d.name === value)
-                        return <span className="text-xs text-foreground">{value} ({entry ? formatCurrency(entry.value) : ''})</span>
+                        const entry = data.find((d) => d.name === value)
+                        return (
+                          <span className="text-xs text-foreground">
+                            {value} ({entry ? formatCurrency(entry.value) : ''})
+                          </span>
+                        )
                       }}
                     />
                   </PieChart>

@@ -64,7 +64,9 @@ function parseArgs(argv) {
   }
 
   if (!options.repo || !options.workflow || !options.sha) {
-    fail('Usage: node scripts/verify-main-ci.js --repo <owner/repo> --workflow <file> --sha <commit> [--branch main] [--retries N] [--retry-delay-ms MS]');
+    fail(
+      'Usage: node scripts/verify-main-ci.js --repo <owner/repo> --workflow <file> --sha <commit> [--branch main] [--retries N] [--retry-delay-ms MS]',
+    );
   }
 
   if (!Number.isInteger(options.retries) || options.retries <= 0) {
@@ -87,7 +89,9 @@ async function sleep(ms) {
 }
 
 async function fetchWorkflowRuns(options, token) {
-  const url = new URL(`https://api.github.com/repos/${options.repo}/actions/workflows/${encodeURIComponent(options.workflow)}/runs`);
+  const url = new URL(
+    `https://api.github.com/repos/${options.repo}/actions/workflows/${encodeURIComponent(options.workflow)}/runs`,
+  );
   url.searchParams.set('branch', options.branch);
   url.searchParams.set('event', 'push');
   url.searchParams.set('per_page', '30');
@@ -105,9 +109,10 @@ async function fetchWorkflowRuns(options, token) {
     const body = await response.text();
     const normalizedBody = body.replace(/\s+/g, ' ').trim();
     const maxPreviewLength = 200;
-    const bodyPreview = normalizedBody.length > maxPreviewLength
-      ? `${normalizedBody.slice(0, maxPreviewLength)}…`
-      : normalizedBody;
+    const bodyPreview =
+      normalizedBody.length > maxPreviewLength
+        ? `${normalizedBody.slice(0, maxPreviewLength)}…`
+        : normalizedBody;
     const previewSuffix = bodyPreview ? ` Response preview: ${bodyPreview}` : '';
     throw new Error(`GitHub API request failed with ${response.status}.${previewSuffix}`);
   }
@@ -132,9 +137,13 @@ async function main() {
     const run = payload.workflow_runs.find((candidate) => candidate.head_sha === options.sha);
 
     if (!run) {
-      log(`CI workflow run for ${options.sha} not found yet (attempt ${attempt}/${options.retries}).`);
+      log(
+        `CI workflow run for ${options.sha} not found yet (attempt ${attempt}/${options.retries}).`,
+      );
     } else if (run.status !== 'completed') {
-      log(`CI workflow run is still in progress: ${describeRun(run)} (attempt ${attempt}/${options.retries}).`);
+      log(
+        `CI workflow run is still in progress: ${describeRun(run)} (attempt ${attempt}/${options.retries}).`,
+      );
     } else if (run.conclusion === 'success') {
       log(`Verified CI success for ${options.sha}: ${describeRun(run)}.`);
       return;

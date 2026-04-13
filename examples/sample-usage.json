@@ -10,10 +10,7 @@
       "totalTokens": 449300,
       "totalCost": 4.83,
       "requestCount": 84,
-      "modelsUsed": [
-        "gpt-5.4",
-        "claude-sonnet-4-5"
-      ],
+      "modelsUsed": ["gpt-5.4", "claude-sonnet-4-5"],
       "modelBreakdowns": [
         {
           "modelName": "gpt-5.4",
@@ -47,10 +44,7 @@
       "totalTokens": 358000,
       "totalCost": 3.94,
       "requestCount": 73,
-      "modelsUsed": [
-        "gpt-5.4",
-        "claude-sonnet-4-5"
-      ],
+      "modelsUsed": ["gpt-5.4", "claude-sonnet-4-5"],
       "modelBreakdowns": [
         {
           "modelName": "gpt-5.4",
@@ -84,11 +78,7 @@
       "totalTokens": 512200,
       "totalCost": 5.52,
       "requestCount": 96,
-      "modelsUsed": [
-        "gpt-5.4",
-        "claude-sonnet-4-5",
-        "gemini-2.5-pro"
-      ],
+      "modelsUsed": ["gpt-5.4", "claude-sonnet-4-5", "gemini-2.5-pro"],
       "modelBreakdowns": [
         {
           "modelName": "gpt-5.4",
@@ -132,10 +122,7 @@
       "totalTokens": 302600,
       "totalCost": 3.11,
       "requestCount": 61,
-      "modelsUsed": [
-        "gpt-5.4",
-        "gemini-2.5-pro"
-      ],
+      "modelsUsed": ["gpt-5.4", "gemini-2.5-pro"],
       "modelBreakdowns": [
         {
           "modelName": "gpt-5.4",
@@ -169,10 +156,7 @@
       "totalTokens": 228200,
       "totalCost": 2.47,
       "requestCount": 49,
-      "modelsUsed": [
-        "gpt-5.4",
-        "claude-sonnet-4-5"
-      ],
+      "modelsUsed": ["gpt-5.4", "claude-sonnet-4-5"],
       "modelBreakdowns": [
         {
           "modelName": "gpt-5.4",

@@ -1,6 +1,19 @@
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, Cell } from 'recharts'
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+  Cell,
+} from 'recharts'
 import { ChartAnimationAware, ChartCard, ChartReveal } from './ChartCard'
 import { CHART_ANIMATION, CHART_COLORS, CHART_MARGIN } from './chart-theme'
 import { CustomTooltip } from './CustomTooltip'
@@ -8,7 +21,7 @@ import { CHART_HELP } from '@/lib/help-content'
 import { computeCacheHitRateByModel, computeMovingAverage } from '@/lib/calculations'
 import { formatDateAxis, formatPercent, periodUnit } from '@/lib/formatters'
 import { getModelColor, normalizeModelName } from '@/lib/model-utils'
-import type { CacheHitRateByModelChartDataPoint, DailyUsage, ViewMode } from '@/types'
+import type { DailyUsage, ViewMode } from '@/types'
 
 interface RequestCacheHitRateByModelProps {
   timelineData: DailyUsage[]
@@ -20,30 +33,46 @@ function formatRate(value: number) {
   return formatPercent(value, 1)
 }
 
-function computePointRate(input: number, output: number, cacheCreate: number, cacheRead: number, thinking: number) {
+function computePointRate(
+  input: number,
+  output: number,
+  cacheCreate: number,
+  cacheRead: number,
+  thinking: number,
+) {
   const base = input + output + cacheCreate + cacheRead + thinking
   return base > 0 ? (cacheRead / base) * 100 : 0
 }
 
-export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode }: RequestCacheHitRateByModelProps) {
+export function RequestCacheHitRateByModel({
+  timelineData,
+  summaryData,
+  viewMode,
+}: RequestCacheHitRateByModelProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
   const totalLabel = t('charts.requestCacheHitRate.total')
-  const trendLabel = viewMode === 'daily' ? t('charts.requestCacheHitRate.trailing7Rate') : t('charts.requestCacheHitRate.trendRate')
+  const trendLabel =
+    viewMode === 'daily'
+      ? t('charts.requestCacheHitRate.trailing7Rate')
+      : t('charts.requestCacheHitRate.trendRate')
 
   const barData = useMemo(
-    () => computeCacheHitRateByModel(summaryData).map(entry => ({
-      ...entry,
-      model: entry.model === 'Total' ? totalLabel : entry.model,
-    })),
+    () =>
+      computeCacheHitRateByModel(summaryData).map((entry) => ({
+        ...entry,
+        model: entry.model === 'Total' ? totalLabel : entry.model,
+      })),
     [summaryData, totalLabel],
   )
 
   const summary = useMemo(() => {
     if (barData.length === 0) return null
     const total = barData[0]
+    if (!total) return null
     const topModel = barData.slice(1).sort((a, b) => b.totalRate - a.totalRate)[0] ?? null
-    const dominantModel = barData.slice(1).sort((a, b) => b.totalBaseTokens - a.totalBaseTokens)[0] ?? null
+    const dominantModel =
+      barData.slice(1).sort((a, b) => b.totalBaseTokens - a.totalBaseTokens)[0] ?? null
 
     return {
       total,
@@ -56,13 +85,17 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
   const lineData = useMemo(() => {
     if (timelineData.length === 0) return []
 
-    const topModels = barData
-      .slice(1)
-      .map(entry => entry.model)
+    const topModels = barData.slice(1).map((entry) => entry.model)
 
     const sorted = [...timelineData].sort((a, b) => a.date.localeCompare(b.date))
-    const totalRates = sorted.map(point =>
-      computePointRate(point.inputTokens, point.outputTokens, point.cacheCreationTokens, point.cacheReadTokens, point.thinkingTokens),
+    const totalRates = sorted.map((point) =>
+      computePointRate(
+        point.inputTokens,
+        point.outputTokens,
+        point.cacheCreationTokens,
+        point.cacheReadTokens,
+        point.thinkingTokens,
+      ),
     )
     const totalTrend = computeMovingAverage(totalRates, Math.min(7, sorted.length))
 
@@ -70,12 +103,21 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
     for (const model of topModels) modelSeries[model] = []
 
     for (const point of sorted) {
-      const byModel = new Map<string, { input: number; output: number; cacheCreate: number; cacheRead: number; thinking: number }>()
+      const byModel = new Map<
+        string,
+        { input: number; output: number; cacheCreate: number; cacheRead: number; thinking: number }
+      >()
 
       for (const breakdown of point.modelBreakdowns) {
         const name = normalizeModelName(breakdown.modelName)
         if (!topModels.includes(name)) continue
-        const current = byModel.get(name) ?? { input: 0, output: 0, cacheCreate: 0, cacheRead: 0, thinking: 0 }
+        const current = byModel.get(name) ?? {
+          input: 0,
+          output: 0,
+          cacheCreate: 0,
+          cacheRead: 0,
+          thinking: 0,
+        }
         current.input += breakdown.inputTokens
         current.output += breakdown.outputTokens
         current.cacheCreate += breakdown.cacheCreationTokens
@@ -86,11 +128,20 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
 
       for (const model of topModels) {
         const current = byModel.get(model)
-        modelSeries[model].push(
-          current
-            ? computePointRate(current.input, current.output, current.cacheCreate, current.cacheRead, current.thinking)
-            : 0,
-        )
+        const series = modelSeries[model]
+        if (series) {
+          series.push(
+            current
+              ? computePointRate(
+                  current.input,
+                  current.output,
+                  current.cacheCreate,
+                  current.cacheRead,
+                  current.thinking,
+                )
+              : 0,
+          )
+        }
       }
     }
 
@@ -102,7 +153,7 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
       }
 
       for (const model of topModels) {
-        row[model] = modelSeries[model][index]
+        row[model] = modelSeries[model]?.[index] ?? 0
       }
 
       return row
@@ -116,7 +167,9 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
   const lineHeight = viewMode === 'daily' ? 280 : 250
   const expandedLineHeight = viewMode === 'daily' ? 360 : 320
 
-  const lineSeries = Object.keys(lineData[0] ?? {}).filter(key => key !== 'date' && key !== 'totalRate' && key !== 'totalRate_ma7')
+  const lineSeries = Object.keys(lineData[0] ?? {}).filter(
+    (key) => key !== 'date' && key !== 'totalRate' && key !== 'totalRate_ma7',
+  )
 
   const expandedExtra = (
     <div className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -125,12 +178,20 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
           <div className="truncate text-sm font-medium">{entry.model}</div>
           <div className="mt-2 flex items-end gap-3">
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('charts.requestCacheHitRate.totalRate')}</div>
-              <div className="text-lg font-semibold tabular-nums">{formatRate(entry.totalRate)}</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {t('charts.requestCacheHitRate.totalRate')}
+              </div>
+              <div className="text-lg font-semibold tabular-nums">
+                {formatRate(entry.totalRate)}
+              </div>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('charts.requestCacheHitRate.trailing7Rate')}</div>
-              <div className="text-lg font-semibold tabular-nums">{formatRate(entry.trailing7Rate)}</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {t('charts.requestCacheHitRate.trailing7Rate')}
+              </div>
+              <div className="text-lg font-semibold tabular-nums">
+                {formatRate(entry.trailing7Rate)}
+              </div>
             </div>
           </div>
         </div>
@@ -155,24 +216,38 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-center">
             <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">{t('charts.requestCacheHitRate.totalRate')}</div>
-              <div className="text-sm font-semibold tabular-nums">{formatRate(summary.total.totalRate)}</div>
+              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                {t('charts.requestCacheHitRate.totalRate')}
+              </div>
+              <div className="text-sm font-semibold tabular-nums">
+                {formatRate(summary.total.totalRate)}
+              </div>
             </div>
             <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">{t('charts.requestCacheHitRate.trailing7Rate')}</div>
-              <div className="text-sm font-semibold tabular-nums">{formatRate(summary.total.trailing7Rate)}</div>
+              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                {t('charts.requestCacheHitRate.trailing7Rate')}
+              </div>
+              <div className="text-sm font-semibold tabular-nums">
+                {formatRate(summary.total.trailing7Rate)}
+              </div>
             </div>
             <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">{t('charts.requestCacheHitRate.topModel')}</div>
+              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                {t('charts.requestCacheHitRate.topModel')}
+              </div>
               <div className="text-sm font-semibold truncate">{summary.topModel?.model ?? '–'}</div>
             </div>
             <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">{t('charts.requestCacheHitRate.models')}</div>
+              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                {t('charts.requestCacheHitRate.models')}
+              </div>
               <div className="text-sm font-semibold tabular-nums">{summary.models}</div>
             </div>
           </div>
 
-          <div className={`grid gap-4 ${expanded ? 'grid-cols-1 xl:grid-cols-[2fr_1fr]' : 'grid-cols-1 lg:grid-cols-[2fr_1fr]'}`}>
+          <div
+            className={`grid gap-4 ${expanded ? 'grid-cols-1 xl:grid-cols-[2fr_1fr]' : 'grid-cols-1 lg:grid-cols-[2fr_1fr]'}`}
+          >
             <div>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
                 {t('charts.requestCacheHitRate.timelineHeading', { unit: periodUnit(viewMode) })}
@@ -180,7 +255,10 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
               <ChartAnimationAware>
                 {(animate) => (
                   <ChartReveal variant="line" delay={0.04}>
-                    <ResponsiveContainer width="100%" height={expanded ? expandedLineHeight : lineHeight}>
+                    <ResponsiveContainer
+                      width="100%"
+                      height={expanded ? expandedLineHeight : lineHeight}
+                    >
                       <ComposedChart data={lineData} margin={CHART_MARGIN}>
                         <defs>
                           <linearGradient id={`${uid}-total-rate`} x1="0" y1="0" x2="0" y2="1">
@@ -188,18 +266,36 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
                             <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
-                        <XAxis dataKey="date" tickFormatter={formatDateAxis} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} />
-                        <YAxis type="number" domain={[0, 100]} tickFormatter={formatRate} stroke={CHART_COLORS.axis} fontSize={11} tickLine={false} axisLine={false} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke={CHART_COLORS.grid}
+                          opacity={0.3}
+                        />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={formatDateAxis}
+                          stroke={CHART_COLORS.axis}
+                          fontSize={11}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          type="number"
+                          domain={[0, 100]}
+                          tickFormatter={formatRate}
+                          stroke={CHART_COLORS.axis}
+                          fontSize={11}
+                          tickLine={false}
+                          axisLine={false}
+                        />
                         <Tooltip
-                          content={(
+                          content={
                             <CustomTooltip
                               formatter={(value) => formatRate(value)}
                               pinnedEntryNames={[t('charts.requestCacheHitRate.totalRate')]}
                               showComputedTotal={false}
                               hideZeroValues
                             />
-                          )}
+                          }
                           cursor={{ fill: 'hsl(var(--muted))', opacity: 0.12 }}
                         />
                         <Legend />
@@ -211,7 +307,12 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
                           name={t('charts.requestCacheHitRate.totalRate')}
                           strokeWidth={2}
                           dot={false}
-                          activeDot={{ r: 5, strokeWidth: 2, stroke: CHART_COLORS.cost, fill: 'hsl(var(--background))' }}
+                          activeDot={{
+                            r: 5,
+                            strokeWidth: 2,
+                            stroke: CHART_COLORS.cost,
+                            fill: 'hsl(var(--background))',
+                          }}
                           isAnimationActive={animate}
                           animationDuration={CHART_ANIMATION.duration}
                           animationEasing={CHART_ANIMATION.easing}
@@ -259,15 +360,23 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
               </div>
               <ChartAnimationAware>
                 {(animate) => (
-                    <ChartReveal variant="line" delay={0.14}>
-                      <ResponsiveContainer width="100%" height={expanded ? expandedBarHeight : compactBarHeight}>
-                        <BarChart
-                          data={barData}
-                          layout="vertical"
-                          margin={{ ...CHART_MARGIN, left: expanded ? 30 : 20, right: 8 }}
-                          barCategoryGap={expanded ? 14 : 10}
-                        >
-                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.22} horizontal={false} />
+                  <ChartReveal variant="line" delay={0.14}>
+                    <ResponsiveContainer
+                      width="100%"
+                      height={expanded ? expandedBarHeight : compactBarHeight}
+                    >
+                      <BarChart
+                        data={barData}
+                        layout="vertical"
+                        margin={{ ...CHART_MARGIN, left: expanded ? 30 : 20, right: 8 }}
+                        barCategoryGap={expanded ? 14 : 10}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke={CHART_COLORS.grid}
+                          opacity={0.22}
+                          horizontal={false}
+                        />
                         <XAxis
                           type="number"
                           domain={[0, 100]}
@@ -277,23 +386,26 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
                           tickLine={false}
                           axisLine={false}
                         />
-                          <YAxis
-                            type="category"
-                            dataKey="model"
-                            stroke={CHART_COLORS.axis}
-                            fontSize={10}
-                            tickLine={false}
-                            axisLine={false}
-                            width={expanded ? 126 : 108}
-                          />
+                        <YAxis
+                          type="category"
+                          dataKey="model"
+                          stroke={CHART_COLORS.axis}
+                          fontSize={10}
+                          tickLine={false}
+                          axisLine={false}
+                          width={expanded ? 126 : 108}
+                        />
                         <Tooltip
-                          content={(
+                          content={
                             <CustomTooltip
                               formatter={(value) => formatRate(value)}
-                              pinnedEntryNames={[t('charts.requestCacheHitRate.totalRate'), t('charts.requestCacheHitRate.trailing7Rate')]}
+                              pinnedEntryNames={[
+                                t('charts.requestCacheHitRate.totalRate'),
+                                t('charts.requestCacheHitRate.trailing7Rate'),
+                              ]}
                               showComputedTotal={false}
                             />
-                          )}
+                          }
                           cursor={{ fill: 'hsl(var(--muted))', opacity: 0.12 }}
                         />
                         <Legend />
@@ -309,7 +421,11 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
                           {barData.map((entry) => (
                             <Cell
                               key={`${entry.model}-total`}
-                              fill={entry.model === totalLabel ? CHART_COLORS.cost : CHART_COLORS.cacheRead}
+                              fill={
+                                entry.model === totalLabel
+                                  ? CHART_COLORS.cost
+                                  : CHART_COLORS.cacheRead
+                              }
                               fillOpacity={entry.model === totalLabel ? 0.95 : 0.82}
                             />
                           ))}
@@ -327,7 +443,11 @@ export function RequestCacheHitRateByModel({ timelineData, summaryData, viewMode
                           {barData.map((entry) => (
                             <Cell
                               key={`${entry.model}-recent`}
-                              fill={entry.model === totalLabel ? CHART_COLORS.cumulative : CHART_COLORS.ma7}
+                              fill={
+                                entry.model === totalLabel
+                                  ? CHART_COLORS.cumulative
+                                  : CHART_COLORS.ma7
+                              }
                               fillOpacity={entry.model === totalLabel ? 0.95 : 0.8}
                             />
                           ))}

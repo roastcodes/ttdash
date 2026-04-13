@@ -25,7 +25,7 @@ describe('useDashboardFilters', () => {
       result.current.toggleProvider('OpenAI')
     })
 
-    expect(result.current.filteredDailyData.map(entry => entry.date)).toEqual([
+    expect(result.current.filteredDailyData.map((entry) => entry.date)).toEqual([
       '2026-03-30',
       '2026-03-31',
       '2026-04-06',

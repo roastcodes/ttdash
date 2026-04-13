@@ -44,10 +44,20 @@ Make sure the change is small, focused, and aligned with the existing product di
 Run the main local checks:
 
 ```bash
-npm run build
-npm run test:unit
-npm run verify:package
+npm run verify
 npm run test:e2e
+```
+
+`npm run verify` covers formatting, ESLint, `tsc --noEmit`, unit tests, the production bundle, and packaged-artifact verification. If you want the same coverage gate used in release preparation, also run:
+
+```bash
+npm run test:unit:coverage
+```
+
+If you only need the production bundle without the lint/format gate, use:
+
+```bash
+npm run build:app
 ```
 
 If local port `3015` is already occupied, run Playwright on another isolated port:

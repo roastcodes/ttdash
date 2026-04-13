@@ -1,8 +1,20 @@
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Keyboard, ChartBar, LineChart } from 'lucide-react'
-import { getKeyboardShortcuts, METRIC_HELP, CHART_HELP, SECTION_HELP, FEATURE_HELP } from '@/lib/help-content'
+import {
+  getKeyboardShortcuts,
+  METRIC_HELP,
+  CHART_HELP,
+  SECTION_HELP,
+  FEATURE_HELP,
+} from '@/lib/help-content'
 
 interface HelpPanelProps {
   open: boolean
@@ -12,72 +24,82 @@ interface HelpPanelProps {
 export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
   const { t } = useTranslation()
   const shortcuts = getKeyboardShortcuts()
-  const metricLabels = useMemo<Record<string, string>>(() => ({
-    totalCost: t('helpPanel.metricLabels.totalCost'),
-    totalTokens: t('helpPanel.metricLabels.totalTokens'),
-    activeDays: t('helpPanel.metricLabels.activeDays'),
-    topModel: t('helpPanel.metricLabels.topModel'),
-    cacheHitRate: t('helpPanel.metricLabels.cacheHitRate'),
-    costPerMillion: t('helpPanel.metricLabels.costPerMillion'),
-    mostExpensiveDay: t('helpPanel.metricLabels.mostExpensiveDay'),
-    cheapestDay: t('helpPanel.metricLabels.cheapestDay'),
-    avgCostPerDay: t('helpPanel.metricLabels.avgCostPerDay'),
-    outputTokens: t('helpPanel.metricLabels.outputTokens'),
-  }), [t])
-  const chartLabels = useMemo<Record<string, string>>(() => ({
-    costOverTime: t('helpPanel.chartLabels.costOverTime'),
-    costByModel: t('helpPanel.chartLabels.costByModel'),
-    costByModelOverTime: t('helpPanel.chartLabels.costByModelOverTime'),
-    cumulativeCost: t('helpPanel.chartLabels.cumulativeCost'),
-    costByWeekday: t('helpPanel.chartLabels.costByWeekday'),
-    tokensOverTime: t('helpPanel.chartLabels.tokensOverTime'),
-    requestsOverTime: t('helpPanel.chartLabels.requestsOverTime'),
-    requestCacheHitRate: t('helpPanel.chartLabels.requestCacheHitRate'),
-    tokenTypes: t('helpPanel.chartLabels.tokenTypes'),
-    tokenEfficiency: t('helpPanel.chartLabels.tokenEfficiency'),
-    modelMix: t('helpPanel.chartLabels.modelMix'),
-    distributionAnalysis: t('helpPanel.chartLabels.distributionAnalysis'),
-    correlationAnalysis: t('helpPanel.chartLabels.correlationAnalysis'),
-    heatmap: t('helpPanel.chartLabels.heatmap'),
-    requestHeatmap: t('helpPanel.chartLabels.requestHeatmap'),
-    tokenHeatmap: t('helpPanel.chartLabels.tokenHeatmap'),
-    forecast: t('helpPanel.chartLabels.forecast'),
-    cacheROI: t('helpPanel.chartLabels.cacheROI'),
-    periodComparison: t('helpPanel.chartLabels.periodComparison'),
-    anomalyDetection: t('helpPanel.chartLabels.anomalyDetection'),
-  }), [t])
-  const sectionLabels = useMemo<Record<string, string>>(() => ({
-    insights: t('helpPanel.sectionLabels.insights'),
-    metrics: t('helpPanel.sectionLabels.metrics'),
-    today: t('helpPanel.sectionLabels.today'),
-    currentMonth: t('helpPanel.sectionLabels.currentMonth'),
-    activity: t('helpPanel.sectionLabels.activity'),
-    forecastCache: t('helpPanel.sectionLabels.forecastCache'),
-    costAnalysis: t('helpPanel.sectionLabels.costAnalysis'),
-    tokenAnalysis: t('helpPanel.sectionLabels.tokenAnalysis'),
-    requestAnalysis: t('helpPanel.sectionLabels.requestAnalysis'),
-    advancedAnalysis: t('helpPanel.sectionLabels.advancedAnalysis'),
-    comparisons: t('helpPanel.sectionLabels.comparisons'),
-    tables: t('helpPanel.sectionLabels.tables'),
-    limits: t('helpPanel.sectionLabels.limits'),
-  }), [t])
-  const featureLabels = useMemo<Record<string, string>>(() => ({
-    requestQuality: t('helpPanel.featureLabels.requestQuality'),
-    providerLimits: t('helpPanel.featureLabels.providerLimits'),
-    concentrationRisk: t('helpPanel.featureLabels.concentrationRisk'),
-    providerEfficiency: t('helpPanel.featureLabels.providerEfficiency'),
-    modelEfficiency: t('helpPanel.featureLabels.modelEfficiency'),
-    recentDays: t('helpPanel.featureLabels.recentDays'),
-  }), [t])
+  const metricLabels = useMemo<Record<string, string>>(
+    () => ({
+      totalCost: t('helpPanel.metricLabels.totalCost'),
+      totalTokens: t('helpPanel.metricLabels.totalTokens'),
+      activeDays: t('helpPanel.metricLabels.activeDays'),
+      topModel: t('helpPanel.metricLabels.topModel'),
+      cacheHitRate: t('helpPanel.metricLabels.cacheHitRate'),
+      costPerMillion: t('helpPanel.metricLabels.costPerMillion'),
+      mostExpensiveDay: t('helpPanel.metricLabels.mostExpensiveDay'),
+      cheapestDay: t('helpPanel.metricLabels.cheapestDay'),
+      avgCostPerDay: t('helpPanel.metricLabels.avgCostPerDay'),
+      outputTokens: t('helpPanel.metricLabels.outputTokens'),
+    }),
+    [t],
+  )
+  const chartLabels = useMemo<Record<string, string>>(
+    () => ({
+      costOverTime: t('helpPanel.chartLabels.costOverTime'),
+      costByModel: t('helpPanel.chartLabels.costByModel'),
+      costByModelOverTime: t('helpPanel.chartLabels.costByModelOverTime'),
+      cumulativeCost: t('helpPanel.chartLabels.cumulativeCost'),
+      costByWeekday: t('helpPanel.chartLabels.costByWeekday'),
+      tokensOverTime: t('helpPanel.chartLabels.tokensOverTime'),
+      requestsOverTime: t('helpPanel.chartLabels.requestsOverTime'),
+      requestCacheHitRate: t('helpPanel.chartLabels.requestCacheHitRate'),
+      tokenTypes: t('helpPanel.chartLabels.tokenTypes'),
+      tokenEfficiency: t('helpPanel.chartLabels.tokenEfficiency'),
+      modelMix: t('helpPanel.chartLabels.modelMix'),
+      distributionAnalysis: t('helpPanel.chartLabels.distributionAnalysis'),
+      correlationAnalysis: t('helpPanel.chartLabels.correlationAnalysis'),
+      heatmap: t('helpPanel.chartLabels.heatmap'),
+      requestHeatmap: t('helpPanel.chartLabels.requestHeatmap'),
+      tokenHeatmap: t('helpPanel.chartLabels.tokenHeatmap'),
+      forecast: t('helpPanel.chartLabels.forecast'),
+      cacheROI: t('helpPanel.chartLabels.cacheROI'),
+      periodComparison: t('helpPanel.chartLabels.periodComparison'),
+      anomalyDetection: t('helpPanel.chartLabels.anomalyDetection'),
+    }),
+    [t],
+  )
+  const sectionLabels = useMemo<Record<string, string>>(
+    () => ({
+      insights: t('helpPanel.sectionLabels.insights'),
+      metrics: t('helpPanel.sectionLabels.metrics'),
+      today: t('helpPanel.sectionLabels.today'),
+      currentMonth: t('helpPanel.sectionLabels.currentMonth'),
+      activity: t('helpPanel.sectionLabels.activity'),
+      forecastCache: t('helpPanel.sectionLabels.forecastCache'),
+      costAnalysis: t('helpPanel.sectionLabels.costAnalysis'),
+      tokenAnalysis: t('helpPanel.sectionLabels.tokenAnalysis'),
+      requestAnalysis: t('helpPanel.sectionLabels.requestAnalysis'),
+      advancedAnalysis: t('helpPanel.sectionLabels.advancedAnalysis'),
+      comparisons: t('helpPanel.sectionLabels.comparisons'),
+      tables: t('helpPanel.sectionLabels.tables'),
+      limits: t('helpPanel.sectionLabels.limits'),
+    }),
+    [t],
+  )
+  const featureLabels = useMemo<Record<string, string>>(
+    () => ({
+      requestQuality: t('helpPanel.featureLabels.requestQuality'),
+      providerLimits: t('helpPanel.featureLabels.providerLimits'),
+      concentrationRisk: t('helpPanel.featureLabels.concentrationRisk'),
+      providerEfficiency: t('helpPanel.featureLabels.providerEfficiency'),
+      modelEfficiency: t('helpPanel.featureLabels.modelEfficiency'),
+      recentDays: t('helpPanel.featureLabels.recentDays'),
+    }),
+    [t],
+  )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">{t('header.help')}</DialogTitle>
-          <DialogDescription>
-            {t('commandPalette.description')}
-          </DialogDescription>
+          <DialogDescription>{t('commandPalette.description')}</DialogDescription>
         </DialogHeader>
 
         {/* Keyboard shortcuts */}

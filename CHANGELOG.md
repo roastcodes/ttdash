@@ -2,13 +2,35 @@
 
 ## [Unreleased]
 
+## [6.1.6] - 2026-04-13
+
+### Added
+
+- **Striktere Code-Quality-Gates** — ESLint, typed TypeScript-ESLint-Regeln und Prettier sind jetzt vollständig im Repo eingerichtet und als verbindliche Prüfungen in den lokalen Verify-Pfad sowie die GitHub-Workflows integriert
+- **Gezielte Infrastruktur-Tests** — neue Unit-Tests decken die Server-Helfer für Runner-Auflösung und Portsuche sowie die gemeinsame Modellnormalisierung und die Limits-Badge-Logik explizit ab
+
+### Improved
+
+- **TypeScript-Hardening** — die Compiler-Konfiguration ist jetzt deutlich strenger und nutzt zusätzliche Best-Practice-Flags wie `noImplicitReturns`, `noImplicitOverride`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` und weitere Konsistenz-Gates
+- **Konsistente Modellnormalisierung** — UI und PDF-/Report-Pfad verwenden jetzt dieselbe datengetriebene Normalisierung und Provider-Zuordnung für aktuelle `toktrack`-Modellfamilien wie Claude, GPT, Gemini, Codex, OpenAI-`o` und OpenCode
+- **Maintainer- und Release-Tooling** — README, Contribution-, Release- und Agent-Dokumentation wurden an die neuen Lint-, Format- und Verify-Workflows angepasst; GitHub Actions nutzt jetzt zusätzlich SHA-gepinnte Actions, minimale App-Token-Rechte und ein dediziertes Release-Environment
+- **Konfigurationsklarheit** — die Vitest-Konfiguration dokumentiert jetzt explizit, warum die asynchrone Vite-Config vor dem Mergen manuell aufgelöst wird
+
+### Fixed
+
+- **Unbenutzter Code und Compiler-Warnpfade** — ungenutzte Imports, Helpers und Parameter wurden entfernt oder bereinigt, sodass die neuen Compiler- und Lint-Gates auf dem gesamten Repo sauber greifen
+- **Server-Runner und Portsuche** — die Windows-/Cross-Platform-Runner-Auflösung ist weniger dupliziert, und die Portsuche für den lokalen Server läuft jetzt iterativ statt rekursiv
+- **Kleine UI-Wartbarkeitsprobleme** — redundante Drill-Down-Modal-Logik und schwer lesbare Badge-Bedingungen in der Limits-Sektion wurden vereinfacht, ohne das Verhalten zu ändern
+
 ## [6.1.5] - 2026-04-12
 
 ### Added
+
 - **Report insight callouts** — the Typst PDF report now highlights key findings such as sparse data coverage, provider concentration, cache contribution, and the strongest rolling 7-day cost window
 - **Report chart test coverage** — dedicated unit tests now cover SVG chart formatting, localized axis rendering, and long-label truncation for the Typst report assets
 
 ### Improved
+
 - **GitHub Actions Node 24 readiness** — the release workflow now pins `actions/create-github-app-token` to `v2.1.4`, aligning the release path with the current Node 24-compatible action runtime guidance
 - **Typst report structure** — the PDF layout now uses a clearer executive-summary flow with localized headings, prepared report text blocks, and more robust section rendering for filtered report scenarios
 - **Report localization and semantics** — peak-period labeling, interpretation text, filter summaries, and report-specific strings are now more precise and consistently localized in both German and English
@@ -18,6 +40,7 @@
 - **Build and test config loading** — the Vite version injection path now reads `package.json` asynchronously, and the Vitest config resolves the async Vite config cleanly before merging test settings
 
 ### Fixed
+
 - **Report temp-file cleanup** — server-side PDF generation now cleans up Typst working directories internally even when compilation fails
 - **PDF response lifecycle** — the report API now returns the compiled PDF from memory instead of exposing temporary file paths, avoiding leaked temp directories and simplifying cleanup
 - **Chart formatting consistency** — token-axis labels and font fallbacks no longer depend on hardcoded locale/font assumptions that caused inconsistent PDF output across environments
@@ -29,11 +52,13 @@
 ## [6.1.4] - 2026-04-11
 
 ### Added
+
 - **GitHub-driven release flow** — releases can now be started manually from GitHub Actions with a target version input, instead of relying on a locally created tag on `main`
 - **CI release gate** — the release workflow now verifies that the latest `CI` run for the current `main` commit completed successfully before any version bump, tag, or npm publish step begins
 - **Release app verification** — a dedicated GitHub API helper now validates the `CI` precondition directly from the workflow, so release gating stays tied to the exact `main` SHA
 
 ### Improved
+
 - **Single human-managed version source** — the frontend app version is now injected from `package.json` at build time instead of being maintained as a second manual version constant
 - **Protected-branch compatibility** — the release workflow now uses the dedicated `ttdash-release` GitHub App token for checkout, push, tag creation, and GitHub release creation, so the release path works cleanly with branch rules and ruleset bypasses
 - **Release recovery behavior** — rerunning a failed release with the same version now resumes cleanly when the version bump commit, tag, or npm publication already exists
@@ -42,12 +67,14 @@
 ## [6.1.0] - 2026-04-11
 
 ### Added
+
 - **Background CLI mode** — `--background` starts the local server as a detached background process, and `ttdash stop` lists running instances so the selected one can be stopped directly
 - **Settings backups and layout preferences** — the settings dialog now supports backup import/export, conservative usage-data restore, default dashboard filters, section visibility, and section ordering
 - **Packaged CLI verification** — `npm run verify:package` now builds the real tarball and verifies that the packaged `ttdash` CLI can install, print help, and start outside the repo checkout
 - **Scoped package release prep** — the package is now prepared for the first public scoped release as `@roastcodes/ttdash`
 
 ### Improved
+
 - **Dashboard settings model** — provider limits, persisted filters, section visibility, and section order now behave as first-class stored settings across fresh starts and backup restore flows
 - **CLI and installer UX** — terminal output, help text, and installer guidance now use English-first release-facing messaging
 - **Metrics and report correctness** — aggregated dashboard metrics, provider day counting, filter-preset behavior, and PDF language handling were corrected and aligned with the current view state
@@ -55,6 +82,7 @@
 - **Repository documentation** — README, contribution, release, security, and conduct docs were rewritten for a public, maintainer-led npm project
 
 ### Fixed
+
 - **Race-safe background registry** — parallel `--background` starts briefly lock the local instance registry so no running server gets dropped from the tracked list
 - **Conservative data import** — backup imports add missing days, skip identical days, and keep conflicting local days instead of silently overwriting them
 - **Playwright release validation** — the E2E configuration now supports an override port so local release verification does not fail when the default smoke-test port is already occupied
@@ -62,164 +90,199 @@
 ## [6.0.11] - 2026-04-10
 
 ### Fixed
+
 - **Idempotent Bun installer** — `install.sh` and `install.bat` now clean existing `ttdash` entries from Bun’s global manifest before `bun add -g file:...` and remove the broken global `bun.lock` when needed, so repeated upgrades do not create duplicate `package.json` keys
 
 ## [6.0.10] - 2026-04-09
 
 ### Added
+
 - **GitHub release workflow** — a dedicated `release.yml` now creates GitHub releases automatically on `v*` tags, verifies tests and build first, and only accepts tags on `main`
 
 ### Improved
+
 - **README project context** — the documentation now points explicitly to `toktrack` as the primary data source and credits `mag123c`
 
 ## [6.0.9] - 2026-04-09
 
 ### Added
+
 - **Automated test pyramid** — Vitest now covers data normalization, calculations, hook behavior, and the local server path; Playwright verifies the upload-to-dashboard smoke flow with real browser reports
 - **CI test pipeline** — GitHub Actions now runs build, coverage, Playwright smoke tests, and report artifacts automatically on pushes and pull requests
 
 ### Improved
+
 - **Public repo readiness** — package metadata, license, security/contribution docs, and publish surface were cleaned up for a public repository
 - **Test isolation** — the Playwright web server uses its own local app environment and does not overwrite normal user data
 - **Runtime hardening** — the local server now binds to `127.0.0.1` by default, returns stricter security headers, and avoids unnecessary external runtime requests
 
 ### Fixed
+
 - **Bun/npm consistency** — lockfiles and published runtime contents now stay aligned so builds and installs remain reproducible
 
 ## [6.0.8] - 2026-04-08
 
 ### Added
+
 - **CLI flags for `ttdash`** — `--port` / `-p`, `--help` / `-h`, `--no-open` / `-no`, and `--auto-load` / `-al` are now supported directly by the global CLI command
 - **Persistent load metadata** — app settings now store when data was last loaded and from which path (`file`, `auto-import`, `cli-auto-load`)
 - **Visible load hints in the UI** — the header and limits dialog now show the last load time, and `-al` also adds a dedicated `Auto-load on start` badge
 
 ### Improved
+
 - **Shared auto-import path** — UI auto-import and CLI auto-load now use the same server logic so runtime behavior, persistence, and error handling stay consistent
 
 ## [6.0.7] - 2026-04-08
 
 ### Added
+
 - **Cache-Hit-Rate in der Request-Analyse** — neue kombinierte Visualisierung mit Zeitverlauf links und Modell-Snapshot rechts, vollständig filterkompatibel und mit denselben Aufbauanimationen wie die übrigen Diagramme
 
 ### Improved
+
 - **Modellabdeckung im Cache-Hit-Rate-Verlauf** — alle aktiven Modelle, inklusive `GPT-5` und `GPT-5.4`, erscheinen jetzt zuverlässig in der Zeitreihen-Legende und im Diagramm
 - **Snapshot-Animation & Tooltip-Klarheit** — horizontale Balken bauen sich sauber von links nach rechts auf; Tooltips im Zeitverlauf blenden irrelevante `0.0%`-Serien aus und zeigen die aktiven Modelle lesbarer an
 
 ## [6.0.6] - 2026-04-08
 
 ### Added
+
 - **Plattformgerechte Persistenz** — Nutzungsdaten und App-Einstellungen liegen jetzt in OS-konformen User-Verzeichnissen statt im Projekt- bzw. Installationsordner; bestehende `data.json` wird beim Start automatisch migriert
 
 ### Improved
+
 - **Stabile Settings über Ports hinweg** — Sprache, Theme und Provider-Limits werden serverseitig in lokalen App-Settings gespeichert und bleiben dadurch auch bei automatischem Portwechsel erhalten
 - **Robustere Dateischreibvorgänge** — `data.json` und `settings.json` werden atomar geschrieben, damit lokale Persistenz bei Abbruch oder Neustart nicht inkonsistent wird
 
 ## [6.0.5] - 2026-04-04
 
 ### Improved
+
 - **Dependency-Updates** — `@tanstack/react-query`, `i18next` und `react-i18next` sind auf die jeweils aktuellen Registry-Versionen angehoben
 - **Kompatibilitätsprüfung** — Dashboard-Build sowie Browser-Smoketests für Jahresansicht, Filter, Datepicker, Command Palette und Sprachwechsel wurden nach dem Upgrade erneut verifiziert
 
 ## [6.0.4] - 2026-04-04
 
 ### Added
+
 - **Globaler Filter-Reset** — der Filterstatus enthält jetzt einen `Reset all`-Button, und die Command Palette bietet eine direkte Aktion zum Zurücksetzen aller Filter auf den Default-Zustand
 
 ### Improved
+
 - **Eigener Datums-Kalender** — der Zeitraumfilter nutzt jetzt einen dunklen, portalbasierten Kalender statt des nativen Browser-Datepickers, damit Darstellung und Stacking im Dark Mode konsistent bleiben
 - **Datepicker-Stabilität** — der Kalender liegt jetzt zuverlässig über dem Dashboard und wird nicht mehr von nachfolgenden Sektionen oder Animationen überlagert
 
 ## [6.0.3] - 2026-04-04
 
 ### Added
+
 - **Dashboard-Mehrsprachigkeit** — das Dashboard und der PDF-Report unterstützen jetzt Deutsch und Englisch auf Basis von `i18next` und `react-i18next`
 - **Sprachwechsel in der Command Palette** — `cmd+k` enthält jetzt direkte Aktionen zum Wechseln zwischen Deutsch und Englisch
 
 ### Improved
+
 - **Vollständige EN-Abdeckung** — Forecast, Cache-ROI, Vergleiche, Anomalien, Tabellen, Help-Panel, Auto-Import und ergänzende Dashboard-Stat-Karten sind vollständig in die neue Übersetzungsstruktur migriert
 - **Locale-sensitive UI-Formate** — Datums-, Zahlen- und Wochentagsdarstellungen reagieren jetzt konsistent auf die aktive Sprache
 
 ## [6.0.2] - 2026-04-03
 
 ### Added
+
 - **Limits & Subscriptions** — neues Provider-Limits-Modal mit lokaler Persistenz, Limits-Button im Header, eigener Dashboard-Sektion und Command-Palette-Einträgen für Konfiguration und Navigation
 
 ### Improved
+
 - **Provider-Limits Visualisierung** — Budget- und Subscription-Status werden jetzt pro Anbieter in klar getrennten, animierten Tracks mit Break-even- bzw. Limit-Markierung dargestellt
 
 ### Fixed
+
 - **Jahresansicht & Filterwechsel** — Tages-, Monats- und Jahresansicht bleiben bei Presets sowie Anbieter-, Modell- und Datumsfiltern stabil; Hook-Reihenfolgen in Analyse- und Forecast-Komponenten sind konsistent
 - **Provider-Limits Tooltip-Clipping** — Info-Labels im Limits-Dialog werden am oberen Rand nicht mehr abgeschnitten
 
 ## [6.0.1] - 2026-04-03
 
 ### Added
+
 - **PDF-Report in der Command Palette** — `cmd+k` enthält jetzt eine direkte Aktion zum Generieren des aktuell gefilterten PDF-Reports
 
 ### Fixed
+
 - **Request-Qualität Info-Tooltip** — das Info-Label in der Karte wird nicht mehr am oberen Rand abgeschnitten
 - **Gemeinsame Report-Aktion** — Toolbar-Button und Command Palette verwenden jetzt denselben Exportpfad inklusive Ladezustand und Toast-Feedback
 
 ## [6.0.0] - 2026-04-03
 
 ### Added
+
 - **Typst-Report-Pipeline** — PDF-Reports werden jetzt serverseitig mit Typst kompiliert, inklusive sauberem Layout, eingebetteten SVG-Charts und filterkonsistenten Reportdaten statt DOM-Screenshot-Export
 - **Report-Smoke-Test** — neue Prüfmatrix deckt Tages-, Monats- und Jahresansicht sowie kombinierte Provider-, Modell-, Monats- und Datumsfilter für die PDF-Generierung ab
 
 ### Improved
+
 - **Filtertreue im PDF** — Report-Downloads übernehmen jetzt dieselben aktiven UI-Filter wie das Dashboard, inklusive Monatsauswahl, Datumsbereich, Providern und Modellen
 - **Mobile/Responsive Report-Flow** — der Report-Button und der Downloadpfad funktionieren jetzt auch unter enger Viewport-Breite stabil
 
 ### Fixed
+
 - **PDF-Layoutfehler** — Tabellenköpfe, Filterdarstellung und Einpunkt-Charts im Report verhalten sich jetzt robust auch bei extrem kleinen oder stark gefilterten Datensätzen
 - **Typst-CLI Fallback** — Systeme ohne installierte Typst-CLI erhalten eine klare macOS-Hinweismeldung mit `brew install typst`
 
 ## [5.3.6] - 2026-04-02
 
 ### Added
+
 - **Erweiterte Command Palette** — `cmd+k` bietet jetzt zusätzliche Sprungziele, Ansichtswechsel, Zeitraum-Presets sowie direkte Anbieter- und Modell-Filterbefehle auf Basis der aktuell verfügbaren Daten
 - **Kontextsprünge** — direkte Navigation zu `Heute` und `Monat`, wenn diese Bereiche im aktuellen Filterzustand vorhanden sind
 
 ### Improved
+
 - **Favicon-Auslieferung** — Root-, `public/`- und `dist/`-Icons sind jetzt synchron; HTML enthält zusätzliche `shortcut icon`- und `apple-touch-icon`-Links für robustere Browser-Erkennung
 
 ## [5.3.5] - 2026-04-02
 
 ### Improved
+
 - **Filter-Konsistenz über alle Ansichten** — Tages-, Monats- und Jahressicht basieren jetzt auf derselben vollständig gefilterten Tagesbasis, damit Anbieter-, Modell- und Zeitraumfilter in KPIs, Header, Vergleichskarten und Tabellen übereinstimmen
 - **Favicon & App-Branding** — neues `TTDash`-Monogramm als optimiertes SVG/PNG mit klarerer Wiedererkennbarkeit und besserer Lesbarkeit bei kleinen Größen
 - **Release-Output im Terminal** — Installer und Server-Start zeigen die aktuelle App-Version jetzt dynamisch direkt aus `package.json`
 
 ### Fixed
+
 - **Heute-/Monat-Karten bei Kombinationsfiltern** — Bereiche mit aktiven Anbieter-, Modell- und Datumsfiltern greifen nicht mehr auf unfiltrierte Rohdaten zurück
 - **Header-Zeitraum & Periodenvergleich** — Datumsbadge und Vergleichswerte folgen jetzt derselben Filterbasis wie die restlichen Dashboard-Metriken
 
 ## [5.3.4] - 2026-04-02
 
 ### Added
+
 - **Dashboard Insights** — neue verdichtete Analyse-Sektion mit Provider-Dominanz, Modell-Konzentration, Kosten- und Request-Ökonomie sowie Aktivitätsmustern
 - **Responsive Tabellen-Karten** — `Recent Days` und `Model Efficiency` liefern auf kleinen Screens jetzt echte Card-Layouts statt primär horizontaler Scrollflächen
 
 ### Improved
+
 - **Dashboard-Informationsdichte** — KPI-Karten, Chart-Untertitel und Tabellen-Summaries zeigen mehr Kontext, abgeleitete Kennzahlen und klarere Hilfstexte
 - **Unbekannte Modellfamilien** — neue `toktrack`-Modelle werden robuster normalisiert, erhalten deterministische Farben und bleiben in Filtern, Charts und Tooltips sauber lesbar
 - **Zahlenformatierung & Tooltips** — lange Werte werden kompakt dargestellt; Tooltips zeigen exakte Zahlen, Labels und zusätzliche Insights
 - **Responsive Layouts** — Header, Filter-Bar, Karten, Zoom-Ansichten und Tabellen verhalten sich stabiler bei Resize, Tablet-Breite und Mobile
 
 ### Fixed
+
 - **Windows Auto-Import** — Prozessstart für `toktrack`, `npx.cmd` und `bunx` ist unter Windows robuster, damit der Auto-Upload nicht mehr am `spawn`-Pfad scheitert
 - **Expanded Donut-Charts** — Donuts sitzen im Zoom-Dialog tiefer, nutzen die verfügbare Fläche besser und kollidieren weniger mit Legenden
 - **Request-Ökonomie ohne Request-Daten** — bei fehlenden `requestCount`-Feldern zeigt das UI jetzt `n/v` statt irreführender Nullwerte
 - **Numerische Ausreißer im UI** — rohe lange Float-Werte werden nicht mehr ungefiltert im Dashboard angezeigt
 - **Heuristik-Hinweise für Preis-Fallbacks** — Cache-ROI kennzeichnet fehlende Preisdefinitionen für unbekannte Modelle explizit statt stillschweigend
 - **Erweiterbarkeit für neue Anbieter** — Provider-Erkennung deckt zusätzliche Familien wie `xAI`, `Meta`, `Cohere`, `Mistral`, `DeepSeek` und `Alibaba` besser ab
+
 ## [5.3.3] - 2026-04-02
 
 ### Improved
+
 - **Performance-Optimierungen** — PDF-Export und schwere Modals werden jetzt lazy geladen; Datenpfade für gleitende Durchschnitte, Metriken und Filter wurden effizienter gemacht
 - **Bundle-Splitting** — Vendor-Code ist in getrennte Chunks für React, Recharts, Motion und UI aufgeteilt, damit das Dashboard schneller initial lädt
 
 ### Fixed
+
 - **Dashboard-Renderpfad** — Datenquellen-Initialisierung erfolgt nicht mehr während des Renderns, wodurch unnötige Renders und React-Warnungen vermieden werden
 - **PDF-Export Ladezustand** — Export-Button bleibt nach Abschluss nicht mehr fälschlich im aktiven Zustand hängen
 - **Server-Sicherheitsheader** — lokale Responses liefern jetzt grundlegende Schutz-Header wie `nosniff`, `DENY` und `same-origin`
@@ -227,6 +290,7 @@
 ## [5.3.2] - 2026-04-02
 
 ### Added
+
 - **Toktrack-Migration & Rebranding** — Dashboard, Paket und UI laufen jetzt unter `TTDash` mit `toktrack` als primärem Datenformat; Legacy-`ccusage`-JSON bleibt kompatibel
 - **Anbieter-Filter** — Filterung nach `OpenAI`, `Anthropic`, `Google` usw. mit passender Einschränkung der sichtbaren Modelle
 - **Anbieter-Badges** — farbige Provider-Labels in Tabellen, Drill-downs und Filtern für bessere Modell-Zuordnung
@@ -234,6 +298,7 @@
 - **Bun-aware Installation** — `install.sh` und `install.bat` nutzen Bun, wenn verfügbar, sonst npm
 
 ### Improved
+
 - **Auto-Import Runner-Auswahl** — nutzt zuerst lokales `toktrack`, dann `bunx`, dann `npx --yes toktrack`; Statusmeldungen zeigen den tatsächlich verwendeten Pfad
 - **Monatsprognose** — Forecast basiert jetzt auf Kalender-Tageskosten, geglätteter Run-Rate und defensiverer Volatilitätsbewertung statt einfacher linearer Regression
 - **Kumulative Monatsprojektion** — verwendet dieselbe Shared-Forecast-Logik wie die Prognose-Karte
@@ -241,6 +306,7 @@
 - **Lokaler App-Start** — öffnet beim Start aus dem Terminal direkt den Browser
 
 ### Fixed
+
 - **Heatmap-Tooltip** — Hover-Labels sitzen wieder direkt über der Zelle statt viewport-versetzt
 - **Dialog-A11y** — fehlende Beschreibungen für Radix-Dialoge ergänzt
 - **Favicon & Tab-Titel** — Branding auf `TTDash` aktualisiert
@@ -249,12 +315,14 @@
 ## [5.3.1] - 2026-04-01
 
 ### Fixed
+
 - **Datum in Heute/Monat-Sektion falsch** — `toISOString()` lieferte UTC-Datum statt Lokalzeit, wodurch zwischen Mitternacht und 02:00 MESZ das gestrige Datum angezeigt wurde. Betraf: Heute-KPIs, Monats-KPIs, Heatmap-Markierung, Streak-Berechnung, Datumsfilter-Presets, PDF/CSV-Dateinamen
 - Neue `toLocalDateStr()`, `localToday()`, `localMonth()` Hilfsfunktionen ersetzen alle 7 `toISOString().slice()`-Aufrufe durch korrekte lokale Datumsberechnung
 
 ## [5.3.0] - 2026-03-31
 
 ### Fixed
+
 - **Monatsansicht & Jahresansicht komplett überarbeitet** — alle Metriken, Diagramme und Tabellen zeigen jetzt korrekte Daten in der Monats- und Jahresansicht:
   - **Aktive Tage** — zeigt die tatsächliche Anzahl aktiver Tage (vorher: 1 pro Monat/Jahr wegen fehlender Aggregation)
   - **Ø Kosten** — korrekte Durchschnittsberechnung pro Tag (vorher: durch Anzahl Perioden geteilt statt Anzahl Tage)
@@ -269,6 +337,7 @@
 - **PeriodComparison Monat-Bug** — `setMonth()` Overflow behoben: März 31 → Feb 31 → März 3 (klassischer JS-Date-Bug bei Monaten mit weniger Tagen)
 
 ### Technical
+
 - Neues `_aggregatedDays`-Feld in `DailyUsage` trackt die Anzahl aggregierter Tage pro Eintrag
 - `aggregateToDailyFormat()` setzt `date` auf Period-Key ("2026-03" / "2026") statt erstes Tagesdatum
 - `computeMetrics()` und `computeModelCosts()` nutzen `_aggregatedDays` für korrekte Berechnungen
@@ -279,35 +348,42 @@
 ## [5.2.1] - 2026-03-31
 
 ### Fixed
+
 - **install.sh `-e` Ausgabe** — `echo -e` durch `printf` ersetzt, damit das Script auch mit `sh install.sh` korrekt funktioniert (POSIX-Shell kennt `echo -e` nicht)
 
 ## [5.2.0] - 2026-03-31
 
 ### Added
+
 - **Monats-KPIs** — neue Sektion unter "Heute" zeigt 6 Kennzahlen des laufenden Monats: Kosten (mit Trend vs. Vormonat), Tokens, aktive Tage/Abdeckung, Modelle, $/1M Tokens, Cache-Hit-Rate. Wird automatisch ausgeblendet wenn keine Daten für den aktuellen Monat vorhanden sind
 
 ## [5.1.1] - 2026-03-31
 
 ### Fixed
+
 - **Browser Tab Titel** — zeigt jetzt "CCUsage — Claude Code Dashboard" statt "localhost:3000"
 
 ## [5.1.0] - 2026-03-31
 
 ### Added
+
 - **Datenquellen-Badge im Header** — zeigt woher die Daten stammen: "Gespeichert" (grau, bei App-Start), "Auto-Import · HH:MM" (grün, nach Import), oder "dateiname.json · HH:MM" (blau, nach Upload). Wird bei Löschen zurückgesetzt
 - **Graceful Shutdown** — Server fährt bei Ctrl+C (SIGINT) und kill (SIGTERM) sauber herunter, schliesst offene Verbindungen ordentlich mit 3s Force-Exit Fallback
 
 ### Improved
+
 - **Header Responsive** — 2-Zeilen-Layout statt 1-Zeile: Zeile 1 = Branding + Meta-Badges + Utility-Icons, Zeile 2 = Action-Buttons. Funktioniert sauber auf Desktop (1440px), Tablet (768px) und Mobile (375px)
 
 ## [5.0.1] - 2026-03-31
 
 ### Fixed
+
 - **7-Tage Ø Linien unsichtbar** — Recharts 3 Line-Drawing-Animation überschrieb `stroke-dasharray` auf gestrichelten Linien, wodurch das Dash-Pattern zerstört wurde. Fix: `isAnimationActive={false}` auf allen 10 gestrichelten MA7/Prognose-Linien in 6 Chart-Komponenten
 
 ## [5.0.0] - 2026-03-31
 
 ### Added
+
 - **Token-Effizienz Chart** — $/1M Tokens über die Zeit mit 7-Tage Ø und Durchschnitts-Referenzlinie, zeigt ob Kosten-Optimierung (Cache, Modell-Wahl) wirkt
 - **Modell-Mix Chart** — Stacked percentage area chart zeigt Modell-Nutzungsanteile über die Zeit, visualisiert Migration-Muster (z.B. Wechsel von Opus 4.5 zu 4.6)
 - **Aktiv-Streak** — Header zeigt konsekutive aktive Tage als 🔥-Badge
@@ -320,6 +396,7 @@
 - **install.bat** — Windows-kompatibles Installationsscript
 
 ### Improved
+
 - **FilterBar** — aktiver Preset-Button (7T, 30T, etc.) visuell hervorgehoben, Reset bei Filterwechsel
 - **SectionHeaders** — linker Akzent-Border (`border-l-2 border-primary/40`) für visuelle Hierarchie
 - **MetricCard Trends** — Badges mit farbigem Hintergrund-Pill statt reinem Text
@@ -339,6 +416,7 @@
 - **TodayMetrics** — "$/1M Tokens" statt redundantem "Top Modell Kosten", korrektes Icon
 
 ### Fixed
+
 - **Keyboard Shortcuts** — nicht-implementierte Shortcuts (⌘E, ⌘U, ⌘D, ⌘↑) aus Hilfe entfernt, die mit Browser-Shortcuts kollidierten
 - **CustomTooltip Total** — MA7-Durchschnittswerte werden nicht mehr fälschlich ins Total eingerechnet
 - **Token-Linien Dash-Pattern** — 7-Tage Ø Linien in Tokens-Charts nutzen jetzt `"5 5"` wie Kosten-Charts
@@ -346,6 +424,7 @@
 ## [4.0.0] - 2026-03-31
 
 ### Added
+
 - **Auto-Import** — one-click data import directly from Claude Code usage logs via `ccusage` programmatic API, no manual file export needed
   - SSE streaming with real-time progress in a terminal-style modal
   - Fetches latest model pricing from LiteLLM for accurate cost calculation
@@ -356,6 +435,7 @@
 - **Install script** — `install.sh` for one-command setup (install, build, global install)
 
 ### Changed
+
 - `ccusage` is now a production dependency instead of requiring external installation
 - EmptyState now shows Auto-Import as primary action, manual upload as secondary
 - Server no longer needs `child_process` for data import (uses programmatic API)
@@ -363,6 +443,7 @@
 ## [3.1.0] - 2026-03-31
 
 ### Upgraded
+
 - **React** 18.3.1 → 19.2.4
 - **react-dom** 18.3.1 → 19.2.4
 - **TypeScript** 5.9.3 → 6.0.2
@@ -376,6 +457,7 @@
 - **@types/react-dom** 18.3.7 → 19.2.3
 
 ### Changed
+
 - Removed deprecated `baseUrl` from tsconfig.json (TypeScript 6 requirement)
 - Renamed deprecated lucide icons: `HelpCircle` → `CircleHelp`, `AlertTriangle` → `TriangleAlert`, `Loader2` → `LoaderCircle`, `BarChart3` → `ChartBar`
 - Adapted Recharts 3 type changes (`activeTooltipIndex`, deprecated `Cell`)
@@ -385,6 +467,7 @@
 ## [3.0.0] - 2026-03-31
 
 ### Added
+
 - **Date Range Filter** with preset buttons (7T, 30T, Monat, Jahr, Alle)
 - **Token-Analyse Redesign** — two separate charts for Cache and I/O tokens with independent Y-axes, solving the scale problem where Cache Read (4.5B) made Input/Output (3.2M) invisible
 - **Per-Type 7-Tage Durchschnitt** for all four token types (Cache Read, Cache Write, Input, Output)
@@ -405,6 +488,7 @@
 - **Light Mode** fully polished alongside dark mode
 
 ### Fixed
+
 - **PDF Export** — resolved html2canvas crash with Tailwind CSS v4 `oklab()` colors via canvas-based RGB conversion
 - **Model Filter** — now correctly filters costs within each day (previously showed all models' costs if any matched)
 - **MA7 Line invisible** — switched from `AreaChart` to `ComposedChart` so `<Line>` components render correctly alongside `<Area>`
@@ -424,6 +508,7 @@
 - **Gradient ID conflicts** — unique IDs via `useId()` prevent SVG conflicts in zoom mode
 
 ### Changed
+
 - **Forecast colors** — Prognose line is teal (distinct from blue Ist-Kosten), Konfidenzband is transparent teal
 - **CostByModelOverTime title** — removed misleading "7-Tage Ø" since chart shows individual model lines
 - **Token chart layout** — split into Cache Tokens (top) + I/O Tokens (bottom) with summary tiles
@@ -434,6 +519,7 @@
 ## [2.0.0] - 2026-03-30
 
 ### Added
+
 - Complete frontend rebuild with Vite + React + TypeScript + Tailwind CSS v4
 - Interactive charts with Recharts (cost over time, model breakdown, tokens, heatmap, etc.)
 - Command Palette (Cmd+K) for keyboard navigation
@@ -451,6 +537,7 @@
 ## [1.0.0] - Initial Release
 
 ### Added
+
 - Node.js HTTP server with static file serving
 - JSON data upload/download API
 - Basic dashboard functionality

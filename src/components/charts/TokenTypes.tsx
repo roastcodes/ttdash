@@ -7,11 +7,11 @@ import { formatTokens } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
 
 const TOKEN_COLORS: Record<string, string> = {
-  'Input': CHART_COLORS.input,
-  'Output': CHART_COLORS.output,
+  Input: CHART_COLORS.input,
+  Output: CHART_COLORS.output,
   'Cache Write': CHART_COLORS.cacheWrite,
   'Cache Read': CHART_COLORS.cacheRead,
-  'Thinking': CHART_COLORS.cost,
+  Thinking: CHART_COLORS.cost,
 }
 
 interface TokenTypesProps {
@@ -27,7 +27,14 @@ function CenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number };
       <text x={cx} y={cy - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={11}>
         {t('charts.tokenTypes.total')}
       </text>
-      <text x={cx} y={cy + 14} textAnchor="middle" className="fill-foreground" fontSize={16} fontWeight={600}>
+      <text
+        x={cx}
+        y={cy + 14}
+        textAnchor="middle"
+        className="fill-foreground"
+        fontSize={16}
+        fontWeight={600}
+      >
         {total}
       </text>
     </g>
@@ -39,7 +46,14 @@ export function TokenTypes({ data }: TokenTypesProps) {
   const total = data.reduce((sum, d) => sum + d.value, 0)
 
   return (
-    <ChartCard title={t('charts.tokenTypes.title')} subtitle={t('charts.tokenTypes.subtitle')} info={CHART_HELP.tokenTypes} chartData={data as unknown as Record<string, unknown>[]} valueKey="value" valueFormatter={formatTokens}>
+    <ChartCard
+      title={t('charts.tokenTypes.title')}
+      subtitle={t('charts.tokenTypes.subtitle')}
+      info={CHART_HELP.tokenTypes}
+      chartData={data as unknown as Record<string, unknown>[]}
+      valueKey="value"
+      valueFormatter={formatTokens}
+    >
       {(expanded) => {
         const chartHeight = expanded ? 560 : 320
         const pieCenterY = expanded ? '66%' : '57%'
@@ -67,7 +81,10 @@ export function TokenTypes({ data }: TokenTypesProps) {
                       animationEasing={CHART_ANIMATION.easing}
                     >
                       {data.map((entry) => (
-                        <Cell key={entry.name} fill={TOKEN_COLORS[entry.name] ?? CHART_COLORS.cost} />
+                        <Cell
+                          key={entry.name}
+                          fill={TOKEN_COLORS[entry.name] ?? CHART_COLORS.cost}
+                        />
                       ))}
                       <CenterLabel total={formatTokens(total)} />
                     </Pie>
@@ -75,8 +92,12 @@ export function TokenTypes({ data }: TokenTypesProps) {
                     <Legend
                       wrapperStyle={{ fontSize: '12px', paddingTop: expanded ? '22px' : '8px' }}
                       formatter={(value: string) => {
-                        const entry = data.find(d => d.name === value)
-                        return <span className="text-xs text-foreground">{value} ({entry ? formatTokens(entry.value) : ''})</span>
+                        const entry = data.find((d) => d.name === value)
+                        return (
+                          <span className="text-xs text-foreground">
+                            {value} ({entry ? formatTokens(entry.value) : ''})
+                          </span>
+                        )
                       }}
                     />
                   </PieChart>

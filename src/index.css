@@ -1,8 +1,9 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
-  --font-sans: "Avenir Next", "Segoe UI Variable", "Segoe UI", "Helvetica Neue", "Arial Nova", sans-serif;
-  --font-mono: "SFMono-Regular", "SF Mono", "Menlo", "Consolas", "Liberation Mono", monospace;
+  --font-sans:
+    'Avenir Next', 'Segoe UI Variable', 'Segoe UI', 'Helvetica Neue', 'Arial Nova', sans-serif;
+  --font-mono: 'SFMono-Regular', 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
   --radius: 0.5rem;
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -34,13 +35,21 @@
 }
 
 @keyframes accordion-down {
-  from { height: 0; }
-  to { height: var(--radix-accordion-content-height); }
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
 }
 
 @keyframes accordion-up {
-  from { height: var(--radix-accordion-content-height); }
-  to { height: 0; }
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
 }
 
 :root {
@@ -156,8 +165,13 @@ body {
 }
 
 @keyframes subtle-glow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .pdf-rendering * {
@@ -169,7 +183,7 @@ body {
   background: hsl(var(--card)) !important;
 }
 
-.pdf-rendering [class*="backdrop-blur"] {
+.pdf-rendering [class*='backdrop-blur'] {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   background: hsl(var(--card)) !important;

@@ -26,13 +26,19 @@ const BIND_HOST = process.env.HOST || '127.0.0.1';
 const API_PREFIX = '/port/5000/api';
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const IS_WINDOWS = process.platform === 'win32';
-const TOKTRACK_LOCAL_BIN = path.join(ROOT, 'node_modules', '.bin', IS_WINDOWS ? 'toktrack.cmd' : 'toktrack');
+const TOKTRACK_LOCAL_BIN = path.join(
+  ROOT,
+  'node_modules',
+  '.bin',
+  IS_WINDOWS ? 'toktrack.cmd' : 'toktrack',
+);
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
   'X-Frame-Options': 'DENY',
   'Cross-Origin-Opener-Policy': 'same-origin',
-  'Content-Security-Policy': "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+  'Content-Security-Policy':
+    "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
 };
 const APP_LABEL = 'TTDash';
 const SETTINGS_BACKUP_KIND = 'ttdash-settings-backup';
@@ -66,7 +72,9 @@ const DEFAULT_SETTINGS = {
     providers: [],
     models: [],
   },
-  sectionVisibility: Object.fromEntries(DASHBOARD_SECTION_IDS.map((sectionId) => [sectionId, true])),
+  sectionVisibility: Object.fromEntries(
+    DASHBOARD_SECTION_IDS.map((sectionId) => [sectionId, true]),
+  ),
   sectionOrder: DASHBOARD_SECTION_IDS,
   lastLoadedAt: null,
   lastLoadSource: null,
@@ -223,14 +231,27 @@ function resolveAppPaths() {
     };
   } else if (IS_WINDOWS) {
     platformPaths = {
-      dataDir: path.join(process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'), APP_DIR_NAME),
-      configDir: path.join(process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'), APP_DIR_NAME),
-      cacheDir: path.join(process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'), APP_DIR_NAME, 'Cache'),
+      dataDir: path.join(
+        process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'),
+        APP_DIR_NAME,
+      ),
+      configDir: path.join(
+        process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'),
+        APP_DIR_NAME,
+      ),
+      cacheDir: path.join(
+        process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'),
+        APP_DIR_NAME,
+        'Cache',
+      ),
     };
   } else {
     const appName = APP_DIR_NAME_LINUX;
     platformPaths = {
-      dataDir: path.join(process.env.XDG_DATA_HOME || path.join(homeDir, '.local', 'share'), appName),
+      dataDir: path.join(
+        process.env.XDG_DATA_HOME || path.join(homeDir, '.local', 'share'),
+        appName,
+      ),
       configDir: path.join(process.env.XDG_CONFIG_HOME || path.join(homeDir, '.config'), appName),
       cacheDir: path.join(process.env.XDG_CACHE_HOME || path.join(homeDir, '.cache'), appName),
     };
@@ -355,9 +376,9 @@ async function isBackgroundInstanceOwned(instance) {
     return false;
   }
 
-  return runtime.id === instance.id
-    && runtime.pid === instance.pid
-    && runtime.port === instance.port;
+  return (
+    runtime.id === instance.id && runtime.pid === instance.pid && runtime.port === instance.port
+  );
 }
 
 function normalizeBackgroundInstance(value) {
@@ -368,17 +389,19 @@ function normalizeBackgroundInstance(value) {
   const pid = Number.parseInt(value.pid, 10);
   const port = Number.parseInt(value.port, 10);
   const startedAt = normalizeIsoTimestamp(value.startedAt);
-  const id = typeof value.id === 'string' && value.id.trim()
-    ? value.id.trim()
-    : null;
-  const url = typeof value.url === 'string' && value.url.trim()
-    ? value.url.trim()
-    : null;
-  const host = typeof value.host === 'string' && value.host.trim()
-    ? value.host.trim()
-    : BIND_HOST;
+  const id = typeof value.id === 'string' && value.id.trim() ? value.id.trim() : null;
+  const url = typeof value.url === 'string' && value.url.trim() ? value.url.trim() : null;
+  const host = typeof value.host === 'string' && value.host.trim() ? value.host.trim() : BIND_HOST;
 
-  if (!id || !url || !startedAt || !Number.isInteger(pid) || pid <= 0 || !Number.isInteger(port) || port <= 0) {
+  if (
+    !id ||
+    !url ||
+    !startedAt ||
+    !Number.isInteger(pid) ||
+    pid <= 0 ||
+    !Number.isInteger(port) ||
+    port <= 0
+  ) {
     return null;
   }
 
@@ -389,9 +412,8 @@ function normalizeBackgroundInstance(value) {
     url,
     host,
     startedAt,
-    logFile: typeof value.logFile === 'string' && value.logFile.trim()
-      ? value.logFile.trim()
-      : null,
+    logFile:
+      typeof value.logFile === 'string' && value.logFile.trim() ? value.logFile.trim() : null,
   };
 }
 
@@ -401,7 +423,9 @@ function readBackgroundInstancesRaw() {
     if (Array.isArray(parsed)) {
       return parsed;
     }
-  } catch {}
+  } catch {
+    // Ignore missing or invalid background registry state.
+  }
 
   return [];
 }
@@ -411,9 +435,7 @@ function writeBackgroundInstances(instances) {
 }
 
 async function readBackgroundInstancesSnapshot() {
-  const normalized = readBackgroundInstancesRaw()
-    .map(normalizeBackgroundInstance)
-    .filter(Boolean);
+  const normalized = readBackgroundInstancesRaw().map(normalizeBackgroundInstance).filter(Boolean);
   const alive = [];
 
   for (const instance of normalized) {
@@ -443,7 +465,10 @@ async function getBackgroundInstances() {
   return (await readBackgroundInstancesSnapshot()).alive;
 }
 
-async function withBackgroundInstancesLock(callback, timeoutMs = BACKGROUND_INSTANCES_LOCK_TIMEOUT_MS) {
+async function withBackgroundInstancesLock(
+  callback,
+  timeoutMs = BACKGROUND_INSTANCES_LOCK_TIMEOUT_MS,
+) {
   const startedAt = Date.now();
 
   while (true) {
@@ -458,18 +483,22 @@ async function withBackgroundInstancesLock(callback, timeoutMs = BACKGROUND_INST
       let lockIsStale = false;
       try {
         const stats = fs.statSync(BACKGROUND_INSTANCES_LOCK_DIR);
-        lockIsStale = (Date.now() - stats.mtimeMs) > BACKGROUND_INSTANCES_LOCK_STALE_MS;
-      } catch {}
+        lockIsStale = Date.now() - stats.mtimeMs > BACKGROUND_INSTANCES_LOCK_STALE_MS;
+      } catch {
+        // Ignore stat races while the lock directory is changing.
+      }
 
       if (lockIsStale) {
         try {
           fs.rmSync(BACKGROUND_INSTANCES_LOCK_DIR, { recursive: true, force: true });
           continue;
-        } catch {}
+        } catch {
+          // Ignore lock cleanup races and retry until timeout.
+        }
       }
 
       if (Date.now() - startedAt >= timeoutMs) {
-        throw new Error('Could not acquire background registry lock.');
+        throw new Error('Could not acquire background registry lock.', { cause: error });
       }
 
       await sleep(50);
@@ -481,7 +510,9 @@ async function withBackgroundInstancesLock(callback, timeoutMs = BACKGROUND_INST
   } finally {
     try {
       fs.rmSync(BACKGROUND_INSTANCES_LOCK_DIR, { recursive: true, force: true });
-    } catch {}
+    } catch {
+      // Ignore cleanup races after the lock holder exits.
+    }
   }
 }
 
@@ -604,7 +635,11 @@ async function promptForBackgroundInstance(instances) {
 
   try {
     while (true) {
-      const answer = (await rl.question(`Which instance should be stopped? [1-${instances.length}, Enter=cancel] `)).trim();
+      const answer = (
+        await rl.question(
+          `Which instance should be stopped? [1-${instances.length}, Enter=cancel] `,
+        )
+      ).trim();
 
       if (!answer) {
         return null;
@@ -683,22 +718,30 @@ async function runStopCommand() {
 
   const result = await stopBackgroundInstance(selectedInstance);
   if (result.status === 'stopped') {
-    console.log(`Stopped TTDash background server: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    console.log(
+      `Stopped TTDash background server: ${selectedInstance.url} (PID ${selectedInstance.pid})`,
+    );
     return;
   }
 
   if (result.status === 'already-stopped') {
-    console.log(`Instance was already stopped and was removed from the registry: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    console.log(
+      `Instance was already stopped and was removed from the registry: ${selectedInstance.url} (PID ${selectedInstance.pid})`,
+    );
     return;
   }
 
   if (result.status === 'forbidden') {
-    console.error(`Could not stop TTDash background server (permission denied): ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+    console.error(
+      `Could not stop TTDash background server (permission denied): ${selectedInstance.url} (PID ${selectedInstance.pid})`,
+    );
     process.exitCode = 1;
     return;
   }
 
-  console.error(`TTDash background server did not respond to SIGTERM: ${selectedInstance.url} (PID ${selectedInstance.pid})`);
+  console.error(
+    `TTDash background server did not respond to SIGTERM: ${selectedInstance.url} (PID ${selectedInstance.pid})`,
+  );
   if (selectedInstance.logFile) {
     console.error(`Log file: ${selectedInstance.logFile}`);
   }
@@ -736,9 +779,7 @@ async function startInBackground() {
 
   const instance = await waitForBackgroundInstance(child.pid);
   if (!instance) {
-    const logOutput = fs.existsSync(logFile)
-      ? fs.readFileSync(logFile, 'utf-8').trim()
-      : '';
+    const logOutput = fs.existsSync(logFile) ? fs.readFileSync(logFile, 'utf-8').trim() : '';
     throw new Error(logOutput || `Could not start TTDash as a background process. Log: ${logFile}`);
   }
 
@@ -765,7 +806,9 @@ function migrateLegacyDataFile() {
     fs.copyFileSync(LEGACY_DATA_FILE, DATA_FILE);
     try {
       fs.unlinkSync(LEGACY_DATA_FILE);
-    } catch {}
+    } catch {
+      // Ignore best-effort cleanup failures after copying legacy data.
+    }
     console.log(`Copying existing data to ${DATA_FILE}`);
   }
 }
@@ -787,9 +830,7 @@ function normalizeDashboardDatePreset(value) {
 }
 
 function normalizeLastLoadSource(value) {
-  return value === 'file' || value === 'auto-import' || value === 'cli-auto-load'
-    ? value
-    : null;
+  return value === 'file' || value === 'auto-import' || value === 'cli-auto-load' ? value : null;
 }
 
 function normalizeIsoTimestamp(value) {
@@ -815,30 +856,38 @@ function isPlainObject(value) {
 }
 
 function computeUsageTotals(daily) {
-  return daily.reduce((totals, day) => ({
-    inputTokens: totals.inputTokens + (day.inputTokens || 0),
-    outputTokens: totals.outputTokens + (day.outputTokens || 0),
-    cacheCreationTokens: totals.cacheCreationTokens + (day.cacheCreationTokens || 0),
-    cacheReadTokens: totals.cacheReadTokens + (day.cacheReadTokens || 0),
-    thinkingTokens: totals.thinkingTokens + (day.thinkingTokens || 0),
-    totalCost: totals.totalCost + (day.totalCost || 0),
-    totalTokens: totals.totalTokens + (day.totalTokens || 0),
-    requestCount: totals.requestCount + (day.requestCount || 0),
-  }), {
-    inputTokens: 0,
-    outputTokens: 0,
-    cacheCreationTokens: 0,
-    cacheReadTokens: 0,
-    thinkingTokens: 0,
-    totalCost: 0,
-    totalTokens: 0,
-    requestCount: 0,
-  });
+  return daily.reduce(
+    (totals, day) => ({
+      inputTokens: totals.inputTokens + (day.inputTokens || 0),
+      outputTokens: totals.outputTokens + (day.outputTokens || 0),
+      cacheCreationTokens: totals.cacheCreationTokens + (day.cacheCreationTokens || 0),
+      cacheReadTokens: totals.cacheReadTokens + (day.cacheReadTokens || 0),
+      thinkingTokens: totals.thinkingTokens + (day.thinkingTokens || 0),
+      totalCost: totals.totalCost + (day.totalCost || 0),
+      totalTokens: totals.totalTokens + (day.totalTokens || 0),
+      requestCount: totals.requestCount + (day.requestCount || 0),
+    }),
+    {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      thinkingTokens: 0,
+      totalCost: 0,
+      totalTokens: 0,
+      requestCount: 0,
+    },
+  );
 }
 
 function sortStrings(values) {
-  return [...new Set((Array.isArray(values) ? values : []).filter((value) => typeof value === 'string' && value.trim()))]
-    .sort((left, right) => left.localeCompare(right));
+  return [
+    ...new Set(
+      (Array.isArray(values) ? values : []).filter(
+        (value) => typeof value === 'string' && value.trim(),
+      ),
+    ),
+  ].sort((left, right) => left.localeCompare(right));
 }
 
 function canonicalizeModelBreakdown(entry) {
@@ -918,9 +967,10 @@ function extractUsageImportPayload(payload) {
 }
 
 function mergeUsageData(currentData, importedData) {
-  const current = currentData && Array.isArray(currentData.daily) && currentData.daily.length > 0
-    ? normalizeIncomingData(currentData)
-    : null;
+  const current =
+    currentData && Array.isArray(currentData.daily) && currentData.daily.length > 0
+      ? normalizeIncomingData(currentData)
+      : null;
 
   if (!current) {
     return {
@@ -956,7 +1006,9 @@ function mergeUsageData(currentData, importedData) {
     conflictingDays += 1;
   }
 
-  const mergedDaily = [...currentByDate.values()].sort((left, right) => left.date.localeCompare(right.date));
+  const mergedDaily = [...currentByDate.values()].sort((left, right) =>
+    left.date.localeCompare(right.date),
+  );
 
   return {
     data: {
@@ -1006,10 +1058,14 @@ function normalizeStringList(value) {
     return [];
   }
 
-  return [...new Set(value
-    .filter((entry) => typeof entry === 'string')
-    .map((entry) => entry.trim())
-    .filter(Boolean))];
+  return [
+    ...new Set(
+      value
+        .filter((entry) => typeof entry === 'string')
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function normalizeDefaultFilters(value) {
@@ -1028,9 +1084,7 @@ function normalizeSectionVisibility(value) {
   const next = {};
 
   for (const sectionId of DASHBOARD_SECTION_IDS) {
-    next[sectionId] = typeof source[sectionId] === 'boolean'
-      ? source[sectionId]
-      : true;
+    next[sectionId] = typeof source[sectionId] === 'boolean' ? source[sectionId] : true;
   }
 
   return next;
@@ -1041,9 +1095,9 @@ function normalizeSectionOrder(value) {
     return [...DASHBOARD_SECTION_IDS];
   }
 
-  const incoming = value.filter((sectionId) => (
-    typeof sectionId === 'string' && DASHBOARD_SECTION_IDS.includes(sectionId)
-  ));
+  const incoming = value.filter(
+    (sectionId) => typeof sectionId === 'string' && DASHBOARD_SECTION_IDS.includes(sectionId),
+  );
   const uniqueIncoming = [...new Set(incoming)];
   const missing = DASHBOARD_SECTION_IDS.filter((sectionId) => !uniqueIncoming.includes(sectionId));
 
@@ -1077,14 +1131,8 @@ function openBrowser(url) {
   }
 
   const platform = process.platform;
-  const command = platform === 'darwin'
-    ? 'open'
-    : platform === 'win32'
-      ? 'cmd'
-      : 'xdg-open';
-  const args = platform === 'win32'
-    ? ['/c', 'start', '', url]
-    : [url];
+  const command = platform === 'darwin' ? 'open' : platform === 'win32' ? 'cmd' : 'xdg-open';
+  const args = platform === 'win32' ? ['/c', 'start', '', url] : [url];
 
   const child = spawn(command, args, {
     detached: true,
@@ -1140,15 +1188,9 @@ function describeDataFile() {
 }
 
 function printStartupSummary(url, port) {
-  const browserMode = shouldOpenBrowser()
-    ? 'enabled'
-    : 'disabled';
-  const autoLoadMode = CLI_OPTIONS.autoLoad
-    ? 'enabled'
-    : 'disabled';
-  const runtimeMode = IS_BACKGROUND_CHILD
-    ? 'background'
-    : 'foreground';
+  const browserMode = shouldOpenBrowser() ? 'enabled' : 'disabled';
+  const autoLoadMode = CLI_OPTIONS.autoLoad ? 'enabled' : 'disabled';
+  const runtimeMode = IS_BACKGROUND_CHILD ? 'background' : 'foreground';
 
   console.log('');
   console.log(`${APP_LABEL} v${APP_VERSION} is ready`);
@@ -1331,23 +1373,6 @@ function json(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
-function sendFile(res, status, headers, filePath) {
-  const stream = fs.createReadStream(filePath);
-  res.writeHead(status, {
-    ...headers,
-    ...SECURITY_HEADERS,
-  });
-  stream.on('error', () => {
-    if (!res.headersSent) {
-      res.writeHead(500, SECURITY_HEADERS);
-      res.end('Internal Server Error');
-      return;
-    }
-    res.destroy();
-  });
-  stream.pipe(res);
-}
-
 function sendBuffer(res, status, headers, buffer) {
   res.writeHead(status, {
     'Content-Length': buffer.length,
@@ -1385,6 +1410,22 @@ function shouldUseShell(command) {
   return IS_WINDOWS && /\.(cmd|bat)$/i.test(command);
 }
 
+function getExecutableName(baseName, isWindows = IS_WINDOWS) {
+  if (!isWindows) {
+    return baseName;
+  }
+
+  switch (baseName) {
+    case 'bun':
+    case 'bunx':
+      return 'bun.exe';
+    case 'npx':
+      return 'npx.cmd';
+    default:
+      return baseName;
+  }
+}
+
 function spawnCommand(command, args, options = {}) {
   return spawn(command, args, {
     ...options,
@@ -1413,9 +1454,9 @@ async function resolveToktrackRunner() {
     };
   }
 
-  if (await commandExists(IS_WINDOWS ? 'bun.exe' : 'bun')) {
+  if (await commandExists(getExecutableName('bun'))) {
     return {
-      command: IS_WINDOWS ? 'bun.exe' : 'bunx',
+      command: getExecutableName('bunx'),
       prefixArgs: IS_WINDOWS ? ['x', 'toktrack'] : ['toktrack'],
       env: process.env,
       method: 'bunx',
@@ -1424,9 +1465,9 @@ async function resolveToktrackRunner() {
     };
   }
 
-  if (await commandExists(IS_WINDOWS ? 'npx.cmd' : 'npx')) {
+  if (await commandExists(getExecutableName('npx'))) {
     return {
-      command: IS_WINDOWS ? 'npx.cmd' : 'npx',
+      command: getExecutableName('npx'),
       prefixArgs: ['--yes', 'toktrack'],
       env: {
         ...process.env,
@@ -1557,7 +1598,9 @@ async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
     });
 
     startupAutoLoadCompleted = true;
-    console.log(`Auto-load complete: imported ${result.days} days, ${formatCurrency(result.totalCost)}.`);
+    console.log(
+      `Auto-load complete: imported ${result.days} days, ${formatCurrency(result.totalCost)}.`,
+    );
   } catch (error) {
     console.error(`Auto-load failed: ${error.message}`);
     console.error('Dashboard will start without newly imported data.');
@@ -1576,22 +1619,30 @@ const server = http.createServer(async (req, res) => {
   if (apiPath === '/usage') {
     if (req.method === 'GET') {
       const data = readData();
-      return json(res, 200, data || {
-        daily: [],
-        totals: {
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheCreationTokens: 0,
-          cacheReadTokens: 0,
-          thinkingTokens: 0,
-          totalCost: 0,
-          totalTokens: 0,
-          requestCount: 0,
+      return json(
+        res,
+        200,
+        data || {
+          daily: [],
+          totals: {
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            totalCost: 0,
+            totalTokens: 0,
+            requestCount: 0,
+          },
         },
-      });
+      );
     }
     if (req.method === 'DELETE') {
-      try { fs.unlinkSync(DATA_FILE); } catch {}
+      try {
+        fs.unlinkSync(DATA_FILE);
+      } catch {
+        // Ignore missing data files during reset.
+      }
       clearDataLoadState();
       return json(res, 200, { success: true });
     }
@@ -1619,7 +1670,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'DELETE') {
-      try { fs.unlinkSync(SETTINGS_FILE); } catch {}
+      try {
+        fs.unlinkSync(SETTINGS_FILE);
+      } catch {
+        // Ignore missing settings files during reset.
+      }
       return json(res, 200, { success: true, settings: readSettings() });
     }
 
@@ -1662,9 +1717,10 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { days, totalCost });
       } catch (e) {
         const status = e.message === 'Payload too large' ? 413 : 400;
-        const message = e.message === 'Payload too large'
-          ? 'File too large (max. 10 MB)'
-          : e.message || 'Invalid JSON';
+        const message =
+          e.message === 'Payload too large'
+            ? 'File too large (max. 10 MB)'
+            : e.message || 'Invalid JSON';
         return json(res, status, { message });
       }
     }
@@ -1697,13 +1753,15 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
       'X-Accel-Buffering': 'no',
       ...SECURITY_HEADERS,
     });
 
     let aborted = false;
-    req.on('close', () => { aborted = true; });
+    req.on('close', () => {
+      aborted = true;
+    });
 
     try {
       const result = await performAutoImport({
@@ -1728,13 +1786,17 @@ const server = http.createServer(async (req, res) => {
         },
       });
 
-      if (aborted) { return; }
+      if (aborted) {
+        return;
+      }
 
       sendSSE(res, 'success', result);
       sendSSE(res, 'done', {});
       res.end();
     } catch (err) {
-      if (aborted) { return; }
+      if (aborted) {
+        return;
+      }
       sendSSE(res, 'error', { message: `Error: ${err.message}` });
       sendSSE(res, 'done', {});
       res.end();
@@ -1752,20 +1814,28 @@ const server = http.createServer(async (req, res) => {
       return json(res, 400, { message: 'No data available for the report.' });
     }
 
-    let body = {};
+    let body;
     try {
       body = await readBody(req);
     } catch (e) {
       const status = e.message === 'Payload too large' ? 413 : 400;
-      return json(res, status, { message: e.message === 'Payload too large' ? 'Report request too large' : 'Invalid report request' });
+      return json(res, status, {
+        message:
+          e.message === 'Payload too large' ? 'Report request too large' : 'Invalid report request',
+      });
     }
 
     try {
       const result = await generatePdfReport(data.daily, body || {});
-      return sendBuffer(res, 200, {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${result.filename}"`,
-      }, result.buffer);
+      return sendBuffer(
+        res,
+        200,
+        {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${result.filename}"`,
+        },
+        result.buffer,
+      );
     } catch (error) {
       const message = error && error.message ? error.message : 'PDF generation failed';
       const status = error && error.code === 'TYPST_MISSING' ? 503 : 500;
@@ -1781,43 +1851,68 @@ const server = http.createServer(async (req, res) => {
   const safePath = pathname === '/' ? '/index.html' : pathname;
   const filePath = path.resolve(STATIC_ROOT, `.${safePath}`);
 
-  if (!filePath.startsWith(path.resolve(STATIC_ROOT) + path.sep) && filePath !== path.resolve(STATIC_ROOT, 'index.html')) {
+  if (
+    !filePath.startsWith(path.resolve(STATIC_ROOT) + path.sep) &&
+    filePath !== path.resolve(STATIC_ROOT, 'index.html')
+  ) {
     return json(res, 403, { message: 'Access denied' });
   }
 
   serveFile(res, filePath);
 });
 
-function tryListen(port) {
-  return new Promise((resolve, reject) => {
-    if (port > MAX_PORT) {
-      reject(new Error(`No free port found (${START_PORT}-${MAX_PORT})`));
-      return;
-    }
+function createNoFreePortError(rangeStartPort, maxPort) {
+  return new Error(`No free port found (${rangeStartPort}-${maxPort})`);
+}
 
-    const onError = (err) => {
-      server.off('listening', onListening);
-      if (err.code === 'EADDRINUSE') {
-        if (port >= MAX_PORT) {
-          reject(new Error(`No free port found (${START_PORT}-${MAX_PORT})`));
-          return;
+async function listenOnAvailablePort(
+  serverInstance,
+  port,
+  maxPort,
+  bindHost,
+  log = console.log,
+  rangeStartPort = port,
+) {
+  if (port > maxPort) {
+    throw createNoFreePortError(rangeStartPort, maxPort);
+  }
+
+  for (let currentPort = port; currentPort <= maxPort; currentPort += 1) {
+    try {
+      await new Promise((resolve, reject) => {
+        const onError = (err) => {
+          serverInstance.off('listening', onListening);
+          reject(err);
+        };
+
+        const onListening = () => {
+          serverInstance.off('error', onError);
+          resolve();
+        };
+
+        serverInstance.once('error', onError);
+        serverInstance.once('listening', onListening);
+        serverInstance.listen(currentPort, bindHost);
+      });
+
+      return currentPort;
+    } catch (err) {
+      if (err && err.code === 'EADDRINUSE') {
+        if (currentPort >= maxPort) {
+          throw createNoFreePortError(rangeStartPort, maxPort);
         }
-        console.log(`Port ${port} is in use, trying ${port + 1}...`);
-        resolve(tryListen(port + 1));
-      } else {
-        reject(err);
+        log(`Port ${currentPort} is in use, trying ${currentPort + 1}...`);
+        continue;
       }
-    };
+      throw err;
+    }
+  }
 
-    const onListening = () => {
-      server.off('error', onError);
-      resolve(port);
-    };
+  throw createNoFreePortError(rangeStartPort, maxPort);
+}
 
-    server.once('error', onError);
-    server.once('listening', onListening);
-    server.listen(port, BIND_HOST);
-  });
+function tryListen(port) {
+  return listenOnAvailablePort(server, port, MAX_PORT, BIND_HOST, console.log, START_PORT);
 }
 
 async function start() {
@@ -1858,18 +1953,40 @@ async function runCli() {
   await start();
 }
 
-runCli().catch((error) => {
-  Promise.resolve()
-    .then(async () => {
-      if (IS_BACKGROUND_CHILD) {
-        await unregisterBackgroundInstance(process.pid);
-      }
-    })
-    .finally(() => {
-      console.error(error);
-      process.exit(1);
-    });
-});
+function registerShutdownHandlers() {
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
+function bootstrapCli() {
+  runCli().catch((error) => {
+    Promise.resolve()
+      .then(async () => {
+        if (IS_BACKGROUND_CHILD) {
+          await unregisterBackgroundInstance(process.pid);
+        }
+      })
+      .finally(() => {
+        console.error(error);
+        process.exit(1);
+      });
+  });
+
+  registerShutdownHandlers();
+}
+
+module.exports = {
+  bootstrapCli,
+  runCli,
+  __test__: {
+    getExecutableName,
+    listenOnAvailablePort,
+  },
+};
+
+if (require.main === module) {
+  bootstrapCli();
+}
 
 // Graceful shutdown on Ctrl+C / kill
 function shutdown(signal) {
@@ -1890,6 +2007,3 @@ function shutdown(signal) {
     process.exit(0);
   }, 3000);
 }
-
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));

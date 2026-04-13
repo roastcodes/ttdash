@@ -1,4 +1,12 @@
-import { createContext, useState, useMemo, useCallback, useContext, useRef, type ReactNode } from 'react'
+import {
+  createContext,
+  useState,
+  useMemo,
+  useCallback,
+  useContext,
+  useRef,
+  type ReactNode,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, useInView } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
@@ -22,6 +30,41 @@ interface ChartCardProps {
   expandedExtra?: ReactNode
 }
 
+export function stringifyCsvCell(value: unknown): string {
+  let stringValue = ''
+
+  if (value == null) return ''
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
+    stringValue = String(value)
+  } else {
+    try {
+      stringValue = JSON.stringify(value) ?? ''
+    } catch {
+      stringValue = ''
+    }
+  }
+
+  return `"${stringValue.replace(/"/g, '""')}"`
+}
+
+export function buildChartCsv(chartData: Record<string, unknown>[]): string {
+  if (chartData.length === 0) return ''
+
+  const firstRow = chartData[0]
+  if (!firstRow) return ''
+
+  const keys = Object.keys(firstRow)
+  return [
+    keys.map((key) => stringifyCsvCell(key)).join(','),
+    ...chartData.map((row) => keys.map((key) => stringifyCsvCell(row[key])).join(',')),
+  ].join('\n')
+}
+
 const ChartAnimationContext = createContext(false)
 
 export function useChartAnimationActive() {
@@ -39,21 +82,28 @@ interface ChartRevealProps {
   duration?: number
 }
 
-export function ChartReveal({ children, variant = 'line', delay = 0, duration = 0.7 }: ChartRevealProps) {
+export function ChartReveal({
+  children,
+  variant = 'line',
+  delay = 0,
+  duration = 0.7,
+}: ChartRevealProps) {
   const active = useChartAnimationActive()
   const resolvedDuration = variant === 'radial' ? Math.max(duration, 0.95) : Math.max(duration, 0.9)
 
-  const hidden = variant === 'bar'
-    ? { opacity: 0, clipPath: 'inset(100% 0 0 0 round 16px)', y: 10 }
-    : variant === 'radial'
-      ? { opacity: 0, scale: 0.82, rotate: -18 }
-      : { opacity: 0, clipPath: 'inset(0 100% 0 0 round 16px)', x: -8 }
+  const hidden =
+    variant === 'bar'
+      ? { opacity: 0, clipPath: 'inset(100% 0 0 0 round 16px)', y: 10 }
+      : variant === 'radial'
+        ? { opacity: 0, scale: 0.82, rotate: -18 }
+        : { opacity: 0, clipPath: 'inset(0 100% 0 0 round 16px)', x: -8 }
 
-  const visible = variant === 'bar'
-    ? { opacity: 1, clipPath: 'inset(0 0 0 0 round 16px)', y: 0 }
-    : variant === 'radial'
-      ? { opacity: 1, scale: 1, rotate: 0 }
-      : { opacity: 1, clipPath: 'inset(0 0 0 0 round 16px)', x: 0 }
+  const visible =
+    variant === 'bar'
+      ? { opacity: 1, clipPath: 'inset(0 0 0 0 round 16px)', y: 0 }
+      : variant === 'radial'
+        ? { opacity: 1, scale: 1, rotate: 0 }
+        : { opacity: 1, clipPath: 'inset(0 0 0 0 round 16px)', x: 0 }
 
   return (
     <motion.div
@@ -75,7 +125,19 @@ export function ChartReveal({ children, variant = 'line', delay = 0, duration = 
   )
 }
 
-export function ChartCard({ title, subtitle, summary, info, expandable = true, children, className, chartData, valueKey, valueFormatter, expandedExtra }: ChartCardProps) {
+export function ChartCard({
+  title,
+  subtitle,
+  summary,
+  info,
+  expandable = true,
+  children,
+  className,
+  chartData,
+  valueKey,
+  valueFormatter,
+  expandedExtra,
+}: ChartCardProps) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
@@ -84,7 +146,9 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
 
   const stats = useMemo(() => {
     if (!chartData || !valueKey) return null
-    const values = chartData.map(d => d[valueKey]).filter((v): v is number => typeof v === 'number' && !isNaN(v))
+    const values = chartData
+      .map((d) => d[valueKey])
+      .filter((v): v is number => typeof v === 'number' && !isNaN(v))
     if (values.length === 0) return null
     const sum = values.reduce((s, v) => s + v, 0)
     return {
@@ -97,18 +161,19 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
   }, [chartData, valueKey])
 
   const fmt = valueFormatter ?? formatCurrency
-  const renderChildren = (isExpanded: boolean) => typeof children === 'function'
-    ? children(isExpanded)
-    : children
+  const renderChildren = (isExpanded: boolean) =>
+    typeof children === 'function' ? children(isExpanded) : children
 
   const handleExport = useCallback(() => {
     if (!chartData || chartData.length === 0) return
-    const keys = Object.keys(chartData[0])
-    const csv = [keys.join(','), ...chartData.map(row => keys.map(k => String(row[k] ?? '')).join(','))].join('\n')
+    const csv = buildChartCsv(chartData)
+    if (!csv) return
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url; a.download = `${title}.csv`; a.click()
+    a.href = url
+    a.download = `${title}.csv`
+    a.click()
     URL.revokeObjectURL(url)
   }, [chartData, title])
 
@@ -120,14 +185,10 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
           {info && <InfoButton text={info} />}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {summary && (
-            <span className="text-sm font-semibold text-foreground">{summary}</span>
-          )}
+          {summary && <span className="text-sm font-semibold text-foreground">{summary}</span>}
         </div>
       </div>
-      {subtitle && (
-        <CardDescription className="mt-0.5">{subtitle}</CardDescription>
-      )}
+      {subtitle && <CardDescription className="mt-0.5">{subtitle}</CardDescription>}
     </CardHeader>
   )
 
@@ -159,7 +220,7 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
             </DialogDescription>
             <ChartAnimationContext.Provider value={expanded}>
               <div className="relative h-full flex flex-col">
-                  <div className="p-4 sm:p-6 pb-2">
+                <div className="p-4 sm:p-6 pb-2">
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-lg font-semibold">{title}</h2>
@@ -177,23 +238,35 @@ export function ChartCard({ title, subtitle, summary, info, expandable = true, c
                   {stats && (
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Min</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          {t('dashboard.stats.min')}
+                        </div>
                         <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.min)}</div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Max</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          {t('dashboard.stats.max')}
+                        </div>
                         <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.max)}</div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          {t('dashboard.stats.avg')}
+                        </div>
                         <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.avg)}</div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Gesamt</div>
-                        <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.total)}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          {t('dashboard.stats.total')}
+                        </div>
+                        <div className="font-mono font-medium text-sm mt-0.5">
+                          {fmt(stats.total)}
+                        </div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Datenpunkte</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          {t('dashboard.stats.dataPoints')}
+                        </div>
                         <div className="font-mono font-medium text-sm mt-0.5">{stats.count}</div>
                       </div>
                     </div>

@@ -24,8 +24,12 @@ describe('report utils', () => {
       selectedModels: ['gpt-5.4', 'claude-sonnet-4-5', 'gemini-2.5-pro', 'opencode'],
     })
 
-    expect(report.meta.filterSummary.selectedProvidersLabel).toBe('OpenAI, Anthropic, Google +1 more')
-    expect(report.meta.filterSummary.selectedModelsLabel).toBe('GPT-5.4, Sonnet 4.5, Gemini +1 more')
+    expect(report.meta.filterSummary.selectedProvidersLabel).toBe(
+      'OpenAI, Anthropic, Google +1 more',
+    )
+    expect(report.meta.filterSummary.selectedModelsLabel).toBe(
+      'GPT-5.4, Sonnet 4.5, Gemini 2.5 Pro +1 more',
+    )
     expect(report.summaryCards[5].label).toBe('Peak period')
     expect(report.summaryCards[5].value).not.toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
@@ -53,8 +57,14 @@ describe('report utils', () => {
     })
 
     expect(report.insights.items.length).toBeGreaterThan(0)
-    expect(report.insights.items.some((item: { title: string }) => item.title === 'Data coverage')).toBe(true)
-    expect(report.insights.items.some((item: { title: string }) => item.title === 'Provider concentration')).toBe(true)
+    expect(
+      report.insights.items.some((item: { title: string }) => item.title === 'Data coverage'),
+    ).toBe(true)
+    expect(
+      report.insights.items.some(
+        (item: { title: string }) => item.title === 'Provider concentration',
+      ),
+    ).toBe(true)
   })
 
   it('formats compact chart axes for the current language', async () => {
@@ -70,10 +80,10 @@ describe('report utils', () => {
 
   it('keeps cache insights visible without request counters when token cache data exists', async () => {
     const { buildReportData } = await import('../../server/report/utils.js')
-    const dataWithoutRequests = dashboardFixture.map(day => ({
+    const dataWithoutRequests = dashboardFixture.map((day) => ({
       ...day,
       requestCount: 0,
-      modelBreakdowns: day.modelBreakdowns.map(entry => ({
+      modelBreakdowns: day.modelBreakdowns.map((entry) => ({
         ...entry,
         requestCount: 0,
       })),
@@ -86,7 +96,9 @@ describe('report utils', () => {
 
     expect(report.metrics.hasRequestData).toBe(false)
     expect(report.metrics.cacheHitRate).toBeGreaterThan(0)
-    expect(report.insights.items.some((item: { title: string }) => item.title === 'Cache contribution')).toBe(true)
+    expect(
+      report.insights.items.some((item: { title: string }) => item.title === 'Cache contribution'),
+    ).toBe(true)
   })
 
   it('keeps percent strings in german report output and localizes the report header', async () => {
@@ -98,7 +110,9 @@ describe('report utils', () => {
     })
 
     expect(report.summaryCards[0].note).toContain('%')
-    expect(report.insights.items.some((item: { body: string }) => item.body.includes('%'))).toBe(true)
+    expect(report.insights.items.some((item: { body: string }) => item.body.includes('%'))).toBe(
+      true,
+    )
     expect(report.text.headerEyebrow).toBe('TTDash PDF-Bericht')
   })
 
@@ -111,7 +125,9 @@ describe('report utils', () => {
     })
 
     expect(report.labels.topModel).toContain(report.summaryCards[4].note)
-    expect(report.labels.topProvider).toContain(report.summaryCards[0].note.replace(`${report.metrics.topProvider?.name} `, ''))
+    expect(report.labels.topProvider).toContain(
+      report.summaryCards[0].note.replace(`${report.metrics.topProvider?.name} `, ''),
+    )
   })
 
   it('uses period averages for aggregated summary cards', async () => {
@@ -132,5 +148,19 @@ describe('report utils', () => {
     expect(yearlyReport.summaryCards[3].label).toBe('Ø Cost / year')
     expect(yearlyReport.summaryCards[3].value).toBe('$30.00')
     expect(monthlyReport.summaryCards[3].value).not.toBe('$7.50')
+  })
+
+  it('normalizes current toktrack model families in report filter summaries', async () => {
+    const { buildReportData } = await import('../../server/report/utils.js')
+
+    const report = buildReportData(dashboardFixture, {
+      viewMode: 'daily',
+      language: 'en',
+      selectedModels: ['gpt-5.3-codex', 'gemini-2.5-flash', 'codex-mini-latest', 'o4-mini'],
+    })
+
+    expect(report.meta.filterSummary.selectedModelsLabel).toBe(
+      'GPT-5.3 Codex, Gemini 2.5 Flash, Codex Mini +1 more',
+    )
   })
 })

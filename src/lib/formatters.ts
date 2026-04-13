@@ -15,6 +15,19 @@ export function localMonth(): string {
   return localToday().slice(0, 7)
 }
 
+export function coerceNumber(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+
+  return null
+}
+
 export function formatCurrency(value: number): string {
   if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`
   if (value >= 100) return `$${Math.round(value)}`
@@ -56,9 +69,10 @@ export function formatDate(dateStr: string, mode: 'short' | 'long' | 'weekday' =
 
   // Monthly period: "2026-03"
   if (/^\d{4}-\d{2}$/.test(dateStr)) {
-    const [y, m] = dateStr.split('-')
-    const d = new Date(parseInt(y), parseInt(m) - 1)
-    if (mode === 'short') return d.toLocaleDateString(getCurrentLocale(), { month: 'short', year: '2-digit' })
+    const [y = '0', m = '1'] = dateStr.split('-')
+    const d = new Date(parseInt(y, 10), parseInt(m, 10) - 1)
+    if (mode === 'short')
+      return d.toLocaleDateString(getCurrentLocale(), { month: 'short', year: '2-digit' })
     return d.toLocaleDateString(getCurrentLocale(), { month: 'long', year: 'numeric' })
   }
 
@@ -84,8 +98,8 @@ export function formatDateAxis(dateStr: string): string {
 
   // Monthly period: "2026-03"
   if (/^\d{4}-\d{2}$/.test(dateStr)) {
-    const [y, m] = dateStr.split('-')
-    const d = new Date(parseInt(y), parseInt(m) - 1)
+    const [y = '0', m = '1'] = dateStr.split('-')
+    const d = new Date(parseInt(y, 10), parseInt(m, 10) - 1)
     return d.toLocaleDateString(getCurrentLocale(), { month: 'short', year: '2-digit' })
   }
 
@@ -108,8 +122,16 @@ export function periodUnit(viewMode: 'daily' | 'monthly' | 'yearly'): string {
 }
 
 export function formatMonthYear(dateStr: string): string {
-  const [year, month] = dateStr.split('-')
-  const date = new Date(parseInt(year), parseInt(month) - 1)
+  if (!/^\d{4}-\d{2}$/.test(dateStr)) return ''
+
+  const [year = '', month = ''] = dateStr.split('-')
+  const parsedYear = Number.parseInt(year, 10)
+  const parsedMonth = Number.parseInt(month, 10)
+
+  if (!Number.isInteger(parsedYear) || !Number.isInteger(parsedMonth)) return ''
+  if (parsedMonth < 1 || parsedMonth > 12) return ''
+
+  const date = new Date(parsedYear, parsedMonth - 1)
   return date.toLocaleDateString(getCurrentLocale(), { month: 'long', year: 'numeric' })
 }
 

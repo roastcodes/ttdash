@@ -72,6 +72,8 @@
     "hidden": "Versteckt",
     "open": "Öffnen",
     "close": "Schliessen",
+    "previousMonth": "Vorheriger Monat",
+    "nextMonth": "Nächster Monat",
     "startDate": "Startdatum",
     "endDate": "Enddatum",
     "selectedProviders": "Ausgewählte Provider",
@@ -165,6 +167,9 @@
       "cacheRoi": "Cache ROI"
     },
     "stats": {
+      "min": "Min",
+      "max": "Max",
+      "avg": "Ø",
       "cacheHitRate": "Cache-Hit-Rate",
       "totalTokens": "Gesamt-Tokens",
       "cacheRead": "Cache Read",
@@ -206,6 +211,7 @@
       "spread": "Spanne: {{value}}",
       "medianPerUnit": "Median/{{unit}}",
       "vsAverage": "{{direction}}{{value}}% vs. Ø",
+      "vsAverageWithVolatility": "{{direction}}{{value}}% vs. Ø · σ Req {{volatility}}",
       "medianInfo": "Der Median zeigt den typischen Wert und ist weniger anfällig für Ausreisser als der Durchschnitt.",
       "requestLeader": "{{model}} · {{requests}} Req",
       "dominantProviderSubtitle": "{{share}} Anteil · {{cost}}{{requestLeader}}"
@@ -250,6 +256,7 @@
       "ioRatio": "I/O Ratio: {{value}}:1",
       "topModel": "Top: {{value}}",
       "cacheMix": "In: {{input}} / Out: {{output}}",
+      "costPerRequest": "{{value}} / Req",
       "requestsSubtitle": "Ø {{value}}/Tag · {{cost}}/Req",
       "requestCountersMissing": "Keine Request-Zähler",
       "thinkingSubtitle": "{{value}} Anteil"
@@ -919,6 +926,11 @@
       "subscriptionPaysOff": "Subscription zahlt sich aus",
       "belowSubscription": "Noch unter Subscription"
     },
+    "badge": {
+      "limit": "{{value}}% Limit",
+      "subscription": "{{value}}% Abo",
+      "open": "Offen"
+    },
     "tracks": {
       "budgetTitle": "Budget-Status je Anbieter",
       "budgetSubtitle": "Jeder Track zeigt pro Anbieter direkt den Abstand bis zum Limit oder den bereits eingetretenen Überzug",
@@ -930,7 +942,9 @@
       "portfolioSubtitle": "Monatlicher Verlauf von Usage, konfigurierten Limits und Subscription-Wirkung",
       "usage": "Usage",
       "limit": "Limit",
+      "limits": "Limits",
       "subscription": "Subscription",
+      "subscriptions": "Subscriptions",
       "breakEven": "Break-even",
       "currentlyUsed": "Aktuell verbraucht",
       "remainingToLimit": "Bis Limit offen",

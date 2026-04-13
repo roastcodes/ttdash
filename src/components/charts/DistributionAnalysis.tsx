@@ -1,7 +1,16 @@
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts'
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell,
+} from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
@@ -42,17 +51,27 @@ function toBins(values: number[], formatter: (value: number) => string): Distrib
 
   for (const value of values) {
     const bucketIndex = Math.min(bucketCount - 1, Math.floor((value - min) / bucketSize))
-    bins[bucketIndex].count += 1
+    const bucket = bins[bucketIndex]
+    if (bucket) {
+      bucket.count += 1
+    }
   }
 
   return bins
 }
 
-function DistributionTooltip({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: DistributionBin }> }) {
+function DistributionTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean
+  payload?: Array<{ value: number; payload: DistributionBin }>
+}) {
   const { t } = useTranslation()
   if (!active || !payload?.length) return null
 
   const entry = payload[0]
+  if (!entry) return null
 
   return (
     <div className="max-w-[280px] bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">
@@ -78,14 +97,25 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
   const distributions = useMemo(() => {
     if (data.length < 2) return []
 
-    const costs = data.map(entry => entry.totalCost)
-    const requests = data.map(entry => entry.requestCount)
-    const tokensPerRequest = data.map(entry => entry.requestCount > 0 ? entry.totalTokens / entry.requestCount : 0)
+    const costs = data.map((entry) => entry.totalCost)
+    const requests = data.map((entry) => entry.requestCount)
+    const tokensPerRequest = data.map((entry) =>
+      entry.requestCount > 0 ? entry.totalTokens / entry.requestCount : 0,
+    )
 
     return [
-      { title: t('charts.distribution.costPerPeriod', { period: periodLabel(viewMode) }), data: toBins(costs, formatCurrency) },
-      { title: t('charts.distribution.requestsPerPeriod', { period: periodLabel(viewMode) }), data: toBins(requests, formatNumber) },
-      { title: t('charts.distribution.tokensPerRequest'), data: toBins(tokensPerRequest, formatTokens) },
+      {
+        title: t('charts.distribution.costPerPeriod', { period: periodLabel(viewMode) }),
+        data: toBins(costs, formatCurrency),
+      },
+      {
+        title: t('charts.distribution.requestsPerPeriod', { period: periodLabel(viewMode) }),
+        data: toBins(requests, formatNumber),
+      },
+      {
+        title: t('charts.distribution.tokensPerRequest'),
+        data: toBins(tokensPerRequest, formatTokens),
+      },
     ]
   }, [data, viewMode, t])
 
@@ -108,7 +138,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
   }
 
   return (
-      <Card>
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           {t('charts.distribution.title')}
@@ -126,8 +156,12 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
           >
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
-                <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{distribution.title}</div>
-                <div className="text-[10px] text-muted-foreground">{distribution.data.length} {t('charts.distribution.buckets')}</div>
+                <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                  {distribution.title}
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  {distribution.data.length} {t('charts.distribution.buckets')}
+                </div>
               </div>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={distribution.data} margin={CHART_MARGIN}>
@@ -148,8 +182,17 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
                     textAnchor={distribution.data.length > 5 ? 'end' : 'middle'}
                     height={distribution.data.length > 5 ? 48 : 30}
                   />
-                  <YAxis stroke={CHART_COLORS.axis} fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <Tooltip content={<DistributionTooltip />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
+                  <YAxis
+                    stroke={CHART_COLORS.axis}
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    content={<DistributionTooltip />}
+                    cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }}
+                  />
                   <Bar
                     dataKey="count"
                     radius={[6, 6, 0, 0]}
@@ -159,9 +202,15 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
                     animationDuration={CHART_ANIMATION.duration}
                   >
                     {distribution.data.map((_, binIndex) => {
-                      const intensity = distribution.data.length > 1 ? binIndex / (distribution.data.length - 1) : 0
+                      const intensity =
+                        distribution.data.length > 1 ? binIndex / (distribution.data.length - 1) : 0
                       const opacity = 0.45 + intensity * 0.35
-                      return <Cell key={`${distribution.title}-${binIndex}`} fill={`hsla(215, 70%, 55%, ${opacity.toFixed(2)})`} />
+                      return (
+                        <Cell
+                          key={`${distribution.title}-${binIndex}`}
+                          fill={`hsla(215, 70%, 55%, ${opacity.toFixed(2)})`}
+                        />
+                      )
                     })}
                   </Bar>
                 </BarChart>

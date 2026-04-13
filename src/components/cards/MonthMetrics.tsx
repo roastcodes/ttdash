@@ -1,6 +1,15 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { TrendingDown, DollarSign, Coins, Cpu, Database, CalendarDays, Activity, BrainCircuit } from 'lucide-react'
+import {
+  TrendingDown,
+  DollarSign,
+  Coins,
+  Cpu,
+  Database,
+  CalendarDays,
+  Activity,
+  BrainCircuit,
+} from 'lucide-react'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
@@ -20,14 +29,14 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
   const currentMonth = localMonth()
 
   const monthData = useMemo(
-    () => daily.filter(d => d.date.startsWith(currentMonth)),
+    () => daily.filter((d) => d.date.startsWith(currentMonth)),
     [daily, currentMonth],
   )
 
   const prevMonth = useMemo(() => {
-    const [y, m] = currentMonth.split('-').map(Number)
+    const [y = 0, m = 1] = currentMonth.split('-').map(Number)
     const pm = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`
-    return daily.filter(d => d.date.startsWith(pm))
+    return daily.filter((d) => d.date.startsWith(pm))
   }, [daily, currentMonth])
 
   const agg = useMemo(() => {
@@ -65,25 +74,48 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
     const dayOfMonth = today.getDate()
 
     return {
-      totalCost, totalTokens, inputTokens, outputTokens,
-      cacheRead, cacheCreate, thinkingTokens, requestCount, cacheHitRate, costPerMillion,
-      activeDays: monthData.length, dayOfMonth,
-      modelCount: models.size, topModel,
+      totalCost,
+      totalTokens,
+      inputTokens,
+      outputTokens,
+      cacheRead,
+      cacheCreate,
+      thinkingTokens,
+      requestCount,
+      cacheHitRate,
+      costPerMillion,
+      activeDays: monthData.length,
+      dayOfMonth,
+      modelCount: models.size,
+      topModel,
     }
   }, [monthData])
 
-  const prevMonthCost = useMemo(
-    () => prevMonth.reduce((s, d) => s + d.totalCost, 0),
-    [prevMonth],
-  )
+  const prevMonthCost = useMemo(() => prevMonth.reduce((s, d) => s + d.totalCost, 0), [prevMonth])
 
   if (!agg) return null
 
-  const diffToPrev = prevMonthCost > 0
-    ? ((agg.totalCost - prevMonthCost) / prevMonthCost) * 100
-    : null
+  const diffToPrev =
+    prevMonthCost > 0 ? ((agg.totalCost - prevMonthCost) / prevMonthCost) * 100 : null
 
   const ioTotal = agg.inputTokens + agg.outputTokens
+  const tokensSubtitle =
+    agg.inputTokens > 0 && agg.outputTokens > 0
+      ? t('metricCards.month.ioRatio', { value: (agg.inputTokens / agg.outputTokens).toFixed(1) })
+      : null
+  const modelsSubtitle = agg.topModel
+    ? t('metricCards.month.topModel', { value: agg.topModel.name })
+    : null
+  const costPerMillionSubtitle =
+    metrics.costPerMillion > 0
+      ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) })
+      : null
+  const thinkingSubtitle =
+    agg.totalTokens > 0
+      ? t('metricCards.month.thinkingSubtitle', {
+          value: `${((agg.thinkingTokens / agg.totalTokens) * 100).toFixed(1)}%`,
+        })
+      : null
 
   return (
     <div>
@@ -98,35 +130,41 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
           <MetricCard
             label={t('metricCards.month.costMonth')}
             value={<FormattedValue value={agg.totalCost} type="currency" />}
-            subtitle={t('metricCards.month.avgPerDay', { value: formatCurrency(agg.totalCost / agg.activeDays) })}
+            subtitle={t('metricCards.month.avgPerDay', {
+              value: formatCurrency(agg.totalCost / agg.activeDays),
+            })}
             icon={<DollarSign className="h-4 w-4" />}
-            trend={diffToPrev !== null ? { value: diffToPrev, label: t('metricCards.month.vsPreviousMonth') } : null}
+            trend={
+              diffToPrev !== null
+                ? { value: diffToPrev, label: t('metricCards.month.vsPreviousMonth') }
+                : null
+            }
           />
           <MetricCard
             label={t('metricCards.month.tokensMonth')}
             value={<FormattedValue value={agg.totalTokens} type="tokens" />}
-            subtitle={agg.inputTokens > 0 && agg.outputTokens > 0
-              ? t('metricCards.month.ioRatio', { value: (agg.inputTokens / agg.outputTokens).toFixed(1) })
-              : undefined}
             icon={<Coins className="h-4 w-4" />}
+            {...(tokensSubtitle ? { subtitle: tokensSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.month.activeDays')}
             value={`${agg.activeDays} / ${agg.dayOfMonth}`}
-            subtitle={t('metricCards.month.coverage', { value: `${((agg.activeDays / agg.dayOfMonth) * 100).toFixed(0)}%` })}
+            subtitle={t('metricCards.month.coverage', {
+              value: `${((agg.activeDays / agg.dayOfMonth) * 100).toFixed(0)}%`,
+            })}
             icon={<CalendarDays className="h-4 w-4" />}
           />
           <MetricCard
             label={t('metricCards.month.models')}
             value={String(agg.modelCount)}
-            subtitle={agg.topModel ? t('metricCards.month.topModel', { value: agg.topModel.name }) : undefined}
             icon={<Cpu className="h-4 w-4" />}
+            {...(modelsSubtitle ? { subtitle: modelsSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.month.costPerMillion')}
             value={<FormattedValue value={agg.costPerMillion} type="currency" />}
-            subtitle={metrics.costPerMillion > 0 ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) }) : undefined}
             icon={<TrendingDown className="h-4 w-4" />}
+            {...(costPerMillionSubtitle ? { subtitle: costPerMillionSubtitle } : {})}
           />
           <MetricCard
             label={t('metricCards.month.cacheHitRate')}
@@ -139,17 +177,35 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
           />
           <MetricCard
             label={t('metricCards.month.requests')}
-            value={agg.requestCount > 0 ? <FormattedValue value={agg.requestCount} type="number" label={t('metricCards.month.requestsInMonth')} insight={`${formatCurrency(agg.totalCost / agg.requestCount)} / Request`} /> : t('common.notAvailable')}
-            subtitle={agg.requestCount > 0
-              ? t('metricCards.month.requestsSubtitle', { value: (agg.requestCount / agg.activeDays).toFixed(1), cost: formatCurrency(agg.totalCost / agg.requestCount) })
-              : t('metricCards.month.requestCountersMissing')}
+            value={
+              agg.requestCount > 0 ? (
+                <FormattedValue
+                  value={agg.requestCount}
+                  type="number"
+                  label={t('metricCards.month.requestsInMonth')}
+                  insight={t('metricCards.month.costPerRequest', {
+                    value: formatCurrency(agg.totalCost / agg.requestCount),
+                  })}
+                />
+              ) : (
+                t('common.notAvailable')
+              )
+            }
+            subtitle={
+              agg.requestCount > 0
+                ? t('metricCards.month.requestsSubtitle', {
+                    value: (agg.requestCount / agg.activeDays).toFixed(1),
+                    cost: formatCurrency(agg.totalCost / agg.requestCount),
+                  })
+                : t('metricCards.month.requestCountersMissing')
+            }
             icon={<Activity className="h-4 w-4" />}
           />
           <MetricCard
             label={t('metricCards.month.thinking')}
             value={<FormattedValue value={agg.thinkingTokens} type="tokens" />}
-            subtitle={agg.totalTokens > 0 ? t('metricCards.month.thinkingSubtitle', { value: `${((agg.thinkingTokens / agg.totalTokens) * 100).toFixed(1)}%` }) : undefined}
             icon={<BrainCircuit className="h-4 w-4" />}
+            {...(thinkingSubtitle ? { subtitle: thinkingSubtitle } : {})}
           />
         </div>
       </FadeIn>

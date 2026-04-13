@@ -18,37 +18,45 @@ interface CacheROIProps {
 
 export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
   const { t } = useTranslation()
-  const { actualCost, hypotheticalCost, savings, savingsPercent, dailyAvg, heuristicModels } = useMemo(() => {
-    let actual = 0
-    let hypothetical = 0
-    const heuristicModels = new Set<string>()
+  const { actualCost, hypotheticalCost, savings, savingsPercent, dailyAvg, heuristicModels } =
+    useMemo(() => {
+      let actual = 0
+      let hypothetical = 0
+      const heuristicModels = new Set<string>()
 
-    for (const d of data) {
-      actual += d.totalCost
+      for (const d of data) {
+        actual += d.totalCost
 
-      for (const mb of d.modelBreakdowns) {
-        const name = normalizeModelName(mb.modelName)
-        const prices = MODEL_PRICES[name]
-        if (!prices) {
-          // If no pricing info, assume cache read saves ~90% vs input
-          heuristicModels.add(name)
-          hypothetical += mb.cost + (mb.cacheReadTokens / 1_000_000) * 10
-          continue
+        for (const mb of d.modelBreakdowns) {
+          const name = normalizeModelName(mb.modelName)
+          const prices = MODEL_PRICES[name]
+          if (!prices) {
+            // If no pricing info, assume cache read saves ~90% vs input
+            heuristicModels.add(name)
+            hypothetical += mb.cost + (mb.cacheReadTokens / 1_000_000) * 10
+            continue
+          }
+          // What it would have cost if cache reads were regular input tokens
+          const cacheReadAsInput = (mb.cacheReadTokens / 1_000_000) * prices.input
+          const actualCacheReadCost = (mb.cacheReadTokens / 1_000_000) * prices.cacheRead
+          hypothetical += mb.cost - actualCacheReadCost + cacheReadAsInput
         }
-        // What it would have cost if cache reads were regular input tokens
-        const cacheReadAsInput = (mb.cacheReadTokens / 1_000_000) * prices.input
-        const actualCacheReadCost = (mb.cacheReadTokens / 1_000_000) * prices.cacheRead
-        hypothetical += mb.cost - actualCacheReadCost + cacheReadAsInput
       }
-    }
 
-    const saved = hypothetical - actual
-    const pct = hypothetical > 0 ? (saved / hypothetical) * 100 : 0
-    const totalPeriods = data.reduce((s, d) => s + (d._aggregatedDays ?? 1), 0)
-    const dailyAvg = totalPeriods > 0 ? actual / totalPeriods : 0
+      const saved = hypothetical - actual
+      const pct = hypothetical > 0 ? (saved / hypothetical) * 100 : 0
+      const totalPeriods = data.reduce((s, d) => s + (d._aggregatedDays ?? 1), 0)
+      const dailyAvg = totalPeriods > 0 ? actual / totalPeriods : 0
 
-    return { actualCost: actual, hypotheticalCost: hypothetical, savings: saved, savingsPercent: pct, dailyAvg, heuristicModels: Array.from(heuristicModels).sort() }
-  }, [data])
+      return {
+        actualCost: actual,
+        hypotheticalCost: hypothetical,
+        savings: saved,
+        savingsPercent: pct,
+        dailyAvg,
+        heuristicModels: Array.from(heuristicModels).sort(),
+      }
+    }, [data])
 
   if (data.length === 0) {
     return (
@@ -82,18 +90,23 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
           <div className="rounded-lg border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-xs text-amber-200/90">
             {t('cacheRoi.heuristicFallback', {
               count: heuristicModels.length,
-              modelsLabel: heuristicModels.length === 1 ? t('cacheRoi.model') : t('cacheRoi.models'),
+              modelsLabel:
+                heuristicModels.length === 1 ? t('cacheRoi.model') : t('cacheRoi.models'),
             })}
           </div>
         )}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <div className="text-xs text-muted-foreground">{t('cacheRoi.withoutCache')}</div>
-            <div className="text-lg font-bold text-red-400"><FormattedValue value={hypotheticalCost} type="currency" /></div>
+            <div className="text-lg font-bold text-red-400">
+              <FormattedValue value={hypotheticalCost} type="currency" />
+            </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">{t('cacheRoi.withCacheActual')}</div>
-            <div className="text-lg font-bold text-green-400"><FormattedValue value={actualCost} type="currency" /></div>
+            <div className="text-lg font-bold text-green-400">
+              <FormattedValue value={actualCost} type="currency" />
+            </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">{t('cacheRoi.savings')}</div>
@@ -103,7 +116,9 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
             </div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground">{t('cacheRoi.avgCostPerUnit', { unit: periodUnit(viewMode) })}</div>
+            <div className="text-xs text-muted-foreground">
+              {t('cacheRoi.avgCostPerUnit', { unit: periodUnit(viewMode) })}
+            </div>
             <div className="text-lg font-bold text-foreground">
               <FormattedValue value={dailyAvg} type="currency" />
             </div>
@@ -121,13 +136,21 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
           <div className="flex items-center gap-2 text-xs">
             <span className="text-muted-foreground w-24">{t('cacheRoi.withCache')}</span>
             <div className="flex-1 h-6 bg-muted/20 rounded-md overflow-hidden flex">
-              <div className="h-full bg-green-400/60 rounded-l-md transition-all duration-1000" style={{ width: `${barWidth}%` }} />
+              <div
+                className="h-full bg-green-400/60 rounded-l-md transition-all duration-1000"
+                style={{ width: `${barWidth}%` }}
+              />
               <div className="h-full bg-green-400/20 flex-1 rounded-r-md border-l border-green-400/30 border-dashed" />
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-400/60" /> {t('cacheRoi.paid')}</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-400/20 border border-green-400/30 border-dashed" /> {t('cacheRoi.saved')}</span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-sm bg-green-400/60" /> {t('cacheRoi.paid')}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-sm bg-green-400/20 border border-green-400/30 border-dashed" />{' '}
+              {t('cacheRoi.saved')}
+            </span>
           </div>
         </div>
       </CardContent>

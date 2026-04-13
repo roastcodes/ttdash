@@ -1,12 +1,7 @@
 import { cn } from '@/lib/cn'
 
 function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn('animate-pulse rounded-lg bg-muted/60', className)}
-      {...props}
-    />
-  )
+  return <div className={cn('animate-pulse rounded-lg bg-muted/60', className)} {...props} />
 }
 
 function MetricCardSkeleton() {
@@ -24,7 +19,9 @@ function MetricCardSkeleton() {
 
 function ChartCardSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn('rounded-xl border border-border/50 bg-card/80 backdrop-blur-xl', className)}>
+    <div
+      className={cn('rounded-xl border border-border/50 bg-card/80 backdrop-blur-xl', className)}
+    >
       <div className="p-4 pb-2">
         <Skeleton className="h-4 w-32" />
       </div>
@@ -56,19 +53,25 @@ function DashboardSkeleton() {
         <Skeleton className="h-9 w-[160px] rounded-lg" />
         <Skeleton className="h-9 w-[180px] rounded-lg" />
         <div className="flex gap-1.5">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-7 w-20 rounded-full" />)}
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-7 w-20 rounded-full" />
+          ))}
         </div>
       </div>
 
       <div className="space-y-4 mt-4">
         {/* Primary metrics */}
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-          {[1, 2, 3, 4, 5, 6].map(i => <MetricCardSkeleton key={i} />)}
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <MetricCardSkeleton key={i} />
+          ))}
         </div>
 
         {/* Secondary metrics */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map(i => <MetricCardSkeleton key={i} />)}
+          {[1, 2, 3, 4].map((i) => (
+            <MetricCardSkeleton key={i} />
+          ))}
         </div>
 
         {/* Chart area */}

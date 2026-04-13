@@ -37,9 +37,8 @@ If branch protection or rulesets block the `ttdash-release` app from writing to 
 Optional local confidence check before starting the workflow:
 
 ```bash
+npm run verify
 npm run test:unit:coverage
-npm run build
-npm run verify:package
 PLAYWRIGHT_TEST_PORT=3016 npm_config_cache=/tmp/ttdash-npm-cache npm run test:e2e
 ```
 
@@ -51,17 +50,19 @@ On a manual `workflow_dispatch` run against `main`, the workflow:
    or resumes a partially completed release when the requested version is already on `main`
 2. verifies the latest `CI` run for the current `main` commit succeeded
 3. bumps `package.json` and `package-lock.json` to the requested version
-4. runs unit/integration tests with coverage
-5. builds the production bundle
-6. verifies the packed npm artifact
-7. runs the Playwright smoke suite
-8. creates and pushes the release commit and annotated tag
-9. publishes `@roastcodes/ttdash` to npm through Trusted Publishing
-10. waits for npm registry propagation
-11. verifies:
-   - `npx --yes @roastcodes/ttdash@<version> --help`
-   - `bunx @roastcodes/ttdash@<version> --help`
-12. creates the GitHub release
+4. runs `prettier --check`, ESLint, and `tsc --noEmit`
+5. runs unit/integration tests with coverage
+6. builds the production bundle
+7. verifies the packed npm artifact
+8. runs the Playwright smoke suite
+9. creates and pushes the release commit and annotated tag
+10. publishes `@roastcodes/ttdash` to npm through Trusted Publishing
+11. waits for npm registry propagation
+12. verifies:
+    - `npx --yes @roastcodes/ttdash@<version> --help`
+    - `bunx @roastcodes/ttdash@<version> --help`
+
+13. creates the GitHub release
 
 Note: the workflow reruns the release-critical test suite itself after the version bump. This is necessary because the workflow-created push back to `main` should not be relied on to trigger the normal `CI` workflow again.
 If a release fails after the version bump was already pushed, rerunning the workflow with the same version resumes that release instead of forcing another version bump.

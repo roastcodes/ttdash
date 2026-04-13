@@ -49,16 +49,45 @@ import { applyTheme } from '@/lib/app-settings'
 import { downloadCSV } from '@/lib/csv-export'
 import { VERSION } from '@/lib/constants'
 import { SECTION_HELP } from '@/lib/help-content'
-import { generatePdfReport, importSettings, importUsageData } from '@/lib/api'
-import { formatCurrency, formatDateTimeCompact, formatDateTimeFull, formatTokens, formatPercent, periodUnit, localToday, toLocalDateStr } from '@/lib/formatters'
+import {
+  generatePdfReport,
+  importSettings,
+  importUsageData,
+  type PdfReportRequest,
+} from '@/lib/api'
+import {
+  formatCurrency,
+  formatDateTimeCompact,
+  formatDateTimeFull,
+  formatTokens,
+  formatPercent,
+  periodUnit,
+  localToday,
+  toLocalDateStr,
+} from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
 import { getUniqueModels, getUniqueProviders } from '@/lib/model-utils'
 import { SettingsModal } from './features/settings/SettingsModal'
 import { ProviderLimitsSection } from './features/limits/ProviderLimitsSection'
-import type { AppLanguage, DashboardDefaultFilters, DashboardSectionId, DashboardSectionOrder, DashboardSectionVisibility, ProviderLimits } from '@/types'
+import type {
+  AppLanguage,
+  DashboardDefaultFilters,
+  DashboardSectionId,
+  DashboardSectionOrder,
+  DashboardSectionVisibility,
+  ProviderLimits,
+} from '@/types'
 
-const DrillDownModal = lazy(() => import('./features/drill-down/DrillDownModal').then(module => ({ default: module.DrillDownModal })))
-const AutoImportModal = lazy(() => import('./features/auto-import/AutoImportModal').then(module => ({ default: module.AutoImportModal })))
+const DrillDownModal = lazy(() =>
+  import('./features/drill-down/DrillDownModal').then((module) => ({
+    default: module.DrillDownModal,
+  })),
+)
+const AutoImportModal = lazy(() =>
+  import('./features/auto-import/AutoImportModal').then((module) => ({
+    default: module.AutoImportModal,
+  })),
+)
 const SETTINGS_BACKUP_KIND = 'ttdash-settings-backup'
 const USAGE_BACKUP_KIND = 'ttdash-usage-backup'
 const BACKUP_FORMAT_VERSION = 1
@@ -114,21 +143,20 @@ export function Dashboard() {
   const [reportGenerating, setReportGenerating] = useState(false)
   const [settingsTransferBusy, setSettingsTransferBusy] = useState(false)
   const [dataTransferBusy, setDataTransferBusy] = useState(false)
-  const [dataSource, setDataSource] = useState<{ type: 'stored' | 'auto-import' | 'file'; label?: string; time?: string; title?: string } | null>(null)
+  const [dataSource, setDataSource] = useState<{
+    type: 'stored' | 'auto-import' | 'file'
+    label?: string
+    time?: string
+    title?: string
+  } | null>(null)
   const [animationSeed, setAnimationSeed] = useState(0)
 
-  const daily = usageData?.daily ?? []
+  const daily = useMemo(() => usageData?.daily ?? [], [usageData])
   const hasData = daily.length > 0
-  const allProviders = useMemo(() => getUniqueProviders(daily.map(d => d.modelsUsed)), [daily])
-  const allModelsFromData = useMemo(() => getUniqueModels(daily.map(d => d.modelsUsed)), [daily])
-  const {
-    settings,
-    providerLimits,
-    setTheme,
-    setLanguage,
-    saveSettings,
-    isSaving,
-  } = useAppSettings(allProviders)
+  const allProviders = useMemo(() => getUniqueProviders(daily.map((d) => d.modelsUsed)), [daily])
+  const allModelsFromData = useMemo(() => getUniqueModels(daily.map((d) => d.modelsUsed)), [daily])
+  const { settings, providerLimits, setTheme, setLanguage, saveSettings, isSaving } =
+    useAppSettings(allProviders)
   const isDark = settings.theme === 'dark'
 
   useEffect(() => {
@@ -162,42 +190,55 @@ export function Dashboard() {
   }, [])
 
   const persistedLoadedTime = useMemo(
-    () => settings.lastLoadedAt ? formatDateTimeCompact(settings.lastLoadedAt) : undefined,
-    [settings.lastLoadedAt, i18n.resolvedLanguage],
+    () => (settings.lastLoadedAt ? formatDateTimeCompact(settings.lastLoadedAt) : undefined),
+    [settings.lastLoadedAt],
   )
   const persistedLoadedTitle = useMemo(
-    () => settings.lastLoadedAt ? t('header.loadedAt', { time: formatDateTimeFull(settings.lastLoadedAt) }) : undefined,
-    [settings.lastLoadedAt, i18n.resolvedLanguage, t],
+    () =>
+      settings.lastLoadedAt
+        ? t('header.loadedAt', { time: formatDateTimeFull(settings.lastLoadedAt) })
+        : undefined,
+    [settings.lastLoadedAt, t],
   )
   const persistedDataSource = useMemo(() => {
     if (!hasData) return null
 
     return {
       type: 'stored' as const,
-      time: persistedLoadedTime,
-      title: persistedLoadedTitle,
+      ...(persistedLoadedTime ? { time: persistedLoadedTime } : {}),
+      ...(persistedLoadedTitle ? { title: persistedLoadedTitle } : {}),
     }
   }, [hasData, persistedLoadedTime, persistedLoadedTitle])
   const headerDataSource = dataSource ?? persistedDataSource
-  const startupAutoLoadBadge = useMemo(() => (
-    settings.cliAutoLoadActive
-      ? {
-          active: true,
-          time: persistedLoadedTime,
-          title: settings.lastLoadedAt
-            ? t('header.autoLoadAt', { time: formatDateTimeFull(settings.lastLoadedAt) })
-            : t('header.autoLoadActive'),
-        }
-      : null
-  ), [settings.cliAutoLoadActive, settings.lastLoadedAt, persistedLoadedTime, i18n.resolvedLanguage, t])
+  const startupAutoLoadBadge = useMemo(
+    () =>
+      settings.cliAutoLoadActive
+        ? {
+            active: true,
+            ...(persistedLoadedTime ? { time: persistedLoadedTime } : {}),
+            title: settings.lastLoadedAt
+              ? t('header.autoLoadAt', { time: formatDateTimeFull(settings.lastLoadedAt) })
+              : t('header.autoLoadActive'),
+          }
+        : null,
+    [settings.cliAutoLoadActive, settings.lastLoadedAt, persistedLoadedTime, t],
+  )
 
   const {
-    viewMode, setViewMode,
-    selectedMonth, setSelectedMonth,
-    selectedProviders, toggleProvider, clearProviders,
-    selectedModels, toggleModel, clearModels,
-    startDate, setStartDate,
-    endDate, setEndDate,
+    viewMode,
+    setViewMode,
+    selectedMonth,
+    setSelectedMonth,
+    selectedProviders,
+    toggleProvider,
+    clearProviders,
+    selectedModels,
+    toggleModel,
+    clearModels,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
     resetAll,
     applyDefaultFilters,
     applyPreset,
@@ -210,9 +251,18 @@ export function Dashboard() {
   } = useDashboardFilters(daily, settings.defaultFilters)
 
   const {
-    metrics, modelCosts, providerMetrics, costChartData, modelCostChartData,
-    tokenChartData, requestChartData, weekdayData, allModels, modelPieData, tokenPieData,
-  } = useComputedMetrics(filteredData, viewMode)
+    metrics,
+    modelCosts,
+    providerMetrics,
+    costChartData,
+    modelCostChartData,
+    tokenChartData,
+    requestChartData,
+    weekdayData,
+    allModels,
+    modelPieData,
+    tokenPieData,
+  } = useComputedMetrics(filteredData)
 
   // Full dataset with only model filter applied (no date/month filter) for PeriodComparison
   const comparisonData = filteredDailyData
@@ -226,17 +276,30 @@ export function Dashboard() {
   }, [dateRange, viewMode])
 
   const todayStr = localToday()
-  const todayData = useMemo(() => filteredDailyData.find(d => d.date === todayStr) ?? null, [filteredDailyData, todayStr])
-  const hasCurrentMonthData = useMemo(() => filteredDailyData.some(d => d.date.startsWith(todayStr.slice(0, 7))), [filteredDailyData, todayStr])
-  const visibleLimitProviders = useMemo(() => (
-    selectedProviders.length > 0 ? selectedProviders : allProviders
-  ), [selectedProviders, allProviders])
+  const todayData = useMemo(
+    () => filteredDailyData.find((d) => d.date === todayStr) ?? null,
+    [filteredDailyData, todayStr],
+  )
+  const hasCurrentMonthData = useMemo(
+    () => filteredDailyData.some((d) => d.date.startsWith(todayStr.slice(0, 7))),
+    [filteredDailyData, todayStr],
+  )
+  const visibleLimitProviders = useMemo(
+    () => (selectedProviders.length > 0 ? selectedProviders : allProviders),
+    [selectedProviders, allProviders],
+  )
   const settingsProviderOptions = useMemo(
-    () => [...new Set([...allProviders, ...settings.defaultFilters.providers])].sort((left, right) => left.localeCompare(right)),
+    () =>
+      [...new Set([...allProviders, ...settings.defaultFilters.providers])].sort((left, right) =>
+        left.localeCompare(right),
+      ),
     [allProviders, settings.defaultFilters.providers],
   )
   const settingsModelOptions = useMemo(
-    () => [...new Set([...allModelsFromData, ...settings.defaultFilters.models])].sort((left, right) => left.localeCompare(right)),
+    () =>
+      [...new Set([...allModelsFromData, ...settings.defaultFilters.models])].sort((left, right) =>
+        left.localeCompare(right),
+      ),
     [allModelsFromData, settings.defaultFilters.models],
   )
   const sectionVisibility = settings.sectionVisibility
@@ -244,7 +307,7 @@ export function Dashboard() {
 
   // Compute active streak (consecutive days from today backwards)
   const streak = useMemo(() => {
-    const dates = new Set(filteredDailyData.map(d => d.date))
+    const dates = new Set(filteredDailyData.map((d) => d.date))
     let count = 0
     const d = new Date(todayStr + 'T00:00:00')
     while (dates.has(toLocalDateStr(d))) {
@@ -256,7 +319,7 @@ export function Dashboard() {
 
   const drillDownDay = useMemo(() => {
     if (!drillDownDate) return null
-    return filteredData.find(d => d.date === drillDownDate) ?? null
+    return filteredData.find((d) => d.date === drillDownDate) ?? null
   }, [drillDownDate, filteredData])
 
   const handleUpload = useCallback(() => {
@@ -271,54 +334,66 @@ export function Dashboard() {
     void setTheme(isDark ? 'light' : 'dark')
   }, [isDark, setTheme])
 
-  const handleSaveSettings = useCallback(async (nextSettings: {
-    providerLimits: ProviderLimits
-    defaultFilters: DashboardDefaultFilters
-    sectionVisibility: DashboardSectionVisibility
-    sectionOrder: DashboardSectionOrder
-  }) => {
-    const updatedSettings = await saveSettings(nextSettings)
-    applyDefaultFilters(updatedSettings.defaultFilters)
-    addToast(t('toasts.settingsSaved'), 'success')
-  }, [saveSettings, applyDefaultFilters, addToast, t])
+  const handleSaveSettings = useCallback(
+    async (nextSettings: {
+      providerLimits: ProviderLimits
+      defaultFilters: DashboardDefaultFilters
+      sectionVisibility: DashboardSectionVisibility
+      sectionOrder: DashboardSectionOrder
+    }) => {
+      const updatedSettings = await saveSettings(nextSettings)
+      applyDefaultFilters(updatedSettings.defaultFilters)
+      addToast(t('toasts.settingsSaved'), 'success')
+    },
+    [saveSettings, applyDefaultFilters, addToast, t],
+  )
 
-  const handleLanguageChange = useCallback((language: AppLanguage) => {
-    if (settings.language !== language) {
-      void setLanguage(language)
-    }
-    if (i18n.resolvedLanguage !== language) {
-      void i18n.changeLanguage(language)
-    }
-  }, [i18n, setLanguage, settings.language])
+  const handleLanguageChange = useCallback(
+    (language: AppLanguage) => {
+      if (settings.language !== language) {
+        void setLanguage(language)
+      }
+      if (i18n.resolvedLanguage !== language) {
+        void i18n.changeLanguage(language)
+      }
+    },
+    [i18n, setLanguage, settings.language],
+  )
 
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      const text = await file.text()
-      const json = JSON.parse(text)
-      await uploadMutation.mutateAsync(json)
-      void queryClient.invalidateQueries({ queryKey: ['settings'] })
-      setAnimationSeed(prev => prev + 1)
-      const now = new Date()
-      const time = now.toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' })
-      setDataSource({
-        type: 'file',
-        label: file.name,
-        time,
-        title: `${file.name} · ${t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) })}`,
-      })
-      addToast(t('toasts.fileLoaded', { name: file.name }), 'success')
-    } catch {
-      addToast(t('toasts.fileReadFailed'), 'error')
-    }
-    e.target.value = ''
-  }, [uploadMutation, addToast, t])
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+      try {
+        const text = await file.text()
+        const json: unknown = JSON.parse(text)
+        await uploadMutation.mutateAsync(json)
+        void queryClient.invalidateQueries({ queryKey: ['settings'] })
+        setAnimationSeed((prev) => prev + 1)
+        const now = new Date()
+        const time = now.toLocaleTimeString(getCurrentLocale(), {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        setDataSource({
+          type: 'file',
+          label: file.name,
+          time,
+          title: `${file.name} · ${t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) })}`,
+        })
+        addToast(t('toasts.fileLoaded', { name: file.name }), 'success')
+      } catch {
+        addToast(t('toasts.fileReadFailed'), 'error')
+      }
+      e.target.value = ''
+    },
+    [uploadMutation, queryClient, addToast, t],
+  )
 
   const handleDelete = useCallback(async () => {
     await deleteMutation.mutateAsync()
     void queryClient.invalidateQueries({ queryKey: ['settings'] })
-    setAnimationSeed(prev => prev + 1)
+    setAnimationSeed((prev) => prev + 1)
     setDataSource(null)
     addToast(t('toasts.dataDeleted'), 'info')
   }, [deleteMutation, queryClient, addToast, t])
@@ -333,15 +408,17 @@ export function Dashboard() {
     setReportGenerating(true)
 
     try {
-      const blob = await generatePdfReport({
+      const requestLanguage: PdfReportRequest['language'] = i18n.language === 'en' ? 'en' : 'de'
+      const request: PdfReportRequest = {
         viewMode,
         selectedMonth,
         selectedProviders,
         selectedModels,
-        startDate,
-        endDate,
-        language: i18n.language === 'en' ? 'en' : 'de',
-      })
+        language: requestLanguage,
+        ...(startDate ? { startDate } : {}),
+        ...(endDate ? { endDate } : {}),
+      }
+      const blob = await generatePdfReport(request)
       const objectUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = objectUrl
@@ -353,11 +430,25 @@ export function Dashboard() {
       addToast(t('commandPalette.commands.generateReport.label'), 'success')
     } catch (error) {
       console.error('PDF generation failed:', error)
-      addToast(`${t('api.pdfFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error')
+      addToast(
+        `${t('api.pdfFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'error',
+      )
     } finally {
       setReportGenerating(false)
     }
-  }, [reportGenerating, viewMode, selectedMonth, selectedProviders, selectedModels, startDate, endDate, addToast, i18n.language, t])
+  }, [
+    reportGenerating,
+    viewMode,
+    selectedMonth,
+    selectedProviders,
+    selectedModels,
+    startDate,
+    endDate,
+    addToast,
+    i18n.language,
+    t,
+  ])
 
   const handleAutoImport = useCallback(() => {
     setAutoImportOpen(true)
@@ -366,12 +457,12 @@ export function Dashboard() {
   const handleAutoImportSuccess = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['usage'] })
     void queryClient.invalidateQueries({ queryKey: ['settings'] })
-    setAnimationSeed(prev => prev + 1)
+    setAnimationSeed((prev) => prev + 1)
     const now = new Date()
     const time = now.toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' })
     setDataSource({
       type: 'auto-import',
-      time,
+      ...(time ? { time } : {}),
       title: t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) }),
     })
     addToast(t('toasts.dataImported'), 'success')
@@ -421,298 +512,426 @@ export function Dashboard() {
     dataImportInputRef.current?.click()
   }, [])
 
-  const handleSettingsImportChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleSettingsImportChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
 
-    setSettingsTransferBusy(true)
-    try {
-      const parsed = JSON.parse(await file.text())
-      const imported = await importSettings(parsed)
-      queryClient.setQueryData(['settings'], imported)
-      applyDefaultFilters(imported.defaultFilters)
-      addToast(t('toasts.settingsImported', { name: file.name }), 'success')
-    } catch (error) {
-      addToast(error instanceof Error ? error.message : t('toasts.fileReadFailed'), 'error')
-    } finally {
-      setSettingsTransferBusy(false)
-      e.target.value = ''
-    }
-  }, [queryClient, applyDefaultFilters, addToast, t])
+      setSettingsTransferBusy(true)
+      try {
+        const parsed: unknown = JSON.parse(await file.text())
+        const imported = await importSettings(parsed)
+        queryClient.setQueryData(['settings'], imported)
+        applyDefaultFilters(imported.defaultFilters)
+        addToast(t('toasts.settingsImported', { name: file.name }), 'success')
+      } catch (error) {
+        addToast(error instanceof Error ? error.message : t('toasts.fileReadFailed'), 'error')
+      } finally {
+        setSettingsTransferBusy(false)
+        e.target.value = ''
+      }
+    },
+    [queryClient, applyDefaultFilters, addToast, t],
+  )
 
-  const handleDataImportChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleDataImportChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
 
-    setDataTransferBusy(true)
-    try {
-      const parsed = JSON.parse(await file.text())
-      const summary = await importUsageData(parsed)
-      await queryClient.invalidateQueries({ queryKey: ['usage'] })
-      await queryClient.invalidateQueries({ queryKey: ['settings'] })
-      setAnimationSeed(prev => prev + 1)
-      const now = new Date()
-      const time = now.toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' })
-      setDataSource({
-        type: 'file',
-        label: file.name,
-        time,
-        title: `${file.name} · ${t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) })}`,
-      })
+      setDataTransferBusy(true)
+      try {
+        const parsed: unknown = JSON.parse(await file.text())
+        const summary = await importUsageData(parsed)
+        await queryClient.invalidateQueries({ queryKey: ['usage'] })
+        await queryClient.invalidateQueries({ queryKey: ['settings'] })
+        setAnimationSeed((prev) => prev + 1)
+        const now = new Date()
+        const time = now.toLocaleTimeString(getCurrentLocale(), {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        setDataSource({
+          type: 'file',
+          label: file.name,
+          ...(time ? { time } : {}),
+          title: `${file.name} · ${t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) })}`,
+        })
 
-      const toastType: 'info' | 'success' = summary.conflictingDays > 0 ? 'info' : 'success'
-      const toastKey = summary.conflictingDays > 0 ? 'toasts.dataBackupImportedWithConflicts' : 'toasts.dataBackupImported'
-      addToast(t(toastKey, {
-        added: summary.addedDays,
-        unchanged: summary.unchangedDays,
-        conflicts: summary.conflictingDays,
-      }), toastType)
-    } catch (error) {
-      addToast(error instanceof Error ? error.message : t('toasts.fileReadFailed'), 'error')
-    } finally {
-      setDataTransferBusy(false)
-      e.target.value = ''
-    }
-  }, [queryClient, addToast, t])
+        const toastType: 'info' | 'success' = summary.conflictingDays > 0 ? 'info' : 'success'
+        const toastKey =
+          summary.conflictingDays > 0
+            ? 'toasts.dataBackupImportedWithConflicts'
+            : 'toasts.dataBackupImported'
+        addToast(
+          t(toastKey, {
+            added: summary.addedDays,
+            unchanged: summary.unchangedDays,
+            conflicts: summary.conflictingDays,
+          }),
+          toastType,
+        )
+      } catch (error) {
+        addToast(error instanceof Error ? error.message : t('toasts.fileReadFailed'), 'error')
+      } finally {
+        setDataTransferBusy(false)
+        e.target.value = ''
+      }
+    },
+    [queryClient, addToast, t],
+  )
 
   const handleScrollTo = useCallback((section: string) => {
     const el = document.getElementById(section)
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
-  const renderSection = useCallback((sectionId: DashboardSectionId) => {
-    switch (sectionId) {
-      case 'insights':
-        return sectionVisibility.insights ? (
-          <div id="insights">
-            <UsageInsights metrics={metrics} viewMode={viewMode} totalCalendarDays={totalCalendarDays} />
-          </div>
-        ) : null
-      case 'metrics':
-        return sectionVisibility.metrics ? (
-          <div id="metrics">
-            <SectionHeader title={t('dashboard.metrics.title')} badge={t('dashboard.metrics.badge')} description={t('dashboard.metrics.description')} info={SECTION_HELP.metrics} />
-            <FadeIn delay={0}>
-              <PrimaryMetrics metrics={metrics} totalCalendarDays={totalCalendarDays} viewMode={viewMode} />
-            </FadeIn>
-            <FadeIn delay={0.1}>
-              <div className="mt-4">
-                <SecondaryMetrics metrics={metrics} dailyCosts={filteredData.map(d => d.totalCost)} viewMode={viewMode} />
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
-      case 'today':
-        return sectionVisibility.today && todayData ? (
-          <div id="today">
-            <TodayMetrics today={todayData} metrics={metrics} />
-          </div>
-        ) : null
-      case 'currentMonth':
-        return sectionVisibility.currentMonth && hasCurrentMonthData ? (
-          <div id="current-month">
-            <MonthMetrics daily={filteredDailyData} metrics={metrics} />
-          </div>
-        ) : null
-      case 'activity':
-        return sectionVisibility.activity ? (
-          <div id="activity">
-            <SectionHeader title={t('dashboard.activity.title')} description={viewMode === 'daily' ? t('dashboard.activity.dailyDescription') : viewMode === 'monthly' ? t('dashboard.activity.monthlyDescription') : t('dashboard.activity.yearlyDescription')} info={SECTION_HELP.activity} />
-            <FadeIn delay={0.2}>
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-                <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="cost" />
-                <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="requests" />
-                <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="tokens" />
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
-      case 'forecastCache':
-        return sectionVisibility.forecastCache ? (
-          <div id="forecast-cache">
-            <SectionHeader title={t('dashboard.forecastCache.title')} description={t('dashboard.forecastCache.description')} info={SECTION_HELP.forecastCache} />
-            <FadeIn delay={0.25}>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <ExpandableCard title={t('dashboard.cards.costForecast')}>
-                  <CostForecast data={filteredData} viewMode={viewMode} />
-                </ExpandableCard>
-                <ExpandableCard title={t('dashboard.cards.cacheRoi')} stats={[
-                  { label: t('dashboard.stats.cacheHitRate'), value: formatPercent(metrics.cacheHitRate) },
-                  { label: t('dashboard.stats.totalTokens'), value: formatTokens(metrics.totalTokens) },
-                  { label: t('dashboard.stats.cacheRead'), value: formatTokens(metrics.totalCacheRead) },
-                ]}>
-                  <CacheROI data={filteredData} viewMode={viewMode} />
-                </ExpandableCard>
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
-      case 'limits':
-        return sectionVisibility.limits ? (
-          <div id="limits">
-            <FadeIn delay={0.27}>
-              <ProviderLimitsSection
-                data={filteredDailyData}
-                providers={visibleLimitProviders}
-                limits={providerLimits}
-                selectedMonth={selectedMonth}
+  const renderSection = useCallback(
+    (sectionId: DashboardSectionId) => {
+      switch (sectionId) {
+        case 'insights':
+          return sectionVisibility.insights ? (
+            <div id="insights">
+              <UsageInsights
+                metrics={metrics}
+                viewMode={viewMode}
+                totalCalendarDays={totalCalendarDays}
               />
-            </FadeIn>
-          </div>
-        ) : null
-      case 'costAnalysis':
-        return sectionVisibility.costAnalysis ? (
-          <div id="charts">
-            <SectionHeader title={t('dashboard.costAnalysis.title')} badge={`${allModels.length} ${t('common.models')}`} description={t('dashboard.costAnalysis.description')} info={SECTION_HELP.costAnalysis} />
-            <FadeIn delay={0.3}>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <div className="lg:col-span-2">
-                  <CostOverTime data={costChartData} onClickDay={setDrillDownDate} />
-                </div>
-                <CostByModel data={modelPieData} />
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.35}>
-              <div className="mt-4">
-                <CostByModelOverTime data={modelCostChartData} models={allModels} />
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.4}>
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <CumulativeCost data={costChartData} rawData={filteredData} />
-                <CostByWeekday data={weekdayData} />
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.42}>
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <TokenEfficiency data={filteredData} />
-                <ModelMix data={filteredData} />
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
-      case 'tokenAnalysis':
-        return sectionVisibility.tokenAnalysis ? (
-          <div id="token-analysis">
-            <SectionHeader title={t('dashboard.tokenAnalysis.title')} description={t('dashboard.tokenAnalysis.description')} info={SECTION_HELP.tokenAnalysis} />
-            <FadeIn delay={0.45}>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <TokensOverTime data={tokenChartData} onClickDay={setDrillDownDate} />
-                <TokenTypes data={tokenPieData} />
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
-      case 'requestAnalysis':
-        return sectionVisibility.requestAnalysis && metrics.hasRequestData ? (
-          <div id="request-analysis">
-            <SectionHeader title={t('dashboard.requestAnalysis.title')} description={t('dashboard.requestAnalysis.description')} info={SECTION_HELP.requestAnalysis} />
-            <FadeIn delay={0.47}>
-              <RequestsOverTime data={requestChartData} viewMode={viewMode} onClickDay={setDrillDownDate} />
-            </FadeIn>
-            <FadeIn delay={0.49}>
-              <div className="mt-4">
-                <RequestCacheHitRateByModel timelineData={filteredData} summaryData={filteredDailyData} viewMode={viewMode} />
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.51}>
-              <div className="mt-4">
-                <RequestQuality metrics={metrics} viewMode={viewMode} />
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
-      case 'advancedAnalysis':
-        return sectionVisibility.advancedAnalysis ? (
-          <div id="advanced-analysis">
-            <SectionHeader title={t('dashboard.advancedAnalysis.title')} description={t('dashboard.advancedAnalysis.description')} info={SECTION_HELP.advancedAnalysis} />
-            <FadeIn delay={0.48}>
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <DistributionAnalysis data={filteredData} viewMode={viewMode} />
-                <ConcentrationRisk
-                  topModelShare={metrics.topModelShare}
-                  topProviderShare={metrics.topProvider?.share ?? 0}
-                  modelConcentrationIndex={metrics.modelConcentrationIndex}
-                  providerConcentrationIndex={metrics.providerConcentrationIndex}
+            </div>
+          ) : null
+        case 'metrics':
+          return sectionVisibility.metrics ? (
+            <div id="metrics">
+              <SectionHeader
+                title={t('dashboard.metrics.title')}
+                badge={t('dashboard.metrics.badge')}
+                description={t('dashboard.metrics.description')}
+                info={SECTION_HELP.metrics}
+              />
+              <FadeIn delay={0}>
+                <PrimaryMetrics
+                  metrics={metrics}
+                  totalCalendarDays={totalCalendarDays}
+                  viewMode={viewMode}
                 />
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.5}>
-              <div className="mt-4">
-                <CorrelationAnalysis data={filteredData} />
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
-      case 'comparisons':
-        return sectionVisibility.comparisons ? (
-          <div id="comparisons">
-            <SectionHeader title={t('dashboard.comparisons.title')} description={t('dashboard.comparisons.description')} info={SECTION_HELP.comparisons} />
-            <FadeIn delay={0.5}>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <ExpandableCard title={t('dashboard.cards.periodComparison')} stats={[
-                  { label: t('dashboard.stats.dataPoints'), value: String(filteredData.length) },
-                  { label: t('dashboard.stats.avgCostPerUnit', { unit: periodUnit(viewMode) }), value: formatCurrency(metrics.avgDailyCost) },
-                ]}>
-                  <PeriodComparison data={comparisonData} />
-                </ExpandableCard>
-                <ExpandableCard title={t('dashboard.cards.anomalyDetection')} stats={[
-                  { label: t('dashboard.stats.total'), value: formatCurrency(metrics.totalCost) },
-                  { label: t('dashboard.stats.avgPerUnit', { unit: periodUnit(viewMode) }), value: formatCurrency(metrics.avgDailyCost) },
-                ]}>
-                  <AnomalyDetection data={filteredData} onClickDay={setDrillDownDate} viewMode={viewMode} />
-                </ExpandableCard>
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
-      case 'tables':
-        return sectionVisibility.tables ? (
-          <div id="tables">
-            <SectionHeader title={t('dashboard.tables.title')} description={t('dashboard.tables.description')} info={SECTION_HELP.tables} />
-            <FadeIn delay={0.55}>
-              <ModelEfficiency modelCosts={modelCosts} totalCost={metrics.totalCost} viewMode={viewMode} />
-            </FadeIn>
-            <FadeIn delay={0.6}>
-              <div className="mt-4">
-                <ProviderEfficiency providerMetrics={providerMetrics} totalCost={metrics.totalCost} viewMode={viewMode} />
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.65}>
-              <div className="mt-4">
-                <RecentDays data={filteredData} onClickDay={setDrillDownDate} viewMode={viewMode} />
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
-      default:
-        return null
-    }
-  }, [
-    allModels,
-    comparisonData,
-    costChartData,
-    filteredDailyData,
-    filteredData,
-    hasCurrentMonthData,
-    metrics,
-    modelCostChartData,
-    modelCosts,
-    modelPieData,
-    providerLimits,
-    providerMetrics,
-    requestChartData,
-    sectionVisibility,
-    selectedMonth,
-    t,
-    todayData,
-    tokenChartData,
-    tokenPieData,
-    totalCalendarDays,
-    viewMode,
-    visibleLimitProviders,
-    weekdayData,
-  ])
+              </FadeIn>
+              <FadeIn delay={0.1}>
+                <div className="mt-4">
+                  <SecondaryMetrics
+                    metrics={metrics}
+                    dailyCosts={filteredData.map((d) => d.totalCost)}
+                    viewMode={viewMode}
+                  />
+                </div>
+              </FadeIn>
+            </div>
+          ) : null
+        case 'today':
+          return sectionVisibility.today && todayData ? (
+            <div id="today">
+              <TodayMetrics today={todayData} metrics={metrics} />
+            </div>
+          ) : null
+        case 'currentMonth':
+          return sectionVisibility.currentMonth && hasCurrentMonthData ? (
+            <div id="current-month">
+              <MonthMetrics daily={filteredDailyData} metrics={metrics} />
+            </div>
+          ) : null
+        case 'activity':
+          return sectionVisibility.activity ? (
+            <div id="activity">
+              <SectionHeader
+                title={t('dashboard.activity.title')}
+                description={
+                  viewMode === 'daily'
+                    ? t('dashboard.activity.dailyDescription')
+                    : viewMode === 'monthly'
+                      ? t('dashboard.activity.monthlyDescription')
+                      : t('dashboard.activity.yearlyDescription')
+                }
+                info={SECTION_HELP.activity}
+              />
+              <FadeIn delay={0.2}>
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                  <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="cost" />
+                  <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="requests" />
+                  <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="tokens" />
+                </div>
+              </FadeIn>
+            </div>
+          ) : null
+        case 'forecastCache':
+          return sectionVisibility.forecastCache ? (
+            <div id="forecast-cache">
+              <SectionHeader
+                title={t('dashboard.forecastCache.title')}
+                description={t('dashboard.forecastCache.description')}
+                info={SECTION_HELP.forecastCache}
+              />
+              <FadeIn delay={0.25}>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <ExpandableCard title={t('dashboard.cards.costForecast')}>
+                    <CostForecast data={filteredData} viewMode={viewMode} />
+                  </ExpandableCard>
+                  <ExpandableCard
+                    title={t('dashboard.cards.cacheRoi')}
+                    stats={[
+                      {
+                        label: t('dashboard.stats.cacheHitRate'),
+                        value: formatPercent(metrics.cacheHitRate),
+                      },
+                      {
+                        label: t('dashboard.stats.totalTokens'),
+                        value: formatTokens(metrics.totalTokens),
+                      },
+                      {
+                        label: t('dashboard.stats.cacheRead'),
+                        value: formatTokens(metrics.totalCacheRead),
+                      },
+                    ]}
+                  >
+                    <CacheROI data={filteredData} viewMode={viewMode} />
+                  </ExpandableCard>
+                </div>
+              </FadeIn>
+            </div>
+          ) : null
+        case 'limits':
+          return sectionVisibility.limits ? (
+            <div id="limits">
+              <FadeIn delay={0.27}>
+                <ProviderLimitsSection
+                  data={filteredDailyData}
+                  providers={visibleLimitProviders}
+                  limits={providerLimits}
+                  selectedMonth={selectedMonth}
+                />
+              </FadeIn>
+            </div>
+          ) : null
+        case 'costAnalysis':
+          return sectionVisibility.costAnalysis ? (
+            <div id="charts">
+              <SectionHeader
+                title={t('dashboard.costAnalysis.title')}
+                badge={`${allModels.length} ${t('common.models')}`}
+                description={t('dashboard.costAnalysis.description')}
+                info={SECTION_HELP.costAnalysis}
+              />
+              <FadeIn delay={0.3}>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  <div className="lg:col-span-2">
+                    <CostOverTime data={costChartData} onClickDay={setDrillDownDate} />
+                  </div>
+                  <CostByModel data={modelPieData} />
+                </div>
+              </FadeIn>
+              <FadeIn delay={0.35}>
+                <div className="mt-4">
+                  <CostByModelOverTime data={modelCostChartData} models={allModels} />
+                </div>
+              </FadeIn>
+              <FadeIn delay={0.4}>
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <CumulativeCost data={costChartData} rawData={filteredData} />
+                  <CostByWeekday data={weekdayData} />
+                </div>
+              </FadeIn>
+              <FadeIn delay={0.42}>
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <TokenEfficiency data={filteredData} />
+                  <ModelMix data={filteredData} />
+                </div>
+              </FadeIn>
+            </div>
+          ) : null
+        case 'tokenAnalysis':
+          return sectionVisibility.tokenAnalysis ? (
+            <div id="token-analysis">
+              <SectionHeader
+                title={t('dashboard.tokenAnalysis.title')}
+                description={t('dashboard.tokenAnalysis.description')}
+                info={SECTION_HELP.tokenAnalysis}
+              />
+              <FadeIn delay={0.45}>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  <TokensOverTime data={tokenChartData} onClickDay={setDrillDownDate} />
+                  <TokenTypes data={tokenPieData} />
+                </div>
+              </FadeIn>
+            </div>
+          ) : null
+        case 'requestAnalysis':
+          return sectionVisibility.requestAnalysis && metrics.hasRequestData ? (
+            <div id="request-analysis">
+              <SectionHeader
+                title={t('dashboard.requestAnalysis.title')}
+                description={t('dashboard.requestAnalysis.description')}
+                info={SECTION_HELP.requestAnalysis}
+              />
+              <FadeIn delay={0.47}>
+                <RequestsOverTime
+                  data={requestChartData}
+                  viewMode={viewMode}
+                  onClickDay={setDrillDownDate}
+                />
+              </FadeIn>
+              <FadeIn delay={0.49}>
+                <div className="mt-4">
+                  <RequestCacheHitRateByModel
+                    timelineData={filteredData}
+                    summaryData={filteredDailyData}
+                    viewMode={viewMode}
+                  />
+                </div>
+              </FadeIn>
+              <FadeIn delay={0.51}>
+                <div className="mt-4">
+                  <RequestQuality metrics={metrics} viewMode={viewMode} />
+                </div>
+              </FadeIn>
+            </div>
+          ) : null
+        case 'advancedAnalysis':
+          return sectionVisibility.advancedAnalysis ? (
+            <div id="advanced-analysis">
+              <SectionHeader
+                title={t('dashboard.advancedAnalysis.title')}
+                description={t('dashboard.advancedAnalysis.description')}
+                info={SECTION_HELP.advancedAnalysis}
+              />
+              <FadeIn delay={0.48}>
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <DistributionAnalysis data={filteredData} viewMode={viewMode} />
+                  <ConcentrationRisk
+                    topModelShare={metrics.topModelShare}
+                    topProviderShare={metrics.topProvider?.share ?? 0}
+                    modelConcentrationIndex={metrics.modelConcentrationIndex}
+                    providerConcentrationIndex={metrics.providerConcentrationIndex}
+                  />
+                </div>
+              </FadeIn>
+              <FadeIn delay={0.5}>
+                <div className="mt-4">
+                  <CorrelationAnalysis data={filteredData} />
+                </div>
+              </FadeIn>
+            </div>
+          ) : null
+        case 'comparisons':
+          return sectionVisibility.comparisons ? (
+            <div id="comparisons">
+              <SectionHeader
+                title={t('dashboard.comparisons.title')}
+                description={t('dashboard.comparisons.description')}
+                info={SECTION_HELP.comparisons}
+              />
+              <FadeIn delay={0.5}>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <ExpandableCard
+                    title={t('dashboard.cards.periodComparison')}
+                    stats={[
+                      {
+                        label: t('dashboard.stats.dataPoints'),
+                        value: String(filteredData.length),
+                      },
+                      {
+                        label: t('dashboard.stats.avgCostPerUnit', { unit: periodUnit(viewMode) }),
+                        value: formatCurrency(metrics.avgDailyCost),
+                      },
+                    ]}
+                  >
+                    <PeriodComparison data={comparisonData} />
+                  </ExpandableCard>
+                  <ExpandableCard
+                    title={t('dashboard.cards.anomalyDetection')}
+                    stats={[
+                      {
+                        label: t('dashboard.stats.total'),
+                        value: formatCurrency(metrics.totalCost),
+                      },
+                      {
+                        label: t('dashboard.stats.avgPerUnit', { unit: periodUnit(viewMode) }),
+                        value: formatCurrency(metrics.avgDailyCost),
+                      },
+                    ]}
+                  >
+                    <AnomalyDetection
+                      data={filteredData}
+                      onClickDay={setDrillDownDate}
+                      viewMode={viewMode}
+                    />
+                  </ExpandableCard>
+                </div>
+              </FadeIn>
+            </div>
+          ) : null
+        case 'tables':
+          return sectionVisibility.tables ? (
+            <div id="tables">
+              <SectionHeader
+                title={t('dashboard.tables.title')}
+                description={t('dashboard.tables.description')}
+                info={SECTION_HELP.tables}
+              />
+              <FadeIn delay={0.55}>
+                <ModelEfficiency
+                  modelCosts={modelCosts}
+                  totalCost={metrics.totalCost}
+                  viewMode={viewMode}
+                />
+              </FadeIn>
+              <FadeIn delay={0.6}>
+                <div className="mt-4">
+                  <ProviderEfficiency
+                    providerMetrics={providerMetrics}
+                    totalCost={metrics.totalCost}
+                    viewMode={viewMode}
+                  />
+                </div>
+              </FadeIn>
+              <FadeIn delay={0.65}>
+                <div className="mt-4">
+                  <RecentDays
+                    data={filteredData}
+                    onClickDay={setDrillDownDate}
+                    viewMode={viewMode}
+                  />
+                </div>
+              </FadeIn>
+            </div>
+          ) : null
+        default:
+          return null
+      }
+    },
+    [
+      allModels,
+      comparisonData,
+      costChartData,
+      filteredDailyData,
+      filteredData,
+      hasCurrentMonthData,
+      metrics,
+      modelCostChartData,
+      modelCosts,
+      modelPieData,
+      providerLimits,
+      providerMetrics,
+      requestChartData,
+      sectionVisibility,
+      selectedMonth,
+      t,
+      todayData,
+      tokenChartData,
+      tokenPieData,
+      totalCalendarDays,
+      viewMode,
+      visibleLimitProviders,
+      weekdayData,
+    ],
+  )
 
   if (isLoading) {
     return <DashboardSkeleton />
@@ -721,12 +940,43 @@ export function Dashboard() {
   if (!hasData) {
     return (
       <>
-        <EmptyState onUpload={handleUpload} onAutoImport={handleAutoImport} onOpenSettings={handleOpenSettings} />
-        <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} data-testid="usage-upload-input" />
-        <input ref={settingsImportInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleSettingsImportChange} data-testid="settings-import-input" />
-        <input ref={dataImportInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleDataImportChange} data-testid="data-import-input" />
+        <EmptyState
+          onUpload={handleUpload}
+          onAutoImport={handleAutoImport}
+          onOpenSettings={handleOpenSettings}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          className="hidden"
+          onChange={handleFileChange}
+          data-testid="usage-upload-input"
+        />
+        <input
+          ref={settingsImportInputRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={handleSettingsImportChange}
+          data-testid="settings-import-input"
+        />
+        <input
+          ref={dataImportInputRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={handleDataImportChange}
+          data-testid="data-import-input"
+        />
         <Suspense fallback={null}>
-          {autoImportOpen && <AutoImportModal open={autoImportOpen} onOpenChange={setAutoImportOpen} onSuccess={handleAutoImportSuccess} />}
+          {autoImportOpen && (
+            <AutoImportModal
+              open={autoImportOpen}
+              onOpenChange={setAutoImportOpen}
+              onSuccess={handleAutoImportSuccess}
+            />
+          )}
         </Suspense>
         <SettingsModal
           open={settingsOpen}
@@ -756,9 +1006,30 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen max-w-7xl mx-auto px-4 pb-8">
-      <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} data-testid="usage-upload-input" />
-      <input ref={settingsImportInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleSettingsImportChange} data-testid="settings-import-input" />
-      <input ref={dataImportInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleDataImportChange} data-testid="data-import-input" />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={handleFileChange}
+        data-testid="usage-upload-input"
+      />
+      <input
+        ref={settingsImportInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={handleSettingsImportChange}
+        data-testid="settings-import-input"
+      />
+      <input
+        ref={dataImportInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={handleDataImportChange}
+        data-testid="data-import-input"
+      />
 
       <Header
         dateRange={dateRange}
@@ -775,7 +1046,7 @@ export function Dashboard() {
         onDelete={handleDelete}
         onUpload={handleUpload}
         onAutoImport={handleAutoImport}
-        settingsButton={(
+        settingsButton={
           <Button
             variant="outline"
             size="sm"
@@ -786,13 +1057,10 @@ export function Dashboard() {
             <SlidersHorizontal className="h-4 w-4" />
             <span>{t('header.settings')}</span>
           </Button>
-        )}
-        pdfButton={(
-          <PDFReportButton
-            generating={reportGenerating}
-            onGenerate={handleGenerateReport}
-          />
-        )}
+        }
+        pdfButton={
+          <PDFReportButton generating={reportGenerating} onGenerate={handleGenerateReport} />
+        }
       />
 
       <div id="filters">
@@ -810,8 +1078,8 @@ export function Dashboard() {
           selectedModels={selectedModels}
           onToggleModel={toggleModel}
           onClearModels={clearModels}
-          startDate={startDate}
-          endDate={endDate}
+          {...(startDate ? { startDate } : {})}
+          {...(endDate ? { endDate } : {})}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onApplyPreset={applyPreset}
@@ -819,11 +1087,12 @@ export function Dashboard() {
         />
       </div>
 
-      <div key={`${animationSeed}-${daily.length}-${daily[daily.length - 1]?.date ?? 'empty'}-${Math.round(metrics.totalCost)}`} className="mt-4 space-y-4">
+      <div
+        key={`${animationSeed}-${daily.length}-${daily[daily.length - 1]?.date ?? 'empty'}-${Math.round(metrics.totalCost)}`}
+        className="mt-4 space-y-4"
+      >
         {sectionOrder.map((sectionId) => (
-          <Fragment key={sectionId}>
-            {renderSection(sectionId)}
-          </Fragment>
+          <Fragment key={sectionId}>{renderSection(sectionId)}</Fragment>
         ))}
       </div>
 
@@ -833,7 +1102,7 @@ export function Dashboard() {
           <DrillDownModal
             day={drillDownDay}
             contextData={filteredData}
-            open={drillDownDate !== null}
+            open={true}
             onClose={() => setDrillDownDate(null)}
           />
         )}
@@ -876,7 +1145,13 @@ export function Dashboard() {
       />
 
       <Suspense fallback={null}>
-        {autoImportOpen && <AutoImportModal open={autoImportOpen} onOpenChange={setAutoImportOpen} onSuccess={handleAutoImportSuccess} />}
+        {autoImportOpen && (
+          <AutoImportModal
+            open={autoImportOpen}
+            onOpenChange={setAutoImportOpen}
+            onSuccess={handleAutoImportSuccess}
+          />
+        )}
       </Suspense>
 
       <SettingsModal

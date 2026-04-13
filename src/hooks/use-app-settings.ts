@@ -55,12 +55,30 @@ export function useAppSettings(availableProviders: string[]) {
   )
 
   const setTheme = useCallback((theme: AppTheme) => mutation.mutateAsync({ theme }), [mutation])
-  const setLanguage = useCallback((language: AppLanguage) => mutation.mutateAsync({ language }), [mutation])
-  const setProviderLimits = useCallback((limits: ProviderLimits) => mutation.mutateAsync({ providerLimits: limits }), [mutation])
-  const setDefaultFilters = useCallback((defaultFilters: DashboardDefaultFilters) => mutation.mutateAsync({ defaultFilters }), [mutation])
-  const setSectionVisibility = useCallback((sectionVisibility: DashboardSectionVisibility) => mutation.mutateAsync({ sectionVisibility }), [mutation])
-  const setSectionOrder = useCallback((sectionOrder: DashboardSectionOrder) => mutation.mutateAsync({ sectionOrder }), [mutation])
-  const saveSettings = useCallback((patch: UpdateSettingsRequest) => mutation.mutateAsync(patch), [mutation])
+  const setLanguage = useCallback(
+    (language: AppLanguage) => mutation.mutateAsync({ language }),
+    [mutation],
+  )
+  const setProviderLimits = useCallback(
+    (limits: ProviderLimits) => mutation.mutateAsync({ providerLimits: limits }),
+    [mutation],
+  )
+  const setDefaultFilters = useCallback(
+    (defaultFilters: DashboardDefaultFilters) => mutation.mutateAsync({ defaultFilters }),
+    [mutation],
+  )
+  const setSectionVisibility = useCallback(
+    (sectionVisibility: DashboardSectionVisibility) => mutation.mutateAsync({ sectionVisibility }),
+    [mutation],
+  )
+  const setSectionOrder = useCallback(
+    (sectionOrder: DashboardSectionOrder) => mutation.mutateAsync({ sectionOrder }),
+    [mutation],
+  )
+  const saveSettings = useCallback(
+    (patch: UpdateSettingsRequest) => mutation.mutateAsync(patch),
+    [mutation],
+  )
 
   return {
     settings,

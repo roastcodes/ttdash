@@ -65,7 +65,9 @@ function parsePackJson(output) {
 
     try {
       return JSON.parse(line);
-    } catch {}
+    } catch {
+      // Ignore non-JSON log lines and keep searching for the pack payload.
+    }
   }
 
   throw new Error(`npm pack did not produce JSON output.\n${output}`);
@@ -111,7 +113,9 @@ async function waitForServer(url, child) {
       if (response.ok) {
         return;
       }
-    } catch {}
+    } catch {
+      // Ignore transient startup failures while the server is still booting.
+    }
 
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
@@ -163,7 +167,10 @@ async function terminateChild(child, label) {
 function verifyInstalledCli(command, tarballPath, npmEnv) {
   const installDir = mktemp('ttdash-install-');
   const installPackageJson = path.join(installDir, 'package.json');
-  fs.writeFileSync(installPackageJson, JSON.stringify({ name: 'ttdash-package-smoke', private: true }, null, 2) + '\n');
+  fs.writeFileSync(
+    installPackageJson,
+    JSON.stringify({ name: 'ttdash-package-smoke', private: true }, null, 2) + '\n',
+  );
 
   run(command, ['install', '--ignore-scripts', '--no-audit', '--no-fund', tarballPath], {
     cwd: installDir,
@@ -181,7 +188,9 @@ function verifyInstalledCli(command, tarballPath, npmEnv) {
   });
 
   if (!helpOutput.includes(`TTDash v${packageJson.version}`)) {
-    throw new Error('Installed tarball CLI help output did not contain the expected version banner.');
+    throw new Error(
+      'Installed tarball CLI help output did not contain the expected version banner.',
+    );
   }
 
   log('Verified installed tarball CLI help output.');
@@ -200,12 +209,16 @@ async function main() {
 
   if (!fs.existsSync(path.join(ROOT, 'dist', 'index.html'))) {
     log('Production bundle missing, running build first.');
-    run(command, ['run', 'build'], { env: npmEnv });
+    run(command, ['run', 'build:app'], { env: npmEnv });
   }
 
-  const packJson = run(command, ['pack', '--json', '--ignore-scripts', '--pack-destination', packDir], {
-    env: npmEnv,
-  });
+  const packJson = run(
+    command,
+    ['pack', '--json', '--ignore-scripts', '--pack-destination', packDir],
+    {
+      env: npmEnv,
+    },
+  );
   const [packInfo] = parsePackJson(packJson);
 
   if (!packInfo || !packInfo.filename) {
@@ -222,9 +235,13 @@ async function main() {
 
   const { installDir, installedCliPath } = verifyInstalledCli(command, tarballPath, npmEnv);
 
-  const helpOutput = run(command, ['exec', '--yes', '--package', tarballPath, '--', 'ttdash', '--help'], {
-    env: npmEnv,
-  });
+  const helpOutput = run(
+    command,
+    ['exec', '--yes', '--package', tarballPath, '--', 'ttdash', '--help'],
+    {
+      env: npmEnv,
+    },
+  );
 
   if (!helpOutput.includes(`TTDash v${packageJson.version}`)) {
     throw new Error('Packaged CLI help output did not contain the expected version banner.');

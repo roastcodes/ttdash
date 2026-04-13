@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/prettierrc",
+  "singleQuote": true,
+  "semi": false,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "overrides": [
+    {
+      "files": ["server.js", "usage-normalizer.js", "scripts/**/*.js", "server/**/*.js"],
+      "options": {
+        "semi": true
+      }
+    }
+  ]
+}
