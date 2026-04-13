@@ -7,9 +7,10 @@ import type { AppSettings } from '@/types'
 
 interface AppProps {
   initialSettings: AppSettings
+  initialSettingsError?: string | null
 }
 
-export function App({ initialSettings }: AppProps) {
+export function App({ initialSettings, initialSettingsError = null }: AppProps) {
   const [queryClient] = useState(() => {
     const client = new QueryClient({
       defaultOptions: {
@@ -27,7 +28,7 @@ export function App({ initialSettings }: AppProps) {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <TooltipProvider delayDuration={100}>
-          <Dashboard />
+          <Dashboard initialSettingsError={initialSettingsError} />
         </TooltipProvider>
       </ToastProvider>
     </QueryClientProvider>

@@ -1,16 +1,38 @@
 import type { DailyUsage } from '@/types'
 import { normalizeModelName } from './model-utils'
 import { localToday } from './formatters'
+import { buildCsvLine } from './csv'
 
 export function generateCSV(data: DailyUsage[]): string {
-  const header =
-    'date,totalCost,totalTokens,inputTokens,outputTokens,cacheCreationTokens,cacheReadTokens,thinkingTokens,requestCount,models'
+  const header = buildCsvLine([
+    'date',
+    'totalCost',
+    'totalTokens',
+    'inputTokens',
+    'outputTokens',
+    'cacheCreationTokens',
+    'cacheReadTokens',
+    'thinkingTokens',
+    'requestCount',
+    'models',
+  ])
   const rows = data.map((d) => {
     const models = d.modelBreakdowns
       .map((mb) => normalizeModelName(mb.modelName))
       .filter((v, i, a) => a.indexOf(v) === i)
       .join('; ')
-    return `${d.date},${d.totalCost.toFixed(2)},${d.totalTokens},${d.inputTokens},${d.outputTokens},${d.cacheCreationTokens},${d.cacheReadTokens},${d.thinkingTokens},${d.requestCount},"${models}"`
+    return buildCsvLine([
+      d.date,
+      d.totalCost.toFixed(2),
+      d.totalTokens,
+      d.inputTokens,
+      d.outputTokens,
+      d.cacheCreationTokens,
+      d.cacheReadTokens,
+      d.thinkingTokens,
+      d.requestCount,
+      models,
+    ])
   })
   return [header, ...rows].join('\n')
 }

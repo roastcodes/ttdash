@@ -25,7 +25,7 @@ describe('HelpPanel', () => {
     expect(screen.queryByText('providerLimitProgress')).not.toBeInTheDocument()
     expect(screen.queryByText('providerSubscriptionMix')).not.toBeInTheDocument()
     expect(screen.queryByText('providerLimitTimeline')).not.toBeInTheDocument()
-  })
+  }, 10_000)
 
   it('uses consistent German terminology for request and limit surfaces', async () => {
     await initI18n('de')

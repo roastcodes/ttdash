@@ -1275,6 +1275,7 @@ function printStartupSummary(url, port) {
   const browserMode = shouldOpenBrowser() ? 'enabled' : 'disabled';
   const autoLoadMode = CLI_OPTIONS.autoLoad ? 'enabled' : 'disabled';
   const runtimeMode = IS_BACKGROUND_CHILD ? 'background' : 'foreground';
+  const remoteBind = BIND_HOST !== '127.0.0.1' && BIND_HOST !== 'localhost' && BIND_HOST !== '::1';
 
   console.log('');
   console.log(`${APP_LABEL} v${APP_VERSION} is ready`);
@@ -1282,6 +1283,9 @@ function printStartupSummary(url, port) {
   console.log(`  API:            ${url}/api/usage`);
   console.log(`  Port:           ${port}`);
   console.log(`  Host:           ${BIND_HOST}`);
+  if (remoteBind) {
+    console.log(`  Exposure:       network-accessible via ${BIND_HOST}`);
+  }
   console.log(`  Mode:           ${runtimeMode}`);
   console.log(`  Static Root:    ${STATIC_ROOT}`);
   console.log(`  Data File:      ${DATA_FILE}`);
@@ -1292,6 +1296,13 @@ function printStartupSummary(url, port) {
   console.log(`  Data Status:    ${describeDataFile()}`);
   console.log(`  Browser Open:   ${browserMode}`);
   console.log(`  Auto-Load:      ${autoLoadMode}`);
+  if (remoteBind) {
+    console.log('');
+    console.log(
+      'Security warning: this bind host can expose local data and destructive API routes.',
+    );
+    console.log('Use non-loopback hosts only on trusted networks.');
+  }
   console.log('');
   console.log('Available ways to load data:');
   console.log('  1. Start auto-import from the app');

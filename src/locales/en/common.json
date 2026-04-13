@@ -30,6 +30,18 @@
     "openSettings": "Settings & backups",
     "or": "or"
   },
+  "loadError": {
+    "title": "Could not load local app state",
+    "settingsDescription": "The local settings could not be loaded. Reset them or retry the load.",
+    "usageDescription": "The stored usage data could not be loaded. Remove the broken data or retry the load.",
+    "multipleDescription": "TTDash found problems in both local settings and stored usage data. Reset the affected state and retry the load.",
+    "details": "Details",
+    "retry": "Retry load",
+    "resetSettings": "Reset settings",
+    "deleteData": "Delete stored data",
+    "settingsCorrupted": "The local settings file is unreadable or corrupted.",
+    "usageCorrupted": "The local usage data file is unreadable or corrupted."
+  },
   "viewModes": {
     "daily": "Daily view",
     "monthly": "Monthly view",
@@ -1107,10 +1119,13 @@
   },
   "api": {
     "fetchUsageFailed": "Failed to load data",
+    "fetchSettingsFailed": "Failed to load settings",
     "uploadFailed": "Upload failed",
     "deleteFailed": "Delete failed",
+    "deleteSettingsFailed": "Failed to reset settings",
     "importUsageFailed": "Data import failed",
     "importSettingsFailed": "Settings import failed",
+    "saveSettingsFailed": "Failed to save settings",
     "pdfFailed": "PDF generation failed"
   },
   "toasts": {
@@ -1123,6 +1138,7 @@
     "dataExported": "Data backup exported",
     "noDataToExport": "No data available to export",
     "settingsImported": "Imported settings from {{name}}",
+    "settingsReset": "Settings reset",
     "settingsSaved": "Settings saved",
     "dataBackupImported": "Backup imported: added {{added}} new days, skipped {{unchanged}} identical days",
     "dataBackupImportedWithConflicts": "Backup imported: added {{added}} new days, kept {{conflicts}} conflicting days local"

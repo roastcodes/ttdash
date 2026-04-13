@@ -25,6 +25,7 @@ import { ModelEfficiency } from './tables/ModelEfficiency'
 import { ProviderEfficiency } from './tables/ProviderEfficiency'
 import { RecentDays } from './tables/RecentDays'
 import { EmptyState } from './EmptyState'
+import { LoadErrorState } from './LoadErrorState'
 import { HeatmapCalendar } from './features/heatmap/HeatmapCalendar'
 import { CostForecast } from './features/forecast/CostForecast'
 import { CacheROI } from './features/cache-roi/CacheROI'
@@ -50,6 +51,7 @@ import { downloadCSV } from '@/lib/csv-export'
 import { VERSION } from '@/lib/constants'
 import { SECTION_HELP } from '@/lib/help-content'
 import {
+  deleteSettings,
   generatePdfReport,
   importSettings,
   importUsageData,
@@ -71,6 +73,7 @@ import { SettingsModal } from './features/settings/SettingsModal'
 import { ProviderLimitsSection } from './features/limits/ProviderLimitsSection'
 import type {
   AppLanguage,
+  AppSettings,
   DashboardDefaultFilters,
   DashboardSectionId,
   DashboardSectionOrder,
@@ -104,6 +107,23 @@ type DashboardTestHooks = {
   openSettings?: () => void
 }
 
+interface DashboardProps {
+  initialSettingsError?: string | null
+}
+
+const CORRUPT_SETTINGS_MESSAGE = 'Settings file is unreadable or corrupted.'
+const CORRUPT_USAGE_MESSAGE = 'Usage data file is unreadable or corrupted.'
+
+function normalizeErrorMessage(error: unknown): string | null {
+  return error instanceof Error && error.message.trim() ? error.message : null
+}
+
+function describeLoadError(message: string, fallback: string): string {
+  if (message === CORRUPT_SETTINGS_MESSAGE) return fallback
+  if (message === CORRUPT_USAGE_MESSAGE) return fallback
+  return message
+}
+
 function downloadJsonFile(filename: string, data: unknown) {
   const text = JSON.stringify(data, null, 2)
   const blob = new Blob([text], { type: 'application/json' })
@@ -126,9 +146,9 @@ function downloadJsonFile(filename: string, data: unknown) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-export function Dashboard() {
+export function Dashboard({ initialSettingsError = null }: DashboardProps) {
   const { t, i18n } = useTranslation()
-  const { data: usageData, isLoading } = useUsageData()
+  const { data: usageData, isLoading, error: usageError } = useUsageData()
   const uploadMutation = useUploadData()
   const deleteMutation = useDeleteData()
   const queryClient = useQueryClient()
@@ -150,14 +170,30 @@ export function Dashboard() {
     title?: string
   } | null>(null)
   const [animationSeed, setAnimationSeed] = useState(0)
+  const [bootstrapSettingsError, setBootstrapSettingsError] = useState(initialSettingsError)
 
   const daily = useMemo(() => usageData?.daily ?? [], [usageData])
   const hasData = daily.length > 0
   const allProviders = useMemo(() => getUniqueProviders(daily.map((d) => d.modelsUsed)), [daily])
   const allModelsFromData = useMemo(() => getUniqueModels(daily.map((d) => d.modelsUsed)), [daily])
-  const { settings, providerLimits, setTheme, setLanguage, saveSettings, isSaving } =
-    useAppSettings(allProviders)
+  const {
+    settings,
+    providerLimits,
+    setTheme,
+    setLanguage,
+    saveSettings,
+    isSaving,
+    isLoading: settingsLoading,
+    error: settingsError,
+    hasFetchedAfterMount: hasFetchedSettingsAfterMount,
+  } = useAppSettings(allProviders)
   const isDark = settings.theme === 'dark'
+
+  useEffect(() => {
+    if (bootstrapSettingsError && hasFetchedSettingsAfterMount && !settingsError) {
+      setBootstrapSettingsError(null)
+    }
+  }, [bootstrapSettingsError, hasFetchedSettingsAfterMount, settingsError])
 
   useEffect(() => {
     applyTheme(settings.theme)
@@ -330,6 +366,25 @@ export function Dashboard() {
     setSettingsOpen(true)
   }, [])
 
+  const handleRetryLoad = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['settings'] }),
+      queryClient.invalidateQueries({ queryKey: ['usage'] }),
+    ])
+  }, [queryClient])
+
+  const handleResetSettings = useCallback(async () => {
+    try {
+      const nextSettings = await deleteSettings()
+      queryClient.setQueryData<AppSettings>(['settings'], nextSettings)
+      setBootstrapSettingsError(null)
+      await queryClient.invalidateQueries({ queryKey: ['settings'] })
+      addToast(t('toasts.settingsReset'), 'success')
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : t('api.deleteSettingsFailed'), 'error')
+    }
+  }, [queryClient, addToast, t])
+
   const handleToggleTheme = useCallback(() => {
     void setTheme(isDark ? 'light' : 'dark')
   }, [isDark, setTheme])
@@ -397,6 +452,40 @@ export function Dashboard() {
     setDataSource(null)
     addToast(t('toasts.dataDeleted'), 'info')
   }, [deleteMutation, queryClient, addToast, t])
+
+  const settingsErrorMessage =
+    bootstrapSettingsError ?? normalizeErrorMessage(settingsError) ?? null
+  const usageErrorMessage = normalizeErrorMessage(usageError)
+  const fatalLoadState = useMemo(() => {
+    const details: string[] = []
+    const hasSettingsError = Boolean(settingsErrorMessage)
+    const hasUsageError = Boolean(usageErrorMessage)
+
+    if (settingsErrorMessage) {
+      details.push(describeLoadError(settingsErrorMessage, t('loadError.settingsCorrupted')))
+    }
+
+    if (usageErrorMessage) {
+      details.push(describeLoadError(usageErrorMessage, t('loadError.usageCorrupted')))
+    }
+
+    if (!hasSettingsError && !hasUsageError) {
+      return null
+    }
+
+    return {
+      title: t('loadError.title'),
+      description:
+        hasSettingsError && hasUsageError
+          ? t('loadError.multipleDescription')
+          : hasSettingsError
+            ? t('loadError.settingsDescription')
+            : t('loadError.usageDescription'),
+      details,
+      canResetSettings: hasSettingsError,
+      canResetUsage: hasUsageError,
+    }
+  }, [settingsErrorMessage, usageErrorMessage, t])
 
   const handleExportCSV = useCallback(() => {
     downloadCSV(filteredData)
@@ -933,8 +1022,66 @@ export function Dashboard() {
     ],
   )
 
-  if (isLoading) {
+  const fileInputs = (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={handleFileChange}
+        data-testid="usage-upload-input"
+      />
+      <input
+        ref={settingsImportInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={handleSettingsImportChange}
+        data-testid="settings-import-input"
+      />
+      <input
+        ref={dataImportInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={handleDataImportChange}
+        data-testid="data-import-input"
+      />
+    </>
+  )
+
+  if (!fatalLoadState && (isLoading || settingsLoading)) {
     return <DashboardSkeleton />
+  }
+
+  if (fatalLoadState) {
+    const actions = [
+      {
+        label: t('loadError.retry'),
+        onClick: () => void handleRetryLoad(),
+        variant: 'default' as const,
+      },
+      ...(fatalLoadState.canResetSettings
+        ? [{ label: t('loadError.resetSettings'), onClick: () => void handleResetSettings() }]
+        : []),
+      ...(fatalLoadState.canResetUsage
+        ? [{ label: t('loadError.deleteData'), onClick: () => void handleDelete() }]
+        : []),
+    ]
+
+    return (
+      <>
+        <LoadErrorState
+          title={fatalLoadState.title}
+          description={fatalLoadState.description}
+          details={fatalLoadState.details}
+          detailLabel={t('loadError.details')}
+          actions={actions}
+        />
+        {fileInputs}
+      </>
+    )
   }
 
   if (!hasData) {
@@ -945,30 +1092,7 @@ export function Dashboard() {
           onAutoImport={handleAutoImport}
           onOpenSettings={handleOpenSettings}
         />
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          className="hidden"
-          onChange={handleFileChange}
-          data-testid="usage-upload-input"
-        />
-        <input
-          ref={settingsImportInputRef}
-          type="file"
-          accept=".json,application/json"
-          className="hidden"
-          onChange={handleSettingsImportChange}
-          data-testid="settings-import-input"
-        />
-        <input
-          ref={dataImportInputRef}
-          type="file"
-          accept=".json,application/json"
-          className="hidden"
-          onChange={handleDataImportChange}
-          data-testid="data-import-input"
-        />
+        {fileInputs}
         <Suspense fallback={null}>
           {autoImportOpen && (
             <AutoImportModal
@@ -1007,30 +1131,7 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen max-w-7xl mx-auto px-4 pb-8">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        className="hidden"
-        onChange={handleFileChange}
-        data-testid="usage-upload-input"
-      />
-      <input
-        ref={settingsImportInputRef}
-        type="file"
-        accept=".json,application/json"
-        className="hidden"
-        onChange={handleSettingsImportChange}
-        data-testid="settings-import-input"
-      />
-      <input
-        ref={dataImportInputRef}
-        type="file"
-        accept=".json,application/json"
-        className="hidden"
-        onChange={handleDataImportChange}
-        data-testid="data-import-input"
-      />
+      {fileInputs}
 
       <Header
         dateRange={dateRange}

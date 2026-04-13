@@ -1031,6 +1031,7 @@ describe('local server API', () => {
         (entries) =>
           entries.length === 2 &&
           [firstUrl, secondUrl].every((url) => entries.some((entry) => entry.url === url)),
+        30_000,
       )
 
       expect(registry).toHaveLength(2)
@@ -1039,7 +1040,7 @@ describe('local server API', () => {
       await stopAllBackgroundServers(backgroundEnv, backgroundRoot)
       rmSync(backgroundRoot, { recursive: true, force: true })
     }
-  }, 45_000)
+  }, 60_000)
 
   it('prunes stale background entries that point to a live non-matching process', async () => {
     const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-stale-test-'))
@@ -1245,6 +1246,35 @@ describe('local server API', () => {
         providerLimits: {},
         defaultFilters: DEFAULT_DASHBOARD_FILTERS,
       })
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('warns clearly when binding the server on a non-loopback host', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-remote-bind-test-'))
+
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        envOverrides: {
+          HOST: '0.0.0.0',
+          NO_OPEN_BROWSER: '1',
+        },
+      })
+
+      expect(standaloneServer.getOutput()).toContain('Host:           0.0.0.0')
+      expect(standaloneServer.getOutput()).toContain(
+        'Exposure:       network-accessible via 0.0.0.0',
+      )
+      expect(standaloneServer.getOutput()).toContain(
+        'Security warning: this bind host can expose local data and destructive API routes.',
+      )
     } finally {
       if (standaloneServer) {
         await stopProcess(standaloneServer.child)

@@ -183,6 +183,8 @@ Environment variables:
 | `NO_OPEN_BROWSER=1` | Disable browser auto-open                                 |
 | `HOST`              | Override the bind host, for example `HOST=0.0.0.0 ttdash` |
 
+Binding to a non-loopback host such as `0.0.0.0` exposes the local dashboard API to your network, including destructive routes for local data and settings resets. Only use this on trusted networks.
+
 ## Features
 
 - Provider and model filtering across OpenAI, Anthropic, Google, and other imported providers

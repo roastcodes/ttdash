@@ -30,6 +30,18 @@
     "openSettings": "Einstellungen & Backups",
     "or": "oder"
   },
+  "loadError": {
+    "title": "Lokaler App-Zustand konnte nicht geladen werden",
+    "settingsDescription": "Die lokalen Einstellungen konnten nicht geladen werden. Setze sie zurück oder lade den Zustand erneut.",
+    "usageDescription": "Die gespeicherten Nutzungsdaten konnten nicht geladen werden. Entferne die defekten Daten oder lade den Zustand erneut.",
+    "multipleDescription": "TTDash hat Probleme sowohl in den lokalen Einstellungen als auch in den gespeicherten Nutzungsdaten gefunden. Setze die betroffenen Daten zurück und lade den Zustand erneut.",
+    "details": "Details",
+    "retry": "Erneut laden",
+    "resetSettings": "Einstellungen zurücksetzen",
+    "deleteData": "Gespeicherte Daten löschen",
+    "settingsCorrupted": "Die lokale Einstellungsdatei ist unlesbar oder beschädigt.",
+    "usageCorrupted": "Die lokale Nutzungsdatei ist unlesbar oder beschädigt."
+  },
   "viewModes": {
     "daily": "Tagesansicht",
     "monthly": "Monatsansicht",
@@ -1107,10 +1119,13 @@
   },
   "api": {
     "fetchUsageFailed": "Fehler beim Laden der Daten",
+    "fetchSettingsFailed": "Fehler beim Laden der Einstellungen",
     "uploadFailed": "Upload fehlgeschlagen",
     "deleteFailed": "Löschen fehlgeschlagen",
+    "deleteSettingsFailed": "Einstellungen konnten nicht zurückgesetzt werden",
     "importUsageFailed": "Datenimport fehlgeschlagen",
     "importSettingsFailed": "Einstellungs-Import fehlgeschlagen",
+    "saveSettingsFailed": "Einstellungen konnten nicht gespeichert werden",
     "pdfFailed": "PDF-Generierung fehlgeschlagen"
   },
   "toasts": {
@@ -1123,6 +1138,7 @@
     "dataExported": "Daten-Backup exportiert",
     "noDataToExport": "Keine Daten zum Exportieren vorhanden",
     "settingsImported": "Einstellungen aus {{name}} importiert",
+    "settingsReset": "Einstellungen zurückgesetzt",
     "settingsSaved": "Einstellungen gespeichert",
     "dataBackupImported": "Backup importiert: {{added}} neue Tage ergänzt, {{unchanged}} identische Tage übersprungen",
     "dataBackupImportedWithConflicts": "Backup importiert: {{added}} neue Tage ergänzt, {{conflicts}} Konflikttage lokal beibehalten"

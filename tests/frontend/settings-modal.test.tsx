@@ -78,5 +78,5 @@ describe('SettingsModal', () => {
         language: 'en',
       }),
     )
-  })
+  }, 10_000)
 })

@@ -35,7 +35,9 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
 
 export async function fetchUsage(): Promise<UsageData> {
   const res = await fetch('/api/usage')
-  if (!res.ok) throw new Error(i18n.t('api.fetchUsageFailed'))
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, i18n.t('api.fetchUsageFailed')))
+  }
   return parseResponseJson<UsageData>(res)
 }
 
@@ -79,7 +81,9 @@ export interface UpdateSettingsRequest {
 
 export async function fetchSettings(): Promise<AppSettings> {
   const res = await fetch('/api/settings')
-  if (!res.ok) throw new Error('Failed to load settings')
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, i18n.t('api.fetchSettingsFailed')))
+  }
   return normalizeAppSettings(await parseResponseJson<unknown>(res))
 }
 
@@ -90,9 +94,19 @@ export async function updateSettings(patch: UpdateSettingsRequest): Promise<AppS
     body: JSON.stringify(patch),
   })
   if (!res.ok) {
-    throw new Error(await readErrorMessage(res, 'Failed to save settings'))
+    throw new Error(await readErrorMessage(res, i18n.t('api.saveSettingsFailed')))
   }
   return normalizeAppSettings(await parseResponseJson<unknown>(res))
+}
+
+export async function deleteSettings(): Promise<AppSettings> {
+  const res = await fetch('/api/settings', { method: 'DELETE' })
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, i18n.t('api.deleteSettingsFailed')))
+  }
+
+  const payload = await parseResponseJson<{ settings?: unknown }>(res)
+  return normalizeAppSettings(payload.settings)
 }
 
 export async function importSettings(data: unknown): Promise<AppSettings> {

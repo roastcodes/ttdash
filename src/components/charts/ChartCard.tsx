@@ -14,7 +14,10 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Maximize2 } from 'lucide-react'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { cn } from '@/lib/cn'
+import { buildCsvLine, stringifyCsvCell } from '@/lib/csv'
 import { formatCurrency } from '@/lib/formatters'
+
+export { stringifyCsvCell } from '@/lib/csv'
 
 interface ChartCardProps {
   title: string
@@ -30,28 +33,6 @@ interface ChartCardProps {
   expandedExtra?: ReactNode
 }
 
-export function stringifyCsvCell(value: unknown): string {
-  let stringValue = ''
-
-  if (value == null) return ''
-  if (
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean' ||
-    typeof value === 'bigint'
-  ) {
-    stringValue = String(value)
-  } else {
-    try {
-      stringValue = JSON.stringify(value) ?? ''
-    } catch {
-      stringValue = ''
-    }
-  }
-
-  return `"${stringValue.replace(/"/g, '""')}"`
-}
-
 export function buildChartCsv(chartData: Record<string, unknown>[]): string {
   if (chartData.length === 0) return ''
 
@@ -60,7 +41,7 @@ export function buildChartCsv(chartData: Record<string, unknown>[]): string {
 
   const keys = Object.keys(firstRow)
   return [
-    keys.map((key) => stringifyCsvCell(key)).join(','),
+    buildCsvLine(keys),
     ...chartData.map((row) => keys.map((key) => stringifyCsvCell(row[key])).join(',')),
   ].join('\n')
 }
