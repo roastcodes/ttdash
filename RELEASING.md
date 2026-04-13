@@ -71,7 +71,7 @@ On a manual `workflow_dispatch` run against `main`, the workflow:
 14. creates the GitHub release
 
 Note: the workflow reruns the release-critical test suite itself after the version bump. This is necessary because the workflow-created push back to `main` should not be relied on to trigger the normal `CI` workflow again.
-If a release fails after the version bump was already pushed, rerunning the workflow with the same version only resumes that release while `main` still points at the original `vX.Y.Z: Release` commit. If new commits landed on `main` in the meantime, the workflow now aborts early and you should cut a new version instead of retrying the old one.
+If a release fails after the version bump was already pushed, rerunning the workflow with the same version only resumes that release while `main` still points at the original `vX.Y.Z: Release` commit. Retry mode also requires any pre-existing `vX.Y.Z` tag to already be signed and to point at that same release commit. If new commits landed on `main` in the meantime, or an existing tag does not match the release commit, the workflow now aborts early and you should cut a new version instead of retrying the old one.
 
 ## Post-Publish Checks
 

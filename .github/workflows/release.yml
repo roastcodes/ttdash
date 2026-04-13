@@ -106,6 +106,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Verify main CI succeeded
+        if: env.SHOULD_BUMP == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -216,6 +217,7 @@ jobs:
       - name: Create signed release commit and tag
         run: |
           git fetch --tags origin
+          git fetch --tags origin "${RELEASE_TAG}" >/dev/null 2>&1 || true
           if [[ "${SHOULD_BUMP}" = "true" ]]; then
             git add package.json package-lock.json
             git commit -S \
@@ -225,7 +227,12 @@ jobs:
           fi
 
           if git rev-parse "${RELEASE_TAG}" >/dev/null 2>&1; then
-            echo "Tag ${RELEASE_TAG} already exists locally. Skipping tag creation."
+            git tag -v "${RELEASE_TAG}"
+            if [[ "$(git rev-list -n 1 "${RELEASE_TAG}")" != "$(git rev-parse HEAD)" ]]; then
+              echo "Tag ${RELEASE_TAG} does not point to the current release commit."
+              exit 1
+            fi
+            echo "Tag ${RELEASE_TAG} already exists locally, is signed, and matches HEAD."
           else
             git tag -s "${RELEASE_TAG}" -m "${RELEASE_TAG}"
             git tag -v "${RELEASE_TAG}"
@@ -238,7 +245,13 @@ jobs:
           fi
 
           if git ls-remote --tags origin "refs/tags/${RELEASE_TAG}" | grep -q .; then
-            echo "Tag ${RELEASE_TAG} already exists on origin. Skipping tag push."
+            git fetch --tags origin "${RELEASE_TAG}" >/dev/null 2>&1 || true
+            git tag -v "${RELEASE_TAG}"
+            if [[ "$(git rev-list -n 1 "${RELEASE_TAG}")" != "$(git rev-parse HEAD)" ]]; then
+              echo "Remote tag ${RELEASE_TAG} does not point to the current release commit."
+              exit 1
+            fi
+            echo "Tag ${RELEASE_TAG} already exists on origin, is signed, and matches HEAD."
           else
             git push origin "${RELEASE_TAG}"
           fi
