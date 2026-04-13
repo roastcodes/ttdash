@@ -24,9 +24,12 @@ const ENV_START_PORT = parseInt(process.env.PORT, 10);
 const START_PORT = CLI_OPTIONS.port ?? (Number.isFinite(ENV_START_PORT) ? ENV_START_PORT : 3000);
 const MAX_PORT = Math.min(START_PORT + 100, 65535);
 const BIND_HOST = process.env.HOST || '127.0.0.1';
+const ALLOW_REMOTE_BIND = process.env.TTDASH_ALLOW_REMOTE === '1';
 const API_PREFIX = '/port/5000/api';
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const IS_WINDOWS = process.platform === 'win32';
+const SECURE_DIR_MODE = 0o700;
+const SECURE_FILE_MODE = 0o600;
 const TOKTRACK_LOCAL_BIN = path.join(
   ROOT,
   'node_modules',
@@ -130,6 +133,7 @@ function printHelp() {
   console.log('  PORT=3010 ttdash');
   console.log('  NO_OPEN_BROWSER=1 ttdash');
   console.log('  HOST=127.0.0.1 ttdash');
+  console.log('  TTDASH_ALLOW_REMOTE=1 HOST=0.0.0.0 ttdash');
 }
 
 function parseCliArgs(rawArgs) {
@@ -291,7 +295,11 @@ const MIME_TYPES = {
 };
 
 function ensureDir(dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true });
+  const existed = fs.existsSync(dirPath);
+  fs.mkdirSync(dirPath, { recursive: true, mode: SECURE_DIR_MODE });
+  if (!IS_WINDOWS && !existed) {
+    fs.chmodSync(dirPath, SECURE_DIR_MODE);
+  }
 }
 
 function ensureAppDirs() {
@@ -305,8 +313,29 @@ function ensureAppDirs() {
 function writeJsonAtomic(filePath, data) {
   ensureDir(path.dirname(filePath));
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
+  fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), {
+    mode: SECURE_FILE_MODE,
+  });
+  if (!IS_WINDOWS) {
+    fs.chmodSync(tempPath, SECURE_FILE_MODE);
+  }
   fs.renameSync(tempPath, filePath);
+}
+
+function isLoopbackHost(host) {
+  return host === '127.0.0.1' || host === 'localhost' || host === '::1';
+}
+
+function ensureBindHostAllowed() {
+  if (isLoopbackHost(BIND_HOST) || ALLOW_REMOTE_BIND) {
+    return;
+  }
+
+  const error = new Error(
+    `Refusing to bind TTDash to non-loopback host "${BIND_HOST}" without TTDASH_ALLOW_REMOTE=1.`,
+  );
+  error.code = 'REMOTE_BIND_REQUIRES_OPT_IN';
+  throw error;
 }
 
 function sleep(ms) {
@@ -474,7 +503,7 @@ async function withBackgroundInstancesLock(
 
   while (true) {
     try {
-      fs.mkdirSync(BACKGROUND_INSTANCES_LOCK_DIR);
+      fs.mkdirSync(BACKGROUND_INSTANCES_LOCK_DIR, { mode: SECURE_DIR_MODE });
       break;
     } catch (error) {
       if (!error || error.code !== 'EEXIST') {
@@ -754,11 +783,12 @@ function shouldBackgroundChildOpenBrowser() {
 }
 
 async function startInBackground() {
+  ensureBindHostAllowed();
   ensureAppDirs();
 
   const logFile = buildBackgroundLogFilePath();
   const childArgs = NORMALIZED_CLI_ARGS.filter((arg) => arg !== '--background');
-  const logFd = fs.openSync(logFile, 'a');
+  const logFd = fs.openSync(logFile, 'a', SECURE_FILE_MODE);
 
   let child;
   try {
@@ -1275,7 +1305,7 @@ function printStartupSummary(url, port) {
   const browserMode = shouldOpenBrowser() ? 'enabled' : 'disabled';
   const autoLoadMode = CLI_OPTIONS.autoLoad ? 'enabled' : 'disabled';
   const runtimeMode = IS_BACKGROUND_CHILD ? 'background' : 'foreground';
-  const remoteBind = BIND_HOST !== '127.0.0.1' && BIND_HOST !== 'localhost' && BIND_HOST !== '::1';
+  const remoteBind = !isLoopbackHost(BIND_HOST);
 
   console.log('');
   console.log(`${APP_LABEL} v${APP_VERSION} is ready`);
@@ -1314,6 +1344,7 @@ function printStartupSummary(url, port) {
   console.log('  ttdash --background');
   console.log('  ttdash stop');
   console.log(`  NO_OPEN_BROWSER=1 PORT=${port} node server.js`);
+  console.log(`  TTDASH_ALLOW_REMOTE=1 HOST=${BIND_HOST} PORT=${port} node server.js`);
   console.log(`  curl ${url}/api/usage`);
   console.log('');
 }
@@ -1550,6 +1581,64 @@ function resolveApiPath(pathname) {
   if (pathname === '/api') {
     return '/';
   }
+  return null;
+}
+
+function getHeaderValue(req, name) {
+  const value = req.headers[name];
+  if (Array.isArray(value)) {
+    return value[0] || '';
+  }
+  return typeof value === 'string' ? value : '';
+}
+
+function hasJsonContentType(req) {
+  const contentType = getHeaderValue(req, 'content-type');
+  if (!contentType) {
+    return false;
+  }
+
+  return contentType.split(';', 1)[0].trim().toLowerCase() === 'application/json';
+}
+
+function hasTrustedOrigin(req) {
+  const originHeader = getHeaderValue(req, 'origin').trim();
+  if (!originHeader) {
+    return true;
+  }
+
+  const hostHeader = getHeaderValue(req, 'host').trim();
+  if (!hostHeader || originHeader === 'null') {
+    return false;
+  }
+
+  try {
+    const origin = new URL(originHeader);
+    return origin.host === hostHeader;
+  } catch {
+    return false;
+  }
+}
+
+function isCrossSiteFetch(req) {
+  return getHeaderValue(req, 'sec-fetch-site').trim().toLowerCase() === 'cross-site';
+}
+
+function validateMutationRequest(req, { requiresJsonContentType = false } = {}) {
+  if (isCrossSiteFetch(req) || !hasTrustedOrigin(req)) {
+    return {
+      status: 403,
+      message: 'Cross-site requests are not allowed',
+    };
+  }
+
+  if (requiresJsonContentType && !hasJsonContentType(req)) {
+    return {
+      status: 415,
+      message: 'Content-Type must be application/json',
+    };
+  }
+
   return null;
 }
 
@@ -1815,6 +1904,10 @@ const server = http.createServer(async (req, res) => {
       );
     }
     if (req.method === 'DELETE') {
+      const validationError = validateMutationRequest(req);
+      if (validationError) {
+        return json(res, validationError.status, { message: validationError.message });
+      }
       try {
         fs.unlinkSync(DATA_FILE);
       } catch {
@@ -1854,6 +1947,10 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'DELETE') {
+      const validationError = validateMutationRequest(req);
+      if (validationError) {
+        return json(res, validationError.status, { message: validationError.message });
+      }
       try {
         fs.unlinkSync(SETTINGS_FILE);
       } catch {
@@ -1863,6 +1960,10 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'PATCH') {
+      const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
+      if (validationError) {
+        return json(res, validationError.status, { message: validationError.message });
+      }
       try {
         const body = await readBody(req);
         return json(res, 200, updateSettings(body));
@@ -1882,6 +1983,11 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { message: 'Method Not Allowed' });
     }
 
+    const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
+    if (validationError) {
+      return json(res, validationError.status, { message: validationError.message });
+    }
+
     try {
       const body = await readBody(req);
       const importedSettings = normalizeSettings(extractSettingsImportPayload(body));
@@ -1897,6 +2003,11 @@ const server = http.createServer(async (req, res) => {
 
   if (apiPath === '/upload') {
     if (req.method === 'POST') {
+      const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
+      if (validationError) {
+        return json(res, validationError.status, { message: validationError.message });
+      }
+
       try {
         const body = await readBody(req);
         const normalized = normalizeIncomingData(body);
@@ -1921,6 +2032,11 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { message: 'Method Not Allowed' });
     }
 
+    const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
+    if (validationError) {
+      return json(res, validationError.status, { message: validationError.message });
+    }
+
     try {
       const body = await readBody(req);
       const importedData = normalizeIncomingData(extractUsageImportPayload(body));
@@ -1941,8 +2057,13 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (apiPath === '/auto-import/stream') {
-    if (req.method !== 'GET') {
+    if (req.method !== 'POST') {
       return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    const validationError = validateMutationRequest(req);
+    if (validationError) {
+      return json(res, validationError.status, { message: validationError.message });
     }
 
     res.writeHead(200, {
@@ -2002,6 +2123,11 @@ const server = http.createServer(async (req, res) => {
   if (apiPath === '/report/pdf') {
     if (req.method !== 'POST') {
       return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
+    if (validationError) {
+      return json(res, validationError.status, { message: validationError.message });
     }
 
     let data;
@@ -2118,6 +2244,7 @@ function tryListen(port) {
 }
 
 async function start() {
+  ensureBindHostAllowed();
   ensureAppDirs();
   migrateLegacyDataFile();
 

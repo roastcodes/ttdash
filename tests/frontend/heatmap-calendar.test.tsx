@@ -22,7 +22,7 @@ describe('HeatmapCalendar', () => {
     await initI18n('en')
   })
 
-  it('exposes daily cells with keyboard-accessible labels and focus details', () => {
+  it('exposes daily cells with keyboard-accessible labels and focus details', async () => {
     const day: DailyUsage = {
       date: '2026-04-07',
       inputTokens: 10,
@@ -53,6 +53,6 @@ describe('HeatmapCalendar', () => {
 
     expect(cell).toHaveAttribute('tabindex', '0')
     fireEvent.focus(cell)
-    expect(screen.getByText(formatCurrency(5))).toBeInTheDocument()
+    expect(await screen.findByText(formatCurrency(5))).toBeInTheDocument()
   })
 })

@@ -1,6 +1,14 @@
 import { createConnection, createServer } from 'node:net'
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -19,6 +27,11 @@ const hasTypst = (() => {
   return !result.error && result.status === 0
 })()
 const itIfTypst = hasTypst ? it : it.skip
+const itIfPosix = process.platform === 'win32' ? it.skip : it
+
+function permissionBits(targetPath: string) {
+  return statSync(targetPath).mode & 0o777
+}
 
 async function getFreePort() {
   return new Promise<number>((resolve, reject) => {
@@ -560,6 +573,119 @@ describe('local server API', () => {
       lastLoadSource: null,
     })
     expect(finalSettings.sectionOrder.slice(0, 3)).toEqual(['metrics', 'insights', 'today'])
+  })
+
+  it('rejects cross-site mutation requests, enforces JSON bodies, and blocks auto-import GET requests', async () => {
+    const wrongContentTypeResponse = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(sampleUsage),
+    })
+    expect(wrongContentTypeResponse.status).toBe(415)
+    expect(await wrongContentTypeResponse.json()).toEqual({
+      message: 'Content-Type must be application/json',
+    })
+
+    const crossSiteUploadResponse = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'https://evil.example',
+      },
+      body: JSON.stringify(sampleUsage),
+    })
+    expect(crossSiteUploadResponse.status).toBe(403)
+    expect(await crossSiteUploadResponse.json()).toEqual({
+      message: 'Cross-site requests are not allowed',
+    })
+
+    const crossSiteDeleteResponse = await fetch(`${baseUrl}/api/usage`, {
+      method: 'DELETE',
+      headers: {
+        Origin: 'https://evil.example',
+      },
+    })
+    expect(crossSiteDeleteResponse.status).toBe(403)
+    expect(await crossSiteDeleteResponse.json()).toEqual({
+      message: 'Cross-site requests are not allowed',
+    })
+
+    const autoImportGetResponse = await fetch(`${baseUrl}/api/auto-import/stream`)
+    expect(autoImportGetResponse.status).toBe(405)
+    expect(await autoImportGetResponse.json()).toEqual({
+      message: 'Method Not Allowed',
+    })
+  })
+
+  it('streams auto-import events over POST instead of mutating via GET', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-auto-import-post-test-'))
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        envOverrides: {
+          PATH: '',
+        },
+      })
+
+      const streamResponse = await fetch(`${standaloneServer.url}/api/auto-import/stream`, {
+        method: 'POST',
+      })
+
+      expect(streamResponse.status).toBe(200)
+      expect(streamResponse.headers.get('content-type')).toContain('text/event-stream')
+
+      const streamBody = await streamResponse.text()
+      expect(streamBody).toContain('event: check')
+      expect(streamBody).toContain('event: progress')
+      expect(streamBody).toContain('event: error')
+      expect(streamBody).toContain('event: done')
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  itIfPosix('writes persisted data and settings with restrictive local permissions', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-permissions-test-'))
+    const dataFile = path.join(getCliDataDir(runtimeRoot), 'data.json')
+    const settingsFile = path.join(getCliConfigDir(runtimeRoot), 'settings.json')
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+      })
+
+      const uploadResponse = await fetch(`${standaloneServer.url}/api/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sampleUsage),
+      })
+      expect(uploadResponse.status).toBe(200)
+
+      const settingsResponse = await fetch(`${standaloneServer.url}/api/settings`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: 'en',
+        }),
+      })
+      expect(settingsResponse.status).toBe(200)
+
+      expect(permissionBits(path.dirname(dataFile))).toBe(0o700)
+      expect(permissionBits(path.dirname(settingsFile))).toBe(0o700)
+      expect(permissionBits(dataFile)).toBe(0o600)
+      expect(permissionBits(settingsFile)).toBe(0o600)
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
   })
 
   it('imports settings backups and merges usage backups without overwriting conflicting local days', async () => {
@@ -1254,8 +1380,28 @@ describe('local server API', () => {
     }
   })
 
-  it('warns clearly when binding the server on a non-loopback host', async () => {
+  it('refuses non-loopback binding unless remote access is explicitly allowed', async () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-remote-bind-test-'))
+    try {
+      const result = await runCli([], {
+        env: {
+          ...createCliEnv(runtimeRoot),
+          HOST: '0.0.0.0',
+          NO_OPEN_BROWSER: '1',
+        },
+      })
+
+      expect(result.code).toBe(1)
+      expect(result.output).toContain(
+        'Refusing to bind TTDash to non-loopback host "0.0.0.0" without TTDASH_ALLOW_REMOTE=1.',
+      )
+    } finally {
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('warns clearly when binding the server on a non-loopback host with explicit opt-in', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-remote-bind-allowed-test-'))
 
     let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
 
@@ -1265,6 +1411,7 @@ describe('local server API', () => {
         envOverrides: {
           HOST: '0.0.0.0',
           NO_OPEN_BROWSER: '1',
+          TTDASH_ALLOW_REMOTE: '1',
         },
       })
 

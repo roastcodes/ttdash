@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { translateAutoImportEvent } from '@/lib/auto-import'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { startAutoImport, translateAutoImportEvent } from '@/lib/auto-import'
 
 const translations = {
   'autoImportModal.startingLocalImport': 'Starte lokalen toktrack-Import...',
@@ -58,5 +58,117 @@ describe('translateAutoImportEvent', () => {
         translate,
       ),
     ).toBe('Fehler: toktrack failed')
+  })
+})
+
+describe('startAutoImport', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('starts auto-import via POST and dispatches streamed events', async () => {
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            [
+              'event: check',
+              'data: {"tool":"toktrack","status":"checking"}',
+              '',
+              'event: progress',
+              'data: {"key":"startingLocalImport","vars":{}}',
+              '',
+              'event: stderr',
+              'data: {"line":"runner output"}',
+              '',
+              'event: success',
+              'data: {"days":3,"totalCost":4.5}',
+              '',
+              'event: done',
+              'data: {}',
+              '',
+            ].join('\n'),
+          ),
+        )
+        controller.close()
+      },
+    })
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(stream, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/event-stream',
+        },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const callbacks = {
+      onCheck: vi.fn(),
+      onProgress: vi.fn(),
+      onStderr: vi.fn(),
+      onSuccess: vi.fn(),
+      onError: vi.fn(),
+      onDone: vi.fn(),
+    }
+
+    startAutoImport(callbacks, translate)
+
+    await vi.waitFor(() => {
+      expect(callbacks.onDone).toHaveBeenCalledTimes(1)
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auto-import/stream',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    )
+    expect(callbacks.onCheck).toHaveBeenCalledWith({
+      tool: 'toktrack',
+      status: 'checking',
+    })
+    expect(callbacks.onProgress).toHaveBeenCalledWith({
+      key: 'startingLocalImport',
+      vars: {},
+      message: 'Starte lokalen toktrack-Import...',
+    })
+    expect(callbacks.onStderr).toHaveBeenCalledWith({ line: 'runner output' })
+    expect(callbacks.onSuccess).toHaveBeenCalledWith({ days: 3, totalCost: 4.5 })
+    expect(callbacks.onError).not.toHaveBeenCalled()
+  })
+
+  it('surfaces structured server errors when the POST request is rejected', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: 'Cross-site requests are not allowed' }), {
+        status: 403,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const callbacks = {
+      onCheck: vi.fn(),
+      onProgress: vi.fn(),
+      onStderr: vi.fn(),
+      onSuccess: vi.fn(),
+      onError: vi.fn(),
+      onDone: vi.fn(),
+    }
+
+    startAutoImport(callbacks, translate)
+
+    await vi.waitFor(() => {
+      expect(callbacks.onDone).toHaveBeenCalledTimes(1)
+    })
+
+    expect(callbacks.onError).toHaveBeenCalledWith({
+      message: 'Cross-site requests are not allowed',
+    })
+    expect(callbacks.onSuccess).not.toHaveBeenCalled()
   })
 })

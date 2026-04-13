@@ -42,9 +42,19 @@ export interface ErrorMessage {
 
 type AutoImportTranslationVars = Record<string, string | number>
 type AutoImportTranslator = (key: string, vars?: AutoImportTranslationVars) => string
+type StreamEventType = 'check' | 'progress' | 'stderr' | 'success' | 'error' | 'done'
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseJsonRecord<T>(value: string): T | null {
+  try {
+    const data: unknown = JSON.parse(value)
+    return isPlainObject(data) ? (data as T) : null
+  } catch {
+    return null
+  }
 }
 
 export function parseEventData<T>(event: Event): T | null {
@@ -52,12 +62,7 @@ export function parseEventData<T>(event: Event): T | null {
     return null
   }
 
-  try {
-    const data: unknown = JSON.parse(event.data)
-    return isPlainObject(data) ? (data as T) : null
-  } catch {
-    return null
-  }
+  return parseJsonRecord<T>(event.data)
 }
 
 export function translateAutoImportEvent(event: AutoImportMessageEvent, t: AutoImportTranslator) {
@@ -98,56 +103,155 @@ export function startAutoImport(
   },
   t: AutoImportTranslator = (key) => key,
 ): { close: () => void } {
-  const es = new EventSource('/api/auto-import/stream')
+  const controller = new AbortController()
+  const decoder = new TextDecoder()
+  let done = false
 
-  es.addEventListener('check', (event) => {
-    const data = parseEventData<CheckEvent>(event)
-    if (data) {
-      callbacks.onCheck(data)
-    }
-  })
-  es.addEventListener('progress', (event) => {
-    const data = parseEventData<ProgressEvent>(event)
-    if (data) {
-      callbacks.onProgress({
-        ...data,
-        message: translateAutoImportEvent(data, t),
-      })
-    }
-  })
-  es.addEventListener('stderr', (event) => {
-    const data = parseEventData<StderrEvent>(event)
-    if (data) {
-      callbacks.onStderr(data)
-    }
-  })
-  es.addEventListener('success', (event) => {
-    const data = parseEventData<SuccessEvent>(event)
-    if (data) {
-      callbacks.onSuccess(data)
-    }
-  })
-  es.addEventListener('error', (event) => {
-    // SSE 'error' can be both our custom event and a connection error
-    const data = parseEventData<ErrorEvent>(event)
-    if (data) {
-      callbacks.onError({
-        message: translateAutoImportEvent(data, t),
-      })
-    } else {
-      callbacks.onError({ message: t('autoImportModal.serverConnectionLost') })
-      es.close()
-      callbacks.onDone()
-    }
-  })
-  es.addEventListener('done', () => {
-    es.close()
+  const finish = () => {
+    if (done) return
+    done = true
     callbacks.onDone()
+  }
+
+  const dispatchEvent = (type: StreamEventType, dataText: string) => {
+    switch (type) {
+      case 'check': {
+        const data = parseJsonRecord<CheckEvent>(dataText)
+        if (data) callbacks.onCheck(data)
+        return
+      }
+      case 'progress': {
+        const data = parseJsonRecord<ProgressEvent>(dataText)
+        if (data) {
+          callbacks.onProgress({
+            ...data,
+            message: translateAutoImportEvent(data, t),
+          })
+        }
+        return
+      }
+      case 'stderr': {
+        const data = parseJsonRecord<StderrEvent>(dataText)
+        if (data) callbacks.onStderr(data)
+        return
+      }
+      case 'success': {
+        const data = parseJsonRecord<SuccessEvent>(dataText)
+        if (data) callbacks.onSuccess(data)
+        return
+      }
+      case 'error': {
+        const data = parseJsonRecord<ErrorEvent>(dataText)
+        if (data) {
+          callbacks.onError({
+            message: translateAutoImportEvent(data, t),
+          })
+        } else {
+          callbacks.onError({ message: t('autoImportModal.serverConnectionLost') })
+        }
+        return
+      }
+      case 'done':
+        finish()
+    }
+  }
+
+  const flushEvent = (type: string, dataLines: string[]) => {
+    if (dataLines.length === 0) {
+      return
+    }
+
+    const normalizedType = (type || 'message') as StreamEventType
+    dispatchEvent(normalizedType, dataLines.join('\n'))
+  }
+
+  const readStream = async () => {
+    const response = await fetch('/api/auto-import/stream', {
+      method: 'POST',
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      let message = t('autoImportModal.serverConnectionLost')
+
+      try {
+        const payload: unknown = await response.json()
+        if (
+          isPlainObject(payload) &&
+          typeof payload['message'] === 'string' &&
+          payload['message'].trim()
+        ) {
+          message = payload['message']
+        }
+      } catch {}
+
+      callbacks.onError({ message })
+      finish()
+      return
+    }
+
+    if (!response.body) {
+      callbacks.onError({ message: t('autoImportModal.serverConnectionLost') })
+      finish()
+      return
+    }
+
+    const reader = response.body.getReader()
+    let buffer = ''
+    let currentEvent = ''
+    let dataLines: string[] = []
+
+    while (true) {
+      const { value, done: streamDone } = await reader.read()
+      if (streamDone) {
+        flushEvent(currentEvent, dataLines)
+        finish()
+        return
+      }
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split(/\r?\n/)
+      buffer = lines.pop() ?? ''
+
+      for (const line of lines) {
+        if (!line) {
+          flushEvent(currentEvent, dataLines)
+          currentEvent = ''
+          dataLines = []
+          continue
+        }
+
+        if (line.startsWith('event:')) {
+          currentEvent = line.slice('event:'.length).trim()
+          continue
+        }
+
+        if (line.startsWith('data:')) {
+          dataLines.push(line.slice('data:'.length).trimStart())
+        }
+      }
+    }
+  }
+
+  void readStream().catch((error) => {
+    if (controller.signal.aborted) {
+      finish()
+      return
+    }
+
+    callbacks.onError({
+      message:
+        error instanceof Error && error.message
+          ? error.message
+          : t('autoImportModal.serverConnectionLost'),
+    })
+    finish()
   })
 
   return {
     close: () => {
-      es.close()
+      controller.abort()
+      finish()
     },
   }
 }
