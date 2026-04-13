@@ -29,7 +29,13 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
   const summary = useMemo(() => {
     if (data.length === 0) return null
     const latest = data[data.length - 1]
-    const peak = [...data].sort((a, b) => b.cost - a.cost)[0]
+    let peak = data[0]
+    for (let index = 1; index < data.length; index += 1) {
+      const candidate = data[index]
+      if (candidate && peak && candidate.cost > peak.cost) {
+        peak = candidate
+      }
+    }
     if (!latest || !peak) return null
     return {
       latest: latest.cost,
