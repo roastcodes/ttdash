@@ -9,6 +9,16 @@
 
 `TTDash` is built around the usage data provided by [`toktrack`](https://github.com/mag123c/toktrack). Thanks to [mag123c](https://github.com/mag123c) for creating and maintaining the data source this dashboard builds on.
 
+## Keep Claude Code History
+
+Claude Code cleans up old sessions after 30 days by default. If you want long-term cost history in `toktrack` and `TTDash`, raise or effectively disable that cleanup in `~/.claude/settings.json`:
+
+```json
+{
+  "cleanupPeriodDays": 9999999999
+}
+```
+
 ![TTDash dashboard screenshot](docs/ttdash-dashboard.png)
 
 ## Why TTDash
