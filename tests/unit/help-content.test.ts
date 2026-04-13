@@ -17,4 +17,10 @@ describe('help-content proxy semantics', () => {
     expect(Object.prototype.hasOwnProperty.call(CHART_HELP, 'missingHelpKey')).toBe(false)
     expect(Object.getOwnPropertyDescriptor(CHART_HELP, 'missingHelpKey')).toBeUndefined()
   })
+
+  it('does not expose prototype properties as help keys', () => {
+    expect('toString' in CHART_HELP).toBe(false)
+    expect(Object.prototype.hasOwnProperty.call(CHART_HELP, 'toString')).toBe(false)
+    expect(CHART_HELP.toString).toBeUndefined()
+  })
 })

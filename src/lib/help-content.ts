@@ -244,8 +244,15 @@ export type FeatureHelp = HelpMap<AppHelpContent['feature']>
 
 function dynamicMap<const T extends Record<string, string>>(selector: () => T): T {
   return new Proxy({} as T, {
-    get: (_, key) => Reflect.get(selector(), key),
-    has: (_, key) => key in selector(),
+    get: (_, key) => {
+      const map = selector()
+      if (!Object.prototype.hasOwnProperty.call(map, key)) return undefined
+      return Reflect.get(map, key)
+    },
+    has: (_, key) => {
+      const map = selector()
+      return Object.prototype.hasOwnProperty.call(map, key)
+    },
     ownKeys: () => Reflect.ownKeys(selector()),
     getOwnPropertyDescriptor: (_, key) => {
       const map = selector()
