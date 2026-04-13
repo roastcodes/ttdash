@@ -1,8 +1,17 @@
 # Changelog
 
-## [Unreleased]
+## [6.1.8]
 
-## [6.1.7] - Unreleased
+### Added
+
+- **Claude-Code-Retention-Hinweis im README** — die Projektdokumentation erklärt jetzt kurz die nötige `cleanupPeriodDays`-Einstellung, damit ältere Claude-Code-Kostenhistorie für `toktrack` und `TTDash` nicht vorzeitig verschwindet
+
+### Improved
+
+- **Signierte Releases über 1Password und SSH** — der Release-Workflow lädt die Signing-Identität jetzt über den 1Password-Service-Account, erstellt signierte Release-Commits und signierte Tags, und versieht Release-Commits zusätzlich mit `on-behalf-of: @roastcodes <github@roast.codes>`
+- **Release-Dokumentation für Signing-Setup** — die Maintainer-Doku beschreibt jetzt den 1Password-basierten SSH-Signing-Flow, die zusätzlichen Actions-Secrets und die Voraussetzungen für GitHub-`Verified`-Tags und den Organisations-Trailer
+
+## [6.1.7] - 2026-04-13
 
 ### Added
 
