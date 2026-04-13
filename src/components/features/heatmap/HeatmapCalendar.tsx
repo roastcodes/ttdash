@@ -43,6 +43,7 @@ export function HeatmapCalendar({
   metric = 'cost',
 }: HeatmapCalendarProps) {
   const { t } = useTranslation()
+  const locale = getCurrentLocale()
   const [tooltip, setTooltip] = useState<{
     x: number
     y: number
@@ -55,20 +56,20 @@ export function HeatmapCalendar({
       Array.from({ length: 7 }, (_, index) => index).map((index) =>
         index % 2 === 1
           ? ''
-          : new Intl.DateTimeFormat(getCurrentLocale(), { weekday: 'short' })
+          : new Intl.DateTimeFormat(locale, { weekday: 'short' })
               .format(new Date(Date.UTC(2024, 0, 1 + index)))
               .slice(0, 2),
       ),
-    [],
+    [locale],
   )
   const fullDateFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(getCurrentLocale(), {
+      new Intl.DateTimeFormat(locale, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
       }),
-    [],
+    [locale],
   )
   const config = {
     cost: {
@@ -139,7 +140,7 @@ export function HeatmapCalendar({
         const m = currentDate.getMonth()
         if (m !== lastMonth) {
           monthLabels.push({
-            label: currentDate.toLocaleDateString(getCurrentLocale(), { month: 'short' }),
+            label: currentDate.toLocaleDateString(locale, { month: 'short' }),
             week,
           })
           lastMonth = m
@@ -154,7 +155,7 @@ export function HeatmapCalendar({
     }
 
     return { cells: result, weeks: week + 1, months: monthLabels, maxValue: max }
-  }, [data, config])
+  }, [config, data, locale])
 
   const todayStr = localToday()
 

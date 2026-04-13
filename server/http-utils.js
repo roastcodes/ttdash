@@ -9,6 +9,7 @@ function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders }) {
         req.off('data', onData);
         req.off('end', onEnd);
         req.off('error', onError);
+        req.off('close', onClose);
       };
 
       const rejectOnce = (error) => {
@@ -52,9 +53,16 @@ function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders }) {
         rejectOnce(error);
       };
 
+      const onClose = () => {
+        if (!req.readableEnded) {
+          rejectOnce(new Error('Request body stream closed before the payload finished'));
+        }
+      };
+
       req.on('data', onData);
       req.on('end', onEnd);
       req.on('error', onError);
+      req.on('close', onClose);
     });
   }
 
@@ -76,17 +84,11 @@ function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders }) {
   }
 
   function resolveApiPath(pathname) {
-    if (pathname.startsWith(apiPrefix + '/')) {
-      return pathname.slice(apiPrefix.length);
-    }
     if (pathname === apiPrefix) {
       return '/';
     }
-    if (pathname.startsWith('/api/')) {
-      return pathname.slice(4);
-    }
-    if (pathname === '/api') {
-      return '/';
+    if (pathname.startsWith(apiPrefix + '/')) {
+      return pathname.slice(apiPrefix.length);
     }
     return null;
   }

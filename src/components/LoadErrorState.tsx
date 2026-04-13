@@ -44,8 +44,8 @@ export function LoadErrorState({
                 {detailLabel}
               </div>
               <ul className="mt-3 space-y-2 text-sm text-foreground">
-                {details.map((detail) => (
-                  <li key={detail}>{detail}</li>
+                {details.map((detail, index) => (
+                  <li key={index}>{detail}</li>
                 ))}
               </ul>
             </div>

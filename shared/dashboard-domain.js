@@ -50,12 +50,23 @@ function canonicalizeModelName(raw) {
 }
 
 function parseClaudeName(rest) {
-  const parts = rest.split('-', 2)
+  const parts = rest.split('-')
   if (parts.length < 2) {
     return `Claude ${capitalize(rest)}`
   }
 
-  return `${capitalize(parts[0] || '')} ${formatVersion(parts[1] || '')}`.trim()
+  const family = capitalize(parts[0] || '')
+  const secondPart = parts[1] || ''
+
+  if (/^\d+$/.test(secondPart)) {
+    const version = formatVersion(parts.slice(1).join('-'))
+    return ['Claude', family, version].filter(Boolean).join(' ').trim()
+  }
+
+  const model = capitalize(secondPart)
+  const version = formatVersion(parts.slice(2).join('-'))
+
+  return ['Claude', family, model, version].filter(Boolean).join(' ').trim()
 }
 
 function parseGptName(rest) {
@@ -124,12 +135,12 @@ function parseOSeries(name) {
 function normalizeModelName(raw) {
   const canonical = canonicalizeModelName(raw)
 
-  for (const alias of DISPLAY_ALIASES) {
-    if (alias.matcher.test(canonical)) return alias.name
-  }
-
   if (canonical.startsWith('claude-')) {
     return parseClaudeName(canonical.slice('claude-'.length))
+  }
+
+  for (const alias of DISPLAY_ALIASES) {
+    if (alias.matcher.test(canonical)) return alias.name
   }
 
   if (canonical.startsWith('gpt-')) {

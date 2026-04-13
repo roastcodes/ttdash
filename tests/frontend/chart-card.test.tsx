@@ -32,7 +32,7 @@ describe('ChartCard', () => {
       </ChartCard>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /demo chart expand/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Demo chart expand' }))
 
     expect(screen.getByText('Total')).toBeInTheDocument()
     expect(screen.getByText('Data points')).toBeInTheDocument()
@@ -45,7 +45,7 @@ describe('ChartCard', () => {
       </ChartCard>,
     )
 
-    const button = screen.getByRole('button', { name: /demo chart expand/i })
+    const button = screen.getByRole('button', { name: 'Demo chart expand' })
     expect(button.className).toContain('md:group-focus-within:opacity-100')
     expect(button.className).toContain('focus-visible:opacity-100')
   })

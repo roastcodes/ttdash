@@ -11,9 +11,15 @@ import type { AggregateMetrics, ViewMode } from '@/types'
 describe('German analysis terminology', () => {
   beforeEach(async () => {
     globalThis.IntersectionObserver = class IntersectionObserver {
+      readonly root: Element | Document | null = null
+      readonly rootMargin = ''
+      readonly thresholds: ReadonlyArray<number> = []
       observe() {}
       unobserve() {}
       disconnect() {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return []
+      }
     } as typeof IntersectionObserver
     await initI18n('de')
   })

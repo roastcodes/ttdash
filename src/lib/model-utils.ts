@@ -1,4 +1,4 @@
-import { MODEL_COLORS, MODEL_COLOR_DEFAULT } from './constants'
+import { MODEL_COLORS } from './constants'
 import {
   getModelProvider as getSharedModelProvider,
   normalizeModelName as normalizeSharedModelName,
@@ -134,7 +134,7 @@ export function getProviderBadgeStyle(provider: string): {
 }
 
 export function getModelColor(name: string): string {
-  return MODEL_COLORS[name] ?? dynamicColor(name) ?? MODEL_COLOR_DEFAULT
+  return MODEL_COLORS[name] ?? dynamicColor(name)
 }
 
 export function getUniqueModels(modelsUsed: string[][]): string[] {

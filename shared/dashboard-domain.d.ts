@@ -1,4 +1,4 @@
-import type { DailyUsage, DashboardMetrics, ViewMode } from '../src/types'
+import type { DailyUsage, DashboardMetrics, ViewMode } from './dashboard-types'
 
 export function aggregateToDailyFormat(data: DailyUsage[], viewMode: ViewMode): DailyUsage[]
 export function computeBusiestWeek(

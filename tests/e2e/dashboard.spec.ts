@@ -442,7 +442,7 @@ test('loads persisted settings on a fresh browser start and applies them immedia
     await expect(freshPage.locator('#filters').getByText('1 models active')).toBeVisible()
     await expect(
       freshPage.locator('#filters').getByRole('combobox', { name: viewModeComboboxPattern }),
-    ).toContainText('Monthly view')
+    ).toContainText(monthlyViewPattern)
     await expect(freshPage.getByRole('button', { name: 'Delete' })).toBeVisible()
     await expect
       .poll(async () =>

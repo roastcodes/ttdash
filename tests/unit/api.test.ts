@@ -28,7 +28,6 @@ describe('api error handling', () => {
   })
 
   it('uses the localized fallback when saving settings fails without a server message', async () => {
-    await initI18n('en')
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -57,7 +56,6 @@ describe('api error handling', () => {
   })
 
   it('returns bootstrap defaults together with the localized error message', async () => {
-    await initI18n('en')
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(

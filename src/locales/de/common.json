@@ -99,6 +99,7 @@
     "focusMonth": "Fokusmonat",
     "showInfo": "Info anzeigen",
     "expand": "Vergrössern",
+    "expandWithTitle": "{{title}} vergrössern",
     "expandedCardDescription": "Erweiterte Kartenansicht mit zusätzlichen Kennzahlen und vollständigem Inhalt.",
     "input": "Input",
     "output": "Output",

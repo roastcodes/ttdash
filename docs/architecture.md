@@ -46,7 +46,7 @@ Frontend settings normalization lives in `src/lib/app-settings.ts`. Bootstrap lo
 
 ## Current Server Structure
 
-`server.js` is still the public entrypoint and still owns several runtime responsibilities. The current refactor reduces contract drift and shared-domain duplication first, while keeping the published CLI interface stable. Further modularization of the server runtime should continue from the current seams:
+`server.js` is still the public entrypoint and still owns several runtime responsibilities. The current refactor reduces contract drift and shared-domain duplication first, while keeping the published CLI stable. Further modularization of the server runtime should continue from the current seams:
 
 - runtime/bootstrap
 - persistence/settings

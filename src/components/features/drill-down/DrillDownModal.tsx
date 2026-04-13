@@ -123,18 +123,30 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
     hasTokens ? formatPercent((value / tokensTotal) * 100) : '–'
   const tokenSegments = [
     {
+      id: 'cacheRead',
       value: day.cacheReadTokens,
       color: 'hsl(160, 50%, 42%)',
       label: t('drillDown.tokenSegments.cacheRead'),
     },
     {
+      id: 'cacheWrite',
       value: day.cacheCreationTokens,
       color: 'hsl(262, 60%, 55%)',
       label: t('drillDown.tokenSegments.cacheWrite'),
     },
-    { value: day.inputTokens, color: 'hsl(340, 55%, 52%)', label: t('common.input') },
-    { value: day.outputTokens, color: 'hsl(35, 80%, 52%)', label: t('common.output') },
-    { value: day.thinkingTokens, color: 'hsl(12, 78%, 56%)', label: t('common.thinking') },
+    { id: 'input', value: day.inputTokens, color: 'hsl(340, 55%, 52%)', label: t('common.input') },
+    {
+      id: 'output',
+      value: day.outputTokens,
+      color: 'hsl(35, 80%, 52%)',
+      label: t('common.output'),
+    },
+    {
+      id: 'thinking',
+      value: day.thinkingTokens,
+      color: 'hsl(12, 78%, 56%)',
+      label: t('common.thinking'),
+    },
   ] as const
 
   return (
@@ -242,7 +254,7 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
             {hasTokens &&
               tokenSegments.map((seg) => (
                 <div
-                  key={seg.label}
+                  key={seg.id}
                   className="h-full transition-all duration-500"
                   style={{
                     width: `${(seg.value / tokensTotal) * 100}%`,
@@ -254,7 +266,7 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
           </div>
           <div className="flex gap-3 mt-1.5 text-[10px] text-muted-foreground">
             {tokenSegments.map((segment) => (
-              <span key={segment.label} className="flex items-center gap-1">
+              <span key={segment.id} className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: segment.color }} />
                 {segment.label} {formatTokenShare(segment.value)}
               </span>

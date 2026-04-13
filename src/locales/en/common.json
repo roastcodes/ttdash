@@ -99,6 +99,7 @@
     "focusMonth": "Focus month",
     "showInfo": "Show info",
     "expand": "Expand",
+    "expandWithTitle": "{{title}} expand",
     "expandedCardDescription": "Expanded card view with additional metrics and full content.",
     "input": "Input",
     "output": "Output",

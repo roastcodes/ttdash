@@ -32,7 +32,7 @@ const START_PORT = CLI_OPTIONS.port ?? (Number.isFinite(ENV_START_PORT) ? ENV_ST
 const MAX_PORT = Math.min(START_PORT + 100, 65535);
 const BIND_HOST = process.env.HOST || '127.0.0.1';
 const ALLOW_REMOTE_BIND = process.env.TTDASH_ALLOW_REMOTE === '1';
-const API_PREFIX = '/port/5000/api';
+const API_PREFIX = process.env.API_PREFIX || '/api';
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const IS_WINDOWS = process.platform === 'win32';
 const SECURE_DIR_MODE = 0o700;
@@ -288,9 +288,8 @@ const MIME_TYPES = {
 };
 
 function ensureDir(dirPath) {
-  const existed = fs.existsSync(dirPath);
   fs.mkdirSync(dirPath, { recursive: true, mode: SECURE_DIR_MODE });
-  if (!IS_WINDOWS && !existed) {
+  if (!IS_WINDOWS) {
     fs.chmodSync(dirPath, SECURE_DIR_MODE);
   }
 }
@@ -1701,6 +1700,10 @@ const server = http.createServer(async (req, res) => {
 
   // API routing
   const apiPath = resolveApiPath(pathname);
+
+  if (apiPath === null && (pathname === '/api' || pathname.startsWith('/api/'))) {
+    return json(res, 404, { message: 'Not Found' });
+  }
 
   if (apiPath === '/usage') {
     if (req.method === 'GET') {

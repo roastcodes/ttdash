@@ -363,7 +363,12 @@ export function useDashboardController(initialSettingsError: string | null = nul
 
       try {
         const parsed: unknown = JSON.parse(await file.text())
-        await uploadMutation.mutateAsync(parsed)
+        try {
+          await uploadMutation.mutateAsync(parsed)
+        } catch (error) {
+          addToast(normalizeErrorMessage(error) ?? t('toasts.fileReadFailed'), 'error')
+          return
+        }
         void queryClient.invalidateQueries({ queryKey: ['settings'] })
         setAnimationSeed((previous) => previous + 1)
         const now = new Date()
@@ -388,11 +393,15 @@ export function useDashboardController(initialSettingsError: string | null = nul
   )
 
   const handleDelete = useCallback(async () => {
-    await deleteMutation.mutateAsync()
-    void queryClient.invalidateQueries({ queryKey: ['settings'] })
-    setAnimationSeed((previous) => previous + 1)
-    setDataSource(null)
-    addToast(t('toasts.dataDeleted'), 'info')
+    try {
+      await deleteMutation.mutateAsync()
+      void queryClient.invalidateQueries({ queryKey: ['settings'] })
+      setAnimationSeed((previous) => previous + 1)
+      setDataSource(null)
+      addToast(t('toasts.dataDeleted'), 'info')
+    } catch (error) {
+      addToast(normalizeErrorMessage(error) ?? t('toasts.deleteFailed'), 'error')
+    }
   }, [deleteMutation, queryClient, addToast, t])
 
   const settingsErrorMessage =

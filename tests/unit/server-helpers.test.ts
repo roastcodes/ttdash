@@ -23,6 +23,9 @@ const {
     ) => Promise<number>
   }
 }
+const { isLoopbackHost } = require('../../server/runtime.js') as {
+  isLoopbackHost: (host: string) => boolean
+}
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -57,6 +60,15 @@ describe('server helper utilities', () => {
     expect(getExecutableName('bun', false)).toBe('bun')
     expect(getExecutableName('bunx', false)).toBe('bunx')
     expect(getExecutableName('npx', false)).toBe('npx')
+  })
+
+  it('accepts common loopback host variants', () => {
+    expect(isLoopbackHost('127.0.0.1')).toBe(true)
+    expect(isLoopbackHost('localhost')).toBe(true)
+    expect(isLoopbackHost('::1')).toBe(true)
+    expect(isLoopbackHost('[::1]')).toBe(true)
+    expect(isLoopbackHost(' ::ffff:127.0.0.1 ')).toBe(true)
+    expect(isLoopbackHost('0.0.0.0')).toBe(false)
   })
 
   it.runIf(process.platform === 'win32')(

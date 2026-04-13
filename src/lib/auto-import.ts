@@ -165,6 +165,26 @@ export function startAutoImport(
     dispatchEvent(normalizedType, dataLines.join('\n'))
   }
 
+  const processLines = (lines: string[], state: { currentEvent: string; dataLines: string[] }) => {
+    for (const line of lines) {
+      if (!line) {
+        flushEvent(state.currentEvent, state.dataLines)
+        state.currentEvent = ''
+        state.dataLines = []
+        continue
+      }
+
+      if (line.startsWith('event:')) {
+        state.currentEvent = line.slice('event:'.length).trim()
+        continue
+      }
+
+      if (line.startsWith('data:')) {
+        state.dataLines.push(line.slice('data:'.length).trimStart())
+      }
+    }
+  }
+
   const readStream = async () => {
     const response = await fetch('/api/auto-import/stream', {
       method: 'POST',
@@ -198,13 +218,20 @@ export function startAutoImport(
 
     const reader = response.body.getReader()
     let buffer = ''
-    let currentEvent = ''
-    let dataLines: string[] = []
+    const state = {
+      currentEvent: '',
+      dataLines: [] as string[],
+    }
 
     while (true) {
       const { value, done: streamDone } = await reader.read()
       if (streamDone) {
-        flushEvent(currentEvent, dataLines)
+        buffer += decoder.decode()
+        if (buffer) {
+          processLines(buffer.split(/\r?\n/), state)
+          buffer = ''
+        }
+        flushEvent(state.currentEvent, state.dataLines)
         finish()
         return
       }
@@ -212,24 +239,7 @@ export function startAutoImport(
       buffer += decoder.decode(value, { stream: true })
       const lines = buffer.split(/\r?\n/)
       buffer = lines.pop() ?? ''
-
-      for (const line of lines) {
-        if (!line) {
-          flushEvent(currentEvent, dataLines)
-          currentEvent = ''
-          dataLines = []
-          continue
-        }
-
-        if (line.startsWith('event:')) {
-          currentEvent = line.slice('event:'.length).trim()
-          continue
-        }
-
-        if (line.startsWith('data:')) {
-          dataLines.push(line.slice('data:'.length).trimStart())
-        }
-      }
+      processLines(lines, state)
     }
   }
 

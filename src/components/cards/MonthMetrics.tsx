@@ -16,6 +16,7 @@ import { SectionHeader } from '@/components/ui/section-header'
 import { FadeIn } from '@/components/features/animations/FadeIn'
 import { SECTION_HELP } from '@/lib/help-content'
 import { formatCurrency, formatMonthYear, localMonth } from '@/lib/formatters'
+import { getCurrentLocale } from '@/lib/i18n'
 import { normalizeModelName } from '@/lib/model-utils'
 import type { DailyUsage, DashboardMetrics } from '@/types'
 
@@ -26,6 +27,7 @@ interface MonthMetricsProps {
 
 export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
   const { t } = useTranslation()
+  const locale = getCurrentLocale()
   const currentMonth = localMonth()
 
   const monthData = useMemo(
@@ -101,7 +103,12 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
   const ioTotal = agg.inputTokens + agg.outputTokens
   const tokensSubtitle =
     agg.inputTokens > 0 && agg.outputTokens > 0
-      ? t('metricCards.month.ioRatio', { value: (agg.inputTokens / agg.outputTokens).toFixed(1) })
+      ? t('metricCards.month.ioRatio', {
+          value: new Intl.NumberFormat(locale, {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+          }).format(agg.inputTokens / agg.outputTokens),
+        })
       : null
   const modelsSubtitle = agg.topModel
     ? t('metricCards.month.topModel', { value: agg.topModel.name })

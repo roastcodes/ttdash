@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatDateTimeFull } from '@/lib/formatters'
+import { SUPPORTED_LANGUAGES } from '@/lib/i18n'
 import { getProviderBadgeClasses } from '@/lib/model-utils'
 import { DEFAULT_PROVIDER_LIMIT_CONFIG, syncProviderLimits } from '@/lib/provider-limits'
 import {
@@ -324,7 +325,7 @@ export function SettingsModal({
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              {(['de', 'en'] as const).map((nextLanguage) => (
+              {SUPPORTED_LANGUAGES.map((nextLanguage) => (
                 <Button
                   key={nextLanguage}
                   type="button"

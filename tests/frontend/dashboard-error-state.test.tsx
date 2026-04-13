@@ -155,4 +155,105 @@ describe('Dashboard fatal load state', () => {
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
   })
+
+  it('shows the backend upload error instead of masking it as a file-read failure', async () => {
+    const mutateAsync = vi.fn().mockRejectedValue(new Error('Usage payload is invalid'))
+
+    usageHookMocks.useUsageData.mockReturnValue({
+      data: {
+        daily: [],
+        totals: {
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          thinkingTokens: 0,
+          totalCost: 0,
+          totalTokens: 0,
+          requestCount: 0,
+        },
+      },
+      isLoading: false,
+      error: null,
+    })
+    usageHookMocks.useUploadData.mockReturnValue({
+      mutateAsync,
+    })
+
+    render(<Dashboard />, {
+      wrapper: createWrapper(),
+    })
+
+    const input = screen.getByTestId('usage-upload-input') as HTMLInputElement
+    const file = new File([JSON.stringify({ daily: [] })], 'usage.json', {
+      type: 'application/json',
+    })
+
+    fireEvent.change(input, { target: { files: [file] } })
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByText('Usage payload is invalid')).toBeInTheDocument())
+    expect(screen.queryByText('Could not read file')).not.toBeInTheDocument()
+  })
+
+  it('keeps the file-read toast for malformed JSON uploads', async () => {
+    const mutateAsync = vi.fn()
+
+    usageHookMocks.useUsageData.mockReturnValue({
+      data: {
+        daily: [],
+        totals: {
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          thinkingTokens: 0,
+          totalCost: 0,
+          totalTokens: 0,
+          requestCount: 0,
+        },
+      },
+      isLoading: false,
+      error: null,
+    })
+    usageHookMocks.useUploadData.mockReturnValue({
+      mutateAsync,
+    })
+
+    render(<Dashboard />, {
+      wrapper: createWrapper(),
+    })
+
+    const input = screen.getByTestId('usage-upload-input') as HTMLInputElement
+    const file = new File(['{"daily":'], 'broken.json', {
+      type: 'application/json',
+    })
+
+    fireEvent.change(input, { target: { files: [file] } })
+
+    await waitFor(() => expect(screen.getByText('Could not read file')).toBeInTheDocument())
+    expect(mutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('shows a failure toast when deleting corrupted stored data fails', async () => {
+    const mutateAsync = vi.fn().mockRejectedValue(new Error('Delete request failed'))
+
+    usageHookMocks.useUsageData.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('Usage data file is unreadable or corrupted.'),
+    })
+    usageHookMocks.useDeleteData.mockReturnValue({
+      mutateAsync,
+    })
+
+    render(<Dashboard />, {
+      wrapper: createWrapper(),
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete stored data' }))
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByText('Delete request failed')).toBeInTheDocument())
+  })
 })

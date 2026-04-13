@@ -1,5 +1,14 @@
 function isLoopbackHost(host) {
-  return host === '127.0.0.1' || host === 'localhost' || host === '::1';
+  const normalized = String(host || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, '');
+  return (
+    normalized === '127.0.0.1' ||
+    normalized === 'localhost' ||
+    normalized === '::1' ||
+    normalized === '::ffff:127.0.0.1'
+  );
 }
 
 function ensureBindHostAllowed(bindHost, allowRemoteBind) {

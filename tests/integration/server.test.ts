@@ -1,6 +1,7 @@
 import { createConnection, createServer } from 'node:net'
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -649,6 +650,33 @@ describe('local server API', () => {
     }
   })
 
+  it('serves the API only from the configured API prefix', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-api-prefix-test-'))
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        envOverrides: {
+          API_PREFIX: '/custom-api',
+        },
+        readinessPath: '/custom-api/usage',
+      })
+
+      const customPrefixResponse = await fetch(`${standaloneServer.url}/custom-api/usage`)
+      expect(customPrefixResponse.status).toBe(200)
+
+      const defaultPrefixResponse = await fetch(`${standaloneServer.url}/api/usage`)
+      expect(defaultPrefixResponse.status).toBe(404)
+      expect(await defaultPrefixResponse.json()).toEqual({ message: 'Not Found' })
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
   itIfPosix('writes persisted data and settings with restrictive local permissions', async () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-permissions-test-'))
     const dataFile = path.join(getCliDataDir(runtimeRoot), 'data.json')
@@ -680,6 +708,32 @@ describe('local server API', () => {
       expect(permissionBits(path.dirname(settingsFile))).toBe(0o700)
       expect(permissionBits(dataFile)).toBe(0o600)
       expect(permissionBits(settingsFile)).toBe(0o600)
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  itIfPosix('tightens existing app directories to restrictive permissions on startup', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-existing-dir-permissions-test-'))
+    const dataDir = getCliDataDir(runtimeRoot)
+    const configDir = getCliConfigDir(runtimeRoot)
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      mkdirSync(dataDir, { recursive: true, mode: 0o755 })
+      mkdirSync(configDir, { recursive: true, mode: 0o755 })
+      chmodSync(dataDir, 0o755)
+      chmodSync(configDir, 0o755)
+
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+      })
+
+      expect(permissionBits(dataDir)).toBe(0o700)
+      expect(permissionBits(configDir)).toBe(0o700)
     } finally {
       if (standaloneServer) {
         await stopProcess(standaloneServer.child)

@@ -160,8 +160,6 @@ describe('phase 4 UI correctness', () => {
   })
 
   it('localizes drill-down labels in English', async () => {
-    await initI18n('en')
-
     const day: DailyUsage = {
       date: '2026-04-07',
       inputTokens: 60,

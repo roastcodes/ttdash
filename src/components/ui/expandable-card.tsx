@@ -31,7 +31,7 @@ export function ExpandableCard({
           onClick={() => setExpanded(true)}
           className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity duration-200 p-1.5 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-accent text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           title={t('common.expand')}
-          aria-label={title ? `${title} ${t('common.expand').toLowerCase()}` : t('common.expand')}
+          aria-label={title ? t('common.expandWithTitle', { title }) : t('common.expand')}
         >
           <Maximize2 className="h-3.5 w-3.5" />
         </button>

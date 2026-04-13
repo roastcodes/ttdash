@@ -28,7 +28,7 @@ describe('report utils', () => {
       'OpenAI, Anthropic, Google +1 more',
     )
     expect(report.meta.filterSummary.selectedModelsLabel).toBe(
-      'GPT-5.4, Sonnet 4.5, Gemini 2.5 Pro +1 more',
+      'GPT-5.4, Claude Sonnet 4.5, Gemini 2.5 Pro +1 more',
     )
     expect(report.summaryCards[5].label).toBe('Peak period')
     expect(report.summaryCards[5].value).not.toMatch(/^\d{4}-\d{2}-\d{2}$/)
@@ -162,5 +162,17 @@ describe('report utils', () => {
     expect(report.meta.filterSummary.selectedModelsLabel).toBe(
       'GPT-5.3 Codex, Gemini 2.5 Flash, Codex Mini +1 more',
     )
+  })
+
+  it('keeps Claude family names and dotted versions intact in filter summaries', async () => {
+    const { buildReportData } = await import('../../server/report/utils.js')
+
+    const report = buildReportData(dashboardFixture, {
+      viewMode: 'daily',
+      language: 'en',
+      selectedModels: ['claude-sonnet-4-5'],
+    })
+
+    expect(report.meta.filterSummary.selectedModelsLabel).toBe('Claude Sonnet 4.5')
   })
 })
