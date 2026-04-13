@@ -6,6 +6,7 @@ const os = require('os');
 const path = require('path');
 const readline = require('readline/promises');
 const { spawn } = require('child_process');
+const spawnCrossPlatform = require('cross-spawn');
 const { parseArgs } = require('util');
 const { normalizeIncomingData } = require('./usage-normalizer');
 const { generatePdfReport } = require('./server/report');
@@ -1406,10 +1407,6 @@ function sendSSE(res, event, data) {
 
 let autoImportRunning = false;
 
-function shouldUseShell(command) {
-  return IS_WINDOWS && /\.(cmd|bat)$/i.test(command);
-}
-
 function getExecutableName(baseName, isWindows = IS_WINDOWS) {
   if (!isWindows) {
     return baseName;
@@ -1427,9 +1424,10 @@ function getExecutableName(baseName, isWindows = IS_WINDOWS) {
 }
 
 function spawnCommand(command, args, options = {}) {
-  return spawn(command, args, {
+  // cross-spawn resolves Windows command shims without relying on shell=true,
+  // which avoids the DEP0190 warning from Node's child_process APIs.
+  return spawnCrossPlatform(command, args, {
     ...options,
-    shell: options.shell ?? shouldUseShell(command),
     windowsHide: options.windowsHide ?? true,
   });
 }
@@ -1979,6 +1977,7 @@ module.exports = {
   bootstrapCli,
   runCli,
   __test__: {
+    commandExists,
     getExecutableName,
     listenOnAvailablePort,
   },

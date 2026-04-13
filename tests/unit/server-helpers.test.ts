@@ -1,12 +1,13 @@
 import { EventEmitter } from 'node:events'
 import { createRequire } from 'node:module'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const {
-  __test__: { getExecutableName, listenOnAvailablePort },
+  __test__: { commandExists, getExecutableName, listenOnAvailablePort },
 } = require('../../server.js') as {
   __test__: {
+    commandExists: (command: string, args?: string[]) => Promise<boolean>
     getExecutableName: (baseName: string, isWindows?: boolean) => string
     listenOnAvailablePort: (
       serverInstance: {
@@ -22,6 +23,10 @@ const {
     ) => Promise<number>
   }
 }
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 function createFakeServer(
   onListen: (port: number, bindHost: string, emitter: EventEmitter) => void,
@@ -53,6 +58,30 @@ describe('server helper utilities', () => {
     expect(getExecutableName('bunx', false)).toBe('bunx')
     expect(getExecutableName('npx', false)).toBe('npx')
   })
+
+  it.runIf(process.platform === 'win32')(
+    'checks npx on Windows without emitting DEP0190 warnings',
+    async () => {
+      const warningMessages: string[] = []
+      const emitWarning = vi.spyOn(process, 'emitWarning').mockImplementation(((
+        warning: string | Error,
+      ) => {
+        warningMessages.push(typeof warning === 'string' ? warning : warning.message)
+        return process
+      }) as typeof process.emitWarning)
+
+      expect(await commandExists(getExecutableName('npx'))).toBe(true)
+
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(emitWarning).not.toHaveBeenCalledWith(
+        expect.stringContaining('DEP0190'),
+        expect.anything(),
+        expect.anything(),
+      )
+      expect(warningMessages.join('\n')).not.toContain('DEP0190')
+    },
+  )
 
   it('retries iteratively on EADDRINUSE and logs each skipped port', async () => {
     const attempts: number[] = []
