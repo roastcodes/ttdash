@@ -10,7 +10,7 @@ Before the first public release, configure npm Trusted Publishing for this repos
 4. In npm package settings, add this GitHub repository as a trusted publisher for `@roastcodes/ttdash`
 5. Confirm the GitHub Actions release workflow is allowed to request an OIDC token
 6. Install the `ttdash-release` GitHub App on `roastcodes/ttdash`
-7. Add `APP_ID` and `APP_PRIVATE_KEY` as Actions secrets for this repository
+7. Add `APP_CLIENT_ID` and `APP_PRIVATE_KEY` as Actions secrets for this repository or the `release` environment
 8. Add the `ttdash-release` GitHub App as a bypass actor in the `main` ruleset
 
 Trusted Publishing is preferred because it avoids long-lived npm tokens and enables provenance for public publishes.
