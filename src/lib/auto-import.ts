@@ -22,7 +22,7 @@ export interface ProgressEvent {
   key: AutoImportMessageKey
   vars?: Record<string, string | number>
 }
-export interface ProgressMessage {
+export interface ProgressMessage extends ProgressEvent {
   message: string
 }
 export interface StderrEvent {
