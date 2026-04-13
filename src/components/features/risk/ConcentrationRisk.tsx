@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTranslation } from 'react-i18next'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatPercent } from '@/lib/formatters'
 
@@ -31,10 +31,11 @@ export function ConcentrationRisk({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          {t('risk.title')}
-          <InfoButton text={FEATURE_HELP.concentrationRisk} />
-        </CardTitle>
+        <InfoHeading info={FEATURE_HELP.concentrationRisk}>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {t('risk.title')}
+          </CardTitle>
+        </InfoHeading>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

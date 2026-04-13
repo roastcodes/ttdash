@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatTokens, formatPercent } from '@/lib/formatters'
 import { computeMetrics } from '@/lib/calculations'
@@ -105,10 +105,11 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            {t('comparison.title')}
-            <InfoButton text={CHART_HELP.periodComparison} />
-          </CardTitle>
+          <InfoHeading info={CHART_HELP.periodComparison}>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t('comparison.title')}
+            </CardTitle>
+          </InfoHeading>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -168,10 +169,11 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            {t('comparison.title')}
-            <InfoButton text={CHART_HELP.periodComparison} />
-          </CardTitle>
+          <InfoHeading info={CHART_HELP.periodComparison}>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t('comparison.title')}
+            </CardTitle>
+          </InfoHeading>
           <div className="flex gap-1">
             <Button
               variant={preset === 'week' ? 'default' : 'outline'}

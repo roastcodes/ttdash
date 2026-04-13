@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatDateTimeFull } from '@/lib/formatters'
 import { getProviderBadgeClasses } from '@/lib/model-utils'
@@ -271,10 +271,9 @@ export function SettingsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto overflow-x-visible">
         <DialogHeader className="overflow-visible">
-          <DialogTitle className="flex items-center gap-2">
-            {t('settings.modal.title')}
-            <InfoButton text={FEATURE_HELP.providerLimits} />
-          </DialogTitle>
+          <InfoHeading info={FEATURE_HELP.providerLimits}>
+            <DialogTitle>{t('settings.modal.title')}</DialogTitle>
+          </InfoHeading>
           <DialogDescription>{t('settings.modal.description')}</DialogDescription>
         </DialogHeader>
 

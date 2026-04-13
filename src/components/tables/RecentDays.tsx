@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatCurrency, formatDate, formatPercent, formatNumber } from '@/lib/formatters'
 import {
@@ -115,16 +115,15 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex flex-col gap-0.5">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            <span className="inline-flex items-center gap-2">
+          <InfoHeading info={FEATURE_HELP.recentDays}>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               {viewMode === 'monthly'
                 ? t('tables.recentDays.monthsDetail')
                 : viewMode === 'yearly'
                   ? t('tables.recentDays.yearsDetail')
                   : t('tables.recentDays.daysDetail')}
-              <InfoButton text={FEATURE_HELP.recentDays} />
-            </span>
-          </CardTitle>
+            </CardTitle>
+          </InfoHeading>
           <span className="text-xs text-muted-foreground/70">
             {t('tables.recentDays.showing', {
               shown: displayed.length,

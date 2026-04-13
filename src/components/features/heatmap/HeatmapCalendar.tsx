@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_HELP } from '@/lib/help-content'
 import {
   formatCurrency,
@@ -163,10 +163,11 @@ export function HeatmapCalendar({
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            {config.title}
-            <InfoButton text={infoText} />
-          </CardTitle>
+          <InfoHeading info={infoText}>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {config.title}
+            </CardTitle>
+          </InfoHeading>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -188,10 +189,11 @@ export function HeatmapCalendar({
   return (
     <Card className="overflow-visible">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          {config.title}
-          <InfoButton text={infoText} />
-        </CardTitle>
+        <InfoHeading info={infoText}>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {config.title}
+          </CardTitle>
+        </InfoHeading>
       </CardHeader>
       <CardContent className="overflow-visible">
         <div ref={overlayRef} className="relative overflow-visible z-10">

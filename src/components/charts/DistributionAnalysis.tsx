@@ -12,7 +12,7 @@ import {
   Cell,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatTokens, periodLabel } from '@/lib/formatters'
@@ -123,10 +123,11 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            {t('charts.distribution.title')}
-            <InfoButton text={CHART_HELP.distributionAnalysis} />
-          </CardTitle>
+          <InfoHeading info={CHART_HELP.distributionAnalysis}>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t('charts.distribution.title')}
+            </CardTitle>
+          </InfoHeading>
         </CardHeader>
         <CardContent>
           <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-sm text-muted-foreground">
@@ -140,10 +141,11 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          {t('charts.distribution.title')}
-          <InfoButton text={CHART_HELP.distributionAnalysis} />
-        </CardTitle>
+        <InfoHeading info={CHART_HELP.distributionAnalysis}>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {t('charts.distribution.title')}
+          </CardTitle>
+        </InfoHeading>
       </CardHeader>
       <CardContent className="space-y-5">
         {distributions.map((distribution, index) => (

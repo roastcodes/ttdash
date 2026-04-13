@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import {
   formatPercent,
@@ -165,10 +165,11 @@ export function ModelEfficiency({
       <CardHeader>
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              {t('tables.modelEfficiency.title')}
-              <InfoButton text={FEATURE_HELP.modelEfficiency} />
-            </CardTitle>
+            <InfoHeading info={FEATURE_HELP.modelEfficiency}>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {t('tables.modelEfficiency.title')}
+              </CardTitle>
+            </InfoHeading>
             <span className="text-xs text-muted-foreground">
               {t('tables.modelEfficiency.count', { count: models.length })}
             </span>
@@ -257,7 +258,9 @@ export function ModelEfficiency({
                   <div className="mt-1 font-mono">{formatTokens(model.tokens)}</div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                  <div className="text-muted-foreground">$/1M</div>
+                  <div className="text-muted-foreground">
+                    {t('tables.modelEfficiency.costPerMillion')}
+                  </div>
                   <div className="mt-1 font-mono">
                     <FormattedValue value={model.costPerMillion} type="currency" />
                   </div>
@@ -267,13 +270,17 @@ export function ModelEfficiency({
                   <div className="mt-1 font-mono">{formatNumber(model.requests)}</div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                  <div className="text-muted-foreground">$/Req</div>
+                  <div className="text-muted-foreground">
+                    {t('tables.modelEfficiency.costPerReq')}
+                  </div>
                   <div className="mt-1 font-mono">
                     <FormattedValue value={model.costPerRequest} type="currency" />
                   </div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                  <div className="text-muted-foreground">Tokens/Req</div>
+                  <div className="text-muted-foreground">
+                    {t('tables.modelEfficiency.tokensPerReq')}
+                  </div>
                   <div className="mt-1 font-mono">{formatTokens(model.tokensPerRequest)}</div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">

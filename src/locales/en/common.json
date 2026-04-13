@@ -100,6 +100,8 @@
   },
   "filterBar": {
     "status": "Filter status",
+    "viewModeLabel": "View mode",
+    "focusMonthLabel": "Focus month",
     "providersActive": "{{count}} providers active",
     "modelsActive": "{{count}} models active",
     "dateFilterActive": "Date filter active",
@@ -608,7 +610,10 @@
       "github": "GitHub",
       "issues": "GitHub Issues"
     },
-    "chartsAndFeatures": "Charts & features",
+    "chartsAndFeatures": "Charts",
+    "dashboardSectionsTitle": "Dashboard sections",
+    "featuresTitle": "Features",
+    "tablesTitle": "Tables",
     "metricLabels": {
       "totalCost": "Total cost",
       "totalTokens": "Total tokens",
@@ -640,6 +645,9 @@
       "tokenHeatmap": "Token heatmap",
       "forecast": "Forecast",
       "cacheROI": "Cache ROI",
+      "providerLimitProgress": "Provider limit usage",
+      "providerSubscriptionMix": "Provider subscriptions vs. API cost",
+      "providerLimitTimeline": "Provider limits over time",
       "periodComparison": "Period comparison",
       "anomalyDetection": "Anomaly detection",
       "cellLabel": "{{date}}: {{value}}"
@@ -944,6 +952,12 @@
   "chartCard": {
     "expandedDescription": "Expanded chart view with metric summary and optional CSV export.",
     "exportCsv": "Export CSV"
+  },
+  "customTooltip": {
+    "total": "Total",
+    "delta": "Delta",
+    "vsPrevious": "vs. previous",
+    "vsAverage": "vs. avg"
   },
   "limits": {
     "sectionTitle": "Limits & Subscriptions",

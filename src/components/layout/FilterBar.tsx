@@ -392,7 +392,7 @@ export function FilterBar({
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[160px_190px_1fr]">
           <Select value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-label={t('filterBar.viewModeLabel')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -408,7 +408,7 @@ export function FilterBar({
             value={selectedMonth ?? 'all'}
             onValueChange={(v) => onMonthChange(v === 'all' ? null : v)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-label={t('filterBar.focusMonthLabel')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

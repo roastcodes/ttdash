@@ -20,6 +20,7 @@ const dailyViewPattern = /^(Tagesansicht|Daily view)$/
 const last30DaysPattern = /^(Letzte 30 Tage|Last 30 days)$/
 const defaultDailyPattern = /^(Täglich|Daily)$/
 const allDataPattern = /^(Alle Daten|All data)$/
+const viewModeComboboxPattern = /^(Ansichtsmodus|View mode)$/
 
 async function uploadSampleUsage(page: Page) {
   await page.locator('[data-testid="usage-upload-input"]').setInputFiles(sampleUsagePath)
@@ -147,9 +148,9 @@ test('manages settings and backup imports through the settings dialog using isol
 
   await expect(dialog).toBeHidden()
   await expect(page.locator('#token-analysis')).toBeVisible()
-  await expect(page.locator('#filters').getByRole('combobox').first()).toContainText(
-    dailyViewPattern,
-  )
+  await expect(
+    page.locator('#filters').getByRole('combobox', { name: viewModeComboboxPattern }),
+  ).toContainText(dailyViewPattern)
 
   await page.evaluate(() => {
     const globalWindow = window as typeof window & {
@@ -181,15 +182,15 @@ test('manages settings and backup imports through the settings dialog using isol
 
   await expect(dialog).toBeHidden()
   await expect(page.locator('#token-analysis')).toHaveCount(0)
-  await expect(page.locator('#filters').getByRole('combobox').first()).toContainText(
-    monthlyViewPattern,
-  )
+  await expect(
+    page.locator('#filters').getByRole('combobox', { name: viewModeComboboxPattern }),
+  ).toContainText(monthlyViewPattern)
 
   await page.reload()
   await expect(page.locator('#token-analysis')).toHaveCount(0)
-  await expect(page.locator('#filters').getByRole('combobox').first()).toContainText(
-    monthlyViewPattern,
-  )
+  await expect(
+    page.locator('#filters').getByRole('combobox', { name: viewModeComboboxPattern }),
+  ).toContainText(monthlyViewPattern)
 
   await page.evaluate(() => {
     const globalWindow = window as typeof window & {
@@ -439,9 +440,9 @@ test('loads persisted settings on a fresh browser start and applies them immedia
     await expect(freshPage.locator('#filters').getByText('Filter status')).toBeVisible()
     await expect(freshPage.locator('#filters').getByText('1 providers active')).toBeVisible()
     await expect(freshPage.locator('#filters').getByText('1 models active')).toBeVisible()
-    await expect(freshPage.locator('#filters').getByRole('combobox').first()).toContainText(
-      'Monthly view',
-    )
+    await expect(
+      freshPage.locator('#filters').getByRole('combobox', { name: viewModeComboboxPattern }),
+    ).toContainText('Monthly view')
     await expect(freshPage.getByRole('button', { name: 'Delete' })).toBeVisible()
     await expect
       .poll(async () =>

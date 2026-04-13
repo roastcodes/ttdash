@@ -306,7 +306,7 @@ describe('phase 4 UI correctness', () => {
     expect(screen.getByText('Einblicke')).toBeInTheDocument()
     expect(screen.getByText('Kurzfazit')).toBeInTheDocument()
     expect(document.body.textContent).toContain('Input/Output-Verhältnis')
-    expect(document.body.textContent).toContain('pro Request')
+    expect(document.body.textContent).toContain('pro Anfrage')
     expect(document.body.textContent).not.toContain('Req-Lead')
     expect(document.body.textContent).not.toContain('Quick Read')
     expect(document.body.textContent).not.toContain('Streak')
