@@ -11,7 +11,11 @@ Before the first public release, configure npm Trusted Publishing for this repos
 5. Confirm the GitHub Actions release workflow is allowed to request an OIDC token
 6. Install the `ttdash-release` GitHub App on `roastcodes/ttdash`
 7. Add `APP_CLIENT_ID` and `APP_PRIVATE_KEY` as Actions secrets for this repository or the `release` environment
-8. Add the `ttdash-release` GitHub App as a bypass actor in the `main` ruleset
+8. Add `OP_SERVICE_ACCOUNT_TOKEN_PUBLIC` as an Actions secret for this repository or the `release` environment
+9. Add `OP_SSH_BASE_URL` as an Actions secret for this repository or the `release` environment and point it to the shared 1Password item prefix for the release signer
+10. Add the `ttdash-release` GitHub App as a bypass actor in the `main` ruleset
+
+The release workflow loads the SSH signing identity from 1Password through the public-repo service account token. `OP_SSH_BASE_URL` should contain only the common item prefix, for example `op://vault/item/`, while the workflow appends `name`, `comment`, `public key`, and `private key?ssh-format=openssh` internally. The SSH public key must remain added to the maintainer GitHub account as an SSH signing key, and the signing email used by the workflow must stay valid for both GitHub verification and the `roastcodes` organization trailer.
 
 Trusted Publishing is preferred because it avoids long-lived npm tokens and enables provenance for public publishes.
 
@@ -23,7 +27,8 @@ Before using the manual release workflow, make sure:
 
 1. `main` is protected and requires the `CI` status check before merges
 2. CodeQL is enabled in the GitHub UI if you want it as a manual release gate
-3. the `ttdash-release` GitHub App is allowed to push the version-bump commit and annotated tag back to `main`
+3. the `ttdash-release` GitHub App is allowed to push the version-bump commit and signed tag back to `main`
+4. the `roast.codes` domain remains verified for the `roastcodes` organization so the workflow-created `on-behalf-of: @roastcodes <github@roast.codes>` trailer continues to render correctly on GitHub
 
 If branch protection or rulesets block the `ttdash-release` app from writing to `main` or pushing `v*` tags, the workflow will fail when it tries to push the release commit or tag.
 
@@ -55,14 +60,15 @@ On a manual `workflow_dispatch` run against `main`, the workflow:
 6. builds the production bundle
 7. verifies the packed npm artifact
 8. runs the Playwright smoke suite
-9. creates and pushes the release commit and annotated tag
-10. publishes `@roastcodes/ttdash` to npm through Trusted Publishing
-11. waits for npm registry propagation
-12. verifies:
+9. loads the SSH signing identity from 1Password and verifies the signing setup locally in the runner
+10. creates and pushes the signed release commit and signed tag, with the release commit carrying `on-behalf-of: @roastcodes <github@roast.codes>`
+11. publishes `@roastcodes/ttdash` to npm through Trusted Publishing
+12. waits for npm registry propagation
+13. verifies:
     - `npx --yes @roastcodes/ttdash@<version> --help`
     - `bunx @roastcodes/ttdash@<version> --help`
 
-13. creates the GitHub release
+14. creates the GitHub release
 
 Note: the workflow reruns the release-critical test suite itself after the version bump. This is necessary because the workflow-created push back to `main` should not be relied on to trigger the normal `CI` workflow again.
 If a release fails after the version bump was already pushed, rerunning the workflow with the same version resumes that release instead of forcing another version bump.

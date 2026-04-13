@@ -100,11 +100,6 @@ jobs:
             --retries 90 \
             --retry-delay-ms 10000
 
-      - name: Configure git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
       - name: Configure authenticated remote
         env:
           APP_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -147,18 +142,66 @@ jobs:
         with:
           bun-version: 1.3.4
 
-      - name: Create release commit and tag
+      - name: Load release signing secrets
+        id: load-release-secrets
+        uses: 1Password/load-secrets-action@dafbe7cb03502b260e2b2893c753c352eee545bf # v3
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
+          RELEASE_SIGNER_NAME: ${{ secrets.OP_SSH_BASE_URL }}name
+          RELEASE_SIGNER_EMAIL: ${{ secrets.OP_SSH_BASE_URL }}comment
+          RELEASE_SIGNING_PUBLIC_KEY: ${{ secrets.OP_SSH_BASE_URL }}public key
+          RELEASE_SIGNING_PRIVATE_KEY: ${{ secrets.OP_SSH_BASE_URL }}private key?ssh-format=openssh
+
+      - name: Write SSH signing key files
+        env:
+          RELEASE_SIGNING_PRIVATE_KEY: ${{ steps.load-release-secrets.outputs.RELEASE_SIGNING_PRIVATE_KEY }}
+          RELEASE_SIGNING_PUBLIC_KEY: ${{ steps.load-release-secrets.outputs.RELEASE_SIGNING_PUBLIC_KEY }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/release-signing"
+          printf '%s\n' "${RELEASE_SIGNING_PRIVATE_KEY}" > "${RUNNER_TEMP}/release-signing/signing-key"
+          printf '%s\n' "${RELEASE_SIGNING_PUBLIC_KEY}" > "${RUNNER_TEMP}/release-signing/signing-key.pub"
+          chmod 600 "${RUNNER_TEMP}/release-signing/signing-key"
+          chmod 644 "${RUNNER_TEMP}/release-signing/signing-key.pub"
+
+      - name: Configure git identity and SSH signing
+        env:
+          RELEASE_SIGNER_NAME: ${{ steps.load-release-secrets.outputs.RELEASE_SIGNER_NAME }}
+          RELEASE_SIGNER_EMAIL: ${{ steps.load-release-secrets.outputs.RELEASE_SIGNER_EMAIL }}
+        run: |
+          git config user.name "${RELEASE_SIGNER_NAME}"
+          git config user.email "${RELEASE_SIGNER_EMAIL}"
+          git config gpg.format ssh
+          git config user.signingkey "${RUNNER_TEMP}/release-signing/signing-key.pub"
+          git config commit.gpgsign true
+          git config tag.gpgSign true
+
+          printf '%s ' "${RELEASE_SIGNER_EMAIL}" > "${RUNNER_TEMP}/release-signing/allowed-signers"
+          cat "${RUNNER_TEMP}/release-signing/signing-key.pub" >> "${RUNNER_TEMP}/release-signing/allowed-signers"
+          git config gpg.ssh.allowedSignersFile "${RUNNER_TEMP}/release-signing/allowed-signers"
+
+      - name: Verify SSH signing setup
+        run: |
+          PROBE_TAG="release-signing-probe-${GITHUB_RUN_ID}"
+          git tag -s "${PROBE_TAG}" -m "${PROBE_TAG}"
+          git tag -v "${PROBE_TAG}"
+          git tag -d "${PROBE_TAG}"
+
+      - name: Create signed release commit and tag
         run: |
           git fetch --tags origin
           if [[ "${SHOULD_BUMP}" = "true" ]]; then
             git add package.json package-lock.json
-            git commit -m "v${RELEASE_VERSION}: Release"
+            git commit -S \
+              -m "v${RELEASE_VERSION}: Release" \
+              -m "on-behalf-of: @roastcodes <github@roast.codes>"
+            git log -1 --show-signature
           fi
 
           if git rev-parse "${RELEASE_TAG}" >/dev/null 2>&1; then
             echo "Tag ${RELEASE_TAG} already exists locally. Skipping tag creation."
           else
-            git tag -a "${RELEASE_TAG}" -m "${RELEASE_TAG}"
+            git tag -s "${RELEASE_TAG}" -m "${RELEASE_TAG}"
+            git tag -v "${RELEASE_TAG}"
           fi
 
       - name: Push release commit and tag
