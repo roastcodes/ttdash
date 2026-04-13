@@ -1,4 +1,4 @@
-import { createServer } from 'node:net'
+import { createConnection, createServer } from 'node:net'
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -103,6 +103,7 @@ async function waitForProcessServer(
   currentChild: ChildProcessWithoutNullStreams,
   url: string,
   getOutput: () => string,
+  readinessPath = '/api/usage',
 ) {
   const startedAt = Date.now()
 
@@ -112,7 +113,7 @@ async function waitForProcessServer(
     }
 
     try {
-      const response = await fetch(`${url}/api/usage`)
+      const response = await fetch(`${url}${readinessPath}`)
       if (response.ok) {
         return
       }
@@ -152,10 +153,12 @@ async function startStandaloneServer({
   root,
   args = [],
   envOverrides = {},
+  readinessPath = '/api/usage',
 }: {
   root: string
   args?: string[]
   envOverrides?: NodeJS.ProcessEnv
+  readinessPath?: string
 }) {
   const port = Number(envOverrides.PORT) || (await getFreePort())
   const url = `http://127.0.0.1:${port}`
@@ -179,7 +182,7 @@ async function startStandaloneServer({
     serverOutput += chunk.toString()
   })
 
-  await waitForProcessServer(currentChild, url, () => serverOutput)
+  await waitForProcessServer(currentChild, url, () => serverOutput, readinessPath)
 
   return {
     child: currentChild,
@@ -199,6 +202,36 @@ function getCliConfigDir(root: string) {
   }
 
   return path.join(root, 'config', 'ttdash')
+}
+
+function getCliDataDir(root: string) {
+  if (process.platform === 'darwin') {
+    return path.join(root, 'Library', 'Application Support', 'TTDash')
+  }
+
+  if (process.platform === 'win32') {
+    return path.join(root, 'AppData', 'Local', 'TTDash')
+  }
+
+  return path.join(root, 'data', 'ttdash')
+}
+
+async function sendRawHttpRequest(port: number, request: string) {
+  return await new Promise<string>((resolve, reject) => {
+    const socket = createConnection(port, '127.0.0.1')
+    let response = ''
+
+    socket.on('connect', () => {
+      socket.write(request)
+    })
+    socket.on('data', (chunk) => {
+      response += chunk.toString()
+    })
+    socket.on('end', () => {
+      resolve(response)
+    })
+    socket.on('error', reject)
+  })
 }
 
 function readBackgroundRegistry(root: string) {
@@ -853,6 +886,62 @@ describe('local server API', () => {
     })
   })
 
+  it('returns 400 for malformed request paths without crashing the server', async () => {
+    const port = Number(new URL(baseUrl).port)
+    const rawResponse = await sendRawHttpRequest(
+      port,
+      'GET /%E0%A4%A HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n',
+    )
+
+    expect(rawResponse.startsWith('HTTP/1.1 400 Bad Request')).toBe(true)
+    expect(rawResponse).toContain('{"message":"Invalid request path"}')
+
+    const usageResponse = await fetch(`${baseUrl}/api/usage`)
+    expect(usageResponse.status).toBe(200)
+  })
+
+  it('returns 413 for oversized upload payloads instead of resetting the connection', async () => {
+    const oversizedPayload = `"${'a'.repeat(11 * 1024 * 1024)}"`
+
+    const response = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: oversizedPayload,
+    })
+
+    expect(response.status).toBe(413)
+    expect(await response.json()).toEqual({
+      message: 'File too large (max. 10 MB)',
+    })
+
+    const usageResponse = await fetch(`${baseUrl}/api/usage`)
+    expect(usageResponse.status).toBe(200)
+  })
+
+  it('returns 413 for oversized report payloads instead of resetting the connection', async () => {
+    const seedResponse = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sampleUsage),
+    })
+    expect(seedResponse.status).toBe(200)
+
+    const oversizedPayload = `"${'a'.repeat(11 * 1024 * 1024)}"`
+    const response = await fetch(`${baseUrl}/api/report/pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: oversizedPayload,
+    })
+
+    expect(response.status).toBe(413)
+    expect(await response.json()).toEqual({
+      message: 'Report request too large',
+    })
+
+    const usageResponse = await fetch(`${baseUrl}/api/usage`)
+    expect(usageResponse.status).toBe(200)
+  })
+
   it('starts background servers and stops the selected instance via the CLI', async () => {
     const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-test-'))
     const backgroundEnv = createCliEnv(backgroundRoot)
@@ -1081,4 +1170,86 @@ describe('local server API', () => {
       rmSync(cliRoot, { recursive: true, force: true })
     }
   }, 20_000)
+
+  it('returns 500 for corrupt persisted usage data and recovers after deletion', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-corrupt-usage-test-'))
+    const dataFile = path.join(getCliDataDir(runtimeRoot), 'data.json')
+    mkdirSync(path.dirname(dataFile), { recursive: true })
+    writeFileSync(dataFile, '{not-json')
+
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        readinessPath: '/api/runtime',
+      })
+
+      const corruptResponse = await fetch(`${standaloneServer.url}/api/usage`)
+      expect(corruptResponse.status).toBe(500)
+      expect(await corruptResponse.json()).toEqual({
+        message: 'Usage data file is unreadable or corrupted.',
+      })
+
+      const deleteResponse = await fetch(`${standaloneServer.url}/api/usage`, {
+        method: 'DELETE',
+      })
+      expect(deleteResponse.status).toBe(200)
+
+      const recoveredResponse = await fetch(`${standaloneServer.url}/api/usage`)
+      expect(recoveredResponse.status).toBe(200)
+      expect(await recoveredResponse.json()).toMatchObject({
+        daily: [],
+        totals: {
+          totalCost: 0,
+          totalTokens: 0,
+        },
+      })
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('returns 500 for corrupt persisted settings and recovers after deletion', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-corrupt-settings-test-'))
+    const settingsFile = path.join(getCliConfigDir(runtimeRoot), 'settings.json')
+    mkdirSync(path.dirname(settingsFile), { recursive: true })
+    writeFileSync(settingsFile, '{not-json')
+
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+      })
+
+      const corruptResponse = await fetch(`${standaloneServer.url}/api/settings`)
+      expect(corruptResponse.status).toBe(500)
+      expect(await corruptResponse.json()).toEqual({
+        message: 'Settings file is unreadable or corrupted.',
+      })
+
+      const deleteResponse = await fetch(`${standaloneServer.url}/api/settings`, {
+        method: 'DELETE',
+      })
+      expect(deleteResponse.status).toBe(200)
+
+      const recoveredResponse = await fetch(`${standaloneServer.url}/api/settings`)
+      expect(recoveredResponse.status).toBe(200)
+      expect(await recoveredResponse.json()).toMatchObject({
+        language: 'de',
+        theme: 'dark',
+        providerLimits: {},
+        defaultFilters: DEFAULT_DASHBOARD_FILTERS,
+      })
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
 })

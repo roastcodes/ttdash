@@ -4,7 +4,25 @@ export interface CheckEvent {
   method?: string
   version?: string
 }
+type AutoImportMessageKey =
+  | 'startingLocalImport'
+  | 'loadingUsageData'
+  | 'processingUsageData'
+  | 'serverConnectionLost'
+  | 'autoImportRunning'
+  | 'noRunnerFound'
+  | 'errorPrefix'
+
+type AutoImportMessageEvent = {
+  key: AutoImportMessageKey
+  vars?: Record<string, string | number>
+}
+
 export interface ProgressEvent {
+  key: AutoImportMessageKey
+  vars?: Record<string, string | number>
+}
+export interface ProgressMessage {
   message: string
 }
 export interface StderrEvent {
@@ -15,6 +33,10 @@ export interface SuccessEvent {
   totalCost: number
 }
 export interface ErrorEvent {
+  key: AutoImportMessageKey
+  vars?: Record<string, string | number>
+}
+export interface ErrorMessage {
   message: string
 }
 
@@ -38,48 +60,40 @@ export function parseEventData<T>(event: Event): T | null {
   }
 }
 
-function translateAutoImportMessage(message: string, t: AutoImportTranslator) {
-  if (message === 'Starte lokalen toktrack-Import...') {
-    return t('autoImportModal.startingLocalImport')
+export function translateAutoImportEvent(event: AutoImportMessageEvent, t: AutoImportTranslator) {
+  switch (event.key) {
+    case 'startingLocalImport':
+      return t('autoImportModal.startingLocalImport')
+    case 'loadingUsageData':
+      return t('autoImportModal.loadingUsageData', {
+        command: String(event.vars?.['command'] ?? ''),
+      })
+    case 'processingUsageData':
+      return t('autoImportModal.processingUsageData', {
+        seconds: String(event.vars?.['seconds'] ?? '0'),
+      })
+    case 'serverConnectionLost':
+      return t('autoImportModal.serverConnectionLost')
+    case 'autoImportRunning':
+      return t('autoImportModal.autoImportRunning')
+    case 'noRunnerFound':
+      return t('autoImportModal.noRunnerFound')
+    case 'errorPrefix':
+      return t('autoImportModal.errorPrefix', {
+        message: String(event.vars?.['message'] ?? ''),
+      })
+    default:
+      return event.key
   }
-
-  if (message.startsWith('Lade Nutzungsdaten via ')) {
-    return t('autoImportModal.loadingUsageData', {
-      command: message.replace('Lade Nutzungsdaten via ', '').replace(/\.\.\.$/, ''),
-    })
-  }
-
-  const processingMatch = message.match(/^Verarbeite Nutzungsdaten\.\.\. \((\d+)s\)$/)
-  if (processingMatch) {
-    return t('autoImportModal.processingUsageData', { seconds: processingMatch[1] ?? '0' })
-  }
-
-  if (message === 'Verbindung zum Server verloren.') {
-    return t('autoImportModal.serverConnectionLost')
-  }
-
-  if (message === 'Ein Auto-Import läuft bereits. Bitte warten.') {
-    return t('autoImportModal.autoImportRunning')
-  }
-
-  if (message === 'Kein lokales toktrack, Bun oder npm exec gefunden.') {
-    return t('autoImportModal.noRunnerFound')
-  }
-
-  if (message.startsWith('Fehler: ')) {
-    return t('autoImportModal.errorPrefix', { message: message.replace(/^Fehler: /, '') })
-  }
-
-  return message
 }
 
 export function startAutoImport(
   callbacks: {
     onCheck: (data: CheckEvent) => void
-    onProgress: (data: ProgressEvent) => void
+    onProgress: (data: ProgressMessage) => void
     onStderr: (data: StderrEvent) => void
     onSuccess: (data: SuccessEvent) => void
-    onError: (data: ErrorEvent) => void
+    onError: (data: ErrorMessage) => void
     onDone: () => void
   },
   t: AutoImportTranslator = (key) => key,
@@ -95,13 +109,16 @@ export function startAutoImport(
   es.addEventListener('progress', (event) => {
     const data = parseEventData<ProgressEvent>(event)
     if (data) {
-      callbacks.onProgress({ ...data, message: translateAutoImportMessage(data.message, t) })
+      callbacks.onProgress({
+        ...data,
+        message: translateAutoImportEvent(data, t),
+      })
     }
   })
   es.addEventListener('stderr', (event) => {
     const data = parseEventData<StderrEvent>(event)
     if (data) {
-      callbacks.onStderr({ ...data, line: translateAutoImportMessage(data.line, t) })
+      callbacks.onStderr(data)
     }
   })
   es.addEventListener('success', (event) => {
@@ -114,7 +131,9 @@ export function startAutoImport(
     // SSE 'error' can be both our custom event and a connection error
     const data = parseEventData<ErrorEvent>(event)
     if (data) {
-      callbacks.onError({ ...data, message: translateAutoImportMessage(data.message, t) })
+      callbacks.onError({
+        message: translateAutoImportEvent(data, t),
+      })
     } else {
       callbacks.onError({ message: t('autoImportModal.serverConnectionLost') })
       es.close()
