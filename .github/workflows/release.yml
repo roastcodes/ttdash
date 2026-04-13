@@ -160,6 +160,15 @@ jobs:
         with:
           bun-version: 1.3.4
 
+      - name: Validate 1Password base URL format
+        env:
+          OP_SSH_BASE_URL: ${{ secrets.OP_SSH_BASE_URL }}
+        run: |
+          if [[ ! "${OP_SSH_BASE_URL}" =~ /$ ]]; then
+            echo "OP_SSH_BASE_URL must end with a trailing slash, e.g. op://vault/item/"
+            exit 1
+          fi
+
       - name: Load release signing secrets
         id: load-release-secrets
         uses: 1Password/load-secrets-action@dafbe7cb03502b260e2b2893c753c352eee545bf # v3

@@ -12,10 +12,10 @@ Before the first public release, configure npm Trusted Publishing for this repos
 6. Install the `ttdash-release` GitHub App on `roastcodes/ttdash`
 7. Add `APP_CLIENT_ID` and `APP_PRIVATE_KEY` as Actions secrets for this repository or the `release` environment
 8. Add `OP_SERVICE_ACCOUNT_TOKEN_PUBLIC` as an Actions secret for this repository or the `release` environment
-9. Add `OP_SSH_BASE_URL` as an Actions secret for this repository or the `release` environment and point it to the shared 1Password item prefix for the release signer
+9. Add `OP_SSH_BASE_URL` as an Actions secret for this repository or the `release` environment, point it to the shared 1Password item prefix for the release signer, and make sure it ends with a trailing `/`
 10. Add the `ttdash-release` GitHub App as a bypass actor in the `main` ruleset
 
-The release workflow loads the SSH signing identity from 1Password through the public-repo service account token. `OP_SSH_BASE_URL` should contain only the common item prefix, for example `op://vault/item/`, while the workflow appends `name`, `comment`, `public key`, and `private key?ssh-format=openssh` internally. The SSH public key must remain added to the maintainer GitHub account as an SSH signing key, and the signing email used by the workflow must stay valid for both GitHub verification and the `roastcodes` organization trailer.
+The release workflow loads the SSH signing identity from 1Password through the public-repo service account token. `OP_SSH_BASE_URL` must contain only the common item prefix and must end with `/`, for example `op://vault/item/`, while the workflow appends `name`, `comment`, `public key`, and `private key?ssh-format=openssh` internally. The workflow validates this format before loading secrets. The SSH public key must remain added to the maintainer GitHub account as an SSH signing key, and the signing email used by the workflow must stay valid for both GitHub verification and the `roastcodes` organization trailer.
 
 Trusted Publishing is preferred because it avoids long-lived npm tokens and enables provenance for public publishes.
 
