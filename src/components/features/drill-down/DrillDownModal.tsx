@@ -76,28 +76,20 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
 
   if (!day) return null
 
-  const hasTokens = day.totalTokens > 0
-
-  const cacheRate =
+  const tokensTotal =
     day.cacheReadTokens +
-      day.cacheCreationTokens +
-      day.inputTokens +
-      day.outputTokens +
-      day.thinkingTokens >
-    0
-      ? (day.cacheReadTokens /
-          (day.cacheReadTokens +
-            day.cacheCreationTokens +
-            day.inputTokens +
-            day.outputTokens +
-            day.thinkingTokens)) *
-        100
-      : 0
+    day.cacheCreationTokens +
+    day.inputTokens +
+    day.outputTokens +
+    day.thinkingTokens
+  const hasTokens = tokensTotal > 0
+
+  const cacheRate = hasTokens ? (day.cacheReadTokens / tokensTotal) * 100 : 0
 
   const pieData = modelData.map((m) => ({ name: m.name, value: m.cost }))
-  const avgTokensPerRequest = day.requestCount > 0 ? day.totalTokens / day.requestCount : 0
+  const avgTokensPerRequest = day.requestCount > 0 ? tokensTotal / day.requestCount : 0
   const avgCostPerRequest = day.requestCount > 0 ? day.totalCost / day.requestCount : 0
-  const costPerMillion = hasTokens ? day.totalCost / (day.totalTokens / 1_000_000) : null
+  const costPerMillion = hasTokens ? day.totalCost / (tokensTotal / 1_000_000) : null
   const costRanking =
     [...contextData]
       .sort((a, b) => b.totalCost - a.totalCost)
@@ -126,7 +118,7 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
     null as (typeof modelData)[number] | null,
   )
   const formatTokenShare = (value: number) =>
-    hasTokens ? formatPercent((value / day.totalTokens) * 100) : '–'
+    hasTokens ? formatPercent((value / tokensTotal) * 100) : '–'
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -145,7 +137,7 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
           <div className="p-2 rounded-lg bg-muted/30">
             <div className="text-xs text-muted-foreground">Tokens</div>
             <div className="font-mono font-medium">
-              <FormattedValue value={day.totalTokens} type="tokens" />
+              <FormattedValue value={tokensTotal} type="tokens" />
             </div>
           </div>
           <div className="p-2 rounded-lg bg-muted/30">
@@ -249,10 +241,10 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
                   key={seg.label}
                   className="h-full transition-all duration-500"
                   style={{
-                    width: `${(seg.value / day.totalTokens) * 100}%`,
+                    width: `${(seg.value / tokensTotal) * 100}%`,
                     backgroundColor: seg.color,
                   }}
-                  title={`${seg.label}: ${formatTokens(seg.value)} (${((seg.value / day.totalTokens) * 100).toFixed(1)}%)`}
+                  title={`${seg.label}: ${formatTokens(seg.value)} (${((seg.value / tokensTotal) * 100).toFixed(1)}%)`}
                 />
               ))}
           </div>

@@ -117,4 +117,41 @@ describe('phase 4 UI correctness', () => {
     expect(document.body.textContent).not.toContain('NaN')
     expect(screen.getAllByText('–').length).toBeGreaterThan(0)
   })
+
+  it('uses the canonical token sum instead of a stale day.totalTokens value', () => {
+    const day: DailyUsage = {
+      date: '2026-04-07',
+      inputTokens: 60,
+      outputTokens: 20,
+      cacheCreationTokens: 10,
+      cacheReadTokens: 10,
+      thinkingTokens: 0,
+      totalTokens: 1,
+      totalCost: 5,
+      requestCount: 2,
+      modelsUsed: ['gpt-5.4'],
+      modelBreakdowns: [
+        {
+          modelName: 'gpt-5.4',
+          inputTokens: 60,
+          outputTokens: 20,
+          cacheCreationTokens: 10,
+          cacheReadTokens: 10,
+          thinkingTokens: 0,
+          cost: 5,
+          requestCount: 2,
+        },
+      ],
+    }
+
+    render(
+      <TooltipProvider>
+        <DrillDownModal day={day} contextData={[day]} open onClose={() => {}} />
+      </TooltipProvider>,
+    )
+
+    expect(screen.getAllByText('100').length).toBeGreaterThan(0)
+    expect(screen.getByText(/\$50\.0k/)).toBeInTheDocument()
+    expect(screen.getByText('Cache Read 10.0%')).toBeInTheDocument()
+  })
 })
