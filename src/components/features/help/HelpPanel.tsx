@@ -15,6 +15,7 @@ import {
   SECTION_HELP,
   FEATURE_HELP,
 } from '@/lib/help-content'
+import { GITHUB_ISSUES_URL, GITHUB_REPO_URL, NPM_PACKAGE_URL, VERSION } from '@/lib/constants'
 
 interface HelpPanelProps {
   open: boolean
@@ -101,6 +102,43 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
           <DialogTitle className="text-lg font-semibold">{t('header.help')}</DialogTitle>
           <DialogDescription>{t('commandPalette.description')}</DialogDescription>
         </DialogHeader>
+
+        <section className="rounded-lg border border-border/60 bg-muted/40 px-4 py-3">
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-foreground">
+              {t('helpPanel.projectLinks.title')}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {t('helpPanel.projectLinks.description', { version: VERSION })}
+            </p>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a
+              href={NPM_PACKAGE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {t('helpPanel.projectLinks.npm')}
+            </a>
+            <a
+              href={GITHUB_REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {t('helpPanel.projectLinks.github')}
+            </a>
+            <a
+              href={GITHUB_ISSUES_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {t('helpPanel.projectLinks.issues')}
+            </a>
+          </div>
+        </section>
 
         {/* Keyboard shortcuts */}
         <section>

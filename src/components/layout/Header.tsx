@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { VERSION } from '@/lib/constants'
+import { NPM_PACKAGE_URL, VERSION } from '@/lib/constants'
 import { HelpPanel } from '@/components/features/help/HelpPanel'
 import type { AppLanguage } from '@/types'
 
@@ -135,7 +135,16 @@ export function Header({
               <h1 className="text-2xl font-bold tracking-tight shrink-0">
                 <span className="text-primary">TT</span>Dash
               </h1>
-              <span className="text-xs text-muted-foreground font-mono shrink-0">v{VERSION}</span>
+              <a
+                href={NPM_PACKAGE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground font-mono shrink-0 rounded-sm underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                title={t('header.versionLinkTitle', { version: VERSION })}
+                aria-label={t('header.versionLinkTitle', { version: VERSION })}
+              >
+                v{VERSION}
+              </a>
             </div>
             <div className="flex items-center gap-1 shrink-0 md:hidden">
               <Button
