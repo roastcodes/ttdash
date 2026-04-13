@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatCurrency, formatDate, formatPercent, formatNumber } from '@/lib/formatters'
 import {
@@ -115,16 +115,15 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex flex-col gap-0.5">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            <span className="inline-flex items-center gap-2">
+          <InfoHeading info={FEATURE_HELP.recentDays}>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               {viewMode === 'monthly'
                 ? t('tables.recentDays.monthsDetail')
                 : viewMode === 'yearly'
                   ? t('tables.recentDays.yearsDetail')
                   : t('tables.recentDays.daysDetail')}
-              <InfoButton text={FEATURE_HELP.recentDays} />
-            </span>
-          </CardTitle>
+            </CardTitle>
+          </InfoHeading>
           <span className="text-xs text-muted-foreground/70">
             {t('tables.recentDays.showing', {
               shown: displayed.length,
@@ -210,10 +209,10 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   </div>
                   <div className="text-right">
                     <div className="font-mono font-semibold">
-                      <FormattedValue value={day.totalCost} type="currency" />
+                      <FormattedValue value={day.totalCost} type="currency" interactive={false} />
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      <FormattedValue value={day.totalTokens} type="tokens" />
+                      <FormattedValue value={day.totalTokens} type="tokens" interactive={false} />
                     </div>
                     {viewMode === 'daily' &&
                       benchmarkMap.get(day.date)?.prevCostDelta !== undefined && (
@@ -229,19 +228,19 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   <div className="rounded-lg bg-muted/20 px-2.5 py-2">
                     <div className="text-muted-foreground">{t('common.input')}</div>
                     <div className="mt-1 font-mono">
-                      <FormattedValue value={day.inputTokens} type="tokens" />
+                      <FormattedValue value={day.inputTokens} type="tokens" interactive={false} />
                     </div>
                   </div>
                   <div className="rounded-lg bg-muted/20 px-2.5 py-2">
                     <div className="text-muted-foreground">{t('common.output')}</div>
                     <div className="mt-1 font-mono">
-                      <FormattedValue value={day.outputTokens} type="tokens" />
+                      <FormattedValue value={day.outputTokens} type="tokens" interactive={false} />
                     </div>
                   </div>
                   <div className="rounded-lg bg-muted/20 px-2.5 py-2">
                     <div className="text-muted-foreground">$/1M</div>
                     <div className="mt-1 font-mono">
-                      <FormattedValue value={costPerM} type="currency" />
+                      <FormattedValue value={costPerM} type="currency" interactive={false} />
                     </div>
                   </div>
                 </div>

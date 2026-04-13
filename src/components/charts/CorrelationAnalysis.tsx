@@ -12,7 +12,7 @@ import {
   ZAxis,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import {
@@ -267,10 +267,11 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            {t('charts.correlation.title')}
-            <InfoButton text={CHART_HELP.correlationAnalysis} />
-          </CardTitle>
+          <InfoHeading info={CHART_HELP.correlationAnalysis}>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t('charts.correlation.title')}
+            </CardTitle>
+          </InfoHeading>
         </CardHeader>
         <CardContent>
           <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-sm text-muted-foreground">
@@ -284,10 +285,11 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          {t('charts.correlation.title')}
-          <InfoButton text={CHART_HELP.correlationAnalysis} />
-        </CardTitle>
+        <InfoHeading info={CHART_HELP.correlationAnalysis}>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {t('charts.correlation.title')}
+          </CardTitle>
+        </InfoHeading>
       </CardHeader>
       <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <CorrelationPanel

@@ -92,5 +92,8 @@ export function useAppSettings(availableProviders: string[]) {
     saveSettings,
     isLoading: query.isLoading,
     isSaving: mutation.isPending,
+    error: query.error,
+    isError: query.isError,
+    hasFetchedAfterMount: query.isFetchedAfterMount,
   }
 }

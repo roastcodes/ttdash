@@ -14,6 +14,9 @@ import {
   CHART_HELP,
   SECTION_HELP,
   FEATURE_HELP,
+  type ChartHelp,
+  type FeatureHelp,
+  type SectionHelp,
 } from '@/lib/help-content'
 import { GITHUB_ISSUES_URL, GITHUB_REPO_URL, NPM_PACKAGE_URL, VERSION } from '@/lib/constants'
 
@@ -22,9 +25,19 @@ interface HelpPanelProps {
   onOpenChange: (open: boolean) => void
 }
 
+const FEATURE_KEYS: Array<keyof FeatureHelp> = [
+  'requestQuality',
+  'providerLimits',
+  'concentrationRisk',
+]
+
+const TABLE_KEYS: Array<keyof FeatureHelp> = ['providerEfficiency', 'modelEfficiency', 'recentDays']
+
 export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
   const { t } = useTranslation()
   const shortcuts = getKeyboardShortcuts()
+  const chartKeys = useMemo(() => Object.keys(CHART_HELP) as Array<keyof ChartHelp>, [])
+  const sectionKeys = useMemo(() => Object.keys(SECTION_HELP) as Array<keyof SectionHelp>, [])
   const metricLabels = useMemo<Record<string, string>>(
     () => ({
       totalCost: t('helpPanel.metricLabels.totalCost'),
@@ -60,6 +73,9 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
       tokenHeatmap: t('helpPanel.chartLabels.tokenHeatmap'),
       forecast: t('helpPanel.chartLabels.forecast'),
       cacheROI: t('helpPanel.chartLabels.cacheROI'),
+      providerLimitProgress: t('helpPanel.chartLabels.providerLimitProgress'),
+      providerSubscriptionMix: t('helpPanel.chartLabels.providerSubscriptionMix'),
+      providerLimitTimeline: t('helpPanel.chartLabels.providerLimitTimeline'),
       periodComparison: t('helpPanel.chartLabels.periodComparison'),
       anomalyDetection: t('helpPanel.chartLabels.anomalyDetection'),
     }),
@@ -188,10 +204,10 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
             <h3 className="text-sm font-semibold">{t('helpPanel.chartsAndFeatures')}</h3>
           </div>
           <div className="space-y-2">
-            {Object.entries(CHART_HELP).map(([key, description]) => (
+            {chartKeys.map((key) => (
               <div key={key} className="rounded-md bg-muted/50 px-3 py-2">
-                <p className="text-sm font-medium text-foreground">{chartLabels[key] ?? key}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                <p className="text-sm font-medium text-foreground">{chartLabels[key]}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{CHART_HELP[key]}</p>
               </div>
             ))}
           </div>
@@ -202,19 +218,47 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
         <section>
           <div className="flex items-center gap-2 mb-3">
             <ChartBar className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold">{t('dashboard.tables.title')}</h3>
+            <h3 className="text-sm font-semibold">{t('helpPanel.dashboardSectionsTitle')}</h3>
           </div>
           <div className="space-y-2">
-            {Object.entries(SECTION_HELP).map(([key, description]) => (
+            {sectionKeys.map((key) => (
               <div key={key} className="rounded-md bg-muted/50 px-3 py-2">
-                <p className="text-sm font-medium text-foreground">{sectionLabels[key] ?? key}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                <p className="text-sm font-medium text-foreground">{sectionLabels[key]}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{SECTION_HELP[key]}</p>
               </div>
             ))}
-            {Object.entries(FEATURE_HELP).map(([key, description]) => (
+          </div>
+        </section>
+
+        <hr className="border-border" />
+
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <ChartBar className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold">{t('helpPanel.featuresTitle')}</h3>
+          </div>
+          <div className="space-y-2">
+            {FEATURE_KEYS.map((key) => (
               <div key={key} className="rounded-md bg-muted/50 px-3 py-2">
-                <p className="text-sm font-medium text-foreground">{featureLabels[key] ?? key}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                <p className="text-sm font-medium text-foreground">{featureLabels[key]}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{FEATURE_HELP[key]}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <hr className="border-border" />
+
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <ChartBar className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold">{t('helpPanel.tablesTitle')}</h3>
+          </div>
+          <div className="space-y-2">
+            {TABLE_KEYS.map((key) => (
+              <div key={key} className="rounded-md bg-muted/50 px-3 py-2">
+                <p className="text-sm font-medium text-foreground">{featureLabels[key]}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{FEATURE_HELP[key]}</p>
               </div>
             ))}
           </div>

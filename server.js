@@ -6,10 +6,18 @@ const os = require('os');
 const path = require('path');
 const readline = require('readline/promises');
 const { spawn } = require('child_process');
+const spawnCrossPlatform = require('cross-spawn');
 const { parseArgs } = require('util');
 const { normalizeIncomingData } = require('./usage-normalizer');
 const { generatePdfReport } = require('./server/report');
 const { version: APP_VERSION } = require('./package.json');
+const dashboardPreferences = require('./shared/dashboard-preferences.json');
+const { createHttpUtils } = require('./server/http-utils');
+const {
+  ensureBindHostAllowed,
+  isLoopbackHost,
+  listenOnAvailablePort,
+} = require('./server/runtime');
 
 const ROOT = __dirname;
 const STATIC_ROOT = path.join(ROOT, 'dist');
@@ -23,9 +31,12 @@ const ENV_START_PORT = parseInt(process.env.PORT, 10);
 const START_PORT = CLI_OPTIONS.port ?? (Number.isFinite(ENV_START_PORT) ? ENV_START_PORT : 3000);
 const MAX_PORT = Math.min(START_PORT + 100, 65535);
 const BIND_HOST = process.env.HOST || '127.0.0.1';
-const API_PREFIX = '/port/5000/api';
+const ALLOW_REMOTE_BIND = process.env.TTDASH_ALLOW_REMOTE === '1';
+const API_PREFIX = process.env.API_PREFIX || '/api';
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const IS_WINDOWS = process.platform === 'win32';
+const SECURE_DIR_MODE = 0o700;
+const SECURE_FILE_MODE = 0o600;
 const TOKTRACK_LOCAL_BIN = path.join(
   ROOT,
   'node_modules',
@@ -46,22 +57,8 @@ const USAGE_BACKUP_KIND = 'ttdash-usage-backup';
 const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
 const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
-const DASHBOARD_DATE_PRESETS = ['all', '7d', '30d', 'month', 'year'];
-const DASHBOARD_SECTION_IDS = [
-  'insights',
-  'metrics',
-  'today',
-  'currentMonth',
-  'activity',
-  'forecastCache',
-  'limits',
-  'costAnalysis',
-  'tokenAnalysis',
-  'requestAnalysis',
-  'advancedAnalysis',
-  'comparisons',
-  'tables',
-];
+const DASHBOARD_DATE_PRESETS = dashboardPreferences.datePresets;
+const DASHBOARD_SECTION_IDS = dashboardPreferences.sectionDefinitions.map((section) => section.id);
 const DEFAULT_SETTINGS = {
   language: 'de',
   theme: 'dark',
@@ -129,6 +126,7 @@ function printHelp() {
   console.log('  PORT=3010 ttdash');
   console.log('  NO_OPEN_BROWSER=1 ttdash');
   console.log('  HOST=127.0.0.1 ttdash');
+  console.log('  TTDASH_ALLOW_REMOTE=1 HOST=0.0.0.0 ttdash');
 }
 
 function parseCliArgs(rawArgs) {
@@ -290,7 +288,10 @@ const MIME_TYPES = {
 };
 
 function ensureDir(dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true });
+  fs.mkdirSync(dirPath, { recursive: true, mode: SECURE_DIR_MODE });
+  if (!IS_WINDOWS) {
+    fs.chmodSync(dirPath, SECURE_DIR_MODE);
+  }
 }
 
 function ensureAppDirs() {
@@ -304,7 +305,12 @@ function ensureAppDirs() {
 function writeJsonAtomic(filePath, data) {
   ensureDir(path.dirname(filePath));
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
+  fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), {
+    mode: SECURE_FILE_MODE,
+  });
+  if (!IS_WINDOWS) {
+    fs.chmodSync(tempPath, SECURE_FILE_MODE);
+  }
   fs.renameSync(tempPath, filePath);
 }
 
@@ -337,11 +343,12 @@ async function fetchRuntimeIdentity(url, timeoutMs = 1000) {
     return null;
   }
 
+  const runtimePath = `${API_PREFIX.replace(/\/+$/, '')}/runtime`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(new URL('/api/runtime', `${url}/`), {
+    const response = await fetch(new URL(runtimePath, `${url}/`), {
       signal: controller.signal,
     });
 
@@ -473,7 +480,7 @@ async function withBackgroundInstancesLock(
 
   while (true) {
     try {
-      fs.mkdirSync(BACKGROUND_INSTANCES_LOCK_DIR);
+      fs.mkdirSync(BACKGROUND_INSTANCES_LOCK_DIR, { mode: SECURE_DIR_MODE });
       break;
     } catch (error) {
       if (!error || error.code !== 'EEXIST') {
@@ -753,11 +760,15 @@ function shouldBackgroundChildOpenBrowser() {
 }
 
 async function startInBackground() {
+  ensureBindHostAllowed(BIND_HOST, ALLOW_REMOTE_BIND);
   ensureAppDirs();
 
   const logFile = buildBackgroundLogFilePath();
   const childArgs = NORMALIZED_CLI_ARGS.filter((arg) => arg !== '--background');
-  const logFd = fs.openSync(logFile, 'a');
+  const logFd = fs.openSync(logFile, 'a', SECURE_FILE_MODE);
+  if (!IS_WINDOWS) {
+    fs.fchmodSync(logFd, SECURE_FILE_MODE);
+  }
 
   let child;
   try {
@@ -846,6 +857,46 @@ function normalizeIsoTimestamp(value) {
   return new Date(timestamp).toISOString();
 }
 
+function createPersistedStateError(kind, filePath, cause) {
+  const label = kind === 'settings' ? 'Settings file' : 'Usage data file';
+  const error = new Error(`${label} is unreadable or corrupted.`);
+  error.code = 'PERSISTED_STATE_INVALID';
+  error.kind = kind;
+  error.filePath = filePath;
+  error.cause = cause;
+  return error;
+}
+
+function isPersistedStateError(error, kind) {
+  return (
+    Boolean(error) &&
+    error.code === 'PERSISTED_STATE_INVALID' &&
+    (kind ? error.kind === kind : true)
+  );
+}
+
+function isPayloadTooLargeError(error) {
+  return Boolean(error) && error.code === 'PAYLOAD_TOO_LARGE';
+}
+
+function readJsonFile(filePath, kind) {
+  try {
+    return {
+      status: 'ok',
+      value: JSON.parse(fs.readFileSync(filePath, 'utf-8')),
+    };
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      return {
+        status: 'missing',
+        value: null,
+      };
+    }
+
+    throw createPersistedStateError(kind, filePath, error);
+  }
+}
+
 function sanitizeCurrency(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
   return Math.max(0, Number(value.toFixed(2)));
@@ -853,6 +904,49 @@ function sanitizeCurrency(value) {
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function createAutoImportMessageEvent(key, vars = {}) {
+  return {
+    key,
+    vars,
+  };
+}
+
+function createAutoImportError(message, key, vars = {}) {
+  const error = new Error(message);
+  error.messageKey = key;
+  error.messageVars = vars;
+  return error;
+}
+
+function toAutoImportErrorEvent(error) {
+  if (error && typeof error.messageKey === 'string') {
+    return createAutoImportMessageEvent(error.messageKey, error.messageVars || {});
+  }
+
+  return createAutoImportMessageEvent('errorPrefix', {
+    message: error && error.message ? error.message : 'Unknown error',
+  });
+}
+
+function formatAutoImportMessageEvent(event) {
+  switch (event?.key) {
+    case 'startingLocalImport':
+      return 'Starting local toktrack import...';
+    case 'loadingUsageData':
+      return `Loading usage data via ${event.vars?.command || 'unknown command'}...`;
+    case 'processingUsageData':
+      return `Processing usage data... (${event.vars?.seconds || 0}s)`;
+    case 'autoImportRunning':
+      return 'An auto-import is already running. Please wait.';
+    case 'noRunnerFound':
+      return 'No local toktrack, Bun, or npm exec installation found.';
+    case 'errorPrefix':
+      return `Error: ${event.vars?.message || 'Unknown error'}`;
+    default:
+      return 'Auto-import update';
+  }
 }
 
 function computeUsageTotals(daily) {
@@ -1191,6 +1285,7 @@ function printStartupSummary(url, port) {
   const browserMode = shouldOpenBrowser() ? 'enabled' : 'disabled';
   const autoLoadMode = CLI_OPTIONS.autoLoad ? 'enabled' : 'disabled';
   const runtimeMode = IS_BACKGROUND_CHILD ? 'background' : 'foreground';
+  const remoteBind = !isLoopbackHost(BIND_HOST);
 
   console.log('');
   console.log(`${APP_LABEL} v${APP_VERSION} is ready`);
@@ -1198,6 +1293,9 @@ function printStartupSummary(url, port) {
   console.log(`  API:            ${url}/api/usage`);
   console.log(`  Port:           ${port}`);
   console.log(`  Host:           ${BIND_HOST}`);
+  if (remoteBind) {
+    console.log(`  Exposure:       network-accessible via ${BIND_HOST}`);
+  }
   console.log(`  Mode:           ${runtimeMode}`);
   console.log(`  Static Root:    ${STATIC_ROOT}`);
   console.log(`  Data File:      ${DATA_FILE}`);
@@ -1208,6 +1306,13 @@ function printStartupSummary(url, port) {
   console.log(`  Data Status:    ${describeDataFile()}`);
   console.log(`  Browser Open:   ${browserMode}`);
   console.log(`  Auto-Load:      ${autoLoadMode}`);
+  if (remoteBind) {
+    console.log('');
+    console.log(
+      'Security warning: this bind host can expose local data and destructive API routes.',
+    );
+    console.log('Use non-loopback hosts only on trusted networks.');
+  }
   console.log('');
   console.log('Available ways to load data:');
   console.log('  1. Start auto-import from the app');
@@ -1219,6 +1324,7 @@ function printStartupSummary(url, port) {
   console.log('  ttdash --background');
   console.log('  ttdash stop');
   console.log(`  NO_OPEN_BROWSER=1 PORT=${port} node server.js`);
+  console.log(`  TTDASH_ALLOW_REMOTE=1 HOST=${BIND_HOST} PORT=${port} node server.js`);
   console.log(`  curl ${url}/api/usage`);
   console.log('');
 }
@@ -1271,10 +1377,15 @@ function serveFile(res, reqPath) {
 // --- API helpers ---
 
 function readData() {
-  try {
-    return normalizeIncomingData(JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')));
-  } catch {
+  const file = readJsonFile(DATA_FILE, 'usage');
+  if (file.status === 'missing') {
     return null;
+  }
+
+  try {
+    return normalizeIncomingData(file.value);
+  } catch (error) {
+    throw createPersistedStateError('usage', DATA_FILE, error);
   }
 }
 
@@ -1283,13 +1394,29 @@ function writeData(data) {
 }
 
 function readSettings() {
-  try {
-    return toSettingsResponse(JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8')));
-  } catch {
+  const file = readJsonFile(SETTINGS_FILE, 'settings');
+  if (file.status === 'missing') {
     return toSettingsResponse({
       ...DEFAULT_SETTINGS,
       providerLimits: {},
     });
+  }
+
+  return toSettingsResponse(file.value);
+}
+
+function readSettingsForWrite() {
+  try {
+    return readSettings();
+  } catch (error) {
+    if (isPersistedStateError(error, 'settings')) {
+      return toSettingsResponse({
+        ...DEFAULT_SETTINGS,
+        providerLimits: {},
+      });
+    }
+
+    throw error;
   }
 }
 
@@ -1298,7 +1425,7 @@ function writeSettings(settings) {
 }
 
 function updateSettings(patch) {
-  const current = readSettings();
+  const current = readSettingsForWrite();
   const next = {
     ...current,
     ...(patch && typeof patch === 'object' ? patch : {}),
@@ -1318,7 +1445,7 @@ function updateSettings(patch) {
 }
 
 function recordDataLoad(source) {
-  const current = readSettings();
+  const current = readSettingsForWrite();
   const next = {
     ...current,
     lastLoadedAt: new Date().toISOString(),
@@ -1330,7 +1457,7 @@ function recordDataLoad(source) {
 }
 
 function clearDataLoadState() {
-  const current = readSettings();
+  const current = readSettingsForWrite();
   const next = {
     ...current,
     lastLoadedAt: null,
@@ -1340,63 +1467,11 @@ function clearDataLoadState() {
   writeSettings(next);
   return toSettingsResponse(next);
 }
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    let totalSize = 0;
-    req.on('data', (c) => {
-      totalSize += c.length;
-      if (totalSize > MAX_BODY_SIZE) {
-        req.destroy();
-        reject(new Error('Payload too large'));
-        return;
-      }
-      chunks.push(c);
-    });
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(Buffer.concat(chunks).toString()));
-      } catch (e) {
-        reject(e);
-      }
-    });
-    req.on('error', reject);
-  });
-}
-
-function json(res, status, data) {
-  res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    ...SECURITY_HEADERS,
-  });
-  res.end(JSON.stringify(data));
-}
-
-function sendBuffer(res, status, headers, buffer) {
-  res.writeHead(status, {
-    'Content-Length': buffer.length,
-    ...headers,
-    ...SECURITY_HEADERS,
-  });
-  res.end(buffer);
-}
-
-function resolveApiPath(pathname) {
-  if (pathname.startsWith(API_PREFIX + '/')) {
-    return pathname.slice(API_PREFIX.length);
-  }
-  if (pathname === API_PREFIX) {
-    return '/';
-  }
-  if (pathname.startsWith('/api/')) {
-    return pathname.slice(4);
-  }
-  if (pathname === '/api') {
-    return '/';
-  }
-  return null;
-}
+const { json, readBody, resolveApiPath, sendBuffer, validateMutationRequest } = createHttpUtils({
+  apiPrefix: API_PREFIX,
+  maxBodySize: MAX_BODY_SIZE,
+  securityHeaders: SECURITY_HEADERS,
+});
 
 // --- SSE helpers ---
 
@@ -1405,10 +1480,6 @@ function sendSSE(res, event, data) {
 }
 
 let autoImportRunning = false;
-
-function shouldUseShell(command) {
-  return IS_WINDOWS && /\.(cmd|bat)$/i.test(command);
-}
 
 function getExecutableName(baseName, isWindows = IS_WINDOWS) {
   if (!isWindows) {
@@ -1427,9 +1498,10 @@ function getExecutableName(baseName, isWindows = IS_WINDOWS) {
 }
 
 function spawnCommand(command, args, options = {}) {
-  return spawn(command, args, {
+  // cross-spawn resolves Windows command shims without relying on shell=true,
+  // which avoids the DEP0190 warning from Node's child_process APIs.
+  return spawnCrossPlatform(command, args, {
     ...options,
-    shell: options.shell ?? shouldUseShell(command),
     windowsHide: options.windowsHide ?? true,
   });
 }
@@ -1527,24 +1599,30 @@ async function performAutoImport({
   signalOnClose,
 } = {}) {
   if (autoImportRunning) {
-    throw new Error('An auto-import is already running. Please wait.');
+    throw createAutoImportError(
+      'An auto-import is already running. Please wait.',
+      'autoImportRunning',
+    );
   }
 
   autoImportRunning = true;
   let progressSeconds = 0;
   const progressInterval = setInterval(() => {
     progressSeconds += 5;
-    onOutput(`Processing usage data... (${progressSeconds}s)`);
+    onProgress(createAutoImportMessageEvent('processingUsageData', { seconds: progressSeconds }));
   }, 5000);
 
   try {
     onCheck({ tool: 'toktrack', status: 'checking' });
-    onProgress({ message: 'Starting local toktrack import...' });
+    onProgress(createAutoImportMessageEvent('startingLocalImport'));
 
     const runner = await resolveToktrackRunner();
     if (!runner) {
       onCheck({ tool: 'toktrack', status: 'not_found' });
-      throw new Error('No local toktrack, Bun, or npm exec installation found.');
+      throw createAutoImportError(
+        'No local toktrack, Bun, or npm exec installation found.',
+        'noRunnerFound',
+      );
     }
 
     const versionResult = await runToktrack(runner, ['--version']);
@@ -1554,7 +1632,11 @@ async function performAutoImport({
       method: runner.label,
       version: String(versionResult).replace(/^toktrack\s+/, ''),
     });
-    onProgress({ message: `Loading usage data via ${runner.displayCommand}...` });
+    onProgress(
+      createAutoImportMessageEvent('loadingUsageData', {
+        command: runner.displayCommand,
+      }),
+    );
 
     const rawJson = await runToktrack(runner, ['daily', '--json'], {
       streamStderr: true,
@@ -1590,7 +1672,7 @@ async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
         }
       },
       onProgress: (event) => {
-        console.log(event.message);
+        console.log(formatAutoImportMessageEvent(event));
       },
       onOutput: (line) => {
         console.log(line);
@@ -1610,15 +1692,34 @@ async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
 // --- Server ---
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://localhost');
-  const pathname = decodeURIComponent(url.pathname);
+  let url;
+  let pathname;
+
+  try {
+    url = new URL(req.url, 'http://localhost');
+    pathname = decodeURIComponent(url.pathname);
+  } catch {
+    return json(res, 400, { message: 'Invalid request path' });
+  }
 
   // API routing
   const apiPath = resolveApiPath(pathname);
 
+  if (apiPath === null && (pathname === '/api' || pathname.startsWith('/api/'))) {
+    return json(res, 404, { message: 'Not Found' });
+  }
+
   if (apiPath === '/usage') {
     if (req.method === 'GET') {
-      const data = readData();
+      let data;
+      try {
+        data = readData();
+      } catch (error) {
+        if (isPersistedStateError(error, 'usage')) {
+          return json(res, 500, { message: error.message });
+        }
+        throw error;
+      }
       return json(
         res,
         200,
@@ -1638,6 +1739,10 @@ const server = http.createServer(async (req, res) => {
       );
     }
     if (req.method === 'DELETE') {
+      const validationError = validateMutationRequest(req);
+      if (validationError) {
+        return json(res, validationError.status, { message: validationError.message });
+      }
       try {
         fs.unlinkSync(DATA_FILE);
       } catch {
@@ -1666,10 +1771,21 @@ const server = http.createServer(async (req, res) => {
 
   if (apiPath === '/settings') {
     if (req.method === 'GET') {
-      return json(res, 200, readSettings());
+      try {
+        return json(res, 200, readSettings());
+      } catch (error) {
+        if (isPersistedStateError(error, 'settings')) {
+          return json(res, 500, { message: error.message });
+        }
+        throw error;
+      }
     }
 
     if (req.method === 'DELETE') {
+      const validationError = validateMutationRequest(req);
+      if (validationError) {
+        return json(res, validationError.status, { message: validationError.message });
+      }
       try {
         fs.unlinkSync(SETTINGS_FILE);
       } catch {
@@ -1679,10 +1795,17 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'PATCH') {
+      const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
+      if (validationError) {
+        return json(res, validationError.status, { message: validationError.message });
+      }
       try {
         const body = await readBody(req);
         return json(res, 200, updateSettings(body));
       } catch (e) {
+        if (isPayloadTooLargeError(e)) {
+          return json(res, 413, { message: 'Settings request too large' });
+        }
         return json(res, 400, { message: e.message || 'Invalid settings request' });
       }
     }
@@ -1695,18 +1818,31 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { message: 'Method Not Allowed' });
     }
 
+    const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
+    if (validationError) {
+      return json(res, validationError.status, { message: validationError.message });
+    }
+
     try {
       const body = await readBody(req);
       const importedSettings = normalizeSettings(extractSettingsImportPayload(body));
       writeSettings(importedSettings);
       return json(res, 200, toSettingsResponse(importedSettings));
     } catch (e) {
+      if (isPayloadTooLargeError(e)) {
+        return json(res, 413, { message: 'Settings file too large' });
+      }
       return json(res, 400, { message: e.message || 'Invalid settings file' });
     }
   }
 
   if (apiPath === '/upload') {
     if (req.method === 'POST') {
+      const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
+      if (validationError) {
+        return json(res, validationError.status, { message: validationError.message });
+      }
+
       try {
         const body = await readBody(req);
         const normalized = normalizeIncomingData(body);
@@ -1716,11 +1852,10 @@ const server = http.createServer(async (req, res) => {
         const totalCost = normalized.totals.totalCost;
         return json(res, 200, { days, totalCost });
       } catch (e) {
-        const status = e.message === 'Payload too large' ? 413 : 400;
-        const message =
-          e.message === 'Payload too large'
-            ? 'File too large (max. 10 MB)'
-            : e.message || 'Invalid JSON';
+        const status = isPayloadTooLargeError(e) ? 413 : 400;
+        const message = isPayloadTooLargeError(e)
+          ? 'File too large (max. 10 MB)'
+          : e.message || 'Invalid JSON';
         return json(res, status, { message });
       }
     }
@@ -1732,6 +1867,11 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { message: 'Method Not Allowed' });
     }
 
+    const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
+    if (validationError) {
+      return json(res, validationError.status, { message: validationError.message });
+    }
+
     try {
       const body = await readBody(req);
       const importedData = normalizeIncomingData(extractUsageImportPayload(body));
@@ -1741,13 +1881,24 @@ const server = http.createServer(async (req, res) => {
       recordDataLoad('file');
       return json(res, 200, result.summary);
     } catch (e) {
+      if (isPayloadTooLargeError(e)) {
+        return json(res, 413, { message: 'Usage backup file too large' });
+      }
+      if (isPersistedStateError(e, 'usage')) {
+        return json(res, 500, { message: e.message });
+      }
       return json(res, 400, { message: e.message || 'Invalid usage backup file' });
     }
   }
 
   if (apiPath === '/auto-import/stream') {
-    if (req.method !== 'GET') {
+    if (req.method !== 'POST') {
       return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    const validationError = validateMutationRequest(req);
+    if (validationError) {
+      return json(res, validationError.status, { message: validationError.message });
     }
 
     res.writeHead(200, {
@@ -1797,7 +1948,7 @@ const server = http.createServer(async (req, res) => {
       if (aborted) {
         return;
       }
-      sendSSE(res, 'error', { message: `Error: ${err.message}` });
+      sendSSE(res, 'error', toAutoImportErrorEvent(err));
       sendSSE(res, 'done', {});
       res.end();
     }
@@ -1809,7 +1960,20 @@ const server = http.createServer(async (req, res) => {
       return json(res, 405, { message: 'Method Not Allowed' });
     }
 
-    const data = readData();
+    const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
+    if (validationError) {
+      return json(res, validationError.status, { message: validationError.message });
+    }
+
+    let data;
+    try {
+      data = readData();
+    } catch (error) {
+      if (isPersistedStateError(error, 'usage')) {
+        return json(res, 500, { message: error.message });
+      }
+      throw error;
+    }
     if (!data || !Array.isArray(data.daily) || data.daily.length === 0) {
       return json(res, 400, { message: 'No data available for the report.' });
     }
@@ -1818,10 +1982,9 @@ const server = http.createServer(async (req, res) => {
     try {
       body = await readBody(req);
     } catch (e) {
-      const status = e.message === 'Payload too large' ? 413 : 400;
+      const status = isPayloadTooLargeError(e) ? 413 : 400;
       return json(res, status, {
-        message:
-          e.message === 'Payload too large' ? 'Report request too large' : 'Invalid report request',
+        message: isPayloadTooLargeError(e) ? 'Report request too large' : 'Invalid report request',
       });
     }
 
@@ -1861,61 +2024,12 @@ const server = http.createServer(async (req, res) => {
   serveFile(res, filePath);
 });
 
-function createNoFreePortError(rangeStartPort, maxPort) {
-  return new Error(`No free port found (${rangeStartPort}-${maxPort})`);
-}
-
-async function listenOnAvailablePort(
-  serverInstance,
-  port,
-  maxPort,
-  bindHost,
-  log = console.log,
-  rangeStartPort = port,
-) {
-  if (port > maxPort) {
-    throw createNoFreePortError(rangeStartPort, maxPort);
-  }
-
-  for (let currentPort = port; currentPort <= maxPort; currentPort += 1) {
-    try {
-      await new Promise((resolve, reject) => {
-        const onError = (err) => {
-          serverInstance.off('listening', onListening);
-          reject(err);
-        };
-
-        const onListening = () => {
-          serverInstance.off('error', onError);
-          resolve();
-        };
-
-        serverInstance.once('error', onError);
-        serverInstance.once('listening', onListening);
-        serverInstance.listen(currentPort, bindHost);
-      });
-
-      return currentPort;
-    } catch (err) {
-      if (err && err.code === 'EADDRINUSE') {
-        if (currentPort >= maxPort) {
-          throw createNoFreePortError(rangeStartPort, maxPort);
-        }
-        log(`Port ${currentPort} is in use, trying ${currentPort + 1}...`);
-        continue;
-      }
-      throw err;
-    }
-  }
-
-  throw createNoFreePortError(rangeStartPort, maxPort);
-}
-
 function tryListen(port) {
   return listenOnAvailablePort(server, port, MAX_PORT, BIND_HOST, console.log, START_PORT);
 }
 
 async function start() {
+  ensureBindHostAllowed(BIND_HOST, ALLOW_REMOTE_BIND);
   ensureAppDirs();
   migrateLegacyDataFile();
 
@@ -1979,6 +2093,7 @@ module.exports = {
   bootstrapCli,
   runCli,
   __test__: {
+    commandExists,
     getExecutableName,
     listenOnAvailablePort,
   },

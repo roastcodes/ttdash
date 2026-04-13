@@ -1,0 +1,54 @@
+// @vitest-environment jsdom
+
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import { CustomTooltip } from '@/components/charts/CustomTooltip'
+import { initI18n } from '@/lib/i18n'
+
+describe('CustomTooltip', () => {
+  it('localizes the computed total in English', async () => {
+    await initI18n('en')
+
+    render(
+      <CustomTooltip
+        active
+        label="2026-04-01"
+        payload={[
+          { name: 'Model A', value: 6, color: '#f00', dataKey: 'modelA' },
+          { name: 'Model B', value: 4, color: '#0f0', dataKey: 'modelB' },
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('Total:')).toBeInTheDocument()
+  })
+
+  it('localizes comparison labels in German', async () => {
+    await initI18n('de')
+
+    render(
+      <CustomTooltip
+        active
+        label="2026-04-01"
+        payload={[
+          {
+            name: 'Kosten',
+            value: 12,
+            color: '#f00',
+            dataKey: 'cost',
+            payload: { costPrev: 10 },
+          },
+          {
+            name: 'Kosten Ø',
+            value: 9,
+            color: '#f00',
+            dataKey: 'costMA7',
+          },
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('vs. vorher:')).toBeInTheDocument()
+    expect(screen.getByText('vs. Ø:')).toBeInTheDocument()
+  })
+})

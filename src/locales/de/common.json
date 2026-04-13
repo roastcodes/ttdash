@@ -20,7 +20,8 @@
     "loadedAt": "Zuletzt geladen: {{time}}",
     "autoLoadActive": "Auto-Load beim Start",
     "autoLoadAt": "Beim Start automatisch geladen: {{time}}",
-    "versionLinkTitle": "TTDash v{{version}} auf npm öffnen"
+    "versionLinkTitle": "TTDash v{{version}} auf npm öffnen",
+    "streak": "{{count}} Tage in Folge"
   },
   "emptyState": {
     "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx toktrack daily --json` oder `npx --yes toktrack daily --json`.",
@@ -28,6 +29,18 @@
     "uploadFile": "Datei hochladen",
     "openSettings": "Einstellungen & Backups",
     "or": "oder"
+  },
+  "loadError": {
+    "title": "Lokaler App-Zustand konnte nicht geladen werden",
+    "settingsDescription": "Die lokalen Einstellungen konnten nicht geladen werden. Setze sie zurück oder lade den Zustand erneut.",
+    "usageDescription": "Die gespeicherten Nutzungsdaten konnten nicht geladen werden. Entferne die defekten Daten oder lade den Zustand erneut.",
+    "multipleDescription": "TTDash hat Probleme sowohl in den lokalen Einstellungen als auch in den gespeicherten Nutzungsdaten gefunden. Setze die betroffenen Daten zurück und lade den Zustand erneut.",
+    "details": "Details",
+    "retry": "Erneut laden",
+    "resetSettings": "Einstellungen zurücksetzen",
+    "deleteData": "Gespeicherte Daten löschen",
+    "settingsCorrupted": "Die lokale Einstellungsdatei ist unlesbar oder beschädigt.",
+    "usageCorrupted": "Die lokale Nutzungsdatei ist unlesbar oder beschädigt."
   },
   "viewModes": {
     "daily": "Tagesansicht",
@@ -62,7 +75,7 @@
     "cost": "Kosten",
     "costs": "Kosten",
     "tokens": "Tokens",
-    "requests": "Requests",
+    "requests": "Anfragen",
     "today": "Heute",
     "currentMonth": "Monat",
     "yes": "Ja",
@@ -77,7 +90,7 @@
     "nextMonth": "Nächster Monat",
     "startDate": "Startdatum",
     "endDate": "Enddatum",
-    "selectedProviders": "Ausgewählte Provider",
+    "selectedProviders": "Ausgewählte Anbieter",
     "selectedModels": "Ausgewählte Modelle",
     "allProviders": "Alle Anbieter",
     "allModels": "Alle Modelle",
@@ -86,21 +99,26 @@
     "focusMonth": "Fokusmonat",
     "showInfo": "Info anzeigen",
     "expand": "Vergrössern",
+    "expandWithTitle": "{{title}} vergrössern",
+    "expandedCardDescription": "Erweiterte Kartenansicht mit zusätzlichen Kennzahlen und vollständigem Inhalt.",
     "input": "Input",
     "output": "Output",
     "cacheWrite": "Cache Write",
     "cacheRead": "Cache Read",
     "thinking": "Thinking",
-    "requestsShort": "Req",
-    "request": "Request",
+    "requestsShort": "Anf.",
+    "request": "Anfrage",
     "share": "Anteil",
     "top": "Top"
   },
   "filterBar": {
     "status": "Filterstatus",
+    "viewModeLabel": "Ansichtsmodus",
+    "focusMonthLabel": "Fokusmonat",
     "providersActive": "{{count}} Anbieter aktiv",
     "modelsActive": "{{count}} Modelle aktiv",
     "dateFilterActive": "Datumsfilter aktiv",
+    "clearDate": "{{label}} zurücksetzen",
     "presets": {
       "7d": "7T",
       "30d": "30T",
@@ -117,10 +135,10 @@
   },
   "dashboard": {
     "insights": {
-      "title": "Insights",
+      "title": "Einblicke",
       "badge": "Verdichtete Signale",
-      "description": "Konzentrierte Aussagen aus Kosten-, Modell- und Request-Daten",
-      "quickRead": "Quick Read"
+      "description": "Konzentrierte Aussagen aus Kosten-, Modell- und Anfragedaten",
+      "quickRead": "Kurzfazit"
     },
     "metrics": {
       "title": "Metriken",
@@ -146,8 +164,8 @@
       "description": "Verbrauch nach Token-Typ"
     },
     "requestAnalysis": {
-      "title": "Request-Analyse",
-      "description": "Requests gesamt, pro Modell und im Verlauf"
+      "title": "Anfragen-Analyse",
+      "description": "Anfragen gesamt, pro Modell und im Verlauf"
     },
     "advancedAnalysis": {
       "title": "Verteilungen & Risiko",
@@ -188,19 +206,22 @@
       "topModel": "Top Modell",
       "cacheHitRate": "Cache-Hit-Rate",
       "costPerMillion": "$/1M Tokens",
-      "requests": "Requests",
+      "requests": "Anfragen",
       "thinking": "Thinking",
       "avgPerPeriod": "{{value}}/{{unit}} im Mittel",
-      "tokensPerRequestAvg": "{{value}} pro Request im Mittel",
+      "tokensPerRequestAvg": "{{value}} pro Anfrage im Mittel",
       "coverageOfDays": "{{coverage}} Abdeckung von {{days}} Tagen",
       "providersActive": "{{count}} Anbieter aktiv",
       "share": "{{value}} Anteil",
-      "requestLead": "Req-Lead: {{value}}",
+      "requestLead": "Führend bei Anfragen: {{value}}",
       "allTokensViaCacheRead": "{{value}} aller Tokens via Cache Read",
-      "requestCountersMissing": "Keine Request-Zähler im Datensatz",
+      "requestCountersMissing": "Keine Anfragezähler im Datensatz",
       "thinkingShareOfVolume": "{{value}} des gesamten Tokenvolumens",
-      "requestsSubtitle": "Ø {{requests}} / {{unit}} · {{cost}} / Req · σ {{volatility}}",
-      "thinkingSubtitle": "{{share}} Anteil · {{tokens}} / Request"
+      "totalCostSubtitle": "Ø {{average}}/{{unit}} · {{costPerRequest}} pro Anfrage",
+      "totalTokensSubtitle": "{{tokensPerRequest}} pro Anfrage",
+      "totalTokensSubtitleWithRatio": "Input/Output-Verhältnis {{ratio}}:1 · {{tokensPerRequest}} pro Anfrage",
+      "requestsSubtitle": "Ø {{requests}} / {{unit}} · {{cost}} pro Anfrage · σ {{volatility}}",
+      "thinkingSubtitle": "{{share}} Anteil · {{tokens}} pro Anfrage"
     },
     "secondary": {
       "mostExpensiveDay": "Teuerster Tag",
@@ -212,9 +233,9 @@
       "spread": "Spanne: {{value}}",
       "medianPerUnit": "Median/{{unit}}",
       "vsAverage": "{{direction}}{{value}}% vs. Ø",
-      "vsAverageWithVolatility": "{{direction}}{{value}}% vs. Ø · σ Req {{volatility}}",
+      "vsAverageWithVolatility": "{{direction}}{{value}}% vs. Ø · σ Anf. {{volatility}}",
       "medianInfo": "Der Median zeigt den typischen Wert und ist weniger anfällig für Ausreisser als der Durchschnitt.",
-      "requestLeader": "{{model}} · {{requests}} Req",
+      "requestLeader": "{{model}} · {{requests}} Anfragen",
       "dominantProviderSubtitle": "{{share}} Anteil · {{cost}}{{requestLeader}}"
     },
     "today": {
@@ -225,17 +246,19 @@
       "models": "Modelle",
       "costPerMillion": "$/1M Tokens",
       "cacheHitRate": "Cache-Hit-Rate",
-      "requests": "Requests",
+      "requests": "Anfragen",
       "thinking": "Thinking",
       "vsAverageShort": "vs. Ø",
       "overallAverage": "Gesamt-Ø: {{value}}",
       "cacheShare": "{{value}} Cache-Anteil",
-      "requestsToday": "Requests heute",
+      "requestsToday": "Anfragen heute",
       "avgPerDay": "Ø {{value}}/Tag",
-      "ioRatio": "I/O Ratio: {{value}}:1",
+      "ioRatio": "Input/Output-Verhältnis: {{value}}:1",
       "topModel": "Top: {{value}}",
-      "requestsSubtitle": "{{value}} / Modell · {{cost}}/Req",
-      "requestCountersMissing": "Keine Request-Zähler",
+      "requestsSubtitle": "{{value}} / Modell · {{cost}} pro Anfrage",
+      "tokensInsight": "{{value}} pro Anfrage",
+      "requestsInsight": "{{value}} pro Anfrage",
+      "requestCountersMissing": "Keine Anfragezähler",
       "thinkingSubtitle": "{{value}} Anteil"
     },
     "month": {
@@ -248,18 +271,18 @@
       "models": "Modelle",
       "costPerMillion": "$/1M Tokens",
       "cacheHitRate": "Cache-Hit-Rate",
-      "requests": "Requests",
+      "requests": "Anfragen",
       "thinking": "Thinking",
       "vsPreviousMonth": "vs. Vormonat",
       "coverage": "{{value}} Abdeckung",
-      "requestsInMonth": "Requests im Monat",
+      "requestsInMonth": "Anfragen im Monat",
       "avgPerDay": "Ø {{value}}/Tag",
-      "ioRatio": "I/O Ratio: {{value}}:1",
+      "ioRatio": "Input/Output-Verhältnis: {{value}}:1",
       "topModel": "Top: {{value}}",
       "cacheMix": "In: {{input}} / Out: {{output}}",
-      "costPerRequest": "{{value}} / Req",
-      "requestsSubtitle": "Ø {{value}}/Tag · {{cost}}/Req",
-      "requestCountersMissing": "Keine Request-Zähler",
+      "costPerRequest": "{{value}} pro Anfrage",
+      "requestsSubtitle": "Ø {{value}}/Tag · {{cost}} pro Anfrage",
+      "requestCountersMissing": "Keine Anfragezähler",
       "thinkingSubtitle": "{{value}} Anteil"
     }
   },
@@ -274,19 +297,19 @@
       "topThreeModels": "Top 3 Modelle"
     },
     "requestEconomy": {
-      "title": "Request-Ökonomie",
-      "valueLabel": "Ø Kosten pro Request",
+      "title": "Anfrage-Ökonomie",
+      "valueLabel": "Ø Kosten pro Anfrage",
       "summary": "Jede Anfrage kostet im Mittel {{cost}} und verarbeitet {{tokens}}. {{leader}}",
-      "leader": "{{model}} führt aktuell beim Request-Volumen.",
-      "fallback": "Der geladene Datensatz enthält keine verlässlichen Request-Zähler. Request-Ökonomie ist deshalb nicht verfügbar.",
-      "avgRequests": "Ø Req/{{unit}}",
-      "avgTokensPerRequest": "Ø Tokens/Req",
+      "leader": "{{model}} führt aktuell beim Anfragevolumen.",
+      "fallback": "Der geladene Datensatz enthält keine verlässlichen Anfragezähler. Anfrage-Ökonomie ist deshalb nicht verfügbar.",
+      "avgRequests": "Ø Anfragen/{{unit}}",
+      "avgTokensPerRequest": "Ø Tokens / Anfrage",
       "costPerMillion": "$/1M Tokens",
-      "totalRequests": "Gesamt Requests"
+      "totalRequests": "Gesamt-Anfragen"
     },
     "usagePatterns": {
       "title": "Nutzungsmuster",
-      "summaryWithCoverage": "{{activeDays}} von {{totalDays}} Kalendertagen enthalten Aktivität im gefilterten Zeitraum. Die Requests schwanken dabei um {{volatility}}.",
+      "summaryWithCoverage": "{{activeDays}} von {{totalDays}} Kalendertagen enthalten Aktivität im gefilterten Zeitraum. Die Anfragen schwanken dabei um {{volatility}}.",
       "summaryWithoutCoverage": "{{activeDays}} aktive {{unit}} im gewählten Ausschnitt.",
       "avgModels": "Ø Modelle/Eintrag",
       "providersActive": "Anbieter aktiv",
@@ -307,7 +330,7 @@
     },
     "quickRead": {
       "summary": "{{provider}} trägt {{providerShare}} der Kosten, während die Top-3-Modelle {{topThreeShare}} bündeln. {{requestLeader}}",
-      "requestLeader": "{{requestModel}} führt bei den Requests, {{tokenModel}} beim Tokenvolumen.",
+      "requestLeader": "{{requestModel}} führt bei den Anfragen, {{tokenModel}} beim Tokenvolumen.",
       "fallback": "Für den aktuellen Filterausschnitt sind noch nicht genug Daten für eine stabile Zusammenfassung vorhanden."
     }
   },
@@ -349,8 +372,8 @@
       "averageSuffix": "Ø"
     },
     "requestsOverTime": {
-      "title": "Requests im Zeitverlauf",
-      "subtitle": "Requests gesamt, nach Modell und mit 7-Tage-Ø",
+      "title": "Anfragen im Zeitverlauf",
+      "subtitle": "Anfragen gesamt, nach Modell und mit 7-Tage-Ø",
       "summary": "Gesamt {{total}} · Peak {{peak}} am {{date}}",
       "averagePerUnit": "Ø / {{unit}}",
       "trend": "Trend Ø",
@@ -358,12 +381,12 @@
       "trendHeading": "Gleitender Durchschnitt pro Modell",
       "movingAverageHeading": "7-Tage Durchschnitt pro Modell",
       "totalMovingAverage": "Gesamt {{label}}",
-      "requestsByModelTotal": "Requests nach Modell gesamt",
-      "requestsInRange": "Requests im gewählten Zeitraum",
+      "requestsByModelTotal": "Anfragen nach Modell gesamt",
+      "requestsInRange": "Anfragen im gewählten Zeitraum",
       "total": "Gesamt",
       "topModel": "Top Modell",
       "topShare": "Top Share",
-      "totalRequestsSeries": "Gesamt-Requests"
+      "totalRequestsSeries": "Gesamt-Anfragen"
     },
     "requestCacheHitRate": {
       "title": "Cache-Hit-Rate nach Modell",
@@ -379,10 +402,11 @@
     },
     "heatmap": {
       "costTitle": "Kosten-Heatmap",
-      "requestsTitle": "Request-Heatmap",
+      "requestsTitle": "Anfragen-Heatmap",
       "tokensTitle": "Token-Heatmap",
+      "cellLabel": "{{date}}: {{value}}",
       "costEmpty": "Kosten-Heatmap nur in der Tagesansicht verfügbar",
-      "requestsEmpty": "Request-Heatmap nur in der Tagesansicht verfügbar",
+      "requestsEmpty": "Anfragen-Heatmap nur in der Tagesansicht verfügbar",
       "tokensEmpty": "Token-Heatmap nur in der Tagesansicht verfügbar",
       "switchToDaily": "Wechsle zur Tagesansicht für die Kalender-Heatmap",
       "less": "Weniger",
@@ -401,8 +425,8 @@
       "title": "Verteilungen",
       "requiresData": "Für Verteilungen werden mindestens 2 Datenpunkte im aktuellen Filter benötigt.",
       "costPerPeriod": "Kosten je {{period}}",
-      "requestsPerPeriod": "Requests je {{period}}",
-      "tokensPerRequest": "Tokens pro Request",
+      "requestsPerPeriod": "Anfragen je {{period}}",
+      "tokensPerRequest": "Tokens pro Anfrage",
       "interval": "Intervall",
       "dataPoints": "Datenpunkte",
       "buckets": "Buckets"
@@ -411,21 +435,21 @@
       "title": "Korrelationen",
       "requiresData": "Für Korrelationen werden mindestens 2 Datenpunkte im aktuellen Filter benötigt.",
       "points": "{{count}} Punkte",
-      "requestsVsCost": "Requests vs. Kosten",
-      "cacheVsCostPerRequest": "Cache-Rate vs. $/Req",
-      "requestsAxis": "Requests",
-      "requestsLabel": "Requests",
+      "requestsVsCost": "Anfragen vs. Kosten",
+      "cacheVsCostPerRequest": "Cache-Rate vs. Kosten / Anfrage",
+      "requestsAxis": "Anfragen",
+      "requestsLabel": "Anfragen",
       "tokensLabel": "Tokens",
-      "costPerRequestAxis": "$/Req",
+      "costPerRequestAxis": "Kosten / Anfrage",
       "cost": "Kosten",
-      "costPerRequest": "Kosten / Req",
+      "costPerRequest": "Kosten / Anfrage",
       "cacheRate": "Cache-Rate",
-      "strongRequestCost": "Starker Zusammenhang: Mehr Requests treiben die Kosten sichtbar.",
+      "strongRequestCost": "Starker Zusammenhang: Mehr Anfragen treiben die Kosten sichtbar.",
       "mediumRequestCost": "Moderater Zusammenhang zwischen Last und Kosten.",
       "weakRequestCost": "Schwacher Zusammenhang: Kosten werden stärker von Modellmix und Tokenlast geprägt.",
-      "negativeCache": "Negativer Zusammenhang: Höhere Cache-Rate senkt tendenziell die Kosten pro Request.",
+      "negativeCache": "Negativer Zusammenhang: Höhere Cache-Rate senkt tendenziell die Kosten pro Anfrage.",
       "neutralCache": "Kaum linearer Effekt: Cache wirkt, aber nicht allein entscheidend.",
-      "positiveCache": "Positiver Zusammenhang: Hohe Cache-Raten fallen hier nicht automatisch mit niedrigen Kosten pro Request zusammen."
+      "positiveCache": "Positiver Zusammenhang: Hohe Cache-Raten fallen hier nicht automatisch mit niedrigen Kosten pro Anfrage zusammen."
     },
     "costByWeekday": {
       "title": "Kosten nach Wochentag",
@@ -450,23 +474,23 @@
     "providerHint": "HHI {{value}} · Zeigt die Abhängigkeit von einzelnen Anbietern."
   },
   "requestQuality": {
-    "title": "Request-Qualität",
-    "tokensPerRequest": "Tokens / Request",
-    "costPerRequest": "Kosten / Request",
-    "cachePerRequest": "Cache / Request",
-    "thinkingPerRequest": "Thinking / Request",
+    "title": "Anfragequalität",
+    "tokensPerRequest": "Tokens / Anfrage",
+    "costPerRequest": "Kosten / Anfrage",
+    "cachePerRequest": "Cache / Anfrage",
+    "thinkingPerRequest": "Thinking / Anfrage",
     "tokensHint": "Durchschnittliche Tokenlast pro Anfrage",
     "costHint": "Direkte Kosten pro Anfrage",
     "cacheHint": "Gelesene Cache-Tokens pro Anfrage",
     "thinkingHint": "Thinking-Tokens pro Anfrage",
-    "requestDensity": "Request-Dichte",
+    "requestDensity": "Anfragedichte",
     "averagePerActiveUnit": "Ø pro aktivem {{unit}}",
     "cacheHitRate": "Cache-Hit-Rate",
     "cacheHitHint": "Direkt aus Cache-Read relativ zu allen Tokens",
     "inputOutput": "Input / Output",
     "inputOutputHint": "Drift zwischen eingehenden und erzeugten Tokens",
-    "topRequestModel": "Top Request-Modell",
-    "noRequestLeader": "Kein Request-Leader"
+    "topRequestModel": "Top-Anfragemodell",
+    "noRequestLeader": "Kein führendes Anfragemodell"
   },
   "forecast": {
     "noData": "Keine Daten verfügbar",
@@ -535,7 +559,7 @@
       "count": "{{count}} Modelle",
       "topModel": "Top Modell",
       "mostEfficient": "Effizientestes Modell",
-      "totalRequests": "Gesamt-Requests",
+      "totalRequests": "Gesamt-Anfragen",
       "topModelTokens": "Top Modell Tokens",
       "share": "{{value}} Anteil",
       "perModel": "{{value}} / Modell",
@@ -544,29 +568,29 @@
       "cost": "Kosten",
       "tokens": "Tokens",
       "shareShort": "Anteil",
-      "req": "Req",
-      "reqShare": "Req %",
-      "costPerReq": "$ / Req",
-      "tokensPerReq": "Tokens / Req",
+      "req": "Anfragen",
+      "reqShare": "Anfragen %",
+      "costPerReq": "Kosten / Anfrage",
+      "tokensPerReq": "Tokens / Anfrage",
       "cacheShare": "Cache %",
       "thinkingShare": "Think %",
       "avgPerUnit": "Ø/{{unit}}"
     },
     "providerEfficiency": {
-      "title": "Provider-Effizienz",
+      "title": "Anbieter-Effizienz",
       "count": "{{count}} Anbieter",
-      "leadProvider": "Lead Provider",
-      "mostEfficient": "Effizientester Provider",
-      "totalRequests": "Gesamt-Requests",
+      "leadProvider": "Führender Anbieter",
+      "mostEfficient": "Effizientester Anbieter",
+      "totalRequests": "Gesamt-Anfragen",
       "share": "{{value}} Anteil",
       "perProvider": "{{value}} / Anbieter",
       "avgPerUnit": "Ø/{{unit}}",
-      "provider": "Provider",
+      "provider": "Anbieter",
       "cost": "Kosten",
       "shareShort": "Anteil",
-      "req": "Req",
+      "req": "Anfragen",
       "tokens": "Tokens",
-      "costPerReq": "$ / Req",
+      "costPerReq": "Kosten / Anfrage",
       "costPerMillion": "$/1M",
       "cacheShare": "Cache %"
     },
@@ -579,12 +603,12 @@
       "showAll": "Alle anzeigen",
       "totalCost": "Gesamtkosten",
       "totalTokens": "Gesamt-Tokens",
-      "requests": "Requests",
+      "requests": "Anfragen",
       "cacheReadShare": "Cache Read Anteil",
       "peak": "Peak",
       "previousDay": "Vortag",
       "avg7d": "7T-Ø",
-      "reqAvg": "Req-Ø",
+      "reqAvg": "Anfragen-Ø",
       "date": "Datum",
       "cost": "Kosten",
       "tokens": "Tokens",
@@ -599,7 +623,10 @@
       "github": "GitHub",
       "issues": "GitHub Issues"
     },
-    "chartsAndFeatures": "Charts & Features",
+    "chartsAndFeatures": "Charts",
+    "dashboardSectionsTitle": "Dashboard-Sektionen",
+    "featuresTitle": "Features",
+    "tablesTitle": "Tabellen",
     "metricLabels": {
       "totalCost": "Gesamtkosten",
       "totalTokens": "Tokens gesamt",
@@ -619,7 +646,7 @@
       "cumulativeCost": "Kumulative Kosten",
       "costByWeekday": "Kosten nach Wochentag",
       "tokensOverTime": "Tokens über Zeit",
-      "requestsOverTime": "Requests im Zeitverlauf",
+      "requestsOverTime": "Anfragen im Zeitverlauf",
       "requestCacheHitRate": "Cache-Hit-Rate nach Modell",
       "tokenTypes": "Token-Typen",
       "tokenEfficiency": "Token-Effizienz",
@@ -627,15 +654,19 @@
       "distributionAnalysis": "Verteilungen",
       "correlationAnalysis": "Korrelationen",
       "heatmap": "Kosten-Heatmap",
-      "requestHeatmap": "Request-Heatmap",
+      "requestHeatmap": "Anfragen-Heatmap",
       "tokenHeatmap": "Token-Heatmap",
       "forecast": "Prognose",
       "cacheROI": "Cache-ROI",
+      "providerLimitProgress": "Anbieter-Limit-Auslastung",
+      "providerSubscriptionMix": "Anbieter-Abos vs. API-Kosten",
+      "providerLimitTimeline": "Anbieterlimits im Zeitverlauf",
       "periodComparison": "Periodenvergleich",
-      "anomalyDetection": "Anomalie-Erkennung"
+      "anomalyDetection": "Anomalie-Erkennung",
+      "cellLabel": "{{date}}: {{value}}"
     },
     "sectionLabels": {
-      "insights": "Insights",
+      "insights": "Einblicke",
       "metrics": "Metriken",
       "today": "Heute",
       "currentMonth": "Monat",
@@ -643,17 +674,17 @@
       "forecastCache": "Prognose & Cache",
       "costAnalysis": "Kostenanalyse",
       "tokenAnalysis": "Token-Analyse",
-      "requestAnalysis": "Request-Analyse",
+      "requestAnalysis": "Anfragen-Analyse",
       "advancedAnalysis": "Verteilungen & Risiko",
       "comparisons": "Vergleiche & Anomalien",
       "tables": "Tabellen",
-      "limits": "Limits & Subscriptions"
+      "limits": "Limits & Abonnements"
     },
     "featureLabels": {
-      "requestQuality": "Request-Qualität",
-      "providerLimits": "Limits & Subscriptions",
+      "requestQuality": "Anfragequalität",
+      "providerLimits": "Anbieterlimits",
       "concentrationRisk": "Konzentrationsrisiko",
-      "providerEfficiency": "Provider-Effizienz",
+      "providerEfficiency": "Anbieter-Effizienz",
       "modelEfficiency": "Modell-Effizienz",
       "recentDays": "Zeiträume im Detail"
     }
@@ -701,7 +732,7 @@
       },
       "openSettings": {
         "label": "Einstellungen öffnen",
-        "description": "Backups, App-Optionen und Provider Limits verwalten"
+        "description": "Backups, App-Optionen und Anbieterlimits verwalten"
       },
       "exportCsv": {
         "label": "CSV exportieren",
@@ -785,7 +816,7 @@
         "description": "Springt zur Sektion {{section}}"
       },
       "insights": {
-        "label": "Zu Insights",
+        "label": "Zu Einblicke",
         "description": "Springt zur Executive Summary"
       },
       "metrics": {
@@ -809,7 +840,7 @@
         "description": "Springt zu Forecast und Cache ROI"
       },
       "limits": {
-        "label": "Zu Limits & Subscriptions",
+        "label": "Zu Limits & Abonnements",
         "description": "Springt zur Limits-Sektion"
       },
       "charts": {
@@ -821,8 +852,8 @@
         "description": "Springt zu Token-Charts und Verteilungen"
       },
       "requestAnalysis": {
-        "label": "Zu Request-Analyse",
-        "description": "Springt zu Requests im Zeitverlauf und Request-Verteilung"
+        "label": "Zu Anfragen-Analyse",
+        "description": "Springt zu Anfragen im Zeitverlauf und zur Anfragen-Verteilung"
       },
       "comparisons": {
         "label": "Zu Vergleiche & Anomalien",
@@ -857,7 +888,9 @@
   "settings": {
     "modal": {
       "title": "Einstellungen",
-      "description": "Verwalte App-Backups, gespeicherte Daten und Provider Limits an einem Ort.",
+      "description": "Verwalte App-Backups, gespeicherte Daten und Anbieterlimits an einem Ort.",
+      "languageTitle": "Dashboard-Sprache",
+      "languageDescription": "Lege fest, welche Sprache im Dashboard, in Dialogen und in Reports verwendet wird.",
       "dataStatus": "Datenstatus",
       "lastLoaded": "Zuletzt geladen",
       "loadedVia": "Geladen über",
@@ -881,8 +914,8 @@
       "dataBackupDescription": "Exportiert den lokal gespeicherten Nutzungsstand als Backup und importiert Backups konservativ zurück.",
       "dataImportPolicy": "Beim Datenimport werden nur fehlende Tage ergänzt. Bestehende Tage mit abweichenden Werten bleiben lokal erhalten und werden als Konflikt gemeldet.",
       "dataImportReplaceHint": "Wenn du einen Datensatz vollständig ersetzen willst, nutze weiter den normalen JSON-Upload im Header.",
-      "providerLimitsTitle": "Provider Limits",
-      "providerLimitsDescription": "Definiere Subscription und Monatslimit pro Anbieter. Nur Anbieter aus dem aktuell geladenen Report sind editierbar.",
+      "providerLimitsTitle": "Anbieterlimits",
+      "providerLimitsDescription": "Definiere Abo und Monatslimit pro Anbieter. Nur Anbieter aus dem aktuell geladenen Report sind editierbar.",
       "noProviders": "Keine Anbieter im geladenen Report gefunden.",
       "exportSettings": "Einstellungen exportieren",
       "importSettings": "Einstellungen importieren",
@@ -910,19 +943,48 @@
       }
     }
   },
+  "drillDown": {
+    "description": "Detaillierte Tagesansicht mit Token-Verteilung, Modellanteilen, Anfragen und Thinking-Tokens.",
+    "cacheRate": "Cache-Rate",
+    "tokensPerRequest": "Tokens / Anfrage",
+    "costPerRequest": "Kosten / Anfrage",
+    "costRank": "Kosten-Rang",
+    "requestRank": "Anfragen-Rang",
+    "topRequestModel": "Dominant nach Anfragen",
+    "costVsAverage7d": "Kosten vs. 7T-Ø",
+    "requestsVsAverage7d": "Anfragen vs. 7T-Ø",
+    "tokenDistribution": "Token-Verteilung",
+    "requestCountShort": "{{count}} Anfragen",
+    "modelRequestSummary": "{{costPerRequest}} / Anfrage · {{tokensPerRequest}} / Anfrage",
+    "noRequests": "Keine Anfragen",
+    "tokenSegments": {
+      "cacheRead": "Cache Read",
+      "cacheWrite": "Cache Write"
+    }
+  },
+  "chartCard": {
+    "expandedDescription": "Erweiterte Chart-Ansicht mit Kennzahlenübersicht und optionalem CSV-Export.",
+    "exportCsv": "CSV exportieren"
+  },
+  "customTooltip": {
+    "total": "Gesamt",
+    "delta": "Delta",
+    "vsPrevious": "vs. vorher",
+    "vsAverage": "vs. Ø"
+  },
   "limits": {
-    "sectionTitle": "Limits & Subscriptions",
-    "sectionDescription": "Budget-Risiko getrennt von Subscription-Wirkung im aktuellen Filterkontext",
+    "sectionTitle": "Limits & Abonnements",
+    "sectionDescription": "Budget-Risiko getrennt von Abo-Wirkung im aktuellen Filterkontext",
     "providersBadge": "{{count}} Anbieter",
     "warningBanner": "{{count}} Anbieter haben ihr Monatslimit im aktuellen Ausschnitt erreicht oder überschritten.",
     "cards": {
       "atLimit": "Anbieter am Limit",
       "nearLimit": "Nahe am Limit",
-      "subscriptionVolume": "Subscription-Volumen",
-      "subscriptionValue": "Subscription-Mehrwert",
+      "subscriptionVolume": "Abo-Volumen",
+      "subscriptionValue": "Abo-Mehrwert",
       "nearLimitHint": "ab 80% Auslastung",
       "subscriptionVolumeHint": "fixe Kosten / Monat",
-      "subscriptionValueHint": "Usage über Subscription",
+      "subscriptionValueHint": "Nutzung über dem Abo",
       "noMonth": "Kein Monat"
     },
     "statuses": {
@@ -930,9 +992,9 @@
       "budgetTight": "Budget angespannt",
       "budgetStable": "Budget stabil",
       "noLimit": "Kein Limit gesetzt",
-      "noSubscription": "Keine Subscription",
-      "subscriptionPaysOff": "Subscription zahlt sich aus",
-      "belowSubscription": "Noch unter Subscription"
+      "noSubscription": "Kein Abo",
+      "subscriptionPaysOff": "Abo zahlt sich aus",
+      "belowSubscription": "Noch unter dem Abo"
     },
     "badge": {
       "limit": "{{value}}% Limit",
@@ -943,16 +1005,16 @@
       "budgetTitle": "Budget-Status je Anbieter",
       "budgetSubtitle": "Jeder Track zeigt pro Anbieter direkt den Abstand bis zum Limit oder den bereits eingetretenen Überzug",
       "budgetNoMonth": "Kein Monat im aktuellen Ausschnitt",
-      "subscriptionTitle": "Subscription-Status je Anbieter",
+      "subscriptionTitle": "Abo-Status je Anbieter",
       "subscriptionSubtitle": "Jeder Track zeigt pro Anbieter direkt den Abstand zum Break-even oder den bereits erreichten Mehrwert",
       "subscriptionNoMonth": "Kein Monat im aktuellen Ausschnitt",
       "portfolioTitle": "Portfolio-Entwicklung",
-      "portfolioSubtitle": "Monatlicher Verlauf von Usage, konfigurierten Limits und Subscription-Wirkung",
-      "usage": "Usage",
+      "portfolioSubtitle": "Monatlicher Verlauf von Nutzung, konfigurierten Limits und Abo-Wirkung",
+      "usage": "Nutzung",
       "limit": "Limit",
       "limits": "Limits",
-      "subscription": "Subscription",
-      "subscriptions": "Subscriptions",
+      "subscription": "Abo",
+      "subscriptions": "Abos",
       "breakEven": "Break-even",
       "currentlyUsed": "Aktuell verbraucht",
       "remainingToLimit": "Bis Limit offen",
@@ -960,25 +1022,25 @@
       "remainingToBreakEven": "Bis Break-even offen",
       "alreadyAboveBreakEven": "Schon darüber",
       "usageFocusMonth": "Kosten Fokusmonat",
-      "limitSubscription": "Limit / Subscription",
+      "limitSubscription": "Limit / Abo",
       "budgetRisk": "Budget-Risiko",
-      "subscriptionEffect": "Subscription-Wirkung",
+      "subscriptionEffect": "Abo-Wirkung",
       "stillToLimit": "Noch {{value}} bis zum Limit",
       "alreadyAboveLimit": "Schon {{value}} über Limit",
       "stillToBreakEven": "Noch {{value}} bis Break-even",
       "alreadyAboveBreakEvenText": "Schon {{value}} über Break-even",
-      "noSubscriptionSet": "Keine Subscription gesetzt"
+      "noSubscriptionSet": "Kein Abo gesetzt"
     },
     "modal": {
-      "title": "Provider Limits",
-      "description": "Definiere pro Anbieter Subscription und Monatslimit. Nur Anbieter aus dem aktuell geladenen Report sind editierbar. Ein Limit von 0 bedeutet kein Limit.",
+      "title": "Anbieterlimits",
+      "description": "Definiere pro Anbieter Abo und Monatslimit. Nur Anbieter aus dem aktuell geladenen Report sind editierbar. Ein Limit von 0 bedeutet kein Limit.",
       "dataStatus": "Datenstatus",
       "lastLoaded": "Zuletzt geladen",
       "loadedVia": "Geladen über",
       "cliAutoLoad": "CLI Auto-Load",
       "noProviders": "Keine Anbieter im geladenen Report gefunden.",
-      "hasSubscription": "Subscription vorhanden",
-      "subscriptionPerMonth": "Subscription $/Monat",
+      "hasSubscription": "Abo vorhanden",
+      "subscriptionPerMonth": "Abo $/Monat",
       "monthlyLimit": "Monatslimit $",
       "close": "Schliessen",
       "save": "Speichern",
@@ -1005,7 +1067,7 @@
       "overview": "Überblick",
       "insights": "Wichtigste Erkenntnisse",
       "filters": "Filter",
-      "modelsProviders": "Modelle & Provider",
+      "modelsProviders": "Modelle & Anbieter",
       "recentPeriods": "Letzte Zeiträume",
       "interpretation": "Interpretation"
     },
@@ -1014,7 +1076,7 @@
       "view": "Ansicht",
       "generated": "Generiert",
       "month": "Monat",
-      "selectedProviders": "Ausgewählte Provider",
+      "selectedProviders": "Ausgewählte Anbieter",
       "selectedModels": "Ausgewählte Modelle",
       "startDate": "Startdatum",
       "endDate": "Enddatum"
@@ -1026,13 +1088,13 @@
     },
     "tables": {
       "topModels": "Top-Modelle",
-      "providers": "Provider",
+      "providers": "Anbieter",
       "columns": {
         "model": "Modell",
-        "provider": "Provider",
+        "provider": "Anbieter",
         "cost": "Kosten",
         "tokens": "Tokens",
-        "requests": "Requests",
+        "requests": "Anfragen",
         "period": "Zeitraum"
       }
     },
@@ -1042,13 +1104,13 @@
       "tokenTrend": "Token-Mix pro Zeitraum"
     },
     "interpretation": {
-      "summary": "Dieser Report umfasst {{days}} Rohdaten-Tage und {{periods}} aggregierte Zeiträume. Spitzenzeitraum: {{peak}}. Top-Modell: {{topModel}}. Führender Provider: {{topProvider}}.",
+      "summary": "Dieser Report umfasst {{days}} Rohdaten-Tage und {{periods}} aggregierte Zeiträume. Spitzenzeitraum: {{peak}}. Top-Modell: {{topModel}}. Führender Anbieter: {{topProvider}}.",
       "footer": "Erstellt mit TTDash v{{version}} und serverseitiger Typst-Kompilierung."
     },
     "insights": {
       "coverageTitle": "Datenbasis",
       "coverageBody": "Dieser Report basiert auf einer schmalen Datenbasis mit {{days}} Rohdaten-Tagen und {{periods}} aggregierten Zeiträumen. Trend-Aussagen sollten vorsichtig gelesen werden.",
-      "providerTitle": "Provider-Konzentration",
+      "providerTitle": "Anbieter-Konzentration",
       "providerBody": "{{provider}} steht für {{share}} der gesamten Report-Kosten.",
       "cacheTitle": "Cache-Beitrag",
       "cacheBody": "Cache-Reads machen im gewählten Zeitraum {{share}} der Token-Aktivität aus.",
@@ -1058,10 +1120,13 @@
   },
   "api": {
     "fetchUsageFailed": "Fehler beim Laden der Daten",
+    "fetchSettingsFailed": "Fehler beim Laden der Einstellungen",
     "uploadFailed": "Upload fehlgeschlagen",
     "deleteFailed": "Löschen fehlgeschlagen",
+    "deleteSettingsFailed": "Einstellungen konnten nicht zurückgesetzt werden",
     "importUsageFailed": "Datenimport fehlgeschlagen",
     "importSettingsFailed": "Einstellungs-Import fehlgeschlagen",
+    "saveSettingsFailed": "Einstellungen konnten nicht gespeichert werden",
     "pdfFailed": "PDF-Generierung fehlgeschlagen"
   },
   "toasts": {
@@ -1074,6 +1139,7 @@
     "dataExported": "Daten-Backup exportiert",
     "noDataToExport": "Keine Daten zum Exportieren vorhanden",
     "settingsImported": "Einstellungen aus {{name}} importiert",
+    "settingsReset": "Einstellungen zurückgesetzt",
     "settingsSaved": "Einstellungen gespeichert",
     "dataBackupImported": "Backup importiert: {{added}} neue Tage ergänzt, {{unchanged}} identische Tage übersprungen",
     "dataBackupImportedWithConflicts": "Backup importiert: {{added}} neue Tage ergänzt, {{conflicts}} Konflikttage lokal beibehalten"

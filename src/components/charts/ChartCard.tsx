@@ -14,7 +14,10 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Maximize2 } from 'lucide-react'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import { cn } from '@/lib/cn'
+import { buildCsvLine } from '@/lib/csv'
 import { formatCurrency } from '@/lib/formatters'
+
+export { stringifyCsvCell } from '@/lib/csv'
 
 interface ChartCardProps {
   title: string
@@ -30,28 +33,6 @@ interface ChartCardProps {
   expandedExtra?: ReactNode
 }
 
-export function stringifyCsvCell(value: unknown): string {
-  let stringValue = ''
-
-  if (value == null) return ''
-  if (
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean' ||
-    typeof value === 'bigint'
-  ) {
-    stringValue = String(value)
-  } else {
-    try {
-      stringValue = JSON.stringify(value) ?? ''
-    } catch {
-      stringValue = ''
-    }
-  }
-
-  return `"${stringValue.replace(/"/g, '""')}"`
-}
-
 export function buildChartCsv(chartData: Record<string, unknown>[]): string {
   if (chartData.length === 0) return ''
 
@@ -60,8 +41,8 @@ export function buildChartCsv(chartData: Record<string, unknown>[]): string {
 
   const keys = Object.keys(firstRow)
   return [
-    keys.map((key) => stringifyCsvCell(key)).join(','),
-    ...chartData.map((row) => keys.map((key) => stringifyCsvCell(row[key])).join(',')),
+    buildCsvLine(keys),
+    ...chartData.map((row) => buildCsvLine(keys.map((key) => row[key]))),
   ].join('\n')
 }
 
@@ -200,10 +181,11 @@ export function ChartCard({
           <CardContent>{renderChildren(false)}</CardContent>
           {expandable && (
             <button
+              type="button"
               onClick={() => setExpanded(true)}
-              className="absolute top-3 right-3 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 p-1.5 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-accent text-muted-foreground hover:text-foreground"
+              className="absolute top-3 right-3 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity duration-200 p-1.5 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-accent text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               title={t('common.expand')}
-              aria-label={`${title} ${t('common.expand').toLowerCase()}`}
+              aria-label={t('common.expandWithTitle', { title })}
             >
               <Maximize2 className="h-3.5 w-3.5" />
             </button>
@@ -216,7 +198,7 @@ export function ChartCard({
           <DialogContent className="max-w-[96vw] w-[96vw] sm:max-w-[95vw] sm:w-[95vw] max-h-[92vh] h-[92vh] sm:max-h-[90vh] sm:h-[90vh] overflow-auto p-0">
             <DialogTitle className="sr-only">{title}</DialogTitle>
             <DialogDescription className="sr-only">
-              Expanded chart view with metric summary and optional CSV export.
+              {t('chartCard.expandedDescription')}
             </DialogDescription>
             <ChartAnimationContext.Provider value={expanded}>
               <div className="relative h-full flex flex-col">
@@ -228,10 +210,11 @@ export function ChartCard({
                     </div>
                     {chartData && chartData.length > 0 && (
                       <button
+                        type="button"
                         onClick={handleExport}
                         className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-muted-foreground hover:text-foreground"
                       >
-                        CSV Export
+                        {t('chartCard.exportCsv')}
                       </button>
                     )}
                   </div>

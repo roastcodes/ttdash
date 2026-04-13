@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 interface TooltipPayloadEntry {
   name: string
   value: number
@@ -25,6 +27,7 @@ export function CustomTooltip({
   showComputedTotal = true,
   hideZeroValues = false,
 }: CustomTooltipProps) {
+  const { t } = useTranslation()
   if (!active || !payload?.length) return null
 
   // Separate actual values from moving average (Ø) lines
@@ -63,6 +66,8 @@ export function CustomTooltip({
     : null
   const deltaVsPrevious = focusEntry && prevValue !== null ? focusEntry.value - prevValue : null
   const deltaVsAverage = focusEntry && matchingMA ? focusEntry.value - matchingMA.value : null
+  const totalLabel = t('customTooltip.total')
+  const deltaLabel = t('customTooltip.delta')
 
   return (
     <div className="max-w-[280px] bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">
@@ -93,9 +98,9 @@ export function CustomTooltip({
             <div className="border-t border-border/40 my-1" />
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 shrink-0" />
-              <span className="text-muted-foreground font-medium">Gesamt:</span>
+              <span className="text-muted-foreground font-medium">{totalLabel}:</span>
               <span className="font-mono font-medium text-foreground ml-auto">
-                {formatter ? formatter(total, 'Gesamt') : total}
+                {formatter ? formatter(total, totalLabel) : total}
               </span>
               <span className="text-muted-foreground/60 font-mono w-10 text-right">100%</span>
             </div>
@@ -141,20 +146,20 @@ export function CustomTooltip({
             {deltaVsPrevious !== null && (
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 shrink-0" />
-                <span className="text-muted-foreground">vs. vorher:</span>
+                <span className="text-muted-foreground">{t('customTooltip.vsPrevious')}:</span>
                 <span className="font-mono font-medium text-foreground ml-auto">
                   {deltaVsPrevious >= 0 ? '+' : ''}
-                  {formatter ? formatter(deltaVsPrevious, 'Delta') : deltaVsPrevious}
+                  {formatter ? formatter(deltaVsPrevious, deltaLabel) : deltaVsPrevious}
                 </span>
               </div>
             )}
             {deltaVsAverage !== null && (
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 shrink-0" />
-                <span className="text-muted-foreground">vs. Ø:</span>
+                <span className="text-muted-foreground">{t('customTooltip.vsAverage')}:</span>
                 <span className="font-mono font-medium text-foreground ml-auto">
                   {deltaVsAverage >= 0 ? '+' : ''}
-                  {formatter ? formatter(deltaVsAverage, 'Delta') : deltaVsAverage}
+                  {formatter ? formatter(deltaVsAverage, deltaLabel) : deltaVsAverage}
                 </span>
               </div>
             )}

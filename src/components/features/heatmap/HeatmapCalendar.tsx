@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_HELP } from '@/lib/help-content'
 import {
   formatCurrency,
@@ -43,6 +43,7 @@ export function HeatmapCalendar({
   metric = 'cost',
 }: HeatmapCalendarProps) {
   const { t } = useTranslation()
+  const locale = getCurrentLocale()
   const [tooltip, setTooltip] = useState<{
     x: number
     y: number
@@ -55,11 +56,20 @@ export function HeatmapCalendar({
       Array.from({ length: 7 }, (_, index) => index).map((index) =>
         index % 2 === 1
           ? ''
-          : new Intl.DateTimeFormat(getCurrentLocale(), { weekday: 'short' })
+          : new Intl.DateTimeFormat(locale, { weekday: 'short' })
               .format(new Date(Date.UTC(2024, 0, 1 + index)))
               .slice(0, 2),
       ),
-    [],
+    [locale],
+  )
+  const fullDateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+    [locale],
   )
   const config = {
     cost: {
@@ -130,7 +140,7 @@ export function HeatmapCalendar({
         const m = currentDate.getMonth()
         if (m !== lastMonth) {
           monthLabels.push({
-            label: currentDate.toLocaleDateString(getCurrentLocale(), { month: 'short' }),
+            label: currentDate.toLocaleDateString(locale, { month: 'short' }),
             week,
           })
           lastMonth = m
@@ -145,7 +155,7 @@ export function HeatmapCalendar({
     }
 
     return { cells: result, weeks: week + 1, months: monthLabels, maxValue: max }
-  }, [data, config])
+  }, [config, data, locale])
 
   const todayStr = localToday()
 
@@ -154,10 +164,11 @@ export function HeatmapCalendar({
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            {config.title}
-            <InfoButton text={infoText} />
-          </CardTitle>
+          <InfoHeading info={infoText}>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {config.title}
+            </CardTitle>
+          </InfoHeading>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -179,10 +190,11 @@ export function HeatmapCalendar({
   return (
     <Card className="overflow-visible">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          {config.title}
-          <InfoButton text={infoText} />
-        </CardTitle>
+        <InfoHeading info={infoText}>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {config.title}
+          </CardTitle>
+        </InfoHeading>
       </CardHeader>
       <CardContent className="overflow-visible">
         <div ref={overlayRef} className="relative overflow-visible z-10">
@@ -222,6 +234,11 @@ export function HeatmapCalendar({
               {/* Cells */}
               {cells.map((cell, i) => {
                 const isToday = cell.date === todayStr
+                const formattedDate = fullDateFormatter.format(new Date(`${cell.date}T00:00:00`))
+                const accessibleLabel = t('charts.heatmap.cellLabel', {
+                  date: formattedDate,
+                  value: config.formatter(cell.value),
+                })
                 return (
                   <g key={i}>
                     <rect
@@ -231,7 +248,13 @@ export function HeatmapCalendar({
                       height={CELL_SIZE}
                       rx={2}
                       fill={getColor(cell.value, maxValue, config.hue)}
-                      className="transition-all duration-150 cursor-pointer"
+                      stroke="transparent"
+                      strokeWidth={1.5}
+                      className="transition-all duration-150 cursor-pointer focus-visible:stroke-primary"
+                      tabIndex={0}
+                      role="img"
+                      aria-label={accessibleLabel}
+                      aria-current={isToday ? 'date' : undefined}
                       onMouseEnter={(event) => {
                         const bounds = overlayRef.current?.getBoundingClientRect()
                         if (!bounds) return
@@ -242,8 +265,22 @@ export function HeatmapCalendar({
                           value: cell.value,
                         })
                       }}
+                      onFocus={(event) => {
+                        const bounds = overlayRef.current?.getBoundingClientRect()
+                        if (!bounds) return
+                        const rect = event.currentTarget.getBoundingClientRect()
+                        setTooltip({
+                          x: rect.left - bounds.left + rect.width / 2,
+                          y: rect.top - bounds.top - 8,
+                          date: cell.date,
+                          value: cell.value,
+                        })
+                      }}
+                      onBlur={() => setTooltip(null)}
                       onMouseLeave={() => setTooltip(null)}
-                    />
+                    >
+                      <title>{accessibleLabel}</title>
+                    </rect>
                     {isToday && (
                       <rect
                         x={LEFT_GUTTER + cell.week * TOTAL - 1}

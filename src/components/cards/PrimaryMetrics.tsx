@@ -13,6 +13,7 @@ import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { formatCurrency, formatPercent, formatTokens, periodUnit } from '@/lib/formatters'
 import { METRIC_HELP } from '@/lib/help-content'
+import { getCurrentLocale } from '@/lib/i18n'
 import type { DashboardMetrics, ViewMode } from '@/types'
 
 interface PrimaryMetricsProps {
@@ -27,10 +28,14 @@ export function PrimaryMetrics({
   viewMode = 'daily',
 }: PrimaryMetricsProps) {
   const { t } = useTranslation()
+  const locale = getCurrentLocale()
   // Calculate input/output ratio
   const ioRatio =
     metrics.totalInput > 0 && metrics.totalOutput > 0
-      ? (metrics.totalInput / metrics.totalOutput).toFixed(1)
+      ? new Intl.NumberFormat(locale, {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        }).format(metrics.totalInput / metrics.totalOutput)
       : null
 
   const coverageRate =
@@ -75,7 +80,11 @@ export function PrimaryMetrics({
             })}
           />
         }
-        subtitle={`Ø ${formatCurrency(metrics.avgDailyCost)}/${periodUnit(viewMode)} · ${formatCurrency(metrics.avgCostPerRequest)}/Req`}
+        subtitle={t('metricCards.primary.totalCostSubtitle', {
+          average: formatCurrency(metrics.avgDailyCost),
+          unit: periodUnit(viewMode),
+          costPerRequest: formatCurrency(metrics.avgCostPerRequest),
+        })}
         icon={<DollarSign className="h-4 w-4" />}
         trend={metrics.weekOverWeekChange !== null ? { value: metrics.weekOverWeekChange } : null}
         info={METRIC_HELP.totalCost}
@@ -94,8 +103,13 @@ export function PrimaryMetrics({
         }
         subtitle={
           ioRatio
-            ? `I/O ${ioRatio}:1 · ${formatTokens(metrics.avgTokensPerRequest)} / Request`
-            : `${formatTokens(metrics.avgTokensPerRequest)} / Request`
+            ? t('metricCards.primary.totalTokensSubtitleWithRatio', {
+                ratio: ioRatio,
+                tokensPerRequest: formatTokens(metrics.avgTokensPerRequest),
+              })
+            : t('metricCards.primary.totalTokensSubtitle', {
+                tokensPerRequest: formatTokens(metrics.avgTokensPerRequest),
+              })
         }
         icon={<Coins className="h-4 w-4" />}
         info={METRIC_HELP.totalTokens}

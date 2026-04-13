@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import {
   formatPercent,
@@ -117,10 +117,11 @@ export function ProviderEfficiency({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            {t('tables.providerEfficiency.title')}
-            <InfoButton text={FEATURE_HELP.providerEfficiency} />
-          </CardTitle>
+          <InfoHeading info={FEATURE_HELP.providerEfficiency}>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t('tables.providerEfficiency.title')}
+            </CardTitle>
+          </InfoHeading>
           <span className="text-xs text-muted-foreground">
             {t('tables.providerEfficiency.count', { count: rows.length })}
           </span>
@@ -211,13 +212,17 @@ export function ProviderEfficiency({
                   <div className="mt-1 font-mono">{formatTokens(row.tokens)}</div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                  <div className="text-muted-foreground">$/Req</div>
+                  <div className="text-muted-foreground">
+                    {t('tables.providerEfficiency.costPerReq')}
+                  </div>
                   <div className="mt-1 font-mono">
                     <FormattedValue value={row.costPerRequest} type="currency" />
                   </div>
                 </div>
                 <div className="rounded-lg bg-muted/20 px-2.5 py-2">
-                  <div className="text-muted-foreground">$/1M</div>
+                  <div className="text-muted-foreground">
+                    {t('tables.providerEfficiency.costPerMillion')}
+                  </div>
                   <div className="mt-1 font-mono">
                     <FormattedValue value={row.costPerMillion} type="currency" />
                   </div>

@@ -16,6 +16,7 @@ import { SectionHeader } from '@/components/ui/section-header'
 import { FadeIn } from '@/components/features/animations/FadeIn'
 import { SECTION_HELP } from '@/lib/help-content'
 import { formatCurrency, formatMonthYear, localMonth } from '@/lib/formatters'
+import { getCurrentLocale } from '@/lib/i18n'
 import { normalizeModelName } from '@/lib/model-utils'
 import type { DailyUsage, DashboardMetrics } from '@/types'
 
@@ -26,7 +27,22 @@ interface MonthMetricsProps {
 
 export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
   const { t } = useTranslation()
+  const locale = getCurrentLocale()
   const currentMonth = localMonth()
+  const oneDecimalFormatter = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+  const oneDecimalPercentFormatter = new Intl.NumberFormat(locale, {
+    style: 'percent',
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+  const wholePercentFormatter = new Intl.NumberFormat(locale, {
+    style: 'percent',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
 
   const monthData = useMemo(
     () => daily.filter((d) => d.date.startsWith(currentMonth)),
@@ -101,7 +117,9 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
   const ioTotal = agg.inputTokens + agg.outputTokens
   const tokensSubtitle =
     agg.inputTokens > 0 && agg.outputTokens > 0
-      ? t('metricCards.month.ioRatio', { value: (agg.inputTokens / agg.outputTokens).toFixed(1) })
+      ? t('metricCards.month.ioRatio', {
+          value: oneDecimalFormatter.format(agg.inputTokens / agg.outputTokens),
+        })
       : null
   const modelsSubtitle = agg.topModel
     ? t('metricCards.month.topModel', { value: agg.topModel.name })
@@ -113,7 +131,7 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
   const thinkingSubtitle =
     agg.totalTokens > 0
       ? t('metricCards.month.thinkingSubtitle', {
-          value: `${((agg.thinkingTokens / agg.totalTokens) * 100).toFixed(1)}%`,
+          value: oneDecimalPercentFormatter.format(agg.thinkingTokens / agg.totalTokens),
         })
       : null
 
@@ -150,7 +168,7 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
             label={t('metricCards.month.activeDays')}
             value={`${agg.activeDays} / ${agg.dayOfMonth}`}
             subtitle={t('metricCards.month.coverage', {
-              value: `${((agg.activeDays / agg.dayOfMonth) * 100).toFixed(0)}%`,
+              value: wholePercentFormatter.format(agg.activeDays / agg.dayOfMonth),
             })}
             icon={<CalendarDays className="h-4 w-4" />}
           />
@@ -170,8 +188,8 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
             label={t('metricCards.month.cacheHitRate')}
             value={<FormattedValue value={agg.cacheHitRate} type="percent" />}
             subtitle={t('metricCards.month.cacheMix', {
-              input: `${ioTotal > 0 ? ((agg.inputTokens / ioTotal) * 100).toFixed(0) : 0}%`,
-              output: `${ioTotal > 0 ? ((agg.outputTokens / ioTotal) * 100).toFixed(0) : 0}%`,
+              input: wholePercentFormatter.format(ioTotal > 0 ? agg.inputTokens / ioTotal : 0),
+              output: wholePercentFormatter.format(ioTotal > 0 ? agg.outputTokens / ioTotal : 0),
             })}
             icon={<Database className="h-4 w-4" />}
           />

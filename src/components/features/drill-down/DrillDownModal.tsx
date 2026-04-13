@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ interface DrillDownModalProps {
 }
 
 export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDownModalProps) {
+  const { t } = useTranslation()
   const modelData = useMemo(() => {
     if (!day) return []
     const map = new Map<
@@ -119,6 +121,33 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
   )
   const formatTokenShare = (value: number) =>
     hasTokens ? formatPercent((value / tokensTotal) * 100) : '–'
+  const tokenSegments = [
+    {
+      id: 'cacheRead',
+      value: day.cacheReadTokens,
+      color: 'hsl(160, 50%, 42%)',
+      label: t('drillDown.tokenSegments.cacheRead'),
+    },
+    {
+      id: 'cacheWrite',
+      value: day.cacheCreationTokens,
+      color: 'hsl(262, 60%, 55%)',
+      label: t('drillDown.tokenSegments.cacheWrite'),
+    },
+    { id: 'input', value: day.inputTokens, color: 'hsl(340, 55%, 52%)', label: t('common.input') },
+    {
+      id: 'output',
+      value: day.outputTokens,
+      color: 'hsl(35, 80%, 52%)',
+      label: t('common.output'),
+    },
+    {
+      id: 'thinking',
+      value: day.thinkingTokens,
+      color: 'hsl(12, 78%, 56%)',
+      label: t('common.thinking'),
+    },
+  ] as const
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -127,15 +156,12 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
           <DialogTitle>
             {formatDate(day.date, 'long')} — {formatCurrency(day.totalCost)}
           </DialogTitle>
-          <DialogDescription>
-            Detaillierte Tagesansicht mit Token-Verteilung, Modellanteilen, Requests und Thinking
-            Tokens.
-          </DialogDescription>
+          <DialogDescription>{t('drillDown.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
           <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">Tokens</div>
+            <div className="text-xs text-muted-foreground">{t('common.tokens')}</div>
             <div className="font-mono font-medium">
               <FormattedValue value={tokensTotal} type="tokens" />
             </div>
@@ -151,45 +177,45 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
             </div>
           </div>
           <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">Cache-Rate</div>
+            <div className="text-xs text-muted-foreground">{t('drillDown.cacheRate')}</div>
             <div className="font-mono font-medium">
               <FormattedValue value={cacheRate} type="percent" />
             </div>
           </div>
           <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">Modelle</div>
+            <div className="text-xs text-muted-foreground">{t('common.models')}</div>
             <div className="font-mono font-medium">{modelData.length}</div>
           </div>
           <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">Requests</div>
+            <div className="text-xs text-muted-foreground">{t('common.requests')}</div>
             <div className="font-mono font-medium">
               <FormattedValue value={day.requestCount} type="number" />
             </div>
           </div>
           <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">Thinking</div>
+            <div className="text-xs text-muted-foreground">{t('common.thinking')}</div>
             <div className="font-mono font-medium">
               <FormattedValue value={day.thinkingTokens} type="tokens" />
             </div>
           </div>
           <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">Tokens / Req</div>
+            <div className="text-xs text-muted-foreground">{t('drillDown.tokensPerRequest')}</div>
             <div className="font-mono font-medium">
               <FormattedValue value={avgTokensPerRequest} type="tokens" />
             </div>
           </div>
           <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">Kosten / Req</div>
+            <div className="text-xs text-muted-foreground">{t('drillDown.costPerRequest')}</div>
             <div className="font-mono font-medium">
               <FormattedValue value={avgCostPerRequest} type="currency" />
             </div>
           </div>
           <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">Kosten-Rang</div>
+            <div className="text-xs text-muted-foreground">{t('drillDown.costRank')}</div>
             <div className="font-mono font-medium">{costRanking > 0 ? `#${costRanking}` : '–'}</div>
           </div>
           <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">Request-Rang</div>
+            <div className="text-xs text-muted-foreground">{t('drillDown.requestRank')}</div>
             <div className="font-mono font-medium">
               {requestRanking > 0 ? `#${requestRanking}` : '–'}
             </div>
@@ -198,11 +224,11 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
           <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-            <div className="text-muted-foreground">Dominant nach Requests</div>
+            <div className="text-muted-foreground">{t('drillDown.topRequestModel')}</div>
             <div className="mt-1 font-medium">{topRequestModel?.name ?? '–'}</div>
           </div>
           <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-            <div className="text-muted-foreground">Kosten vs. 7T-Ø</div>
+            <div className="text-muted-foreground">{t('drillDown.costVsAverage7d')}</div>
             <div className="mt-1 font-medium">
               {avgCost7 !== null
                 ? `${day.totalCost >= avgCost7 ? '↑' : '↓'} ${formatCurrency(Math.abs(day.totalCost - avgCost7))}`
@@ -210,7 +236,7 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
             </div>
           </div>
           <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-            <div className="text-muted-foreground">Requests vs. 7T-Ø</div>
+            <div className="text-muted-foreground">{t('drillDown.requestsVsAverage7d')}</div>
             <div className="mt-1 font-medium">
               {avgRequests7 !== null
                 ? `${day.requestCount >= avgRequests7 ? '↑' : '↓'} ${Math.abs(day.requestCount - avgRequests7).toFixed(0)}`
@@ -221,24 +247,14 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
 
         {/* Token type stacked bar */}
         <div>
-          <div className="text-xs text-muted-foreground mb-1.5">Token-Verteilung</div>
+          <div className="text-xs text-muted-foreground mb-1.5">
+            {t('drillDown.tokenDistribution')}
+          </div>
           <div className="flex h-3 rounded-full overflow-hidden">
             {hasTokens &&
-              (
-                [
-                  { value: day.cacheReadTokens, color: 'hsl(160, 50%, 42%)', label: 'Cache Read' },
-                  {
-                    value: day.cacheCreationTokens,
-                    color: 'hsl(262, 60%, 55%)',
-                    label: 'Cache Write',
-                  },
-                  { value: day.inputTokens, color: 'hsl(340, 55%, 52%)', label: 'Input' },
-                  { value: day.outputTokens, color: 'hsl(35, 80%, 52%)', label: 'Output' },
-                  { value: day.thinkingTokens, color: 'hsl(12, 78%, 56%)', label: 'Thinking' },
-                ] as const
-              ).map((seg) => (
+              tokenSegments.map((seg) => (
                 <div
-                  key={seg.label}
+                  key={seg.id}
                   className="h-full transition-all duration-500"
                   style={{
                     width: `${(seg.value / tokensTotal) * 100}%`,
@@ -249,41 +265,12 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
               ))}
           </div>
           <div className="flex gap-3 mt-1.5 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: 'hsl(160, 50%, 42%)' }}
-              />
-              Cache Read {formatTokenShare(day.cacheReadTokens)}
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: 'hsl(262, 60%, 55%)' }}
-              />
-              Cache Write {formatTokenShare(day.cacheCreationTokens)}
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: 'hsl(340, 55%, 52%)' }}
-              />
-              Input {formatTokenShare(day.inputTokens)}
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: 'hsl(35, 80%, 52%)' }}
-              />
-              Output {formatTokenShare(day.outputTokens)}
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: 'hsl(12, 78%, 56%)' }}
-              />
-              Thinking {formatTokenShare(day.thinkingTokens)}
-            </span>
+            {tokenSegments.map((segment) => (
+              <span key={segment.id} className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: segment.color }} />
+                {segment.label} {formatTokenShare(segment.value)}
+              </span>
+            ))}
           </div>
         </div>
 
@@ -344,13 +331,16 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
                         <FormattedValue value={model.tokens} type="tokens" />
                       </span>
                       <span className="text-muted-foreground ml-2 text-xs">
-                        {model.requests} Req
+                        {t('drillDown.requestCountShort', { count: model.requests })}
                       </span>
                     </div>
                     <div className="text-[10px] text-muted-foreground mt-0.5">
                       {model.requests > 0
-                        ? `${formatCurrency(model.cost / model.requests)}/Req · ${formatTokens(model.tokens / model.requests)}/Req`
-                        : 'Keine Requests'}
+                        ? t('drillDown.modelRequestSummary', {
+                            costPerRequest: formatCurrency(model.cost / model.requests),
+                            tokensPerRequest: formatTokens(model.tokens / model.requests),
+                          })
+                        : t('drillDown.noRequests')}
                     </div>
                   </div>
                 </div>

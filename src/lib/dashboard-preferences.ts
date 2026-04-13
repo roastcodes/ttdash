@@ -6,6 +6,7 @@ import type {
   DashboardSectionVisibility,
   ViewMode,
 } from '@/types'
+import dashboardPreferences from '../../shared/dashboard-preferences.json'
 
 export interface DashboardSectionDefinition {
   id: DashboardSectionId
@@ -13,39 +14,103 @@ export interface DashboardSectionDefinition {
   labelKey: string
 }
 
-export const DASHBOARD_DATE_PRESETS: DashboardDatePreset[] = ['all', '7d', '30d', 'month', 'year']
-export const DASHBOARD_VIEW_MODES: ViewMode[] = ['daily', 'monthly', 'yearly']
-export const DASHBOARD_SECTION_DEFINITIONS: DashboardSectionDefinition[] = [
-  { id: 'insights', domId: 'insights', labelKey: 'helpPanel.sectionLabels.insights' },
-  { id: 'metrics', domId: 'metrics', labelKey: 'helpPanel.sectionLabels.metrics' },
-  { id: 'today', domId: 'today', labelKey: 'helpPanel.sectionLabels.today' },
-  { id: 'currentMonth', domId: 'current-month', labelKey: 'helpPanel.sectionLabels.currentMonth' },
-  { id: 'activity', domId: 'activity', labelKey: 'helpPanel.sectionLabels.activity' },
-  {
-    id: 'forecastCache',
-    domId: 'forecast-cache',
-    labelKey: 'helpPanel.sectionLabels.forecastCache',
-  },
-  { id: 'limits', domId: 'limits', labelKey: 'helpPanel.sectionLabels.limits' },
-  { id: 'costAnalysis', domId: 'charts', labelKey: 'helpPanel.sectionLabels.costAnalysis' },
-  {
-    id: 'tokenAnalysis',
-    domId: 'token-analysis',
-    labelKey: 'helpPanel.sectionLabels.tokenAnalysis',
-  },
-  {
-    id: 'requestAnalysis',
-    domId: 'request-analysis',
-    labelKey: 'helpPanel.sectionLabels.requestAnalysis',
-  },
-  {
-    id: 'advancedAnalysis',
-    domId: 'advanced-analysis',
-    labelKey: 'helpPanel.sectionLabels.advancedAnalysis',
-  },
-  { id: 'comparisons', domId: 'comparisons', labelKey: 'helpPanel.sectionLabels.comparisons' },
-  { id: 'tables', domId: 'tables', labelKey: 'helpPanel.sectionLabels.tables' },
+type DashboardPreferencesConfig = {
+  datePresets: DashboardDatePreset[]
+  viewModes: ViewMode[]
+  sectionDefinitions: DashboardSectionDefinition[]
+}
+
+const VALID_DATE_PRESETS: DashboardDatePreset[] = ['all', '7d', '30d', 'month', 'year']
+const VALID_VIEW_MODES: ViewMode[] = ['daily', 'monthly', 'yearly']
+const VALID_SECTION_IDS: DashboardSectionId[] = [
+  'insights',
+  'metrics',
+  'today',
+  'currentMonth',
+  'activity',
+  'forecastCache',
+  'limits',
+  'costAnalysis',
+  'tokenAnalysis',
+  'requestAnalysis',
+  'advancedAnalysis',
+  'comparisons',
+  'tables',
 ]
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function validateStringArray<T extends string>(
+  value: unknown,
+  validValues: readonly T[],
+  fieldName: string,
+): T[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`Invalid dashboard preferences: "${fieldName}" must be an array.`)
+  }
+
+  const entries: unknown[] = value
+  const invalidEntry = entries.find(
+    (entry) => typeof entry !== 'string' || !validValues.includes(entry as T),
+  )
+  if (invalidEntry !== undefined) {
+    throw new Error(`Invalid dashboard preferences: "${fieldName}" contains unsupported values.`)
+  }
+
+  return entries.map((entry) => entry as T)
+}
+
+function validateSectionDefinitions(value: unknown): DashboardSectionDefinition[] {
+  if (!Array.isArray(value)) {
+    throw new Error('Invalid dashboard preferences: "sectionDefinitions" must be an array.')
+  }
+
+  return value.map((entry) => {
+    if (!isPlainObject(entry)) {
+      throw new Error(
+        'Invalid dashboard preferences: each "sectionDefinitions" entry must be an object.',
+      )
+    }
+
+    const { id, domId, labelKey } = entry
+    if (typeof id !== 'string' || !VALID_SECTION_IDS.includes(id as DashboardSectionId)) {
+      throw new Error('Invalid dashboard preferences: sectionDefinitions contain an unknown id.')
+    }
+    if (typeof domId !== 'string' || !domId.trim()) {
+      throw new Error('Invalid dashboard preferences: sectionDefinitions require a domId.')
+    }
+    if (typeof labelKey !== 'string' || !labelKey.trim()) {
+      throw new Error('Invalid dashboard preferences: sectionDefinitions require a labelKey.')
+    }
+
+    return {
+      id: id as DashboardSectionId,
+      domId,
+      labelKey,
+    }
+  })
+}
+
+export function parseDashboardPreferencesConfig(value: unknown): DashboardPreferencesConfig {
+  if (!isPlainObject(value)) {
+    throw new Error('Invalid dashboard preferences: expected an object.')
+  }
+
+  return {
+    datePresets: validateStringArray(value['datePresets'], VALID_DATE_PRESETS, 'datePresets'),
+    viewModes: validateStringArray(value['viewModes'], VALID_VIEW_MODES, 'viewModes'),
+    sectionDefinitions: validateSectionDefinitions(value['sectionDefinitions']),
+  }
+}
+
+const rawDashboardPreferences: unknown = dashboardPreferences
+const parsedDashboardPreferences = parseDashboardPreferencesConfig(rawDashboardPreferences)
+
+export const DASHBOARD_DATE_PRESETS = parsedDashboardPreferences.datePresets
+export const DASHBOARD_VIEW_MODES = parsedDashboardPreferences.viewModes
+export const DASHBOARD_SECTION_DEFINITIONS = parsedDashboardPreferences.sectionDefinitions
 export const DASHBOARD_SECTION_DEFINITION_MAP = Object.fromEntries(
   DASHBOARD_SECTION_DEFINITIONS.map((section) => [section.id, section]),
 ) as Record<DashboardSectionId, DashboardSectionDefinition>

@@ -6,7 +6,7 @@ import { normalizeModelName } from '@/lib/model-utils'
 import { MODEL_PRICES } from '@/lib/constants'
 import { Zap } from 'lucide-react'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_HELP } from '@/lib/help-content'
 import { periodUnit } from '@/lib/formatters'
 import type { DailyUsage, ViewMode } from '@/types'
@@ -79,11 +79,12 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-          <Zap className="h-4 w-4 text-yellow-500" />
-          {t('cacheRoi.title')}
-          <InfoButton text={CHART_HELP.cacheROI} />
-        </CardTitle>
+        <InfoHeading info={CHART_HELP.cacheROI}>
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Zap className="h-4 w-4 text-yellow-500" />
+            {t('cacheRoi.title')}
+          </CardTitle>
+        </InfoHeading>
       </CardHeader>
       <CardContent className="space-y-4">
         {heuristicModels.length > 0 && (

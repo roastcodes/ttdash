@@ -16,8 +16,6 @@ export const MODEL_COLORS: Record<string, string> = {
   OpenCode: 'hsl(186, 58%, 48%)',
 }
 
-export const MODEL_COLOR_DEFAULT = 'hsl(220, 8%, 56%)'
-
 export const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
 export const VIEW_MODE_LABELS = {

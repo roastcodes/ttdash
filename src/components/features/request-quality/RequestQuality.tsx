@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, useInView } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatPercent, formatTokens } from '@/lib/formatters'
 import type { DashboardMetrics, ViewMode } from '@/types'
@@ -61,10 +61,11 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
   return (
     <Card ref={sectionRef} className="overflow-visible">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          {t('requestQuality.title')}
-          <InfoButton text={FEATURE_HELP.requestQuality} />
-        </CardTitle>
+        <InfoHeading info={FEATURE_HELP.requestQuality}>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {t('requestQuality.title')}
+          </CardTitle>
+        </InfoHeading>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">

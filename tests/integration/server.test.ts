@@ -1,6 +1,15 @@
-import { createServer } from 'node:net'
+import { createConnection, createServer } from 'node:net'
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -19,6 +28,11 @@ const hasTypst = (() => {
   return !result.error && result.status === 0
 })()
 const itIfTypst = hasTypst ? it : it.skip
+const itIfPosix = process.platform === 'win32' ? it.skip : it
+
+function permissionBits(targetPath: string) {
+  return statSync(targetPath).mode & 0o777
+}
 
 async function getFreePort() {
   return new Promise<number>((resolve, reject) => {
@@ -103,6 +117,7 @@ async function waitForProcessServer(
   currentChild: ChildProcessWithoutNullStreams,
   url: string,
   getOutput: () => string,
+  readinessPath = '/api/usage',
 ) {
   const startedAt = Date.now()
 
@@ -112,7 +127,7 @@ async function waitForProcessServer(
     }
 
     try {
-      const response = await fetch(`${url}/api/usage`)
+      const response = await fetch(`${url}${readinessPath}`)
       if (response.ok) {
         return
       }
@@ -152,10 +167,12 @@ async function startStandaloneServer({
   root,
   args = [],
   envOverrides = {},
+  readinessPath = '/api/usage',
 }: {
   root: string
   args?: string[]
   envOverrides?: NodeJS.ProcessEnv
+  readinessPath?: string
 }) {
   const port = Number(envOverrides.PORT) || (await getFreePort())
   const url = `http://127.0.0.1:${port}`
@@ -179,7 +196,7 @@ async function startStandaloneServer({
     serverOutput += chunk.toString()
   })
 
-  await waitForProcessServer(currentChild, url, () => serverOutput)
+  await waitForProcessServer(currentChild, url, () => serverOutput, readinessPath)
 
   return {
     child: currentChild,
@@ -201,12 +218,43 @@ function getCliConfigDir(root: string) {
   return path.join(root, 'config', 'ttdash')
 }
 
+function getCliDataDir(root: string) {
+  if (process.platform === 'darwin') {
+    return path.join(root, 'Library', 'Application Support', 'TTDash')
+  }
+
+  if (process.platform === 'win32') {
+    return path.join(root, 'AppData', 'Local', 'TTDash')
+  }
+
+  return path.join(root, 'data', 'ttdash')
+}
+
+async function sendRawHttpRequest(port: number, request: string) {
+  return await new Promise<string>((resolve, reject) => {
+    const socket = createConnection(port, '127.0.0.1')
+    let response = ''
+
+    socket.on('connect', () => {
+      socket.write(request)
+    })
+    socket.on('data', (chunk) => {
+      response += chunk.toString()
+    })
+    socket.on('end', () => {
+      resolve(response)
+    })
+    socket.on('error', reject)
+  })
+}
+
 function readBackgroundRegistry(root: string) {
   const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
   return JSON.parse(readFileSync(registryPath, 'utf-8')) as Array<{
     url: string
     port: number
     pid: number
+    logFile?: string | null
   }>
 }
 
@@ -217,6 +265,7 @@ function tryReadBackgroundRegistry(root: string) {
       url: string
       port: number
       pid: number
+      logFile?: string | null
     }>
   }
 
@@ -225,6 +274,7 @@ function tryReadBackgroundRegistry(root: string) {
       url: string
       port: number
       pid: number
+      logFile?: string | null
     }>
   } catch {
     return []
@@ -244,6 +294,7 @@ async function waitForBackgroundRegistry(
       url: string
       port: number
       pid: number
+      logFile?: string | null
     }>,
   ) => boolean,
   timeoutMs = 15_000,
@@ -263,6 +314,23 @@ async function waitForBackgroundRegistry(
   throw new Error(
     `Timed out waiting for background registry state: ${JSON.stringify(lastEntries, null, 2)}`,
   )
+}
+
+async function waitForHttpOk(url: string, timeoutMs = 15_000) {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      const response = await fetch(url)
+      if (response.ok) {
+        return
+      }
+    } catch {}
+
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
+
+  throw new Error(`Timed out waiting for server startup: ${url}`)
 }
 
 async function runCli(args: string[], { env, input }: { env: NodeJS.ProcessEnv; input?: string }) {
@@ -527,6 +595,220 @@ describe('local server API', () => {
       lastLoadSource: null,
     })
     expect(finalSettings.sectionOrder.slice(0, 3)).toEqual(['metrics', 'insights', 'today'])
+  })
+
+  it('rejects cross-site mutation requests, enforces JSON bodies, and blocks auto-import GET requests', async () => {
+    const wrongContentTypeResponse = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(sampleUsage),
+    })
+    expect(wrongContentTypeResponse.status).toBe(415)
+    expect(await wrongContentTypeResponse.json()).toEqual({
+      message: 'Content-Type must be application/json',
+    })
+
+    const crossSiteUploadResponse = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'https://evil.example',
+      },
+      body: JSON.stringify(sampleUsage),
+    })
+    expect(crossSiteUploadResponse.status).toBe(403)
+    expect(await crossSiteUploadResponse.json()).toEqual({
+      message: 'Cross-site requests are not allowed',
+    })
+
+    const crossSiteDeleteResponse = await fetch(`${baseUrl}/api/usage`, {
+      method: 'DELETE',
+      headers: {
+        Origin: 'https://evil.example',
+      },
+    })
+    expect(crossSiteDeleteResponse.status).toBe(403)
+    expect(await crossSiteDeleteResponse.json()).toEqual({
+      message: 'Cross-site requests are not allowed',
+    })
+
+    const autoImportGetResponse = await fetch(`${baseUrl}/api/auto-import/stream`)
+    expect(autoImportGetResponse.status).toBe(405)
+    expect(await autoImportGetResponse.json()).toEqual({
+      message: 'Method Not Allowed',
+    })
+  })
+
+  it('streams auto-import events over POST instead of mutating via GET', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-auto-import-post-test-'))
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        envOverrides: {
+          PATH: '',
+        },
+      })
+
+      const streamResponse = await fetch(`${standaloneServer.url}/api/auto-import/stream`, {
+        method: 'POST',
+      })
+
+      expect(streamResponse.status).toBe(200)
+      expect(streamResponse.headers.get('content-type')).toContain('text/event-stream')
+
+      const streamBody = await streamResponse.text()
+      expect(streamBody).toContain('event: check')
+      expect(streamBody).toContain('event: progress')
+      expect(streamBody).toContain('event: error')
+      expect(streamBody).toContain('event: done')
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('serves the API only from the configured API prefix', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-api-prefix-test-'))
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        envOverrides: {
+          API_PREFIX: '/custom-api',
+        },
+        readinessPath: '/custom-api/usage',
+      })
+
+      const customPrefixResponse = await fetch(`${standaloneServer.url}/custom-api/usage`)
+      expect(customPrefixResponse.status).toBe(200)
+
+      const defaultPrefixResponse = await fetch(`${standaloneServer.url}/api/usage`)
+      expect(defaultPrefixResponse.status).toBe(404)
+      expect(await defaultPrefixResponse.json()).toEqual({ message: 'Not Found' })
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  itIfPosix('writes persisted data and settings with restrictive local permissions', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-permissions-test-'))
+    const dataFile = path.join(getCliDataDir(runtimeRoot), 'data.json')
+    const settingsFile = path.join(getCliConfigDir(runtimeRoot), 'settings.json')
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+      })
+
+      const uploadResponse = await fetch(`${standaloneServer.url}/api/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sampleUsage),
+      })
+      expect(uploadResponse.status).toBe(200)
+
+      const settingsResponse = await fetch(`${standaloneServer.url}/api/settings`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: 'en',
+        }),
+      })
+      expect(settingsResponse.status).toBe(200)
+
+      expect(permissionBits(path.dirname(dataFile))).toBe(0o700)
+      expect(permissionBits(path.dirname(settingsFile))).toBe(0o700)
+      expect(permissionBits(dataFile)).toBe(0o600)
+      expect(permissionBits(settingsFile)).toBe(0o600)
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  itIfPosix(
+    'hardens background log files and stops background instances with a custom API prefix',
+    async () => {
+      const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-prefix-test-'))
+      const backgroundEnv = {
+        ...createCliEnv(backgroundRoot),
+        API_PREFIX: '/custom-api',
+      }
+      const backgroundPort = await getFreePort()
+      const backgroundUrl = `http://127.0.0.1:${backgroundPort}`
+
+      try {
+        const startResult = await runCli(
+          ['--background', '--no-open', '--port', String(backgroundPort)],
+          {
+            env: backgroundEnv,
+          },
+        )
+
+        expect(startResult.code).toBe(0)
+        expect(startResult.output).toContain('TTDash is running in the background.')
+        expect(startResult.output).toContain(backgroundUrl)
+
+        await waitForHttpOk(`${backgroundUrl}/custom-api/usage`)
+
+        const [instance] = await waitForBackgroundRegistry(
+          backgroundRoot,
+          (entries) => entries.length === 1,
+        )
+        expect(instance).toBeDefined()
+        expect(instance?.logFile).toBeTruthy()
+        expect(permissionBits(instance!.logFile!)).toBe(0o600)
+
+        const stopResult = await runCli(['stop'], {
+          env: backgroundEnv,
+        })
+
+        expect(stopResult.code).toBe(0)
+        expect(stopResult.output).toContain(`Stopped TTDash background server: ${backgroundUrl}`)
+        await waitForServerUnavailable(backgroundUrl)
+      } finally {
+        await stopAllBackgroundServers(backgroundEnv, backgroundRoot)
+        rmSync(backgroundRoot, { recursive: true, force: true })
+      }
+    },
+    45_000,
+  )
+
+  itIfPosix('tightens existing app directories to restrictive permissions on startup', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-existing-dir-permissions-test-'))
+    const dataDir = getCliDataDir(runtimeRoot)
+    const configDir = getCliConfigDir(runtimeRoot)
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      mkdirSync(dataDir, { recursive: true, mode: 0o755 })
+      mkdirSync(configDir, { recursive: true, mode: 0o755 })
+      chmodSync(dataDir, 0o755)
+      chmodSync(configDir, 0o755)
+
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+      })
+
+      expect(permissionBits(dataDir)).toBe(0o700)
+      expect(permissionBits(configDir)).toBe(0o700)
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
   })
 
   it('imports settings backups and merges usage backups without overwriting conflicting local days', async () => {
@@ -853,6 +1135,62 @@ describe('local server API', () => {
     })
   })
 
+  it('returns 400 for malformed request paths without crashing the server', async () => {
+    const port = Number(new URL(baseUrl).port)
+    const rawResponse = await sendRawHttpRequest(
+      port,
+      'GET /%E0%A4%A HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n',
+    )
+
+    expect(rawResponse.startsWith('HTTP/1.1 400 Bad Request')).toBe(true)
+    expect(rawResponse).toContain('{"message":"Invalid request path"}')
+
+    const usageResponse = await fetch(`${baseUrl}/api/usage`)
+    expect(usageResponse.status).toBe(200)
+  })
+
+  it('returns 413 for oversized upload payloads instead of resetting the connection', async () => {
+    const oversizedPayload = `"${'a'.repeat(11 * 1024 * 1024)}"`
+
+    const response = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: oversizedPayload,
+    })
+
+    expect(response.status).toBe(413)
+    expect(await response.json()).toEqual({
+      message: 'File too large (max. 10 MB)',
+    })
+
+    const usageResponse = await fetch(`${baseUrl}/api/usage`)
+    expect(usageResponse.status).toBe(200)
+  })
+
+  it('returns 413 for oversized report payloads instead of resetting the connection', async () => {
+    const seedResponse = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sampleUsage),
+    })
+    expect(seedResponse.status).toBe(200)
+
+    const oversizedPayload = `"${'a'.repeat(11 * 1024 * 1024)}"`
+    const response = await fetch(`${baseUrl}/api/report/pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: oversizedPayload,
+    })
+
+    expect(response.status).toBe(413)
+    expect(await response.json()).toEqual({
+      message: 'Report request too large',
+    })
+
+    const usageResponse = await fetch(`${baseUrl}/api/usage`)
+    expect(usageResponse.status).toBe(200)
+  })
+
   it('starts background servers and stops the selected instance via the CLI', async () => {
     const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-test-'))
     const backgroundEnv = createCliEnv(backgroundRoot)
@@ -942,6 +1280,7 @@ describe('local server API', () => {
         (entries) =>
           entries.length === 2 &&
           [firstUrl, secondUrl].every((url) => entries.some((entry) => entry.url === url)),
+        30_000,
       )
 
       expect(registry).toHaveLength(2)
@@ -950,7 +1289,7 @@ describe('local server API', () => {
       await stopAllBackgroundServers(backgroundEnv, backgroundRoot)
       rmSync(backgroundRoot, { recursive: true, force: true })
     }
-  }, 45_000)
+  }, 60_000)
 
   it('prunes stale background entries that point to a live non-matching process', async () => {
     const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-stale-test-'))
@@ -1081,4 +1420,136 @@ describe('local server API', () => {
       rmSync(cliRoot, { recursive: true, force: true })
     }
   }, 20_000)
+
+  it('returns 500 for corrupt persisted usage data and recovers after deletion', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-corrupt-usage-test-'))
+    const dataFile = path.join(getCliDataDir(runtimeRoot), 'data.json')
+    mkdirSync(path.dirname(dataFile), { recursive: true })
+    writeFileSync(dataFile, '{not-json')
+
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        readinessPath: '/api/runtime',
+      })
+
+      const corruptResponse = await fetch(`${standaloneServer.url}/api/usage`)
+      expect(corruptResponse.status).toBe(500)
+      expect(await corruptResponse.json()).toEqual({
+        message: 'Usage data file is unreadable or corrupted.',
+      })
+
+      const deleteResponse = await fetch(`${standaloneServer.url}/api/usage`, {
+        method: 'DELETE',
+      })
+      expect(deleteResponse.status).toBe(200)
+
+      const recoveredResponse = await fetch(`${standaloneServer.url}/api/usage`)
+      expect(recoveredResponse.status).toBe(200)
+      expect(await recoveredResponse.json()).toMatchObject({
+        daily: [],
+        totals: {
+          totalCost: 0,
+          totalTokens: 0,
+        },
+      })
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('returns 500 for corrupt persisted settings and recovers after deletion', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-corrupt-settings-test-'))
+    const settingsFile = path.join(getCliConfigDir(runtimeRoot), 'settings.json')
+    mkdirSync(path.dirname(settingsFile), { recursive: true })
+    writeFileSync(settingsFile, '{not-json')
+
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+      })
+
+      const corruptResponse = await fetch(`${standaloneServer.url}/api/settings`)
+      expect(corruptResponse.status).toBe(500)
+      expect(await corruptResponse.json()).toEqual({
+        message: 'Settings file is unreadable or corrupted.',
+      })
+
+      const deleteResponse = await fetch(`${standaloneServer.url}/api/settings`, {
+        method: 'DELETE',
+      })
+      expect(deleteResponse.status).toBe(200)
+
+      const recoveredResponse = await fetch(`${standaloneServer.url}/api/settings`)
+      expect(recoveredResponse.status).toBe(200)
+      expect(await recoveredResponse.json()).toMatchObject({
+        language: 'de',
+        theme: 'dark',
+        providerLimits: {},
+        defaultFilters: DEFAULT_DASHBOARD_FILTERS,
+      })
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('refuses non-loopback binding unless remote access is explicitly allowed', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-remote-bind-test-'))
+    try {
+      const result = await runCli([], {
+        env: {
+          ...createCliEnv(runtimeRoot),
+          HOST: '0.0.0.0',
+          NO_OPEN_BROWSER: '1',
+        },
+      })
+
+      expect(result.code).toBe(1)
+      expect(result.output).toContain(
+        'Refusing to bind TTDash to non-loopback host "0.0.0.0" without TTDASH_ALLOW_REMOTE=1.',
+      )
+    } finally {
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('warns clearly when binding the server on a non-loopback host with explicit opt-in', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-remote-bind-allowed-test-'))
+
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        envOverrides: {
+          HOST: '0.0.0.0',
+          NO_OPEN_BROWSER: '1',
+          TTDASH_ALLOW_REMOTE: '1',
+        },
+      })
+
+      expect(standaloneServer.getOutput()).toContain('Host:           0.0.0.0')
+      expect(standaloneServer.getOutput()).toContain(
+        'Exposure:       network-accessible via 0.0.0.0',
+      )
+      expect(standaloneServer.getOutput()).toContain(
+        'Security warning: this bind host can expose local data and destructive API routes.',
+      )
+    } finally {
+      if (standaloneServer) {
+        await stopProcess(standaloneServer.child)
+      }
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
 })

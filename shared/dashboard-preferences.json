@@ -1,0 +1,43 @@
+{
+  "datePresets": ["all", "7d", "30d", "month", "year"],
+  "viewModes": ["daily", "monthly", "yearly"],
+  "sectionDefinitions": [
+    { "id": "insights", "domId": "insights", "labelKey": "helpPanel.sectionLabels.insights" },
+    { "id": "metrics", "domId": "metrics", "labelKey": "helpPanel.sectionLabels.metrics" },
+    { "id": "today", "domId": "today", "labelKey": "helpPanel.sectionLabels.today" },
+    {
+      "id": "currentMonth",
+      "domId": "current-month",
+      "labelKey": "helpPanel.sectionLabels.currentMonth"
+    },
+    { "id": "activity", "domId": "activity", "labelKey": "helpPanel.sectionLabels.activity" },
+    {
+      "id": "forecastCache",
+      "domId": "forecast-cache",
+      "labelKey": "helpPanel.sectionLabels.forecastCache"
+    },
+    { "id": "limits", "domId": "limits", "labelKey": "helpPanel.sectionLabels.limits" },
+    { "id": "costAnalysis", "domId": "charts", "labelKey": "helpPanel.sectionLabels.costAnalysis" },
+    {
+      "id": "tokenAnalysis",
+      "domId": "token-analysis",
+      "labelKey": "helpPanel.sectionLabels.tokenAnalysis"
+    },
+    {
+      "id": "requestAnalysis",
+      "domId": "request-analysis",
+      "labelKey": "helpPanel.sectionLabels.requestAnalysis"
+    },
+    {
+      "id": "advancedAnalysis",
+      "domId": "advanced-analysis",
+      "labelKey": "helpPanel.sectionLabels.advancedAnalysis"
+    },
+    {
+      "id": "comparisons",
+      "domId": "comparisons",
+      "labelKey": "helpPanel.sectionLabels.comparisons"
+    },
+    { "id": "tables", "domId": "tables", "labelKey": "helpPanel.sectionLabels.tables" }
+  ]
+}

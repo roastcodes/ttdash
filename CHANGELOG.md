@@ -1,5 +1,24 @@
 # Changelog
 
+## [6.1.9] - 2026-04-14
+
+### Added
+
+- **Klare Recovery-Flows für beschädigte lokale Daten** — die App zeigt korrupte Settings- oder Usage-Dateien jetzt als expliziten Fehlerzustand mit direkten Reset- und Löschaktionen statt als irreführenden Leerzustand
+- **Architekturdokumentation für die aktuelle Systemstruktur** — eine neue Architekturübersicht beschreibt die Grenzen zwischen lokalem Server, Frontend, Shared-Domainlogik und Packaging für die weitere Wartung
+
+### Improved
+
+- **Barrierefreiheit und Informationsqualität in zentralen Dashboard-Flächen** — Top-Level-Filter haben jetzt stabile zugängliche Namen, Info-Buttons sind semantisch sauber von Headings getrennt, und das Help-Panel zeigt vollständig benannte und fachlich besser gruppierte Inhalte
+- **Lokalisierung und Terminologiekonsistenz in Analyse- und Tooltip-Flächen** — gemischte deutsche und englische UI-Begriffe wurden bereinigt, Tooltip-Texte lokalisiert und die verbleibenden Accessibility-/i18n-Regressionen durch zusätzliche Tests abgesichert
+- **Robustere lokale API-Grenzen und Auto-Import-Sicherheit** — mutierende Endpunkte akzeptieren nur noch erlaubte Request-Formen, Cross-Site-Zugriffe werden abgewehrt, Auto-Import verwendet keine mutierende `GET`-Route mehr, und non-loopback Binding erfordert jetzt ein explizites Remote-Opt-in
+- **Sicherere lokale Persistenz und Exportpfade** — Daten- und Settings-Dateien werden restriktiver geschrieben, CSV-Exporte escapen Sonderzeichen korrekt, und serverseitige Fatal-Load-Fehler werden bis in die UI transparent durchgereicht
+- **Nachhaltigere Architektur für Dashboard, Report und Server-Runtime** — gemeinsame Dashboard-/Report-Domainlogik, ein entschlackter Dashboard-Controller und erste Server-Module reduzieren Drift, verbessern Testbarkeit und schaffen klarere Verantwortungsgrenzen
+
+### Fixed
+
+- **Windows-Kompatibilität beim Auto-Import und Child-Process-Start** — die Runner-Ausführung funktioniert auf Windows jetzt zuverlässig ohne die zuvor fehleranfällige Prozessinitialisierung
+
 ## [6.1.8]
 
 ### Added

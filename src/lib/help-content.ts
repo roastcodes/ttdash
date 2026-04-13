@@ -40,7 +40,7 @@ const HELP_CONTENT = {
       tokensOverTime:
         'Zeigt den Token-Verbrauch über die Zeit, getrennt nach Input, Output, Cache Write, Cache Read und Thinking.',
       requestsOverTime:
-        'Zeigt Requests im Zeitverlauf mit Gesamtlinie, Modelllinien und Trendlinie. Klick auf einen Punkt öffnet den Drilldown.',
+        'Zeigt Anfragen im Zeitverlauf mit Gesamtlinie, Modelllinien und Trendlinie. Klick auf einen Punkt öffnet den Drilldown.',
       requestCacheHitRate:
         'Zeigt die Cache-Hit-Rate pro Modell zusammen mit dem gefilterten Gesamtwert und dem gleitenden 7-Tage-Durchschnitt auf Basis des gewählten Tagesbereichs.',
       tokenTypes:
@@ -50,13 +50,13 @@ const HELP_CONTENT = {
       modelMix:
         'Zeigt den prozentualen Kostenanteil der Modelle je Zeitraumspunkt. So werden Modellwechsel und Konzentration sichtbar.',
       distributionAnalysis:
-        'Zeigt Histogramme für Kosten, Requests und Tokens pro Request. So wird die Streuung sichtbar, nicht nur der Durchschnitt.',
+        'Zeigt Histogramme für Kosten, Anfragen und Tokens pro Anfrage. So wird die Streuung sichtbar, nicht nur der Durchschnitt.',
       correlationAnalysis:
-        'Zeigt Punktdiagramme für mögliche Zusammenhänge, etwa Requests zu Kosten oder Cache-Rate zu Kosten pro Request. Die Korrelation ist ein Signal, aber kein Beweis für Kausalität.',
+        'Zeigt Punktdiagramme für mögliche Zusammenhänge, etwa Anfragen zu Kosten oder Cache-Rate zu Kosten pro Anfrage. Die Korrelation ist ein Signal, aber kein Beweis für Kausalität.',
       heatmap:
         'Zeigt eine Kalender-Heatmap der täglichen Kosten. Dunklere Felder stehen für höhere Werte.',
       requestHeatmap:
-        'Zeigt eine Kalender-Heatmap der Requests pro Tag. So werden Lastmuster unabhängig von Kosten sichtbar.',
+        'Zeigt eine Kalender-Heatmap der Anfragen pro Tag. So werden Lastmuster unabhängig von Kosten sichtbar.',
       tokenHeatmap:
         'Zeigt eine Kalender-Heatmap des Tokenvolumens pro Tag. So lassen sich volumenstarke und kostenstarke Tage besser unterscheiden.',
       forecast:
@@ -66,9 +66,9 @@ const HELP_CONTENT = {
       providerLimitProgress:
         'Zeigt pro Anbieter, wie stark das konfigurierte Monatslimit bereits verbraucht ist. Überschreitungen werden separat markiert.',
       providerSubscriptionMix:
-        'Vergleicht pro Anbieter die fixe Subscription mit den variablen API-Kosten und blendet optional das gesetzte Monatslimit ein.',
+        'Vergleicht pro Anbieter die fixen Abo-Kosten mit den variablen API-Kosten und blendet optional das gesetzte Monatslimit ein.',
       providerLimitTimeline:
-        'Zeigt im Monatsverlauf die Summe der aktuellen Provider-Kosten gegen die Summe aller konfigurierten Limits. So werden Engpässe früh sichtbar.',
+        'Zeigt im Monatsverlauf die Summe der aktuellen Anbieterkosten gegen die Summe aller konfigurierten Limits. So werden Engpässe früh sichtbar.',
       periodComparison:
         'Zeigt den Vergleich zweier Zeiträume, etwa Woche gegen Vorwoche oder Monat gegen Vormonat, anhand zentraler Kennzahlen.',
       anomalyDetection:
@@ -76,7 +76,7 @@ const HELP_CONTENT = {
     },
     section: {
       insights:
-        'Zeigt verdichtete Aussagen zu Konzentration, Request-Ökonomie, Nutzungsmuster und Peak-Fenstern. Diese Sektion ist als schneller Einstieg vor dem Detailblick gedacht.',
+        'Zeigt verdichtete Aussagen zu Konzentration, Anfrage-Ökonomie, Nutzungsmuster und Peak-Fenstern. Diese Sektion ist als schneller Einstieg vor dem Detailblick gedacht.',
       metrics:
         'Zeigt die wichtigsten Kennzahlen auf einen Blick. Hover über abgekürzte Werte zeigt den exakten Zahlenwert.',
       today:
@@ -84,33 +84,33 @@ const HELP_CONTENT = {
       currentMonth:
         'Zeigt die KPIs des laufenden Monats. So werden Fortschritt, Abdeckung und der Vergleich mit dem Vormonat sichtbar.',
       activity:
-        'Zeigt Kalenderansichten für Kosten, Requests und Tokens. So werden Lastspitzen, Lücken und saisonale Muster sichtbar.',
+        'Zeigt Kalenderansichten für Kosten, Anfragen und Tokens. So werden Lastspitzen, Lücken und saisonale Muster sichtbar.',
       forecastCache:
-        'Zeigt Monatsprognose, Cache-Ersparnis und operative Request-Qualität in einem Block. So entsteht ein gemeinsamer Blick auf Ausblick und Effizienz.',
+        'Zeigt Monatsprognose, Cache-Ersparnis und operative Anfragequalität in einem Block. So entsteht ein gemeinsamer Blick auf Ausblick und Effizienz.',
       limits:
-        'Zeigt pro Anbieter konfigurierte Subscriptions und Monatslimits. Die Sektion macht sichtbar, wie weit Kostenbudgets im aktuellen Ausschnitt ausgereizt sind.',
+        'Zeigt pro Anbieter konfigurierte Abos und Monatslimits. Die Sektion macht sichtbar, wie weit Kostenbudgets im aktuellen Ausschnitt ausgereizt sind.',
       costAnalysis:
         'Zeigt Kostenverlauf und Kostenverteilung nach Modell. So wird sichtbar, wo Geld ausgegeben wurde und welche Modelle die Haupttreiber sind.',
       tokenAnalysis:
         'Zeigt Tokenvolumen, Token-Typen, Wochentagsmuster und Effizienz. So lässt sich besser einordnen, ob Kosten eher aus Menge oder Preisniveau entstehen.',
       requestAnalysis:
-        'Zeigt Requests gesamt, nach Modell und im Verlauf. Im Zoom kommen zusätzliche Trends und Verteilungen hinzu.',
+        'Zeigt Anfragen gesamt, nach Modell und im Verlauf. Im Zoom kommen zusätzliche Trends und Verteilungen hinzu.',
       advancedAnalysis:
         'Zeigt Verteilungen, Korrelationen und Konzentrationsrisiken. So wird sichtbar, wie stabil, konzentriert oder ungewöhnlich die Nutzung ist.',
       comparisons:
         'Zeigt Veränderungen zwischen Perioden und markiert Ausreisser. So lassen sich Verschiebungen schneller einordnen.',
       tables:
-        'Zeigt detaillierte Tabellen mit Sortierung und Drilldown. So lassen sich einzelne Modelle, Provider und Tage gezielt prüfen.',
+        'Zeigt detaillierte Tabellen mit Sortierung und Drilldown. So lassen sich einzelne Modelle, Anbieter und Tage gezielt prüfen.',
     },
     feature: {
       requestQuality:
-        'Zeigt verdichtete Request-Signale wie Tokens pro Request, Kosten pro Request sowie Cache- und Thinking-Anteil. So lässt sich die operative Anfragequalität schneller einordnen.',
+        'Zeigt verdichtete Anfragesignale wie Tokens pro Anfrage, Kosten pro Anfrage sowie Cache- und Thinking-Anteil. So lässt sich die operative Anfragequalität schneller einordnen.',
       providerLimits:
-        'Hier werden fixe Subscription-Kosten und variable Monatslimits pro Anbieter gepflegt. Die Eingaben bleiben lokal im Browser gespeichert und gelten nur für Anbieter, die im geladenen Report vorkommen.',
+        'Hier werden fixe Abo-Kosten und variable Monatslimits pro Anbieter gepflegt. Die Eingaben bleiben lokal im Browser gespeichert und gelten nur für Anbieter, die im geladenen Report vorkommen.',
       concentrationRisk:
-        'Zeigt die Abhängigkeit von einzelnen Modellen und Providern. Hohe Werte bedeuten, dass wenige Akteure einen grossen Teil der Kosten tragen.',
+        'Zeigt die Abhängigkeit von einzelnen Modellen und Anbietern. Hohe Werte bedeuten, dass wenige Akteure einen grossen Teil der Kosten tragen.',
       providerEfficiency:
-        'Zeigt den Vergleich der Anbieter nach Kosten, Requests, Tokens und Effizienzkennzahlen wie $/Req oder $/1M Tokens.',
+        'Zeigt den Vergleich der Anbieter nach Kosten, Anfragen, Tokens und Effizienzkennzahlen wie Kosten pro Anfrage oder Kosten pro 1 Mio. Tokens.',
       modelEfficiency:
         'Zeigt den Vergleich der Modelle nach Kosten, Volumen und Effizienz. So lassen sich teure oder ineffiziente Kandidaten schnell erkennen.',
       recentDays:

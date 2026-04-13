@@ -7,94 +7,35 @@ import type {
   ViewMode,
 } from '@/types'
 import { computeMovingAverage } from './calculations'
-import { getModelProvider, normalizeModelName } from './model-utils'
+import {
+  aggregateToDailyFormat as aggregateSharedToDailyFormat,
+  filterByDateRange as filterBySharedDateRange,
+  filterByModels as filterBySharedModels,
+  filterByMonth as filterBySharedMonth,
+  filterByProviders as filterBySharedProviders,
+  sortByDate as sortSharedByDate,
+} from '../../shared/dashboard-domain.js'
+import { normalizeModelName } from './model-utils'
 import { getCurrentLocale } from './i18n'
 
-function recalculateDayFromBreakdowns(
-  day: DailyUsage,
-  filteredBreakdowns: DailyUsage['modelBreakdowns'],
-): DailyUsage {
-  let totalCost = 0
-  let inputTokens = 0
-  let outputTokens = 0
-  let cacheCreationTokens = 0
-  let cacheReadTokens = 0
-  let thinkingTokens = 0
-  let requestCount = 0
-
-  for (const mb of filteredBreakdowns) {
-    totalCost += mb.cost
-    inputTokens += mb.inputTokens
-    outputTokens += mb.outputTokens
-    cacheCreationTokens += mb.cacheCreationTokens
-    cacheReadTokens += mb.cacheReadTokens
-    thinkingTokens += mb.thinkingTokens
-    requestCount += mb.requestCount
-  }
-
-  return {
-    ...day,
-    totalCost,
-    totalTokens:
-      inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens + thinkingTokens,
-    inputTokens,
-    outputTokens,
-    cacheCreationTokens,
-    cacheReadTokens,
-    thinkingTokens,
-    requestCount,
-    modelBreakdowns: filteredBreakdowns,
-    modelsUsed: [...new Set(filteredBreakdowns.map((mb) => normalizeModelName(mb.modelName)))],
-  }
-}
-
 export function filterByDateRange(data: DailyUsage[], start?: string, end?: string): DailyUsage[] {
-  return data.filter((d) => {
-    if (start && d.date < start) return false
-    if (end && d.date > end) return false
-    return true
-  })
+  return filterBySharedDateRange(data, start, end)
 }
 
 export function filterByModels(data: DailyUsage[], selectedModels: string[]): DailyUsage[] {
-  if (selectedModels.length === 0) return data
-  const selected = new Set(selectedModels)
-
-  return data
-    .map((d) => {
-      const filteredBreakdowns = d.modelBreakdowns.filter((mb) =>
-        selected.has(normalizeModelName(mb.modelName)),
-      )
-
-      if (filteredBreakdowns.length === 0) return null
-      return recalculateDayFromBreakdowns(d, filteredBreakdowns)
-    })
-    .filter((d): d is DailyUsage => d !== null)
+  return filterBySharedModels(data, selectedModels)
 }
 
 export function filterByProviders(data: DailyUsage[], selectedProviders: string[]): DailyUsage[] {
-  if (selectedProviders.length === 0) return data
-  const selected = new Set(selectedProviders)
-
-  return data
-    .map((d) => {
-      const filteredBreakdowns = d.modelBreakdowns.filter((mb) =>
-        selected.has(getModelProvider(mb.modelName)),
-      )
-
-      if (filteredBreakdowns.length === 0) return null
-      return recalculateDayFromBreakdowns(d, filteredBreakdowns)
-    })
-    .filter((d): d is DailyUsage => d !== null)
+  return filterBySharedProviders(data, selectedProviders)
 }
 
 export function filterByMonth(data: DailyUsage[], month: string | null): DailyUsage[] {
-  if (!month) return data
-  return data.filter((d) => d.date.startsWith(month))
+  return filterBySharedMonth(data, month)
 }
 
 export function sortByDate(data: DailyUsage[]): DailyUsage[] {
-  return [...data].sort((a, b) => a.date.localeCompare(b.date))
+  return sortSharedByDate(data)
 }
 
 export function getAvailableMonths(data: DailyUsage[]): string[] {
@@ -323,39 +264,7 @@ export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {
 }
 
 export function aggregateToDailyFormat(data: DailyUsage[], mode: ViewMode): DailyUsage[] {
-  if (mode === 'daily') return data
-
-  const groupKey =
-    mode === 'monthly' ? (date: string) => date.slice(0, 7) : (date: string) => date.slice(0, 4)
-
-  const map = new Map<string, DailyUsage>()
-
-  for (const d of data) {
-    const key = groupKey(d.date)
-    const existing = map.get(key)
-    const days = d._aggregatedDays ?? 1
-
-    if (!existing) {
-      map.set(key, { ...d, date: key, _aggregatedDays: days })
-    } else {
-      existing.totalCost += d.totalCost
-      existing.totalTokens += d.totalTokens
-      existing.inputTokens += d.inputTokens
-      existing.outputTokens += d.outputTokens
-      existing.cacheCreationTokens += d.cacheCreationTokens
-      existing.cacheReadTokens += d.cacheReadTokens
-      existing.thinkingTokens += d.thinkingTokens
-      existing.requestCount += d.requestCount
-      existing._aggregatedDays = (existing._aggregatedDays ?? 1) + days
-      // Merge model breakdowns
-      existing.modelBreakdowns = [...existing.modelBreakdowns, ...d.modelBreakdowns]
-      // Merge modelsUsed (unique)
-      const allModels = new Set([...existing.modelsUsed, ...d.modelsUsed])
-      existing.modelsUsed = Array.from(allModels)
-    }
-  }
-
-  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date))
+  return aggregateSharedToDailyFormat(data, mode)
 }
 
 export function aggregateByMonth(data: DailyUsage[]): {

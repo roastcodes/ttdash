@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { cn } from '@/lib/cn'
 
 interface SectionHeaderProps {
@@ -14,10 +14,9 @@ export function SectionHeader({ title, description, badge, info, className }: Se
   return (
     <div className={cn('mb-3 pl-3 border-l-2 border-primary/40', className)}>
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <div className="flex items-center gap-2 min-w-0">
+        <InfoHeading info={info}>
           <h2 className="text-sm font-semibold text-foreground tracking-tight">{title}</h2>
-          {info && <InfoButton text={info} />}
-        </div>
+        </InfoHeading>
         {badge && (
           <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 rounded-full bg-muted/50">
             {badge}
