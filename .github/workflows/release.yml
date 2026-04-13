@@ -74,6 +74,24 @@ jobs:
           NODE
           echo "RELEASE_TAG=v${RELEASE_VERSION}" >> "$GITHUB_ENV"
           if [[ "${RELEASE_VERSION}" = "${CURRENT_VERSION}" ]]; then
+            RELEASE_COMMIT_SHA="$(git log origin/main --first-parent --format=%H --grep "^v${RELEASE_VERSION}: Release$" -n 1)"
+            if [[ -z "${RELEASE_COMMIT_SHA}" ]]; then
+              echo "Could not locate the original release commit for ${RELEASE_VERSION} on origin/main."
+              exit 1
+            fi
+
+            RELEASE_COMMIT_VERSION="$(git show "${RELEASE_COMMIT_SHA}:package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
+            if [[ "${RELEASE_COMMIT_VERSION}" != "${RELEASE_VERSION}" ]]; then
+              echo "Release commit ${RELEASE_COMMIT_SHA} does not contain package.json version ${RELEASE_VERSION}."
+              exit 1
+            fi
+
+            echo "EXISTING_RELEASE_COMMIT=${RELEASE_COMMIT_SHA}" >> "$GITHUB_ENV"
+            if [[ "$(git rev-parse HEAD)" != "${RELEASE_COMMIT_SHA}" ]]; then
+              echo "main has moved past ${RELEASE_VERSION}; cut a new release instead of retrying."
+              exit 1
+            fi
+
             echo "SHOULD_BUMP=false" >> "$GITHUB_ENV"
             echo "Release version already present on main. Continuing in retry mode."
           else
