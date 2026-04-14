@@ -38,7 +38,7 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-sm text-muted-foreground">{t('anomaly.none')}</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">{t('anomaly.withinStdDev')}</p>
+            <p className="mt-1 text-xs text-muted-foreground/60">{t('anomaly.withinStdDev')}</p>
           </div>
         </CardContent>
       </Card>
@@ -49,14 +49,14 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
     <Card>
       <CardHeader className="pb-2">
         <InfoHeading info={CHART_HELP.anomalyDetection}>
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <TriangleAlert className="h-4 w-4 text-yellow-500" />
             {t('anomaly.title', { period: periodLabel(viewMode, true) })} ({anomalies.length})
           </CardTitle>
         </InfoHeading>
       </CardHeader>
       <CardContent>
-        <p className="text-xs text-muted-foreground mb-3">
+        <p className="mb-3 text-xs text-muted-foreground">
           {t('anomaly.description', {
             period: periodLabel(viewMode, true),
             mean: formatCurrency(mean),
@@ -85,25 +85,25 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-2 h-2 rounded-full ${isHigh ? 'bg-red-400' : 'bg-green-400'} ${severity === 'critical' ? 'animate-pulse' : ''}`}
+                      className={`h-2 w-2 rounded-full ${isHigh ? 'bg-red-400' : 'bg-green-400'} ${severity === 'critical' ? 'animate-pulse' : ''}`}
                     />
                     <span className="text-sm">{formatDate(day.date, 'long')}</span>
                     {severity === 'critical' && (
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
+                      <span className="rounded bg-red-400/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-red-400 uppercase">
                         {t('anomaly.critical')}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-4">
                     <span
-                      className={`text-sm font-mono font-medium ${isHigh ? 'text-red-400' : 'text-green-400'}`}
+                      className={`font-mono text-sm font-medium ${isHigh ? 'text-red-400' : 'text-green-400'}`}
                     >
                       {formatCurrency(day.totalCost)}
                     </span>
                     <span
-                      className={`text-xs font-mono font-medium px-1.5 py-0.5 rounded ${
+                      className={`rounded px-1.5 py-0.5 font-mono text-xs font-medium ${
                         severity === 'critical'
-                          ? 'text-red-300 bg-red-400/15'
+                          ? 'bg-red-400/15 text-red-300'
                           : 'text-muted-foreground'
                       }`}
                     >

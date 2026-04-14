@@ -59,7 +59,7 @@ describe('CacheROI', () => {
     )
 
     const savingsValue = screen.getByText('Savings').nextElementSibling as HTMLElement
-    expect(savingsValue.className).toContain('text-rose-700')
+    expect(savingsValue).toHaveClass('text-rose-700')
 
     const withCacheRow = screen.getByText('With cache').parentElement
     const withCacheBar = withCacheRow?.querySelector('[style*="width: 100%"]') as HTMLElement | null

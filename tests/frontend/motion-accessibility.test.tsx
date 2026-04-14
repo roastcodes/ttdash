@@ -71,8 +71,8 @@ describe('motion accessibility', () => {
       </Dialog>,
     )
 
-    expect(screen.getByRole('dialog').className).not.toContain('animate-in')
-    expect(screen.getByRole('dialog').className).not.toContain('zoom-in-95')
+    expect(screen.getByRole('dialog')).not.toHaveClass('animate-in')
+    expect(screen.getByRole('dialog')).not.toHaveClass('zoom-in-95')
   })
 
   it('renders toast feedback without entrance animation classes when reduced motion is requested', () => {
@@ -92,7 +92,7 @@ describe('motion accessibility', () => {
       </ToastProvider>,
     )
 
-    expect(screen.getByRole('status').className).not.toContain('animate-in')
-    expect(screen.getByRole('status').className).not.toContain('slide-in-from-bottom-2')
+    expect(screen.getByRole('status')).not.toHaveClass('animate-in')
+    expect(screen.getByRole('status')).not.toHaveClass('slide-in-from-bottom-2')
   })
 })

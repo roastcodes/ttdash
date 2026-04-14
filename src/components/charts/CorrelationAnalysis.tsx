@@ -85,8 +85,8 @@ function ScatterTooltip({
   if (!point) return null
 
   return (
-    <div className="max-w-[260px] bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">
-      <p className="font-medium text-muted-foreground mb-1.5">{formatDate(point.label)}</p>
+    <div className="max-w-[260px] rounded-lg border border-border/50 bg-popover/90 p-3 text-xs shadow-lg backdrop-blur-xl">
+      <p className="mb-1.5 font-medium text-muted-foreground">{formatDate(point.label)}</p>
       <div className="space-y-1">
         {mode === 'requestCost' ? (
           <>
@@ -167,7 +167,7 @@ function CorrelationPanel({
     <div ref={panelRef}>
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
             {title}
           </div>
           <div className="text-[10px] text-muted-foreground">{subtitle}</div>
@@ -284,7 +284,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
           </CardTitle>
         </InfoHeading>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <CardContent className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <CorrelationPanel
           title={t('charts.correlation.requestsVsCost')}
           subtitle={`r ${requestCostCorrelation.toFixed(2)} · ${t('charts.correlation.points', { count: requestVsCost.length })}`}

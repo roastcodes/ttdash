@@ -174,13 +174,13 @@ export function RequestCacheHitRateByModel({
   )
 
   const expandedExtra = (
-    <div className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-4">
+    <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
       {barData.slice(0, 6).map((entry) => (
         <div key={entry.model} className="rounded-lg border border-border/50 bg-muted/10 p-3">
           <div className="truncate text-sm font-medium">{entry.model}</div>
           <div className="mt-2 flex items-end gap-3">
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
                 {t('charts.requestCacheHitRate.totalRate')}
               </div>
               <div className="text-lg font-semibold tabular-nums">
@@ -188,7 +188,7 @@ export function RequestCacheHitRateByModel({
               </div>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
                 {t('charts.requestCacheHitRate.trailing7Rate')}
               </div>
               <div className="text-lg font-semibold tabular-nums">
@@ -216,9 +216,9 @@ export function RequestCacheHitRateByModel({
     >
       {(expanded) => (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-center">
+          <div className="mb-3 grid grid-cols-2 gap-2 text-center md:grid-cols-4">
             <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+              <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
                 {t('charts.requestCacheHitRate.totalRate')}
               </div>
               <div className="text-sm font-semibold tabular-nums">
@@ -226,7 +226,7 @@ export function RequestCacheHitRateByModel({
               </div>
             </div>
             <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+              <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
                 {t('charts.requestCacheHitRate.trailing7Rate')}
               </div>
               <div className="text-sm font-semibold tabular-nums">
@@ -234,13 +234,13 @@ export function RequestCacheHitRateByModel({
               </div>
             </div>
             <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+              <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
                 {t('charts.requestCacheHitRate.topModel')}
               </div>
-              <div className="text-sm font-semibold truncate">{summary.topModel?.model ?? '–'}</div>
+              <div className="truncate text-sm font-semibold">{summary.topModel?.model ?? '–'}</div>
             </div>
             <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+              <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
                 {t('charts.requestCacheHitRate.models')}
               </div>
               <div className="text-sm font-semibold tabular-nums">{summary.models}</div>
@@ -251,7 +251,7 @@ export function RequestCacheHitRateByModel({
             className={`grid gap-4 ${expanded ? 'grid-cols-1 xl:grid-cols-[2fr_1fr]' : 'grid-cols-1 lg:grid-cols-[2fr_1fr]'}`}
           >
             <div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+              <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
                 {t('charts.requestCacheHitRate.timelineHeading', { unit: periodUnit(viewMode) })}
               </div>
               <ChartAnimationAware>
@@ -357,7 +357,7 @@ export function RequestCacheHitRateByModel({
             </div>
 
             <div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+              <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
                 {t('charts.requestCacheHitRate.modelBreakdownHeading')}
               </div>
               <ChartAnimationAware>

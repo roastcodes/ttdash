@@ -63,7 +63,7 @@ export function FormattedValue({
     return (
       <span
         className={cn(
-          'cursor-help decoration-dotted underline underline-offset-4 decoration-muted-foreground/40',
+          'cursor-help underline decoration-muted-foreground/40 decoration-dotted underline-offset-4',
           className,
         )}
         title={insight ? `${exact} — ${insight}` : exact}
@@ -84,7 +84,7 @@ export function FormattedValue({
           type="button"
           aria-label={accessibleLabel}
           className={cn(
-            'inline rounded-sm border-0 bg-transparent p-0 text-inherit cursor-help decoration-dotted underline underline-offset-4 decoration-muted-foreground/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            'inline cursor-help rounded-sm border-0 bg-transparent p-0 text-inherit underline decoration-muted-foreground/40 decoration-dotted underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
             className,
           )}
         >
@@ -94,13 +94,13 @@ export function FormattedValue({
       <TooltipContent className="max-w-[260px]">
         <div className="space-y-1">
           {label && (
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
               {label}
             </div>
           )}
           <div className="font-mono text-xs">{exact}</div>
           {insight && (
-            <div className="text-[11px] text-muted-foreground leading-relaxed">{insight}</div>
+            <div className="text-[11px] leading-relaxed text-muted-foreground">{insight}</div>
           )}
         </div>
       </TooltipContent>

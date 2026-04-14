@@ -302,7 +302,7 @@ export function Dashboard({
   }
 
   return (
-    <div className="min-h-screen max-w-7xl mx-auto px-4 pb-8">
+    <div className="mx-auto min-h-screen max-w-7xl px-4 pb-8">
       {fileInputs}
       {autoImportDialog}
       {settingsDialog}

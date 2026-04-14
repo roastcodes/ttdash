@@ -114,7 +114,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">{t('header.help')}</DialogTitle>
           <DialogDescription>{t('commandPalette.description')}</DialogDescription>
@@ -134,7 +134,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
               href={NPM_PACKAGE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="inline-flex items-center rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               {t('helpPanel.projectLinks.npm')}
             </a>
@@ -142,7 +142,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
               href={GITHUB_REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="inline-flex items-center rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               {t('helpPanel.projectLinks.github')}
             </a>
@@ -150,7 +150,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
               href={GITHUB_ISSUES_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="inline-flex items-center rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               {t('helpPanel.projectLinks.issues')}
             </a>
@@ -159,7 +159,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
 
         {/* Keyboard shortcuts */}
         <section>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="mb-3 flex items-center gap-2">
             <Keyboard className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-semibold">{t('header.help')}</h3>
           </div>
@@ -182,7 +182,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
 
         {/* Metric explanations */}
         <section>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="mb-3 flex items-center gap-2">
             <ChartBar className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-semibold">{t('dashboard.metrics.title')}</h3>
           </div>
@@ -190,7 +190,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
             {Object.entries(METRIC_HELP).map(([key, description]) => (
               <div key={key} className="rounded-md bg-muted/50 px-3 py-2">
                 <p className="text-sm font-medium text-foreground">{metricLabels[key] ?? key}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
               </div>
             ))}
           </div>
@@ -200,7 +200,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
 
         {/* Chart explanations */}
         <section>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="mb-3 flex items-center gap-2">
             <LineChart className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-semibold">{t('helpPanel.chartsAndFeatures')}</h3>
           </div>
@@ -208,7 +208,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
             {chartKeys.map((key) => (
               <div key={key} className="rounded-md bg-muted/50 px-3 py-2">
                 <p className="text-sm font-medium text-foreground">{chartLabels[key]}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{CHART_HELP[key]}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{CHART_HELP[key]}</p>
               </div>
             ))}
           </div>
@@ -217,7 +217,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
         <hr className="border-border" />
 
         <section>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="mb-3 flex items-center gap-2">
             <ChartBar className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-semibold">{t('helpPanel.dashboardSectionsTitle')}</h3>
           </div>
@@ -225,7 +225,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
             {sectionKeys.map((key) => (
               <div key={key} className="rounded-md bg-muted/50 px-3 py-2">
                 <p className="text-sm font-medium text-foreground">{sectionLabels[key]}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{SECTION_HELP[key]}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{SECTION_HELP[key]}</p>
               </div>
             ))}
           </div>
@@ -234,7 +234,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
         <hr className="border-border" />
 
         <section>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="mb-3 flex items-center gap-2">
             <ChartBar className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-semibold">{t('helpPanel.featuresTitle')}</h3>
           </div>
@@ -242,7 +242,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
             {FEATURE_KEYS.map((key) => (
               <div key={key} className="rounded-md bg-muted/50 px-3 py-2">
                 <p className="text-sm font-medium text-foreground">{featureLabels[key]}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{FEATURE_HELP[key]}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{FEATURE_HELP[key]}</p>
               </div>
             ))}
           </div>
@@ -251,7 +251,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
         <hr className="border-border" />
 
         <section>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="mb-3 flex items-center gap-2">
             <ChartBar className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-semibold">{t('helpPanel.tablesTitle')}</h3>
           </div>
@@ -259,7 +259,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
             {TABLE_KEYS.map((key) => (
               <div key={key} className="rounded-md bg-muted/50 px-3 py-2">
                 <p className="text-sm font-medium text-foreground">{featureLabels[key]}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{FEATURE_HELP[key]}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{FEATURE_HELP[key]}</p>
               </div>
             ))}
           </div>

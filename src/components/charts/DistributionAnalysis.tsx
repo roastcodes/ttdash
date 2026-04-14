@@ -74,8 +74,8 @@ function DistributionTooltip({
   if (!entry) return null
 
   return (
-    <div className="max-w-[280px] bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">
-      <p className="font-medium text-muted-foreground mb-1.5">{entry.payload.label}</p>
+    <div className="max-w-[280px] rounded-lg border border-border/50 bg-popover/90 p-3 text-xs shadow-lg backdrop-blur-xl">
+      <p className="mb-1.5 font-medium text-muted-foreground">{entry.payload.label}</p>
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground">{t('charts.distribution.interval')}</span>
@@ -154,7 +154,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
           <div key={distribution.title}>
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
-                <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                   {distribution.title}
                 </div>
                 <div className="text-[10px] text-muted-foreground">

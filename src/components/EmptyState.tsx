@@ -16,31 +16,31 @@ export function EmptyState({ onUpload, onAutoImport, onOpenSettings }: EmptyStat
   const { t } = useTranslation()
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <FadeIn delay={0} duration={0.45}>
-        <Card className="p-10 max-w-md w-full text-center space-y-6 border-primary/20 shadow-xl shadow-primary/5">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+        <Card className="w-full max-w-md space-y-6 border-primary/20 p-10 text-center shadow-xl shadow-primary/5">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
             <ChartBar className="h-8 w-8 text-primary" />
           </div>
           <div className="space-y-1">
             <h1 className="text-3xl font-bold tracking-tight">
               <span className="text-primary">TT</span>Dash
             </h1>
-            <p className="text-xs text-muted-foreground font-mono">v{VERSION}</p>
+            <p className="font-mono text-xs text-muted-foreground">v{VERSION}</p>
           </div>
-          <p className="text-muted-foreground text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-muted-foreground">
             {t('emptyState.description')}
           </p>
-          <Button onClick={onAutoImport} size="lg" className="gap-2 w-full">
+          <Button onClick={onAutoImport} size="lg" className="w-full gap-2">
             <Zap className="h-4 w-4" />
             {t('emptyState.autoImport')}
           </Button>
-          <p className="text-muted-foreground text-xs">{t('emptyState.or')}</p>
-          <Button onClick={onUpload} variant="outline" size="lg" className="gap-2 w-full">
+          <p className="text-xs text-muted-foreground">{t('emptyState.or')}</p>
+          <Button onClick={onUpload} variant="outline" size="lg" className="w-full gap-2">
             <Upload className="h-4 w-4" />
             {t('emptyState.uploadFile')}
           </Button>
-          <Button onClick={onOpenSettings} variant="ghost" size="lg" className="gap-2 w-full">
+          <Button onClick={onOpenSettings} variant="ghost" size="lg" className="w-full gap-2">
             <SlidersHorizontal className="h-4 w-4" />
             {t('emptyState.openSettings')}
           </Button>

@@ -251,9 +251,9 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
       </CardHeader>
       <CardContent>
         {summary && (
-          <div className="mb-3 grid grid-cols-2 lg:grid-cols-5 gap-2">
+          <div className="mb-3 grid grid-cols-2 gap-2 lg:grid-cols-5">
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                 {t('tables.recentDays.totalCost')}
               </div>
               <div className="mt-1 text-sm font-medium">
@@ -261,7 +261,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
               </div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                 {t('tables.recentDays.totalTokens')}
               </div>
               <div className="mt-1 text-sm font-medium">
@@ -269,7 +269,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
               </div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                 {t('tables.recentDays.requests')}
               </div>
               <div className="mt-1 text-sm font-medium">
@@ -277,13 +277,13 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
               </div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                 {t('tables.recentDays.cacheReadShare')}
               </div>
               <div className="mt-1 text-sm font-medium">{formatPercent(summary.cacheShare, 1)}</div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                 {t('tables.recentDays.peak')}
               </div>
               <div className="mt-1 text-sm font-medium">
@@ -360,7 +360,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   {uniqueModels.slice(0, 4).map(({ name, provider }) => (
                     <span
                       key={name}
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium leading-tight"
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] leading-tight font-medium"
                       style={{
                         backgroundColor: getModelColorAlpha(name, 0.16),
                         color: getModelColor(name),
@@ -378,7 +378,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                     </span>
                   ))}
                   {uniqueModels.length > 4 && (
-                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] text-muted-foreground border border-border/50">
+                    <span className="inline-flex items-center rounded-full border border-border/50 px-2 py-0.5 text-[10px] text-muted-foreground">
                       {t('tables.modelEfficiency.more', { count: uniqueModels.length - 4 })}
                     </span>
                   )}
@@ -394,7 +394,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
           })}
         </div>
 
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border">
@@ -408,7 +408,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   <button
                     type="button"
                     onClick={() => handleSort('date')}
-                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   >
                     {t('tables.recentDays.date')}{' '}
                     <ArrowUpDown
@@ -427,7 +427,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   <button
                     type="button"
                     onClick={() => handleSort('cost')}
-                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   >
                     {t('tables.recentDays.cost')}{' '}
                     <ArrowUpDown
@@ -446,7 +446,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   <button
                     type="button"
                     onClick={() => handleSort('tokens')}
-                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   >
                     {t('tables.recentDays.tokens')}{' '}
                     <ArrowUpDown
@@ -455,22 +455,22 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                     />
                   </button>
                 </th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden md:table-cell">
+                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground md:table-cell">
                   {t('common.input')}
                 </th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden md:table-cell">
+                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground md:table-cell">
                   {t('common.output')}
                 </th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden lg:table-cell">
+                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground lg:table-cell">
                   {t('common.cacheWrite')}
                 </th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden lg:table-cell">
+                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground lg:table-cell">
                   {t('common.cacheRead')}
                 </th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden xl:table-cell">
+                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground xl:table-cell">
                   {t('common.thinking')}
                 </th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground hidden xl:table-cell">
+                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground xl:table-cell">
                   {t('common.requestsShort')}
                 </th>
                 <th
@@ -483,7 +483,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                   <button
                     type="button"
                     onClick={() => handleSort('costPerM')}
-                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   >
                     $/1M{' '}
                     <ArrowUpDown
@@ -503,7 +503,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                 return (
                   <tr
                     key={day.date}
-                    className="border-b border-border/50 border-l-[3px] hover:bg-muted/10 transition-colors cursor-pointer active:bg-muted/20"
+                    className="cursor-pointer border-b border-l-[3px] border-border/50 transition-colors hover:bg-muted/10 active:bg-muted/20"
                     style={{
                       borderLeftColor: `hsla(215, 70%, 55%, ${0.2 + intensity * 0.8})`,
                       ...getDeferredRowStyle(showAll, '52px'),
@@ -513,7 +513,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                     <td className="px-2 py-2.5 whitespace-nowrap">
                       {formatDate(day.date, 'long')}
                     </td>
-                    <td className="px-2 py-2.5 text-right font-mono tabular-nums relative">
+                    <td className="relative px-2 py-2.5 text-right font-mono tabular-nums">
                       <div
                         className="absolute inset-y-1 left-0 rounded-sm bg-primary/8 transition-all duration-300"
                         style={{ width: `${maxCost > 0 ? (day.totalCost / maxCost) * 100 : 0}%` }}
@@ -525,22 +525,22 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                     <td className="px-2 py-2.5 text-right font-mono tabular-nums">
                       <FormattedValue value={day.totalTokens} type="tokens" />
                     </td>
-                    <td className="px-2 py-2.5 text-right font-mono tabular-nums hidden md:table-cell">
+                    <td className="hidden px-2 py-2.5 text-right font-mono tabular-nums md:table-cell">
                       <FormattedValue value={day.inputTokens} type="tokens" />
                     </td>
-                    <td className="px-2 py-2.5 text-right font-mono tabular-nums hidden md:table-cell">
+                    <td className="hidden px-2 py-2.5 text-right font-mono tabular-nums md:table-cell">
                       <FormattedValue value={day.outputTokens} type="tokens" />
                     </td>
-                    <td className="px-2 py-2.5 text-right font-mono tabular-nums hidden lg:table-cell">
+                    <td className="hidden px-2 py-2.5 text-right font-mono tabular-nums lg:table-cell">
                       <FormattedValue value={day.cacheCreationTokens} type="tokens" />
                     </td>
-                    <td className="px-2 py-2.5 text-right font-mono tabular-nums hidden lg:table-cell">
+                    <td className="hidden px-2 py-2.5 text-right font-mono tabular-nums lg:table-cell">
                       <FormattedValue value={day.cacheReadTokens} type="tokens" />
                     </td>
-                    <td className="px-2 py-2.5 text-right font-mono tabular-nums hidden xl:table-cell">
+                    <td className="hidden px-2 py-2.5 text-right font-mono tabular-nums xl:table-cell">
                       <FormattedValue value={day.thinkingTokens} type="tokens" />
                     </td>
-                    <td className="px-2 py-2.5 text-right font-mono tabular-nums hidden xl:table-cell">
+                    <td className="hidden px-2 py-2.5 text-right font-mono tabular-nums xl:table-cell">
                       <FormattedValue value={day.requestCount} type="number" />
                     </td>
                     <td className="px-2 py-2.5 text-right font-mono tabular-nums">
@@ -551,7 +551,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                         {uniqueModels.map(({ name, provider }) => (
                           <span
                             key={name}
-                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium leading-tight"
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] leading-tight font-medium"
                             style={{
                               backgroundColor: getModelColorAlpha(name, 0.16),
                               color: getModelColor(name),

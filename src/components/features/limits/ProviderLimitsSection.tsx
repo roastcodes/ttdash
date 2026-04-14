@@ -279,7 +279,7 @@ export function ProviderLimitsSection({
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                       {item.label}
                     </div>
                     <div className="mt-1 text-2xl font-semibold tabular-nums">{item.value}</div>
@@ -341,7 +341,7 @@ export function ProviderLimitsSection({
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <div>
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                         {t('limits.tracks.usageFocusMonth')}
                       </div>
                       <div className="mt-1 text-xl font-semibold tabular-nums">
@@ -349,7 +349,7 @@ export function ProviderLimitsSection({
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                         {t('limits.tracks.limitSubscription')}
                       </div>
                       <div className="mt-1 text-sm font-medium tabular-nums">
@@ -523,7 +523,7 @@ export function ProviderLimitsSection({
                       {row.monthlyLimit > 0 ? (
                         <>
                           <div
-                            className="absolute left-0 top-5 h-4 rounded-l-full bg-sky-400/12"
+                            className="absolute top-5 left-0 h-4 rounded-l-full bg-sky-400/12"
                             style={{ width: limitPosition }}
                           />
                           <div
@@ -534,8 +534,8 @@ export function ProviderLimitsSection({
                           <motion.div
                             className={
                               row.riskStatus === 'warning'
-                                ? 'absolute left-0 top-5 h-4 rounded-full bg-amber-400'
-                                : 'absolute left-0 top-5 h-4 rounded-full bg-sky-400'
+                                ? 'absolute top-5 left-0 h-4 rounded-full bg-amber-400'
+                                : 'absolute top-5 left-0 h-4 rounded-full bg-sky-400'
                             }
                             initial={{ width: 0 }}
                             animate={inView ? { width: withinLimitWidth } : { width: 0 }}
@@ -573,7 +573,7 @@ export function ProviderLimitsSection({
                         </>
                       ) : (
                         <motion.div
-                          className="absolute left-0 top-5 h-4 rounded-full bg-muted-foreground/40"
+                          className="absolute top-5 left-0 h-4 rounded-full bg-muted-foreground/40"
                           initial={{ width: 0 }}
                           animate={inView ? { width: costWidth } : { width: 0 }}
                           transition={{
@@ -716,7 +716,7 @@ export function ProviderLimitsSection({
                       {row.hasSubscription ? (
                         <>
                           <div
-                            className="absolute left-0 top-5 h-4 rounded-l-full bg-amber-300/18"
+                            className="absolute top-5 left-0 h-4 rounded-l-full bg-amber-300/18"
                             style={{ width: subPosition }}
                           />
                           <div
@@ -725,7 +725,7 @@ export function ProviderLimitsSection({
                           />
 
                           <motion.div
-                            className="absolute left-0 top-5 h-4 rounded-full bg-amber-300"
+                            className="absolute top-5 left-0 h-4 rounded-full bg-amber-300"
                             initial={{ width: 0 }}
                             animate={inView ? { width: withinSubscriptionWidth } : { width: 0 }}
                             transition={{
@@ -762,7 +762,7 @@ export function ProviderLimitsSection({
                         </>
                       ) : (
                         <motion.div
-                          className="absolute left-0 top-5 h-4 rounded-full bg-muted-foreground/40"
+                          className="absolute top-5 left-0 h-4 rounded-full bg-muted-foreground/40"
                           initial={{ width: 0 }}
                           animate={inView ? { width: costWidth } : { width: 0 }}
                           transition={{

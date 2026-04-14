@@ -272,7 +272,7 @@ export function HeatmapCalendar({
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-sm text-muted-foreground">{config.empty}</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">
+            <p className="mt-1 text-xs text-muted-foreground/60">
               {t('charts.heatmap.switchToDaily')}
             </p>
           </div>
@@ -296,7 +296,7 @@ export function HeatmapCalendar({
         </InfoHeading>
       </CardHeader>
       <CardContent className="overflow-visible">
-        <div ref={overlayRef} className="relative overflow-visible z-10">
+        <div ref={overlayRef} className="relative z-10 overflow-visible">
           <div className="overflow-x-auto overflow-y-hidden">
             <svg width={svgWidth} height={svgHeight} className="block">
               {/* Day labels */}
@@ -406,21 +406,21 @@ export function HeatmapCalendar({
 
           {tooltip && (
             <div
-              className="absolute z-30 -translate-x-1/2 -translate-y-full rounded-md border border-border bg-popover px-2 py-1 text-xs shadow-lg pointer-events-none whitespace-nowrap"
+              className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-md border border-border bg-popover px-2 py-1 text-xs whitespace-nowrap shadow-lg"
               style={{ left: tooltip.x, top: tooltip.y }}
             >
               <span className="font-medium">{config.formatter(tooltip.value)}</span>
-              <span className="text-muted-foreground ml-1">{tooltip.date}</span>
+              <span className="ml-1 text-muted-foreground">{tooltip.date}</span>
             </div>
           )}
 
           {/* Legend */}
-          <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground">
+          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <span>{t('charts.heatmap.less')}</span>
             {[0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1].map((level, i) => (
               <div
                 key={i}
-                className="w-3 h-3 rounded-sm"
+                className="h-3 w-3 rounded-sm"
                 style={{
                   backgroundColor: getColor(level * maxValue, maxValue, config.hue, isDarkTheme),
                 }}

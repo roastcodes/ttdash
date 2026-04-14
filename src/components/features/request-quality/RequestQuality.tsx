@@ -71,10 +71,10 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
         </InfoHeading>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {qualityMetrics.map((item) => (
             <div key={item.label} className="rounded-xl border border-border/50 bg-muted/15 p-3">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                 {item.label}
               </div>
               <div className="mt-1 text-lg font-semibold tabular-nums">{item.value}</div>
@@ -93,9 +93,9 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="rounded-xl border border-border/50 bg-gradient-to-br from-primary/[0.12] via-transparent to-transparent p-4">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
               {t('requestQuality.requestDensity')}
             </div>
             <div className="mt-1 text-xl font-semibold tabular-nums">
@@ -113,7 +113,7 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
             </div>
           </div>
           <div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-3/[0.12] via-transparent to-transparent p-4">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
               {t('requestQuality.cacheHitRate')}
             </div>
             <div className="mt-1 text-xl font-semibold tabular-nums">
@@ -122,7 +122,7 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
             <div className="text-xs text-muted-foreground">{t('requestQuality.cacheHitHint')}</div>
           </div>
           <div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-4/[0.12] via-transparent to-transparent p-4">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
               {t('requestQuality.inputOutput')}
             </div>
             <div className="mt-1 text-xl font-semibold tabular-nums">
@@ -133,10 +133,10 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
             </div>
           </div>
           <div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-5/[0.12] via-transparent to-transparent p-4">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
               {t('requestQuality.topRequestModel')}
             </div>
-            <div className="mt-1 text-lg font-semibold truncate">
+            <div className="mt-1 truncate text-lg font-semibold">
               {metrics.topRequestModel?.name ?? '–'}
             </div>
             <div className="text-xs text-muted-foreground">

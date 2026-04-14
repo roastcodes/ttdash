@@ -137,7 +137,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
       {(animate) => (
         <div className="mt-6 space-y-5">
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+            <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
               {trendHeading}
             </div>
             <ChartReveal variant="line">
@@ -198,19 +198,19 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
           </div>
 
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+            <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
               {t('charts.requestsOverTime.requestsByModelTotal')}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {(summary?.topModels ?? []).map(([model, total]) => {
                 const share =
                   summary && summary.totalRequests > 0 ? (total / summary.totalRequests) * 100 : 0
                 return (
                   <div key={model} className="rounded-lg border border-border/50 bg-muted/10 p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex min-w-0 items-center gap-2">
                         <span
-                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          className="h-2.5 w-2.5 shrink-0 rounded-full"
                           style={{ backgroundColor: getModelColor(model) }}
                         />
                         <div className="truncate text-sm font-medium">{model}</div>
@@ -261,9 +261,9 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
 
         return (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-center">
+            <div className="mb-3 grid grid-cols-2 gap-2 text-center md:grid-cols-4">
               <div className="rounded-lg bg-muted/20 p-2">
-                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
                   {t('charts.requestsOverTime.total')}
                 </div>
                 <div className="text-sm font-semibold tabular-nums">
@@ -271,7 +271,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                 </div>
               </div>
               <div className="rounded-lg bg-muted/20 p-2">
-                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
                   {averageLabel}
                 </div>
                 <div className="text-sm font-semibold tabular-nums">
@@ -281,15 +281,15 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                 </div>
               </div>
               <div className="rounded-lg bg-muted/20 p-2">
-                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
                   {t('charts.requestsOverTime.topModel')}
                 </div>
-                <div className="text-sm font-semibold truncate">
+                <div className="truncate text-sm font-semibold">
                   {summary?.topModels[0]?.[0] ?? '–'}
                 </div>
               </div>
               <div className="rounded-lg bg-muted/20 p-2">
-                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
                   {t('charts.requestsOverTime.topShare')}
                 </div>
                 <div className="text-sm font-semibold tabular-nums">

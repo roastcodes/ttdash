@@ -1,11 +1,15 @@
 import { defineConfig } from 'eslint/config'
 import js from '@eslint/js'
 import eslintConfigPrettier from 'eslint-config-prettier'
-import importPlugin from 'eslint-plugin-import'
+import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript'
+import importPlugin from 'eslint-plugin-import-x'
+import jestDom from 'eslint-plugin-jest-dom'
 import jsdoc from 'eslint-plugin-jsdoc'
 import jsxA11y from 'eslint-plugin-jsx-a11y'
+import playwright from 'eslint-plugin-playwright'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
+import testingLibrary from 'eslint-plugin-testing-library'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
@@ -124,25 +128,39 @@ export default defineConfig(
     },
   },
   {
+    files: ['tests/frontend/**/*.test.tsx'],
+    extends: [testingLibrary.configs['flat/react'], jestDom.configs['flat/recommended']],
+    rules: {
+      'testing-library/no-container': 'off',
+      'testing-library/no-node-access': 'off',
+    },
+  },
+  {
+    files: ['tests/e2e/**/*.ts'],
+    extends: [playwright.configs['flat/recommended']],
+  },
+  {
     files: ['**/*.{js,cjs,mjs,ts,tsx}'],
     extends: [importPlugin.flatConfigs.recommended, importPlugin.flatConfigs.typescript],
     languageOptions: {
       ecmaVersion: 'latest',
     },
     settings: {
-      'import/resolver': {
-        typescript: true,
-        node: true,
-      },
+      'import-x/resolver-next': [
+        createTypeScriptImportResolver({
+          alwaysTryTypes: true,
+          project: './tsconfig.json',
+        }),
+      ],
     },
     rules: {
-      'import/export': 'error',
-      'import/first': 'error',
-      'import/newline-after-import': 'error',
-      'import/no-duplicates': 'error',
-      'import/no-named-as-default': 'off',
-      'import/no-named-as-default-member': 'off',
-      'import/no-unresolved': 'error',
+      'import-x/export': 'error',
+      'import-x/first': 'error',
+      'import-x/newline-after-import': 'error',
+      'import-x/no-duplicates': 'error',
+      'import-x/no-named-as-default': 'off',
+      'import-x/no-named-as-default-member': 'off',
+      'import-x/no-unresolved': 'error',
     },
   },
   {

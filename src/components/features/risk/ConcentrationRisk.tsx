@@ -39,11 +39,11 @@ export function ConcentrationRisk({
         </InfoHeading>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                   {t('risk.modelDependency')}
                 </div>
                 <div className="mt-1 text-lg font-semibold">{formatPercent(topModelShare, 1)}</div>
@@ -54,7 +54,7 @@ export function ConcentrationRisk({
                 {t(`risk.${modelRisk.label}`)}
               </span>
             </div>
-            <div className="mt-3 h-2 rounded-full bg-muted/40 overflow-hidden">
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted/40">
               <div
                 className="h-full rounded-full bg-primary"
                 style={{ width: `${Math.min(topModelShare, 100)}%` }}
@@ -67,7 +67,7 @@ export function ConcentrationRisk({
           <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                   {t('risk.providerDependency')}
                 </div>
                 <div className="mt-1 text-lg font-semibold">
@@ -80,7 +80,7 @@ export function ConcentrationRisk({
                 {t(`risk.${providerRisk.label}`)}
               </span>
             </div>
-            <div className="mt-3 h-2 rounded-full bg-muted/40 overflow-hidden">
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted/40">
               <div
                 className="h-full rounded-full bg-chart-3"
                 style={{ width: `${Math.min(topProviderShare, 100)}%` }}

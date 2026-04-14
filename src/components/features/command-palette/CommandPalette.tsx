@@ -654,12 +654,12 @@ export function CommandPalette({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="p-0 max-w-md overflow-hidden">
+      <DialogContent className="max-w-md overflow-hidden p-0">
         <DialogTitle className="sr-only">{t('commandPalette.title')}</DialogTitle>
         <DialogDescription className="sr-only">{t('commandPalette.description')}</DialogDescription>
         <Command className="bg-transparent" shouldFilter={false}>
           <div className="flex items-center gap-2 border-b border-border px-3">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <Command.Input
               placeholder={t('commandPalette.placeholder')}
               value={search}
@@ -688,24 +688,24 @@ export function CommandPalette({
                         value={cmd.id}
                         data-testid={cmd.testId ?? `command-${cmd.id}`}
                         onSelect={() => runCommand(cmd)}
-                        className="flex items-center gap-2 rounded-md px-2 py-2 text-sm cursor-pointer aria-selected:bg-accent"
+                        className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm aria-selected:bg-accent"
                       >
                         {cmd.icon}
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div>{cmd.label}</div>
                           {cmd.description && (
-                            <div className="text-xs text-muted-foreground truncate">
+                            <div className="truncate text-xs text-muted-foreground">
                               {cmd.description}
                             </div>
                           )}
                         </div>
                         {cmd.shortcut && (
-                          <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                          <kbd className="hidden items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline-flex">
                             {cmd.shortcut}
                           </kbd>
                         )}
                         {quickIndex >= 0 && (
-                          <kbd className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground min-w-6">
+                          <kbd className="inline-flex min-w-6 items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
                             {quickIndex + 1}
                           </kbd>
                         )}

@@ -40,7 +40,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}
       <div
-        className="fixed bottom-4 right-4 z-50 flex flex-col gap-2"
+        className="fixed right-4 bottom-4 z-50 flex flex-col gap-2"
         aria-live="polite"
         aria-relevant="additions text"
       >
@@ -65,7 +65,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => removeToast(toast.id)}
-                className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm opacity-80 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm opacity-80 transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                 aria-label={t('common.close')}
               >
                 <X className="h-3.5 w-3.5" />

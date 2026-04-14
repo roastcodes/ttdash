@@ -42,7 +42,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
     <ChartAnimationAware>
       {(animate) => (
         <div className="mt-6">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+          <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
             {t('charts.costByModelOverTime.movingAverageHeading')}
           </div>
           <ChartReveal variant="line">

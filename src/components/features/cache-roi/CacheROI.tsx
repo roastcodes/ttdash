@@ -62,13 +62,13 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Zap className="h-4 w-4 text-muted-foreground/30" />
             {t('cacheRoi.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-4">{t('cacheRoi.noData')}</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">{t('cacheRoi.noData')}</p>
         </CardContent>
       </Card>
     )
@@ -95,7 +95,7 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
     <Card>
       <CardHeader className="pb-2">
         <InfoHeading info={CHART_HELP.cacheROI}>
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Zap className="h-4 w-4 text-yellow-500" />
             {t('cacheRoi.title')}
           </CardTitle>
@@ -111,7 +111,7 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
             })}
           </div>
         )}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
             <div className="text-xs text-muted-foreground">{t('cacheRoi.withoutCache')}</div>
             <div className={`text-lg font-bold ${withoutCacheTextClass}`}>
@@ -146,7 +146,7 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
         {/* Visual bar comparison */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground w-24">{t('cacheRoi.withoutCache')}</span>
+            <span className="w-24 text-muted-foreground">{t('cacheRoi.withoutCache')}</span>
             <div className={`h-6 flex-1 overflow-hidden rounded-md ${barTrackDangerClass}`}>
               <div
                 className={`h-full rounded-md ${barFillDangerClass}`}
@@ -155,8 +155,8 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground w-24">{t('cacheRoi.withCache')}</span>
-            <div className="flex-1 h-6 bg-muted/20 rounded-md overflow-hidden flex">
+            <span className="w-24 text-muted-foreground">{t('cacheRoi.withCache')}</span>
+            <div className="flex h-6 flex-1 overflow-hidden rounded-md bg-muted/20">
               <div
                 className={`h-full rounded-l-md ${hasPositiveSavings ? barFillSuccessClass : barFillDangerClass} transition-all duration-1000 motion-reduce:transition-none`}
                 style={{ width: `${barWidth}%` }}

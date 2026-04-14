@@ -117,8 +117,8 @@ describe('phase 4 UI correctness', () => {
       </TooltipProvider>,
     )
 
-    expect(document.body.textContent).not.toContain('Infinity')
-    expect(document.body.textContent).not.toContain('NaN')
+    expect(document.body).not.toHaveTextContent('Infinity')
+    expect(document.body).not.toHaveTextContent('NaN')
     expect(screen.getAllByText('–').length).toBeGreaterThan(0)
   })
 
@@ -305,10 +305,10 @@ describe('phase 4 UI correctness', () => {
     expect(screen.getByText('22 Tage in Folge')).toBeInTheDocument()
     expect(screen.getByText('Einblicke')).toBeInTheDocument()
     expect(screen.getByText('Kurzfazit')).toBeInTheDocument()
-    expect(document.body.textContent).toContain('Input/Output-Verhältnis')
-    expect(document.body.textContent).toContain('pro Anfrage')
-    expect(document.body.textContent).not.toContain('Req-Lead')
-    expect(document.body.textContent).not.toContain('Quick Read')
-    expect(document.body.textContent).not.toContain('Streak')
+    expect(document.body).toHaveTextContent('Input/Output-Verhältnis')
+    expect(document.body).toHaveTextContent('pro Anfrage')
+    expect(document.body).not.toHaveTextContent('Req-Lead')
+    expect(document.body).not.toHaveTextContent('Quick Read')
+    expect(document.body).not.toHaveTextContent('Streak')
   })
 })

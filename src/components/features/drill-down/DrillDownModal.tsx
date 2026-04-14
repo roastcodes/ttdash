@@ -525,7 +525,7 @@ export function DrillDownModal({
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent
-        className="max-w-5xl max-h-[85vh] overflow-y-auto"
+        className="max-h-[85vh] max-w-5xl overflow-y-auto"
         onKeyDown={handleDialogKeyDown}
       >
         <DialogHeader>
@@ -678,7 +678,7 @@ export function DrillDownModal({
                       <span className="truncate font-medium">{model.name}</span>
                       <span
                         className={cn(
-                          'inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none',
+                          'inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] leading-none font-medium',
                           getProviderBadgeClasses(model.provider),
                         )}
                       >
@@ -794,7 +794,7 @@ export function DrillDownModal({
                 <div className="flex items-center justify-between gap-3">
                   <span
                     className={cn(
-                      'inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium leading-none',
+                      'inline-flex items-center rounded-full border px-2 py-1 text-xs leading-none font-medium',
                       getProviderBadgeClasses(provider.provider),
                     )}
                   >

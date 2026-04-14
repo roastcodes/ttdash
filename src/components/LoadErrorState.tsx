@@ -26,9 +26,9 @@ export function LoadErrorState({
   actions,
 }: LoadErrorStateProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <FadeIn delay={0} duration={0.45}>
-        <Card className="p-8 max-w-xl w-full space-y-6 border-destructive/20 shadow-xl shadow-destructive/5">
+        <Card className="w-full max-w-xl space-y-6 border-destructive/20 p-8 shadow-xl shadow-destructive/5">
           <div className="flex items-start gap-4">
             <div className="mt-1 flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
               <AlertTriangle className="h-6 w-6" />
@@ -41,7 +41,7 @@ export function LoadErrorState({
 
           {details.length > 0 ? (
             <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-              <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
                 {detailLabel}
               </div>
               <ul className="mt-3 space-y-2 text-sm text-foreground">

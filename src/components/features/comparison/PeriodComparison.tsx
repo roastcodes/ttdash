@@ -115,7 +115,7 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-sm text-muted-foreground">{t('comparison.notEnoughData')}</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">
+            <p className="mt-1 text-xs text-muted-foreground/60">
               {t('comparison.requiresDays', { count: data.length })}
             </p>
           </div>
@@ -180,7 +180,7 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
               variant={preset === 'week' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setPreset('week')}
-              className="text-xs h-7"
+              className="h-7 text-xs"
             >
               {t('comparison.week')}
             </Button>
@@ -188,7 +188,7 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
               variant={preset === 'month' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setPreset('month')}
-              className="text-xs h-7"
+              className="h-7 text-xs"
             >
               {t('comparison.month')}
             </Button>
@@ -204,7 +204,7 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
                   {t('comparison.metric')}
                 </th>
                 <th className="px-2 py-2 text-right text-xs font-medium text-primary">{labelB}</th>
-                <th className="px-2 py-2 text-center text-xs text-muted-foreground w-8"></th>
+                <th className="w-8 px-2 py-2 text-center text-xs text-muted-foreground"></th>
                 <th className="px-2 py-2 text-right text-xs font-medium text-primary">{labelA}</th>
                 <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground">
                   {t('comparison.delta')}
@@ -217,13 +217,13 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
                   <td className="px-2 py-2 text-muted-foreground">{row.label}</td>
                   <td className="px-2 py-2 text-right font-mono">{row.b}</td>
                   <td className="px-2 py-2 text-center">
-                    <ArrowRight className="h-3 w-3 text-muted-foreground inline" />
+                    <ArrowRight className="inline h-3 w-3 text-muted-foreground" />
                   </td>
                   <td className="px-2 py-2 text-right font-mono font-medium">{row.a}</td>
                   <td className="px-2 py-2 text-right">
                     {row.delta.hasData ? (
                       <span
-                        className={`inline-flex items-center gap-1 font-mono font-medium text-xs px-1.5 py-0.5 rounded ${row.delta.color} ${
+                        className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs font-medium ${row.delta.color} ${
                           row.delta.color === 'text-red-400'
                             ? 'bg-red-400/10'
                             : row.delta.color === 'text-green-400'

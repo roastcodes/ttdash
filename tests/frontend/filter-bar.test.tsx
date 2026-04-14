@@ -43,7 +43,7 @@ describe('FilterBar', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: '7D' }).className).toContain('bg-primary')
+    expect(screen.getByRole('button', { name: '7D' })).toHaveClass('bg-primary')
 
     rerender(
       <FilterBar
@@ -69,8 +69,8 @@ describe('FilterBar', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: '7D' }).className).not.toContain('bg-primary')
-    expect(screen.getByRole('button', { name: 'All' }).className).not.toContain('bg-primary')
+    expect(screen.getByRole('button', { name: '7D' })).not.toHaveClass('bg-primary')
+    expect(screen.getByRole('button', { name: 'All' })).not.toHaveClass('bg-primary')
 
     rerender(
       <FilterBar
@@ -96,7 +96,7 @@ describe('FilterBar', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: 'All' }).className).toContain('bg-primary')
+    expect(screen.getByRole('button', { name: 'All' })).toHaveClass('bg-primary')
 
     rerender(
       <FilterBar
@@ -122,7 +122,7 @@ describe('FilterBar', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: 'All' }).className).not.toContain('bg-primary')
+    expect(screen.getByRole('button', { name: 'All' })).not.toHaveClass('bg-primary')
   })
 
   it('localizes the calendar month navigation aria labels', () => {

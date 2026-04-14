@@ -391,12 +391,12 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
           type="button"
           aria-label={t('filterBar.clearDate', { label })}
           onClick={() => onChange(undefined)}
-          className="absolute right-8 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute top-1/2 right-8 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           <X className="h-3.5 w-3.5" />
         </button>
       )}
-      <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <CalendarDays className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
       {open &&
         typeof document !== 'undefined' &&
@@ -440,7 +440,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
               {weekdayLabels.map((day) => (
                 <div
                   key={day}
-                  className="px-1 py-1 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+                  className="px-1 py-1 text-center text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
                 >
                   {day}
                 </div>
@@ -562,7 +562,7 @@ export function FilterBar({
     <div className="rounded-2xl border border-border/50 bg-card/40 px-3 py-3 backdrop-blur-xl">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-          <span className="font-semibold uppercase tracking-[0.14em]">{t('filterBar.status')}</span>
+          <span className="font-semibold tracking-[0.14em] uppercase">{t('filterBar.status')}</span>
           <span className="rounded-full bg-muted/30 px-2 py-0.5">
             {selectedProviders.length > 0
               ? t('filterBar.providersActive', { count: selectedProviders.length })
@@ -581,7 +581,7 @@ export function FilterBar({
           <button
             type="button"
             onClick={() => onResetAll()}
-            className="ml-auto inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[11px] font-medium text-foreground transition-all duration-200 hover:bg-accent hover:border-accent disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-border"
+            className="ml-auto inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[11px] font-medium text-foreground transition-all duration-200 hover:border-accent hover:bg-accent disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-transparent"
             disabled={!hasCustomFilters}
           >
             {t('filterBar.resetAll')}
@@ -633,10 +633,10 @@ export function FilterBar({
                 aria-pressed={activePreset === p.key}
                 onClick={() => onApplyPreset(p.key)}
                 className={cn(
-                  'rounded-full px-3 py-1.5 text-xs font-medium border transition-all duration-200 min-w-[48px]',
+                  'min-w-[48px] rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200',
                   activePreset === p.key
-                    ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_0_1px_rgba(255,255,255,0.06)]'
-                    : 'border-border hover:bg-accent hover:border-accent',
+                    ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.06)]'
+                    : 'border-border hover:border-accent hover:bg-accent',
                 )}
               >
                 {p.label}
@@ -651,7 +651,7 @@ export function FilterBar({
             onChange={onStartDateChange}
             {...(startDate ? { value: startDate } : {})}
           />
-          <span className="hidden md:inline text-xs text-muted-foreground">
+          <span className="hidden text-xs text-muted-foreground md:inline">
             {t('filterBar.until')}
           </span>
           <DatePickerField
@@ -665,7 +665,7 @@ export function FilterBar({
               onStartDateChange(undefined)
               onEndDateChange(undefined)
             }}
-            className="rounded-full px-3 py-2 text-xs font-medium border border-border transition-all duration-200 hover:bg-accent hover:border-accent"
+            className="rounded-full border border-border px-3 py-2 text-xs font-medium transition-all duration-200 hover:border-accent hover:bg-accent"
           >
             {t('filterBar.resetDateRange')}
           </button>
@@ -673,7 +673,7 @@ export function FilterBar({
 
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
               {t('filterBar.providers')}
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -689,7 +689,7 @@ export function FilterBar({
                     aria-pressed={isSelected}
                     onClick={() => onToggleProvider(provider)}
                     className={cn(
-                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold cursor-pointer border transition-all duration-200',
+                      'inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition-all duration-200',
                       visualState === 'selected'
                         ? getProviderBadgeClasses(provider)
                         : visualState === 'included'
@@ -719,7 +719,7 @@ export function FilterBar({
                 <button
                   type="button"
                   onClick={onClearProviders}
-                  className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-border transition-all duration-200 hover:bg-accent"
+                  className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:bg-accent"
                 >
                   {t('common.reset')}
                 </button>
@@ -729,14 +729,14 @@ export function FilterBar({
 
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
                 {t('filterBar.models')}
               </span>
               {selectedModels.length > 0 && (
                 <button
                   type="button"
                   onClick={onClearModels}
-                  className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-border transition-all duration-200 hover:bg-accent"
+                  className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:bg-accent"
                 >
                   {t('filterBar.resetModels')}
                 </button>
@@ -755,7 +755,7 @@ export function FilterBar({
                     aria-pressed={isSelected}
                     onClick={() => onToggleModel(model)}
                     className={cn(
-                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium cursor-pointer',
+                      'inline-flex cursor-pointer items-center rounded-full px-2.5 py-1 text-xs font-medium',
                       'border transition-all duration-200 hover:scale-[1.03]',
                       visualState === 'selected'
                         ? 'opacity-100'
@@ -775,7 +775,7 @@ export function FilterBar({
                     }}
                   >
                     <span
-                      className="w-2 h-2 rounded-full mr-1.5"
+                      className="mr-1.5 h-2 w-2 rounded-full"
                       style={{ backgroundColor: color }}
                     />
                     {model}

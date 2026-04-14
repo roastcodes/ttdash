@@ -145,7 +145,7 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
         info={SECTION_HELP.currentMonth}
       />
       <FadeIn delay={0.08}>
-        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-8">
           <MetricCard
             label={t('metricCards.month.costMonth')}
             value={<FormattedValue value={agg.totalCost} type="currency" />}

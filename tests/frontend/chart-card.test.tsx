@@ -46,8 +46,8 @@ describe('ChartCard', () => {
     )
 
     const button = screen.getByRole('button', { name: 'Demo chart expand' })
-    expect(button.className).toContain('md:group-focus-within:opacity-100')
-    expect(button.className).toContain('focus-visible:opacity-100')
-    expect(button.className).toContain('motion-reduce:transition-none')
+    expect(button).toHaveClass('md:group-focus-within:opacity-100')
+    expect(button).toHaveClass('focus-visible:opacity-100')
+    expect(button).toHaveClass('motion-reduce:transition-none')
   })
 })
