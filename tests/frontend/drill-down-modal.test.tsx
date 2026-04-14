@@ -1,0 +1,177 @@
+// @vitest-environment jsdom
+
+import { render, screen, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { DrillDownModal } from '@/components/features/drill-down/DrillDownModal'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { initI18n } from '@/lib/i18n'
+import type { DailyUsage } from '@/types'
+
+describe('DrillDownModal', () => {
+  beforeEach(async () => {
+    await initI18n('en')
+  })
+
+  it('renders model and provider deep-dive metrics for a selected day', () => {
+    const previousDay: DailyUsage = {
+      date: '2026-04-06',
+      inputTokens: 300,
+      outputTokens: 120,
+      cacheCreationTokens: 30,
+      cacheReadTokens: 50,
+      thinkingTokens: 0,
+      totalTokens: 500,
+      totalCost: 15,
+      requestCount: 6,
+      modelsUsed: ['gpt-5.4', 'claude-opus-4.1'],
+      modelBreakdowns: [
+        {
+          modelName: 'gpt-5.4',
+          inputTokens: 200,
+          outputTokens: 80,
+          cacheCreationTokens: 20,
+          cacheReadTokens: 40,
+          thinkingTokens: 0,
+          cost: 8,
+          requestCount: 4,
+        },
+        {
+          modelName: 'claude-opus-4.1',
+          inputTokens: 100,
+          outputTokens: 40,
+          cacheCreationTokens: 10,
+          cacheReadTokens: 10,
+          thinkingTokens: 0,
+          cost: 7,
+          requestCount: 2,
+        },
+      ],
+    }
+
+    const selectedDay: DailyUsage = {
+      date: '2026-04-07',
+      inputTokens: 700,
+      outputTokens: 230,
+      cacheCreationTokens: 40,
+      cacheReadTokens: 80,
+      thinkingTokens: 50,
+      totalTokens: 1,
+      totalCost: 28,
+      requestCount: 10,
+      modelsUsed: ['gpt-5.4', 'claude-opus-4.1'],
+      modelBreakdowns: [
+        {
+          modelName: 'gpt-5.4',
+          inputTokens: 450,
+          outputTokens: 150,
+          cacheCreationTokens: 20,
+          cacheReadTokens: 40,
+          thinkingTokens: 40,
+          cost: 18,
+          requestCount: 6,
+        },
+        {
+          modelName: 'claude-opus-4.1',
+          inputTokens: 250,
+          outputTokens: 80,
+          cacheCreationTokens: 20,
+          cacheReadTokens: 40,
+          thinkingTokens: 10,
+          cost: 10,
+          requestCount: 4,
+        },
+      ],
+    }
+
+    render(
+      <TooltipProvider>
+        <DrillDownModal
+          day={selectedDay}
+          contextData={[previousDay, selectedDay]}
+          open
+          onClose={() => {}}
+        />
+      </TooltipProvider>,
+    )
+
+    expect(
+      screen.getByText(
+        'Detailed day view with benchmarks, model breakdown, provider summary, and token distribution.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Active providers')).toBeInTheDocument()
+    expect(screen.getByText('Model breakdown')).toBeInTheDocument()
+    expect(screen.getByText('Provider summary')).toBeInTheDocument()
+    expect(screen.getByText('Top 3 cost share')).toBeInTheDocument()
+    expect(screen.getByText('Cost vs. previous')).toBeInTheDocument()
+    expect(screen.getByText('Tokens vs. 7D avg')).toBeInTheDocument()
+
+    const modelSection = screen.getByText('Model breakdown').closest('section')
+    expect(modelSection).not.toBeNull()
+    if (!modelSection) throw new Error('Expected model section')
+
+    const gptCard = within(modelSection).getAllByText('GPT-5.4').at(-1)?.closest('div.rounded-xl')
+    expect(gptCard).not.toBeNull()
+    if (!gptCard) throw new Error('Expected GPT-5.4 card')
+    expect(within(gptCard).getByText('Cost share')).toBeInTheDocument()
+    expect(within(gptCard).getByText('64.3%')).toBeInTheDocument()
+    expect(within(gptCard).getByText('Token share')).toBeInTheDocument()
+    expect(within(gptCard).getByText('63.6%')).toBeInTheDocument()
+    expect(within(gptCard).getByText('700')).toBeInTheDocument()
+    expect(within(gptCard).getByText('Input')).toBeInTheDocument()
+    expect(within(gptCard).getByText('450')).toBeInTheDocument()
+
+    const providerSection = screen.getByText('Provider summary').closest('section')
+    expect(providerSection).not.toBeNull()
+    if (!providerSection) throw new Error('Expected provider section')
+
+    const openAiProviderCard = within(providerSection).getByText('OpenAI').closest('div.rounded-xl')
+    expect(openAiProviderCard).not.toBeNull()
+    if (!openAiProviderCard) throw new Error('Expected OpenAI provider card')
+    expect(within(openAiProviderCard).getByText('1 active model')).toBeInTheDocument()
+    expect(within(openAiProviderCard).getByLabelText('$18.00')).toBeInTheDocument()
+    expect(within(openAiProviderCard).getAllByText('6').length).toBeGreaterThan(0)
+  })
+
+  it('labels aggregated entries as periods and shows raw-day coverage', async () => {
+    const monthEntry: DailyUsage = {
+      date: '2026-04',
+      inputTokens: 900,
+      outputTokens: 300,
+      cacheCreationTokens: 100,
+      cacheReadTokens: 400,
+      thinkingTokens: 0,
+      totalTokens: 1700,
+      totalCost: 42,
+      requestCount: 12,
+      modelsUsed: ['gpt-5.4'],
+      modelBreakdowns: [
+        {
+          modelName: 'gpt-5.4',
+          inputTokens: 900,
+          outputTokens: 300,
+          cacheCreationTokens: 100,
+          cacheReadTokens: 400,
+          thinkingTokens: 0,
+          cost: 42,
+          requestCount: 12,
+        },
+      ],
+      _aggregatedDays: 30,
+    }
+
+    render(
+      <TooltipProvider>
+        <DrillDownModal day={monthEntry} contextData={[monthEntry]} open onClose={() => {}} />
+      </TooltipProvider>,
+    )
+
+    expect(
+      screen.getByText(
+        'Detailed month view with benchmarks, model breakdown, provider summary, and token distribution.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Type: month')).toBeInTheDocument()
+    expect(screen.getAllByText('30 raw days').length).toBeGreaterThan(0)
+  })
+})

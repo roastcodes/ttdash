@@ -155,8 +155,9 @@ describe('phase 4 UI correctness', () => {
     )
 
     expect(screen.getAllByText('100').length).toBeGreaterThan(0)
-    expect(screen.getByText(/\$50\.0k/)).toBeInTheDocument()
-    expect(screen.getByText('Cache Read 10.0%')).toBeInTheDocument()
+    expect(screen.getAllByText(/\$50\.0k/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Cache Read').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('10.0%').length).toBeGreaterThan(0)
   })
 
   it('localizes drill-down labels in English', async () => {
@@ -193,9 +194,11 @@ describe('phase 4 UI correctness', () => {
 
     expect(
       screen.getByText(
-        'Detailed daily view with token distribution, model shares, requests, and thinking tokens.',
+        'Detailed day view with benchmarks, model breakdown, provider summary, and token distribution.',
       ),
     ).toBeInTheDocument()
+    expect(screen.getByText('Overview')).toBeInTheDocument()
+    expect(screen.getByText('Model breakdown')).toBeInTheDocument()
     expect(screen.getByText('Token distribution')).toBeInTheDocument()
     expect(screen.getByText('Cost rank')).toBeInTheDocument()
   })

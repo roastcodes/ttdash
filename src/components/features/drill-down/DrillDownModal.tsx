@@ -9,7 +9,13 @@ import {
 } from '@/components/ui/dialog'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
-import { formatCurrency, formatTokens, formatPercent, formatDate } from '@/lib/formatters'
+import {
+  formatCurrency,
+  formatDate,
+  formatNumber,
+  formatPercent,
+  formatTokens,
+} from '@/lib/formatters'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import {
   normalizeModelName,
@@ -27,13 +33,89 @@ interface DrillDownModalProps {
   onClose: () => void
 }
 
+type PeriodKind = 'day' | 'month' | 'year'
+
+function getPeriodKind(date: string): PeriodKind {
+  if (/^\d{4}$/.test(date)) return 'year'
+  if (/^\d{4}-\d{2}$/.test(date)) return 'month'
+  return 'day'
+}
+
+function getEntryTokenTotal(entry: DailyUsage): number {
+  return (
+    entry.cacheReadTokens +
+    entry.cacheCreationTokens +
+    entry.inputTokens +
+    entry.outputTokens +
+    entry.thinkingTokens
+  )
+}
+
+function toPerMillion(cost: number, tokens: number): number | null {
+  return tokens > 0 ? cost / (tokens / 1_000_000) : null
+}
+
+function toPerRequest(value: number, requests: number): number | null {
+  return requests > 0 ? value / requests : null
+}
+
+function getDelta(current: number, reference: number | null) {
+  if (reference === null) return null
+
+  const absolute = current - reference
+  const percent = reference !== 0 ? (absolute / reference) * 100 : null
+
+  return { absolute, percent }
+}
+
+function formatDeltaValue(
+  delta: ReturnType<typeof getDelta>,
+  formatter: (value: number) => string,
+  fallback = '–',
+) {
+  if (!delta) return fallback
+  if (delta.absolute === 0) return `→ ${formatter(0)}`
+
+  return `${delta.absolute > 0 ? '↑' : '↓'} ${formatter(Math.abs(delta.absolute))}`
+}
+
+function formatDeltaPercent(delta: ReturnType<typeof getDelta>, fallback = '–') {
+  if (!delta) return fallback
+  if (delta.percent === null) return fallback
+  if (delta.percent === 0) return '0.0%'
+
+  return `${delta.percent > 0 ? '+' : ''}${delta.percent.toFixed(1)}%`
+}
+
 export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDownModalProps) {
   const { t } = useTranslation()
+
+  const periodKind = day ? getPeriodKind(day.date) : 'day'
+
+  const sortedContextData = useMemo(
+    () => [...contextData].sort((a, b) => a.date.localeCompare(b.date)),
+    [contextData],
+  )
+
+  const contextIndex = useMemo(
+    () => (day ? sortedContextData.findIndex((entry) => entry.date === day.date) : -1),
+    [day, sortedContextData],
+  )
+
+  const previousEntry = contextIndex > 0 ? sortedContextData[contextIndex - 1] : null
+  const previousSeven =
+    contextIndex > 0 ? sortedContextData.slice(Math.max(0, contextIndex - 7), contextIndex) : []
+
+  const tokensTotal = day ? getEntryTokenTotal(day) : 0
+  const hasTokens = tokensTotal > 0
+
   const modelData = useMemo(() => {
     if (!day) return []
+
     const map = new Map<
       string,
       {
+        provider: string
         cost: number
         tokens: number
         input: number
@@ -44,9 +126,12 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
         requests: number
       }
     >()
+
     for (const mb of day.modelBreakdowns) {
       const name = normalizeModelName(mb.modelName)
-      const ex = map.get(name) ?? {
+      const provider = getModelProvider(mb.modelName)
+      const existing = map.get(name) ?? {
+        provider,
         cost: 0,
         tokens: 0,
         input: 0,
@@ -56,42 +141,77 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
         thinking: 0,
         requests: 0,
       }
-      ex.cost += mb.cost
-      ex.tokens +=
+
+      existing.cost += mb.cost
+      existing.tokens +=
         mb.inputTokens +
         mb.outputTokens +
         mb.cacheCreationTokens +
         mb.cacheReadTokens +
         mb.thinkingTokens
-      ex.input += mb.inputTokens
-      ex.output += mb.outputTokens
-      ex.cacheRead += mb.cacheReadTokens
-      ex.cacheCreate += mb.cacheCreationTokens
-      ex.thinking += mb.thinkingTokens
-      ex.requests += mb.requestCount
-      map.set(name, ex)
+      existing.input += mb.inputTokens
+      existing.output += mb.outputTokens
+      existing.cacheRead += mb.cacheReadTokens
+      existing.cacheCreate += mb.cacheCreationTokens
+      existing.thinking += mb.thinkingTokens
+      existing.requests += mb.requestCount
+
+      map.set(name, existing)
     }
+
     return Array.from(map.entries())
-      .map(([name, v]) => ({ name, ...v }))
+      .map(([name, value]) => ({
+        name,
+        ...value,
+        costShare: day.totalCost > 0 ? (value.cost / day.totalCost) * 100 : 0,
+        tokenShare: tokensTotal > 0 ? (value.tokens / tokensTotal) * 100 : 0,
+        costPerMillion: toPerMillion(value.cost, value.tokens),
+        costPerRequest: toPerRequest(value.cost, value.requests),
+        tokensPerRequest: toPerRequest(value.tokens, value.requests),
+      }))
       .sort((a, b) => b.cost - a.cost)
-  }, [day])
+  }, [day, tokensTotal])
+
+  const providerData = useMemo(() => {
+    const map = new Map<
+      string,
+      { cost: number; tokens: number; requests: number; activeModels: Set<string> }
+    >()
+
+    for (const model of modelData) {
+      const existing = map.get(model.provider) ?? {
+        cost: 0,
+        tokens: 0,
+        requests: 0,
+        activeModels: new Set<string>(),
+      }
+
+      existing.cost += model.cost
+      existing.tokens += model.tokens
+      existing.requests += model.requests
+      existing.activeModels.add(model.name)
+      map.set(model.provider, existing)
+    }
+
+    return Array.from(map.entries())
+      .map(([provider, value]) => ({
+        provider,
+        cost: value.cost,
+        tokens: value.tokens,
+        requests: value.requests,
+        activeModels: value.activeModels.size,
+        costShare: day && day.totalCost > 0 ? (value.cost / day.totalCost) * 100 : 0,
+      }))
+      .sort((a, b) => b.cost - a.cost)
+  }, [day, modelData])
 
   if (!day) return null
 
-  const tokensTotal =
-    day.cacheReadTokens +
-    day.cacheCreationTokens +
-    day.inputTokens +
-    day.outputTokens +
-    day.thinkingTokens
-  const hasTokens = tokensTotal > 0
-
+  const pieData = modelData.map((model) => ({ name: model.name, value: model.cost }))
   const cacheRate = hasTokens ? (day.cacheReadTokens / tokensTotal) * 100 : 0
-
-  const pieData = modelData.map((m) => ({ name: m.name, value: m.cost }))
-  const avgTokensPerRequest = day.requestCount > 0 ? tokensTotal / day.requestCount : 0
-  const avgCostPerRequest = day.requestCount > 0 ? day.totalCost / day.requestCount : 0
-  const costPerMillion = hasTokens ? day.totalCost / (tokensTotal / 1_000_000) : null
+  const avgTokensPerRequest = toPerRequest(tokensTotal, day.requestCount)
+  const avgCostPerRequest = toPerRequest(day.totalCost, day.requestCount)
+  const costPerMillion = toPerMillion(day.totalCost, tokensTotal)
   const costRanking =
     [...contextData]
       .sort((a, b) => b.totalCost - a.totalCost)
@@ -100,10 +220,7 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
     [...contextData]
       .sort((a, b) => b.requestCount - a.requestCount)
       .findIndex((entry) => entry.date === day.date) + 1
-  const previousSeven = [...contextData]
-    .filter((entry) => entry.date < day.date)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-7)
+
   const avgCost7 =
     previousSeven.length > 0
       ? previousSeven.reduce((sum, entry) => sum + entry.totalCost, 0) / previousSeven.length
@@ -112,15 +229,158 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
     previousSeven.length > 0
       ? previousSeven.reduce((sum, entry) => sum + entry.requestCount, 0) / previousSeven.length
       : null
+  const avgTokens7 =
+    previousSeven.length > 0
+      ? previousSeven.reduce((sum, entry) => sum + getEntryTokenTotal(entry), 0) /
+        previousSeven.length
+      : null
+  const avgCostPerMillion7 =
+    previousSeven.length > 0
+      ? toPerMillion(
+          previousSeven.reduce((sum, entry) => sum + entry.totalCost, 0),
+          previousSeven.reduce((sum, entry) => sum + getEntryTokenTotal(entry), 0),
+        )
+      : null
+
+  const previousTokens = previousEntry ? getEntryTokenTotal(previousEntry) : null
+  const previousCostPerMillion = previousEntry
+    ? toPerMillion(previousEntry.totalCost, getEntryTokenTotal(previousEntry))
+    : null
+
+  const topCostModel = modelData[0] ?? null
   const topRequestModel = modelData.reduce(
+    (best, current) => (!best || current.requests > best.requests ? current : best),
+    null as (typeof modelData)[number] | null,
+  )
+  const topTokenModel = modelData.reduce(
+    (best, current) => (!best || current.tokens > best.tokens ? current : best),
+    null as (typeof modelData)[number] | null,
+  )
+  const priciestPerMillionModel = modelData.reduce(
     (best, current) => {
-      if (!best || current.requests > best.requests) return current
+      if (current.costPerMillion === null) return best
+      if (!best || best.costPerMillion === null || current.costPerMillion > best.costPerMillion) {
+        return current
+      }
       return best
     },
     null as (typeof modelData)[number] | null,
   )
-  const formatTokenShare = (value: number) =>
-    hasTokens ? formatPercent((value / tokensTotal) * 100) : '–'
+
+  const topThreeCostShare =
+    day.totalCost > 0
+      ? (modelData.slice(0, 3).reduce((sum, model) => sum + model.cost, 0) / day.totalCost) * 100
+      : 0
+
+  const summaryCards = [
+    { label: t('common.tokens'), value: <FormattedValue value={tokensTotal} type="tokens" /> },
+    {
+      label: '$/1M',
+      value:
+        costPerMillion !== null ? <FormattedValue value={costPerMillion} type="currency" /> : '–',
+    },
+    {
+      label: t('common.requests'),
+      value: <FormattedValue value={day.requestCount} type="number" />,
+    },
+    { label: t('common.models'), value: formatNumber(modelData.length) },
+    { label: t('drillDown.activeProviders'), value: formatNumber(providerData.length) },
+    {
+      label: t('drillDown.tokensPerRequest'),
+      value:
+        avgTokensPerRequest !== null ? (
+          <FormattedValue value={avgTokensPerRequest} type="tokens" />
+        ) : (
+          '–'
+        ),
+    },
+    {
+      label: t('drillDown.costPerRequest'),
+      value:
+        avgCostPerRequest !== null ? (
+          <FormattedValue value={avgCostPerRequest} type="currency" />
+        ) : (
+          '–'
+        ),
+    },
+    {
+      label: t('drillDown.cacheRate'),
+      value: <FormattedValue value={cacheRate} type="percent" />,
+    },
+    {
+      label: t('common.thinking'),
+      value: <FormattedValue value={day.thinkingTokens} type="tokens" />,
+    },
+    { label: t('drillDown.costRank'), value: costRanking > 0 ? `#${costRanking}` : '–' },
+    { label: t('drillDown.requestRank'), value: requestRanking > 0 ? `#${requestRanking}` : '–' },
+    {
+      label: t('drillDown.coverage'),
+      value:
+        (day._aggregatedDays ?? 1) > 1
+          ? t('drillDown.coverageDays', { count: day._aggregatedDays ?? 1 })
+          : t('drillDown.singlePeriod', { period: t(`periods.${periodKind}`) }),
+    },
+  ]
+
+  const benchmarkCards = [
+    {
+      label: t('drillDown.costVsPrevious'),
+      primary: formatDeltaValue(
+        getDelta(day.totalCost, previousEntry?.totalCost ?? null),
+        formatCurrency,
+      ),
+      secondary: formatDeltaPercent(getDelta(day.totalCost, previousEntry?.totalCost ?? null)),
+    },
+    {
+      label: t('drillDown.tokensVsPrevious'),
+      primary: formatDeltaValue(getDelta(tokensTotal, previousTokens), formatTokens),
+      secondary: formatDeltaPercent(getDelta(tokensTotal, previousTokens)),
+    },
+    {
+      label: t('drillDown.requestsVsPrevious'),
+      primary: formatDeltaValue(
+        getDelta(day.requestCount, previousEntry?.requestCount ?? null),
+        (value) => formatNumber(Math.round(value)),
+      ),
+      secondary: formatDeltaPercent(
+        getDelta(day.requestCount, previousEntry?.requestCount ?? null),
+      ),
+    },
+    {
+      label: t('drillDown.costPerMillionVsAverage7d'),
+      primary: formatDeltaValue(
+        costPerMillion !== null ? getDelta(costPerMillion, avgCostPerMillion7) : null,
+        formatCurrency,
+      ),
+      secondary: avgCostPerMillion7 !== null ? formatCurrency(avgCostPerMillion7) : '–',
+    },
+    {
+      label: t('drillDown.costVsAverage7d'),
+      primary: formatDeltaValue(getDelta(day.totalCost, avgCost7), formatCurrency),
+      secondary: avgCost7 !== null ? formatCurrency(avgCost7) : '–',
+    },
+    {
+      label: t('drillDown.requestsVsAverage7d'),
+      primary: formatDeltaValue(getDelta(day.requestCount, avgRequests7), (value) =>
+        formatNumber(Math.round(value)),
+      ),
+      secondary: avgRequests7 !== null ? formatNumber(Math.round(avgRequests7)) : '–',
+    },
+    {
+      label: t('drillDown.tokensVsAverage7d'),
+      primary: formatDeltaValue(getDelta(tokensTotal, avgTokens7), formatTokens),
+      secondary: avgTokens7 !== null ? formatTokens(avgTokens7) : '–',
+    },
+    {
+      label: t('drillDown.costPerMillionVsPrevious'),
+      primary: formatDeltaValue(
+        costPerMillion !== null ? getDelta(costPerMillion, previousCostPerMillion) : null,
+        formatCurrency,
+      ),
+      secondary: previousCostPerMillion !== null ? formatCurrency(previousCostPerMillion) : '–',
+    },
+  ]
+
   const tokenSegments = [
     {
       id: 'cacheRead',
@@ -149,205 +409,356 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
     },
   ] as const
 
+  const topModelCards = [
+    {
+      label: t('drillDown.topCostModel'),
+      title: topCostModel?.name ?? '–',
+      value: topCostModel ? formatPercent(topCostModel.costShare) : '–',
+    },
+    {
+      label: t('drillDown.topRequestModel'),
+      title: topRequestModel?.name ?? '–',
+      value:
+        topRequestModel && topRequestModel.requests > 0
+          ? t('drillDown.requestCountShort', { count: topRequestModel.requests })
+          : '–',
+    },
+    {
+      label: t('drillDown.topTokenModel'),
+      title: topTokenModel?.name ?? '–',
+      value: topTokenModel ? formatPercent(topTokenModel.tokenShare) : '–',
+    },
+    {
+      label: t('drillDown.priciestPerMillionModel'),
+      title: priciestPerMillionModel?.name ?? '–',
+      value:
+        priciestPerMillionModel?.costPerMillion !== null &&
+        priciestPerMillionModel?.costPerMillion !== undefined ? (
+          <FormattedValue value={priciestPerMillionModel.costPerMillion} type="currency" />
+        ) : (
+          '–'
+        ),
+    },
+    {
+      label: t('drillDown.topCostShare'),
+      title: topCostModel ? formatPercent(topCostModel.costShare) : '–',
+      value: topCostModel?.provider ?? '–',
+    },
+    {
+      label: t('drillDown.topThreeCostShare'),
+      title: formatPercent(topThreeCostShare),
+      value: t('drillDown.modelCount', { count: Math.min(modelData.length, 3) }),
+    },
+  ]
+
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {formatDate(day.date, 'long')} — {formatCurrency(day.totalCost)}
           </DialogTitle>
-          <DialogDescription>{t('drillDown.description')}</DialogDescription>
+          <DialogDescription>
+            {t('drillDown.description', { periodType: t(`periods.${periodKind}`) })}
+          </DialogDescription>
+          <div className="flex flex-wrap gap-2 pt-1 text-xs text-muted-foreground">
+            <span className="rounded-full border border-border/60 bg-muted/20 px-2 py-1">
+              {t('drillDown.periodType', { period: t(`periods.${periodKind}`) })}
+            </span>
+            {(day._aggregatedDays ?? 1) > 1 && (
+              <span className="rounded-full border border-border/60 bg-muted/20 px-2 py-1">
+                {t('drillDown.coverageDays', { count: day._aggregatedDays ?? 1 })}
+              </span>
+            )}
+          </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-          <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">{t('common.tokens')}</div>
-            <div className="font-mono font-medium">
-              <FormattedValue value={tokensTotal} type="tokens" />
-            </div>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">$/1M</div>
-            <div className="font-mono font-medium">
-              {costPerMillion !== null ? (
-                <FormattedValue value={costPerMillion} type="currency" />
-              ) : (
-                '–'
-              )}
-            </div>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">{t('drillDown.cacheRate')}</div>
-            <div className="font-mono font-medium">
-              <FormattedValue value={cacheRate} type="percent" />
-            </div>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">{t('common.models')}</div>
-            <div className="font-mono font-medium">{modelData.length}</div>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">{t('common.requests')}</div>
-            <div className="font-mono font-medium">
-              <FormattedValue value={day.requestCount} type="number" />
-            </div>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">{t('common.thinking')}</div>
-            <div className="font-mono font-medium">
-              <FormattedValue value={day.thinkingTokens} type="tokens" />
-            </div>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">{t('drillDown.tokensPerRequest')}</div>
-            <div className="font-mono font-medium">
-              <FormattedValue value={avgTokensPerRequest} type="tokens" />
-            </div>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">{t('drillDown.costPerRequest')}</div>
-            <div className="font-mono font-medium">
-              <FormattedValue value={avgCostPerRequest} type="currency" />
-            </div>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">{t('drillDown.costRank')}</div>
-            <div className="font-mono font-medium">{costRanking > 0 ? `#${costRanking}` : '–'}</div>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/30">
-            <div className="text-xs text-muted-foreground">{t('drillDown.requestRank')}</div>
-            <div className="font-mono font-medium">
-              {requestRanking > 0 ? `#${requestRanking}` : '–'}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-            <div className="text-muted-foreground">{t('drillDown.topRequestModel')}</div>
-            <div className="mt-1 font-medium">{topRequestModel?.name ?? '–'}</div>
-          </div>
-          <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-            <div className="text-muted-foreground">{t('drillDown.costVsAverage7d')}</div>
-            <div className="mt-1 font-medium">
-              {avgCost7 !== null
-                ? `${day.totalCost >= avgCost7 ? '↑' : '↓'} ${formatCurrency(Math.abs(day.totalCost - avgCost7))}`
-                : '–'}
-            </div>
-          </div>
-          <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-            <div className="text-muted-foreground">{t('drillDown.requestsVsAverage7d')}</div>
-            <div className="mt-1 font-medium">
-              {avgRequests7 !== null
-                ? `${day.requestCount >= avgRequests7 ? '↑' : '↓'} ${Math.abs(day.requestCount - avgRequests7).toFixed(0)}`
-                : '–'}
-            </div>
-          </div>
-        </div>
-
-        {/* Token type stacked bar */}
-        <div>
-          <div className="text-xs text-muted-foreground mb-1.5">
-            {t('drillDown.tokenDistribution')}
-          </div>
-          <div className="flex h-3 rounded-full overflow-hidden">
-            {hasTokens &&
-              tokenSegments.map((seg) => (
-                <div
-                  key={seg.id}
-                  className="h-full transition-all duration-500"
-                  style={{
-                    width: `${(seg.value / tokensTotal) * 100}%`,
-                    backgroundColor: seg.color,
-                  }}
-                  title={`${seg.label}: ${formatTokens(seg.value)} (${((seg.value / tokensTotal) * 100).toFixed(1)}%)`}
-                />
-              ))}
-          </div>
-          <div className="flex gap-3 mt-1.5 text-[10px] text-muted-foreground">
-            {tokenSegments.map((segment) => (
-              <span key={segment.id} className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: segment.color }} />
-                {segment.label} {formatTokenShare(segment.value)}
-              </span>
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold">{t('drillDown.overview')}</h3>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            {summaryCards.map((card) => (
+              <div key={card.label} className="rounded-lg bg-muted/30 p-3 text-center">
+                <div className="text-xs text-muted-foreground">{card.label}</div>
+                <div className="mt-1 font-mono text-sm font-medium">{card.value}</div>
+              </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={40}
-                  outerRadius={70}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {pieData.map((entry) => (
-                    <Cell key={entry.name} fill={getModelColor(entry.name)} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
-              </PieChart>
-            </ResponsiveContainer>
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold">{t('drillDown.benchmarks')}</h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {benchmarkCards.map((card) => (
+              <div
+                key={card.label}
+                className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2"
+              >
+                <div className="text-xs text-muted-foreground">{card.label}</div>
+                <div className="mt-1 font-medium">{card.primary}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{card.secondary}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold">{t('drillDown.modelBreakdown')}</h3>
+            <span className="text-xs text-muted-foreground">
+              {t('drillDown.modelCount', { count: modelData.length })}
+            </span>
           </div>
 
-          <div className="space-y-2">
-            {modelData.map((model) => {
-              const share = day.totalCost > 0 ? (model.cost / day.totalCost) * 100 : 0
-              return (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-2">
+                {topModelCards.map((card) => (
+                  <div
+                    key={card.label}
+                    className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2"
+                  >
+                    <div className="text-xs text-muted-foreground">{card.label}</div>
+                    <div className="mt-1 truncate font-medium">{card.title}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{card.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {pieData.length > 0 && (
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-3">
+                  <div className="text-xs text-muted-foreground">
+                    {t('drillDown.costShareByModel')}
+                  </div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={46}
+                        outerRadius={84}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry) => (
+                          <Cell key={entry.name} fill={getModelColor(entry.name)} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        content={<CustomTooltip formatter={(value) => formatCurrency(value)} />}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {modelData.map((model) => (
                 <div
                   key={model.name}
-                  className="flex items-center justify-between text-sm p-1.5 rounded hover:bg-muted/30"
+                  className="rounded-xl border border-border/50 bg-muted/10 p-3"
                 >
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: getModelColor(model.name) }}
-                    />
-                    <span>{model.name}</span>
-                    <span
-                      className={cn(
-                        'inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none',
-                        getProviderBadgeClasses(getModelProvider(model.name)),
-                      )}
-                    >
-                      {getModelProvider(model.name)}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {formatPercent(share)}
-                    </span>
-                  </div>
-                  <div className="text-right font-mono">
-                    <div>
-                      <span className="font-medium">
-                        <FormattedValue value={model.cost} type="currency" />
-                      </span>
-                      <span className="text-muted-foreground ml-2 text-xs">
-                        <FormattedValue value={model.tokens} type="tokens" />
-                      </span>
-                      <span className="text-muted-foreground ml-2 text-xs">
-                        {t('drillDown.requestCountShort', { count: model.requests })}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: getModelColor(model.name) }}
+                      />
+                      <span className="truncate font-medium">{model.name}</span>
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none',
+                          getProviderBadgeClasses(model.provider),
+                        )}
+                      >
+                        {model.provider}
                       </span>
                     </div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                      {model.requests > 0
-                        ? t('drillDown.modelRequestSummary', {
-                            costPerRequest: formatCurrency(model.cost / model.requests),
-                            tokensPerRequest: formatTokens(model.tokens / model.requests),
-                          })
-                        : t('drillDown.noRequests')}
+                    <div className="text-xs text-muted-foreground">
+                      {t('drillDown.requestCountShort', { count: model.requests })}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                    <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('tables.recentDays.cost')}</div>
+                      <div className="mt-1 font-mono">
+                        <FormattedValue value={model.cost} type="currency" />
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('drillDown.costShare')}</div>
+                      <div className="mt-1 font-mono">{formatPercent(model.costShare)}</div>
+                    </div>
+                    <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('tables.recentDays.tokens')}</div>
+                      <div className="mt-1 font-mono">
+                        <FormattedValue value={model.tokens} type="tokens" />
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('drillDown.tokenShare')}</div>
+                      <div className="mt-1 font-mono">{formatPercent(model.tokenShare)}</div>
+                    </div>
+                    <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('common.requests')}</div>
+                      <div className="mt-1 font-mono">
+                        <FormattedValue value={model.requests} type="number" />
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                      <div className="text-muted-foreground">$/1M</div>
+                      <div className="mt-1 font-mono">
+                        {model.costPerMillion !== null ? (
+                          <FormattedValue value={model.costPerMillion} type="currency" />
+                        ) : (
+                          '–'
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('drillDown.costPerRequest')}</div>
+                      <div className="mt-1 font-mono">
+                        {model.costPerRequest !== null ? (
+                          <FormattedValue value={model.costPerRequest} type="currency" />
+                        ) : (
+                          '–'
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('drillDown.tokensPerRequest')}</div>
+                      <div className="mt-1 font-mono">
+                        {model.tokensPerRequest !== null ? (
+                          <FormattedValue value={model.tokensPerRequest} type="tokens" />
+                        ) : (
+                          '–'
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-5">
+                    <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('common.input')}</div>
+                      <div className="mt-1 font-mono">{formatTokens(model.input)}</div>
+                    </div>
+                    <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('common.output')}</div>
+                      <div className="mt-1 font-mono">{formatTokens(model.output)}</div>
+                    </div>
+                    <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('common.cacheRead')}</div>
+                      <div className="mt-1 font-mono">{formatTokens(model.cacheRead)}</div>
+                    </div>
+                    <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('common.cacheWrite')}</div>
+                      <div className="mt-1 font-mono">{formatTokens(model.cacheCreate)}</div>
+                    </div>
+                    <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
+                      <div className="text-muted-foreground">{t('common.thinking')}</div>
+                      <div className="mt-1 font-mono">{formatTokens(model.thinking)}</div>
                     </div>
                   </div>
                 </div>
-              )
-            })}
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold">{t('drillDown.providerSummary')}</h3>
+            <span className="text-xs text-muted-foreground">
+              {t('drillDown.providerCount', { count: providerData.length })}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {providerData.map((provider) => (
+              <div
+                key={provider.provider}
+                className="rounded-xl border border-border/50 bg-muted/10 p-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span
+                    className={cn(
+                      'inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium leading-none',
+                      getProviderBadgeClasses(provider.provider),
+                    )}
+                  >
+                    {provider.provider}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {t('drillDown.activeModelsCount', { count: provider.activeModels })}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                  <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                    <div className="text-muted-foreground">{t('tables.recentDays.cost')}</div>
+                    <div className="mt-1 font-mono">
+                      <FormattedValue value={provider.cost} type="currency" />
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                    <div className="text-muted-foreground">{t('drillDown.costShare')}</div>
+                    <div className="mt-1 font-mono">{formatPercent(provider.costShare)}</div>
+                  </div>
+                  <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                    <div className="text-muted-foreground">{t('tables.recentDays.tokens')}</div>
+                    <div className="mt-1 font-mono">
+                      <FormattedValue value={provider.tokens} type="tokens" />
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-background/70 px-2.5 py-2">
+                    <div className="text-muted-foreground">{t('common.requests')}</div>
+                    <div className="mt-1 font-mono">
+                      <FormattedValue value={provider.requests} type="number" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold">{t('drillDown.tokenDistribution')}</h3>
+          <div className="rounded-xl border border-border/50 bg-muted/10 p-3">
+            <div className="flex h-3 overflow-hidden rounded-full">
+              {hasTokens &&
+                tokenSegments.map((segment) => (
+                  <div
+                    key={segment.id}
+                    className="h-full transition-all duration-500"
+                    style={{
+                      width: `${(segment.value / tokensTotal) * 100}%`,
+                      backgroundColor: segment.color,
+                    }}
+                    title={`${segment.label}: ${formatTokens(segment.value)} (${((segment.value / tokensTotal) * 100).toFixed(1)}%)`}
+                  />
+                ))}
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2 lg:grid-cols-5">
+              {tokenSegments.map((segment) => (
+                <div key={segment.id} className="rounded-lg bg-background/70 px-2.5 py-2">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: segment.color }}
+                    />
+                    {segment.label}
+                  </div>
+                  <div className="mt-1 font-mono">{formatTokens(segment.value)}</div>
+                  <div className="mt-1 text-[11px] text-muted-foreground">
+                    {hasTokens ? formatPercent((segment.value / tokensTotal) * 100) : '–'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </DialogContent>
     </Dialog>
   )
