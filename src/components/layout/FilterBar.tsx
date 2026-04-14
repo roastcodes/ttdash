@@ -523,6 +523,7 @@ function getFilterVisualState(isSelected: boolean, hasSelection: boolean): Filte
   return 'inactive'
 }
 
+/** Renders the dashboard filter controls and custom date picker. */
 export function FilterBar({
   viewMode,
   onViewModeChange,

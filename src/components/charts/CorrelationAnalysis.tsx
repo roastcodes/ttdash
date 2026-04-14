@@ -213,6 +213,7 @@ function CorrelationPanel({
   )
 }
 
+/** Renders scatter-plot based correlation analysis for the current dataset. */
 export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   const { t } = useTranslation()
   const requestVsCost = useMemo<ScatterPoint[]>(

@@ -88,6 +88,7 @@ function toTooltipNumber(value: TooltipValueType | undefined) {
   return Number.isFinite(numericValue) ? numericValue : 0
 }
 
+/** Renders provider limit progress, subscriptions, and timeline analysis. */
 export function ProviderLimitsSection({
   data,
   providers,

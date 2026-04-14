@@ -63,6 +63,7 @@ function InsightCard({ title, icon, value, summary, details }: InsightCardProps)
   )
 }
 
+/** Renders the high-level narrative insight cards for the current slice. */
 export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageInsightsProps) {
   const { t } = useTranslation()
   const coverageRate =

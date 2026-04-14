@@ -10,6 +10,7 @@ interface SectionHeaderProps {
   className?: string
 }
 
+/** Renders a section heading with optional badge and inline help. */
 export function SectionHeader({ title, description, badge, info, className }: SectionHeaderProps) {
   return (
     <div className={cn('mb-3 pl-3 border-l-2 border-primary/40', className)}>

@@ -56,6 +56,7 @@ function sanitizeDefaultFilters(data: DailyUsage[], defaultFilters: DashboardDef
   }
 }
 
+/** Manages dashboard filters and derives the filtered usage slices. */
 export function useDashboardFilters(
   data: DailyUsage[],
   defaultFilters: DashboardDefaultFilters = DEFAULT_DASHBOARD_FILTERS,

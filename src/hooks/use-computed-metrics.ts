@@ -4,6 +4,7 @@ import { computeMetrics, computeModelCosts, computeProviderMetrics } from '@/lib
 import { buildDashboardChartTransforms } from '@/lib/data-transforms'
 import { getUniqueModels } from '@/lib/model-utils'
 
+/** Builds memoized dashboard metrics, chart data, and model summaries. */
 export function useComputedMetrics(data: DailyUsage[], locale: string) {
   const metrics = useMemo(() => computeMetrics(data), [data])
   const modelCosts = useMemo(() => computeModelCosts(data), [data])

@@ -34,6 +34,7 @@ function CenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number };
   )
 }
 
+/** Renders the per-model cost distribution donut. */
 export function CostByModel({ data }: CostByModelProps) {
   const { t } = useTranslation()
   const total = data.reduce((sum, d) => sum + d.value, 0)

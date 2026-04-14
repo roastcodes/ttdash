@@ -1,6 +1,7 @@
 import { defineConfig } from 'eslint/config'
 import js from '@eslint/js'
 import eslintConfigPrettier from 'eslint-config-prettier'
+import jsdoc from 'eslint-plugin-jsdoc'
 import reactHooks from 'eslint-plugin-react-hooks'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
@@ -90,6 +91,123 @@ export default defineConfig(
       ],
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}', 'shared/**/*.d.ts'],
+    plugins: {
+      jsdoc,
+    },
+    settings: {
+      jsdoc: {
+        mode: 'typescript',
+      },
+    },
+    rules: {
+      'jsdoc/check-alignment': 'error',
+      'jsdoc/check-param-names': 'error',
+      'jsdoc/check-property-names': 'error',
+      'jsdoc/check-syntax': 'error',
+      'jsdoc/check-tag-names': 'error',
+      'jsdoc/empty-tags': 'error',
+      'jsdoc/no-types': 'error',
+      'jsdoc/require-description': [
+        'error',
+        {
+          checkConstructors: false,
+          contexts: [
+            'TSInterfaceDeclaration',
+            'TSTypeAliasDeclaration',
+            'FunctionDeclaration',
+            'VariableDeclaration',
+            'ClassDeclaration',
+          ],
+          descriptionStyle: 'body',
+        },
+      ],
+      'jsdoc/require-description-complete-sentence': 'error',
+      'jsdoc/require-hyphen-before-param-description': ['error', 'always'],
+      'jsdoc/require-jsdoc': [
+        'error',
+        {
+          checkConstructors: false,
+          checkGetters: false,
+          checkSetters: false,
+          contexts: [
+            'ExportNamedDeclaration > TSInterfaceDeclaration',
+            'ExportNamedDeclaration > TSTypeAliasDeclaration',
+            'ExportNamedDeclaration > VariableDeclaration',
+          ],
+          publicOnly: {
+            ancestorsOnly: true,
+            esm: true,
+          },
+          require: {
+            ArrowFunctionExpression: false,
+            ClassDeclaration: true,
+            FunctionDeclaration: true,
+            FunctionExpression: false,
+            MethodDefinition: false,
+          },
+        },
+      ],
+      'jsdoc/require-param-type': 'off',
+      'jsdoc/require-returns-type': 'off',
+      'jsdoc/sort-tags': 'error',
+    },
+  },
+  {
+    files: ['shared/**/*.js', 'server/**/*.js', 'server.js', 'usage-normalizer.js'],
+    plugins: {
+      jsdoc,
+    },
+    settings: {
+      jsdoc: {
+        mode: 'typescript',
+      },
+    },
+    rules: {
+      'jsdoc/check-alignment': 'error',
+      'jsdoc/check-param-names': 'error',
+      'jsdoc/check-property-names': 'error',
+      'jsdoc/check-syntax': 'error',
+      'jsdoc/check-tag-names': 'error',
+      'jsdoc/empty-tags': 'error',
+      'jsdoc/no-types': 'error',
+      'jsdoc/require-description': [
+        'error',
+        {
+          checkConstructors: false,
+          contexts: ['FunctionDeclaration', 'VariableDeclaration'],
+          descriptionStyle: 'body',
+        },
+      ],
+      'jsdoc/require-description-complete-sentence': 'error',
+      'jsdoc/require-hyphen-before-param-description': ['error', 'always'],
+      'jsdoc/require-jsdoc': [
+        'error',
+        {
+          checkConstructors: false,
+          checkGetters: false,
+          checkSetters: false,
+          contexts: ['ExportNamedDeclaration > VariableDeclaration'],
+          publicOnly: {
+            ancestorsOnly: true,
+            cjs: true,
+            esm: true,
+          },
+          require: {
+            ArrowFunctionExpression: false,
+            ClassDeclaration: true,
+            FunctionDeclaration: true,
+            FunctionExpression: false,
+            MethodDefinition: false,
+          },
+        },
+      ],
+      'jsdoc/require-param-type': 'off',
+      'jsdoc/require-returns-type': 'off',
+      'jsdoc/sort-tags': 'error',
     },
   },
   eslintConfigPrettier,

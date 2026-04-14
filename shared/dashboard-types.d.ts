@@ -1,3 +1,4 @@
+/** Describes per-model usage totals for one period. */
 export interface ModelBreakdown {
   modelName: string
   inputTokens: number
@@ -9,6 +10,7 @@ export interface ModelBreakdown {
   requestCount: number
 }
 
+/** Describes aggregated usage for one daily, monthly, or yearly period. */
 export interface DailyUsage {
   date: string
   inputTokens: number
@@ -24,8 +26,10 @@ export interface DailyUsage {
   _aggregatedDays?: number
 }
 
+/** Lists the supported dashboard aggregation modes. */
 export type ViewMode = 'daily' | 'monthly' | 'yearly'
 
+/** Collects high-level metrics derived from the current dataset. */
 export interface DashboardMetrics {
   totalCost: number
   totalTokens: number

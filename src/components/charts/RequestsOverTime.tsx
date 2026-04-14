@@ -68,6 +68,7 @@ function RequestCenterLabel({
   )
 }
 
+/** Renders request volume over time with optional drilldown. */
 export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: RequestsOverTimeProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')

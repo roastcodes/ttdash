@@ -13,6 +13,7 @@ interface AppProps {
   initialSettingsFetchedAt?: number | null
 }
 
+/** Boots the app providers and renders the dashboard shell. */
 export function App({
   initialSettings,
   initialSettingsError = null,

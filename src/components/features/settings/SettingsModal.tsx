@@ -94,6 +94,7 @@ function normalizeSelection(values: string[]) {
   )
 }
 
+/** Builds the editable provider-limit state used by the settings dialog. */
 export function buildProviderLimitsState(
   providers: string[],
   draft: ProviderLimits,
@@ -126,6 +127,7 @@ function moveSection(
   return next
 }
 
+/** Reorders dashboard sections by moving one item to a target index. */
 export function reorderSections(
   order: DashboardSectionOrder,
   sourceId: DashboardSectionOrder[number],
@@ -148,6 +150,7 @@ export function reorderSections(
   return next
 }
 
+/** Renders the settings dialog for dashboard preferences and imports. */
 export function SettingsModal({
   open,
   onOpenChange,

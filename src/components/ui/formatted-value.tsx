@@ -37,6 +37,7 @@ const EXACT_FORMATTERS: Record<ValueType, (value: number) => string> = {
   percent: (v) => formatPercent(v, 4),
 }
 
+/** Renders a formatted value with optional exact-value tooltip support. */
 export function FormattedValue({
   value,
   type,

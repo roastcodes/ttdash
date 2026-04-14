@@ -71,6 +71,7 @@ type SortKey =
   | 'requests'
   | 'costPerDay'
 
+/** Renders the sortable model efficiency table. */
 export function ModelEfficiency({
   modelCosts,
   totalCost,

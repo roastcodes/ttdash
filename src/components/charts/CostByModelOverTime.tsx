@@ -23,6 +23,7 @@ interface CostByModelOverTimeProps {
   models: string[]
 }
 
+/** Renders the per-model cost trend over time. */
 export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) {
   const { t } = useTranslation()
   const topModel =

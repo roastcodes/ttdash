@@ -33,6 +33,7 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
   }
 }
 
+/** Describes the bootstrap settings payload returned before the first render. */
 export interface BootstrapSettingsResult {
   settings: AppSettings
   errorMessage: string | null
@@ -40,6 +41,7 @@ export interface BootstrapSettingsResult {
   fetchedAt: number | null
 }
 
+/** Loads the persisted usage dataset from the local API. */
 export async function fetchUsage(): Promise<UsageData> {
   const res = await fetch('/api/usage')
   if (!res.ok) {
@@ -48,6 +50,7 @@ export async function fetchUsage(): Promise<UsageData> {
   return parseResponseJson<UsageData>(res)
 }
 
+/** Uploads a full usage payload to the local API. */
 export async function uploadData(data: unknown): Promise<{ days: number; totalCost: number }> {
   const res = await fetch('/api/upload', {
     method: 'POST',
@@ -60,11 +63,13 @@ export async function uploadData(data: unknown): Promise<{ days: number; totalCo
   return parseResponseJson<{ days: number; totalCost: number }>(res)
 }
 
+/** Deletes the persisted usage dataset from the local API. */
 export async function deleteUsage(): Promise<void> {
   const res = await fetch('/api/usage', { method: 'DELETE' })
   if (!res.ok) throw new Error(i18n.t('api.deleteFailed'))
 }
 
+/** Imports usage data by merging it into the existing dataset. */
 export async function importUsageData(data: unknown): Promise<UsageImportSummary> {
   const res = await fetch('/api/usage/import', {
     method: 'POST',
@@ -77,6 +82,7 @@ export async function importUsageData(data: unknown): Promise<UsageImportSummary
   return parseResponseJson<UsageImportSummary>(res)
 }
 
+/** Describes a partial settings update sent to the local API. */
 export interface UpdateSettingsRequest {
   language?: AppLanguage
   theme?: AppTheme
@@ -86,6 +92,7 @@ export interface UpdateSettingsRequest {
   sectionOrder?: DashboardSectionOrder
 }
 
+/** Loads persisted app settings from the local API. */
 export async function fetchSettings(): Promise<AppSettings> {
   const res = await fetch('/api/settings')
   if (!res.ok) {
@@ -94,6 +101,7 @@ export async function fetchSettings(): Promise<AppSettings> {
   return normalizeAppSettings(await parseResponseJson<unknown>(res))
 }
 
+/** Loads bootstrap settings for the first app render. */
 export async function loadBootstrapSettings(): Promise<BootstrapSettingsResult> {
   try {
     const fetchedAt = Date.now()
@@ -124,6 +132,7 @@ export async function loadBootstrapSettings(): Promise<BootstrapSettingsResult> 
   }
 }
 
+/** Persists a partial settings update through the local API. */
 export async function updateSettings(patch: UpdateSettingsRequest): Promise<AppSettings> {
   const res = await fetch('/api/settings', {
     method: 'PATCH',
@@ -136,6 +145,7 @@ export async function updateSettings(patch: UpdateSettingsRequest): Promise<AppS
   return normalizeAppSettings(await parseResponseJson<unknown>(res))
 }
 
+/** Resets persisted settings and returns the normalized defaults. */
 export async function deleteSettings(): Promise<AppSettings> {
   const res = await fetch('/api/settings', { method: 'DELETE' })
   if (!res.ok) {
@@ -146,6 +156,7 @@ export async function deleteSettings(): Promise<AppSettings> {
   return normalizeAppSettings(payload.settings)
 }
 
+/** Imports a settings backup through the local API. */
 export async function importSettings(data: unknown): Promise<AppSettings> {
   const res = await fetch('/api/settings/import', {
     method: 'POST',
@@ -158,6 +169,7 @@ export async function importSettings(data: unknown): Promise<AppSettings> {
   return normalizeAppSettings(await parseResponseJson<unknown>(res))
 }
 
+/** Describes the dashboard state required to build a PDF report. */
 export interface PdfReportRequest {
   viewMode: ViewMode
   selectedMonth: string | null
@@ -168,6 +180,7 @@ export interface PdfReportRequest {
   language?: 'de' | 'en'
 }
 
+/** Requests a PDF report for the current dashboard state. */
 export async function generatePdfReport(request: PdfReportRequest): Promise<Blob> {
   const res = await fetch('/api/report/pdf', {
     method: 'POST',

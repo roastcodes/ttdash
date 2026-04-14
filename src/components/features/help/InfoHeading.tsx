@@ -8,6 +8,7 @@ interface InfoHeadingProps {
   className?: string | undefined
 }
 
+/** Renders a heading paired with contextual help text. */
 export function InfoHeading({ children, info, className }: InfoHeadingProps) {
   return (
     <div className={cn('flex items-center gap-2 min-w-0', className)}>

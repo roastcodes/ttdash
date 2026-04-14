@@ -7,6 +7,7 @@ interface PDFReportProps {
   onGenerate: () => void
 }
 
+/** Renders the PDF report generation action. */
 export function PDFReportButton({ generating, onGenerate }: PDFReportProps) {
   const { t } = useTranslation()
 

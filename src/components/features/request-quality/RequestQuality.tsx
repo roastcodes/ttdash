@@ -13,6 +13,7 @@ interface RequestQualityProps {
   viewMode: ViewMode
 }
 
+/** Renders request-efficiency summary cards for the current slice. */
 export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
   const { t } = useTranslation()
   const sectionRef = useRef<HTMLDivElement | null>(null)

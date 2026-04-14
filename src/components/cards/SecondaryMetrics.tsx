@@ -18,6 +18,7 @@ interface SecondaryMetricsProps {
   viewMode?: ViewMode
 }
 
+/** Renders the secondary dashboard KPI cards. */
 export function SecondaryMetrics({
   metrics,
   dailyCosts,

@@ -11,14 +11,17 @@ import {
 } from '../../shared/dashboard-domain.js'
 import { getModelProvider, normalizeModelName } from './model-utils'
 
+/** Computes the core dashboard metrics for a dataset. */
 export function computeMetrics(data: DailyUsage[]): DashboardMetrics {
   return computeSharedMetrics(data)
 }
 
+/** Computes the relative week-over-week cost change. */
 export function computeWeekOverWeekChange(data: DailyUsage[]): number | null {
   return computeSharedWeekOverWeekChange(data)
 }
 
+/** Computes a simple moving average over numeric values. */
 export function computeMovingAverage(
   values: Array<number | undefined>,
   window = 7,
@@ -26,6 +29,7 @@ export function computeMovingAverage(
   return computeSharedMovingAverage(values, window)
 }
 
+/** Aggregates per-model cost and token metrics across the dataset. */
 export function computeModelCosts(data: DailyUsage[]): Map<
   string,
   {
@@ -94,6 +98,7 @@ export function computeModelCosts(data: DailyUsage[]): Map<
   return map
 }
 
+/** Aggregates provider-level metrics across the dataset. */
 export function computeProviderMetrics(data: DailyUsage[]): Map<string, AggregateMetrics> {
   const map = new Map<string, AggregateMetrics & { _dates: Set<string> }>()
 
@@ -165,6 +170,7 @@ function computeCacheHitRate(
   return base > 0 ? (cacheRead / base) * 100 : 0
 }
 
+/** Computes cache hit-rate metrics grouped by model. */
 export function computeCacheHitRateByModel(
   data: DailyUsage[],
 ): CacheHitRateByModelChartDataPoint[] {
@@ -335,6 +341,7 @@ export function computeCacheHitRateByModel(
   return [...rows, ...modelRows]
 }
 
+/** Returns usage rows whose cost is an outlier by standard deviation. */
 export function computeAnomalies(data: DailyUsage[], threshold = 2): DailyUsage[] {
   if (data.length < 3) return []
   const costs = data.map((d) => d.totalCost)
@@ -344,6 +351,7 @@ export function computeAnomalies(data: DailyUsage[], threshold = 2): DailyUsage[
   return data.filter((d) => Math.abs(d.totalCost - mean) > threshold * stdDev)
 }
 
+/** Fits a simple linear regression across ordered numeric values. */
 export function linearRegression(values: number[]): { slope: number; intercept: number } {
   const n = values.length
   if (n < 2) return { slope: 0, intercept: values[0] ?? 0 }
@@ -401,6 +409,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
+/** Forecasts the current month total from elapsed daily costs. */
 export function computeCurrentMonthForecast(data: DailyUsage[]) {
   if (data.length < 2) return null
 

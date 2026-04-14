@@ -37,6 +37,9 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
+      - name: Run docstring lint
+        run: npm run lint:docstrings
+
       - name: Run TypeScript checks
         run: ./node_modules/.bin/tsc --noEmit
 

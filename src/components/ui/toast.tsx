@@ -18,6 +18,7 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null)
 
+/** Provides global toast state and live-region rendering. */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
   const shouldReduceMotion = useShouldReduceMotion()
@@ -77,6 +78,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+/** Returns the shared toast API. */
 export function useToast() {
   const ctx = useContext(ToastContext)
   if (!ctx) throw new Error('useToast must be used within ToastProvider')

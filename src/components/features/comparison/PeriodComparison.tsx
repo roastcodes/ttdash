@@ -36,6 +36,7 @@ function getDelta(
   return { value: Math.abs(pct), color, arrow, hasData: true }
 }
 
+/** Renders KPI deltas between the current and previous period. */
 export function PeriodComparison({ data }: PeriodComparisonProps) {
   const { t } = useTranslation()
   const [preset, setPreset] = useState<Preset>('week')

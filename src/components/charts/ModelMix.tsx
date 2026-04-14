@@ -50,6 +50,7 @@ function MixTooltip({ active, payload, label }: MixTooltipProps) {
   )
 }
 
+/** Renders the stacked model-mix chart for cost share over time. */
 export function ModelMix({ data }: ModelMixProps) {
   const { t } = useTranslation()
   const { chartData, models } = useMemo(() => {

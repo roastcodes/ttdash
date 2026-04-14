@@ -23,6 +23,7 @@ interface CumulativeCostProps {
   rawData: DailyUsage[]
 }
 
+/** Renders cumulative cost with the optional month-end projection. */
 export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')

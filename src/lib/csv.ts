@@ -1,3 +1,4 @@
+/** Escapes a single value for CSV output. */
 export function stringifyCsvCell(value: unknown): string {
   let stringValue = ''
 
@@ -21,6 +22,7 @@ export function stringifyCsvCell(value: unknown): string {
   return `"${stringValue.replace(/"/g, '""')}"`
 }
 
+/** Builds one CSV line from a list of cell values. */
 export function buildCsvLine(values: unknown[]): string {
   return values.map((value) => stringifyCsvCell(value)).join(',')
 }

@@ -21,6 +21,7 @@ interface CostByWeekdayProps {
   data: WeekdayData[]
 }
 
+/** Renders average cost by weekday. */
 export function CostByWeekday({ data }: CostByWeekdayProps) {
   const { t } = useTranslation()
   const [activeIndex, setActiveIndex] = useState<number | null>(null)

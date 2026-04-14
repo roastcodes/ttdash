@@ -33,6 +33,7 @@ const FEATURE_KEYS: Array<keyof FeatureHelp> = [
 
 const TABLE_KEYS: Array<keyof FeatureHelp> = ['providerEfficiency', 'modelEfficiency', 'recentDays']
 
+/** Renders the contextual help dialog for dashboard concepts. */
 export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
   const { t } = useTranslation()
   const shortcuts = getKeyboardShortcuts()

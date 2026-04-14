@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchUsage, uploadData, deleteUsage } from '@/lib/api'
+
+/** Loads usage data from the local API with React Query caching. */
 export function useUsageData() {
   return useQuery({
     queryKey: ['usage'],
@@ -8,6 +10,7 @@ export function useUsageData() {
   })
 }
 
+/** Uploads usage data and refreshes the cached usage query. */
 export function useUploadData() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -18,6 +21,7 @@ export function useUploadData() {
   })
 }
 
+/** Deletes stored usage data and refreshes the cached usage query. */
 export function useDeleteData() {
   const queryClient = useQueryClient()
   return useMutation({

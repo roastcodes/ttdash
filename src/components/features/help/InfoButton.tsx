@@ -8,6 +8,7 @@ interface InfoButtonProps {
   className?: string
 }
 
+/** Renders a compact info trigger with tooltip content. */
 export function InfoButton({ text, className }: InfoButtonProps) {
   const { t } = useTranslation()
   return (

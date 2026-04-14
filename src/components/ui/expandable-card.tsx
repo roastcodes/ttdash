@@ -12,6 +12,7 @@ interface ExpandableCardProps {
   stats?: { label: string; value: string }[]
 }
 
+/** Wraps card content in an expandable dashboard surface. */
 export function ExpandableCard({
   children,
   title,

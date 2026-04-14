@@ -29,6 +29,7 @@ const buttonVariants = cva(
   },
 )
 
+/** Extends button props with shared variants and slot rendering. */
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean

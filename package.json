@@ -21,6 +21,7 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "lint": "eslint .",
+    "lint:docstrings": "eslint src server.js usage-normalizer.js shared --ext .ts,.tsx,.js,.d.ts",
     "lint:fix": "eslint . --fix",
     "preview": "vite preview",
     "start": "node server.js",
@@ -34,10 +35,10 @@
     "test:all": "npm run test:unit && npm run test:e2e",
     "docs:screenshots": "node scripts/capture-readme-screenshots.js",
     "pack:dry-run": "npm pack --dry-run",
-    "verify": "npm run format:check && npm run lint && tsc --noEmit && npm run test:unit && npm run build:app && npm run verify:package",
+    "verify": "npm run format:check && npm run lint && npm run lint:docstrings && tsc --noEmit && npm run test:unit && npm run build:app && npm run verify:package",
     "verify:package": "node scripts/verify-package.js",
     "verify:registry-install": "node scripts/verify-registry-install.js",
-    "verify:release": "npm run format:check && npm run lint && tsc --noEmit && npm run test:unit:coverage && npm run build:app && npm run verify:package",
+    "verify:release": "npm run format:check && npm run lint && npm run lint:docstrings && tsc --noEmit && npm run test:unit:coverage && npm run build:app && npm run verify:package",
     "prepare": "npm run build:app"
   },
   "files": [
@@ -87,6 +88,7 @@
     "cmdk": "^1.1.1",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsdoc": "^62.9.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "framer-motion": "^12.6.5",
     "globals": "^17.5.0",

@@ -90,6 +90,7 @@ function DistributionTooltip({
   )
 }
 
+/** Renders histogram-based distribution analysis for cost and request metrics. */
 export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionAnalysisProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')

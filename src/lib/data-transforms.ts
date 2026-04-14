@@ -18,26 +18,32 @@ import {
 import { normalizeModelName } from './model-utils'
 import { getCurrentLocale } from './i18n'
 
+/** Filters usage rows by an inclusive ISO date range. */
 export function filterByDateRange(data: DailyUsage[], start?: string, end?: string): DailyUsage[] {
   return filterBySharedDateRange(data, start, end)
 }
 
+/** Filters usage rows to entries that contain selected models. */
 export function filterByModels(data: DailyUsage[], selectedModels: string[]): DailyUsage[] {
   return filterBySharedModels(data, selectedModels)
 }
 
+/** Filters usage rows to entries that contain selected providers. */
 export function filterByProviders(data: DailyUsage[], selectedProviders: string[]): DailyUsage[] {
   return filterBySharedProviders(data, selectedProviders)
 }
 
+/** Filters usage rows to a specific calendar month. */
 export function filterByMonth(data: DailyUsage[], month: string | null): DailyUsage[] {
   return filterBySharedMonth(data, month)
 }
 
+/** Sorts usage rows in ascending date order. */
 export function sortByDate(data: DailyUsage[]): DailyUsage[] {
   return sortSharedByDate(data)
 }
 
+/** Returns the distinct months present in the dataset. */
 export function getAvailableMonths(data: DailyUsage[]): string[] {
   const months = new Set<string>()
   for (const d of data) {
@@ -46,6 +52,7 @@ export function getAvailableMonths(data: DailyUsage[]): string[] {
   return Array.from(months).sort()
 }
 
+/** Returns the inclusive min/max date range for a dataset. */
 export function getDateRange(data: DailyUsage[]): { start: string; end: string } | null {
   if (data.length === 0) return null
   let firstEntry: DailyUsage | null = null
@@ -87,6 +94,7 @@ function createWeekdayLabels(locale: string) {
   )
 }
 
+/** Describes the chart transform bundle built from filtered usage data. */
 export interface DashboardChartTransforms {
   costChartData: ChartDataPoint[]
   modelCostChartData: Array<ChartDataPoint & Record<string, number>>
@@ -95,6 +103,7 @@ export interface DashboardChartTransforms {
   weekdayData: WeekdayData[]
 }
 
+/** Builds the memoized chart-ready datasets for the dashboard. */
 export function buildDashboardChartTransforms(
   data: DailyUsage[],
   locale = getCurrentLocale(),
@@ -260,32 +269,39 @@ export function buildDashboardChartTransforms(
   }
 }
 
+/** Returns chart-ready cost-over-time data. */
 export function toCostChartData(data: DailyUsage[]): ChartDataPoint[] {
   return buildDashboardChartTransforms(data).costChartData
 }
 
+/** Returns chart-ready per-model cost data. */
 export function toModelCostChartData(
   data: DailyUsage[],
 ): (ChartDataPoint & Record<string, number>)[] {
   return buildDashboardChartTransforms(data).modelCostChartData
 }
 
+/** Returns chart-ready token composition data. */
 export function toTokenChartData(data: DailyUsage[]): TokenChartDataPoint[] {
   return buildDashboardChartTransforms(data).tokenChartData
 }
 
+/** Returns chart-ready request volume data. */
 export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] {
   return buildDashboardChartTransforms(data).requestChartData
 }
 
+/** Returns chart-ready weekday average cost data. */
 export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {
   return buildDashboardChartTransforms(data).weekdayData
 }
 
+/** Aggregates usage rows to the requested dashboard view mode. */
 export function aggregateToDailyFormat(data: DailyUsage[], mode: ViewMode): DailyUsage[] {
   return aggregateSharedToDailyFormat(data, mode)
 }
 
+/** Aggregates daily usage rows into monthly summaries. */
 export function aggregateByMonth(data: DailyUsage[]): {
   period: string
   totalCost: number

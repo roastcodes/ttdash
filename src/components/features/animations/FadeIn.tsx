@@ -10,6 +10,7 @@ interface FadeInProps {
   direction?: 'up' | 'down' | 'left' | 'right' | 'none'
 }
 
+/** Reveals content when it enters the viewport. */
 export function FadeIn({
   children,
   delay = 0,

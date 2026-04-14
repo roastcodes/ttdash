@@ -15,6 +15,7 @@ interface AnomalyDetectionProps {
   viewMode?: ViewMode
 }
 
+/** Renders anomaly cards for unusually costly periods. */
 export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: AnomalyDetectionProps) {
   const { t } = useTranslation()
   const { anomalies, mean, stdDev } = useMemo(() => {

@@ -11,6 +11,7 @@ interface EmptyStateProps {
   onOpenSettings: () => void
 }
 
+/** Renders the onboarding state shown when no usage data is loaded. */
 export function EmptyState({ onUpload, onAutoImport, onOpenSettings }: EmptyStateProps) {
   const { t } = useTranslation()
 

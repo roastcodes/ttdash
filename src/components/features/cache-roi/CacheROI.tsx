@@ -16,6 +16,7 @@ interface CacheROIProps {
   viewMode?: ViewMode
 }
 
+/** Renders the cache savings versus no-cache cost comparison. */
 export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
   const { t } = useTranslation()
   const { actualCost, hypotheticalCost, savings, savingsPercent, dailyAvg, heuristicModels } =

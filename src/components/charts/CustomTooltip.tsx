@@ -18,6 +18,7 @@ interface CustomTooltipProps {
   hideZeroValues?: boolean
 }
 
+/** Renders the shared chart tooltip surface. */
 export function CustomTooltip({
   active,
   payload,

@@ -22,6 +22,7 @@ interface TodayMetricsProps {
   metrics: DashboardMetrics
 }
 
+/** Renders KPI cards for the latest day in the dataset. */
 export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
   const { t } = useTranslation()
   const modelsCount = today.modelsUsed?.length ?? 0

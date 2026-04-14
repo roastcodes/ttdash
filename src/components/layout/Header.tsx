@@ -104,6 +104,7 @@ function StartupAutoLoadBadge({ badge }: { badge: StartupAutoLoad }) {
   )
 }
 
+/** Renders the global dashboard header and primary actions. */
 export function Header({
   dateRange,
   isDark,

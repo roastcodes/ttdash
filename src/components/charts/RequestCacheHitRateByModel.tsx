@@ -45,6 +45,7 @@ function computePointRate(
   return base > 0 ? (cacheRead / base) * 100 : 0
 }
 
+/** Renders cache hit-rate comparisons grouped by model. */
 export function RequestCacheHitRateByModel({
   timelineData,
   summaryData,

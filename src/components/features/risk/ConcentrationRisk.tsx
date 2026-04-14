@@ -18,6 +18,7 @@ function describeRisk(value: number) {
   return { label: 'low', tone: 'text-green-400 bg-green-400/10 border-green-400/20' }
 }
 
+/** Renders concentration metrics for models and providers. */
 export function ConcentrationRisk({
   topModelShare,
   topProviderShare,

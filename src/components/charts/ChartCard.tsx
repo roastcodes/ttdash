@@ -34,6 +34,7 @@ interface ChartCardProps {
   expandedExtra?: ReactNode
 }
 
+/** Serializes chart rows to a downloadable CSV string. */
 export function buildChartCsv(chartData: Record<string, unknown>[]): string {
   if (chartData.length === 0) return ''
 
@@ -49,10 +50,12 @@ export function buildChartCsv(chartData: Record<string, unknown>[]): string {
 
 const ChartAnimationContext = createContext(false)
 
+/** Returns whether chart-specific animation should currently run. */
 export function useChartAnimationActive() {
   return useContext(ChartAnimationContext)
 }
 
+/** Exposes the current chart animation state to a render prop. */
 export function ChartAnimationAware({ children }: { children: (active: boolean) => ReactNode }) {
   const shouldReduceMotion = useShouldReduceMotion()
   const animationActive = useChartAnimationActive()
@@ -64,6 +67,7 @@ interface ChartRevealProps {
   variant?: 'line' | 'bar' | 'radial'
 }
 
+/** Wraps chart content in the shared reveal policy for its chart variant. */
 export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
   return (
     <div
@@ -82,6 +86,7 @@ export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
   )
 }
 
+/** Renders a chart card with export, expand, and stats affordances. */
 export function ChartCard({
   title,
   subtitle,

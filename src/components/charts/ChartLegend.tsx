@@ -5,6 +5,7 @@ interface ChartLegendEntry {
   value?: string | number
 }
 
+/** Renders a compact responsive legend for Recharts payload items. */
 export function ChartLegend({ payload }: { payload?: ChartLegendEntry[] }) {
   if (!payload?.length) return null
 

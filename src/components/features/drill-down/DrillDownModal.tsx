@@ -111,6 +111,7 @@ function getBenchmarkWindowLabel(count: number, unitLabel: string) {
   return `${count}${unitLabel}`
 }
 
+/** Renders the per-period drilldown dialog with navigation and benchmarks. */
 export function DrillDownModal({
   day,
   contextData = [],

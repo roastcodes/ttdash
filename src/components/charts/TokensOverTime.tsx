@@ -23,6 +23,7 @@ interface TokensOverTimeProps {
   onClickDay?: (date: string) => void
 }
 
+/** Renders token volume over time with drilldown support. */
 export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
   const { t } = useTranslation()
   const uid = useId()

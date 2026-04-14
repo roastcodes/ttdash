@@ -93,6 +93,7 @@ function getDeferredRowStyle(showAll: boolean, intrinsicSize: string): CSSProper
   }
 }
 
+/** Renders the sortable recent-period table with drilldown access. */
 export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysProps) {
   const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)

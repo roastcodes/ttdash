@@ -24,6 +24,7 @@ interface CostOverTimeProps {
   onClickDay?: (date: string) => void
 }
 
+/** Renders the cost-over-time chart with drilldown support. */
 export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')

@@ -237,9 +237,13 @@ function current() {
 
 type AppHelpContent = typeof HELP_CONTENT.en
 type HelpMap<T extends Record<string, string>> = { [K in keyof T]: string }
+/** Maps metric help keys to localized help text. */
 export type MetricHelp = HelpMap<AppHelpContent['metric']>
+/** Maps chart help keys to localized help text. */
 export type ChartHelp = HelpMap<AppHelpContent['chart']>
+/** Maps section help keys to localized help text. */
 export type SectionHelp = HelpMap<AppHelpContent['section']>
+/** Maps feature help keys to localized help text. */
 export type FeatureHelp = HelpMap<AppHelpContent['feature']>
 
 function dynamicMap<const T extends Record<string, string>>(selector: () => T): T {
@@ -267,11 +271,16 @@ function dynamicMap<const T extends Record<string, string>>(selector: () => T): 
   })
 }
 
+/** Returns localized keyboard shortcuts for the help panel. */
 export function getKeyboardShortcuts() {
   return current().keyboardShortcuts
 }
 
+/** Exposes localized help text for metric surfaces. */
 export const METRIC_HELP: MetricHelp = dynamicMap(() => current().metric)
+/** Exposes localized help text for charts. */
 export const CHART_HELP: ChartHelp = dynamicMap(() => current().chart)
+/** Exposes localized help text for dashboard sections. */
 export const SECTION_HELP: SectionHelp = dynamicMap(() => current().section)
+/** Exposes localized help text for feature-level UI. */
 export const FEATURE_HELP: FeatureHelp = dynamicMap(() => current().feature)

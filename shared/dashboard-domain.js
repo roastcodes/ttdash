@@ -132,6 +132,12 @@ function parseOSeries(name) {
   return `${name.slice(0, separatorIndex)} ${capitalize(name.slice(separatorIndex + 1))}`
 }
 
+/**
+ * Normalizes raw model names to their dashboard label.
+ *
+ * @param raw - The raw model identifier.
+ * @returns The normalized display name.
+ */
 function normalizeModelName(raw) {
   const canonical = canonicalizeModelName(raw)
 
@@ -178,6 +184,12 @@ function normalizeModelName(raw) {
   return canonical.split('-').filter(Boolean).map(titleCaseSegment).join(' ') || String(raw || '')
 }
 
+/**
+ * Resolves the provider name for a model identifier.
+ *
+ * @param raw - The raw model identifier.
+ * @returns The normalized provider name.
+ */
 function getModelProvider(raw) {
   const canonical = canonicalizeModelName(raw)
   for (const matcher of PROVIDER_MATCHERS) {
@@ -223,6 +235,14 @@ function recalculateDayFromBreakdowns(day, filteredBreakdowns) {
   }
 }
 
+/**
+ * Filters usage rows by an inclusive ISO date range.
+ *
+ * @param data - The source usage rows.
+ * @param start - The optional start date.
+ * @param end - The optional end date.
+ * @returns The filtered usage rows.
+ */
 function filterByDateRange(data, start, end) {
   return data.filter((entry) => {
     if (start && entry.date < start) return false
@@ -231,6 +251,13 @@ function filterByDateRange(data, start, end) {
   })
 }
 
+/**
+ * Filters usage rows to entries that contain selected models.
+ *
+ * @param data - The source usage rows.
+ * @param selectedModels - The normalized model names to keep.
+ * @returns The filtered usage rows.
+ */
 function filterByModels(data, selectedModels) {
   if (!selectedModels || selectedModels.length === 0) return data
   const selected = new Set(selectedModels)
@@ -247,6 +274,13 @@ function filterByModels(data, selectedModels) {
     .filter(Boolean)
 }
 
+/**
+ * Filters usage rows to entries that contain selected providers.
+ *
+ * @param data - The source usage rows.
+ * @param selectedProviders - The provider names to keep.
+ * @returns The filtered usage rows.
+ */
 function filterByProviders(data, selectedProviders) {
   if (!selectedProviders || selectedProviders.length === 0) return data
   const selected = new Set(selectedProviders)
@@ -263,15 +297,35 @@ function filterByProviders(data, selectedProviders) {
     .filter(Boolean)
 }
 
+/**
+ * Filters usage rows to a specific calendar month.
+ *
+ * @param data - The source usage rows.
+ * @param month - The month in YYYY-MM format.
+ * @returns The filtered usage rows.
+ */
 function filterByMonth(data, month) {
   if (!month) return data
   return data.filter((entry) => entry.date.startsWith(month))
 }
 
+/**
+ * Sorts usage rows in ascending date order.
+ *
+ * @param data - The source usage rows.
+ * @returns A date-sorted copy of the input.
+ */
 function sortByDate(data) {
   return [...data].sort((left, right) => left.date.localeCompare(right.date))
 }
 
+/**
+ * Aggregates usage rows to the requested dashboard view mode.
+ *
+ * @param data - The source daily usage rows.
+ * @param viewMode - The target aggregation mode.
+ * @returns The aggregated usage rows.
+ */
 function aggregateToDailyFormat(data, viewMode) {
   if (viewMode === 'daily') return data
 
@@ -309,6 +363,13 @@ function aggregateToDailyFormat(data, viewMode) {
   return Array.from(groups.values()).sort((left, right) => left.date.localeCompare(right.date))
 }
 
+/**
+ * Computes a simple moving average over numeric values.
+ *
+ * @param values - The source numeric values.
+ * @param window - The moving average window size.
+ * @returns The moving-average series.
+ */
 function computeMovingAverage(values, window = 7) {
   const result = Array(values.length)
   let sum = 0
@@ -343,6 +404,12 @@ function stdDev(values) {
   return Math.sqrt(variance)
 }
 
+/**
+ * Returns the busiest rolling seven-day window by cost.
+ *
+ * @param data - The source usage rows.
+ * @returns The top seven-day window or null when unavailable.
+ */
 function computeBusiestWeek(data) {
   const sorted = data
     .filter((entry) => /^\d{4}-\d{2}-\d{2}$/.test(entry.date))
@@ -383,6 +450,12 @@ function computeBusiestWeek(data) {
   return bestWindow
 }
 
+/**
+ * Computes the relative week-over-week cost change.
+ *
+ * @param data - The source usage rows.
+ * @returns The relative week-over-week delta.
+ */
 function computeWeekOverWeekChange(data) {
   if (data.some((entry) => !/^\d{4}-\d{2}-\d{2}$/.test(entry.date))) return null
   if (data.length < 14) return null
@@ -395,6 +468,12 @@ function computeWeekOverWeekChange(data) {
   return ((lastSum - prevSum) / prevSum) * 100
 }
 
+/**
+ * Computes the core dashboard metrics for a dataset.
+ *
+ * @param data - The source usage rows.
+ * @returns The derived dashboard metrics.
+ */
 function computeMetrics(data) {
   if (data.length === 0) {
     return {

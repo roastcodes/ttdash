@@ -181,6 +181,7 @@ function getCommandSearchScore(cmd: CommandItem, query: string) {
   return score
 }
 
+/** Renders the keyboard-first command palette for dashboard actions. */
 export function CommandPalette({
   isDark,
   availableProviders,

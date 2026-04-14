@@ -34,6 +34,7 @@ const lineColors: Record<LineType, string> = {
   error: 'text-destructive',
 }
 
+/** Renders the guided auto-import modal and progress UI. */
 export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportModalProps) {
   const { t } = useTranslation()
   const [status, setStatus] = useState<Status>('idle')

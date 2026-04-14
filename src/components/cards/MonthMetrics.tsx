@@ -25,6 +25,7 @@ interface MonthMetricsProps {
   metrics: DashboardMetrics
 }
 
+/** Renders KPI cards for the current month slice. */
 export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
   const { t } = useTranslation()
   const locale = getCurrentLocale()

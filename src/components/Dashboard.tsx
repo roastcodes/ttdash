@@ -41,6 +41,7 @@ interface DashboardProps {
   initialSettingsFetchedAt?: number | null
 }
 
+/** Renders the full dashboard experience around the shared controller state. */
 export function Dashboard({
   initialSettings,
   initialSettingsError = null,

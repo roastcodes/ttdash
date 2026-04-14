@@ -13,6 +13,7 @@ interface MetricCardProps {
   className?: string
 }
 
+/** Renders one compact KPI card with optional trend and tooltip support. */
 export function MetricCard({
   label,
   value,

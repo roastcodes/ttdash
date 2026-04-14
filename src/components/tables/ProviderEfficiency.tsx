@@ -39,6 +39,7 @@ type SortKey =
   | 'costPerMillion'
   | 'cacheShare'
 
+/** Renders the sortable provider efficiency table. */
 export function ProviderEfficiency({
   providerMetrics,
   totalCost,

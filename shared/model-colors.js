@@ -113,6 +113,12 @@ const MODEL_COLOR_RULES = [
 
 const FALLBACK_HUES = [148, 168, 190, 208, 226, 248, 272, 332, 18, 30, 44]
 
+/**
+ * Normalizes an unknown theme value to a supported color theme.
+ *
+ * @param theme - The requested theme value.
+ * @returns The normalized shared color theme.
+ */
 function normalizeTheme(theme) {
   return theme === 'light' ? 'light' : 'dark'
 }
@@ -164,6 +170,13 @@ function fallbackColor(name, theme) {
   }
 }
 
+/**
+ * Returns the shared color spec for a normalized model name.
+ *
+ * @param name - The model name to resolve.
+ * @param options - The theme and alpha options for color resolution.
+ * @returns The resolved HSL color spec.
+ */
 function getModelColorSpec(name, options = {}) {
   const theme = normalizeTheme(options.theme)
   const known = findKnownColor(name)
@@ -218,12 +231,26 @@ function hslToRgb(spec) {
   }
 }
 
+/**
+ * Returns the shared model color as an HSL string.
+ *
+ * @param name - The model name to resolve.
+ * @param options - The theme and alpha options for color resolution.
+ * @returns The resolved CSS color string.
+ */
 function getModelColor(name, options = {}) {
   const spec = getModelColorSpec(name, options)
   const alpha = normalizeAlpha(options.alpha)
   return alpha === null ? toHslString(spec) : toHslaString(spec, alpha)
 }
 
+/**
+ * Returns the shared model color as an RGB string.
+ *
+ * @param name - The model name to resolve.
+ * @param options - The theme and alpha options for color resolution.
+ * @returns The resolved CSS RGB color string.
+ */
 function getModelColorRgb(name, options = {}) {
   const spec = getModelColorSpec(name, options)
   const { r, g, b } = hslToRgb(spec)

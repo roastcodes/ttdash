@@ -1,3 +1,4 @@
+/** Defines shared chart colors derived from the active theme tokens. */
 export const CHART_COLORS = {
   cost: 'hsl(var(--chart-1))',
   ma7: 'hsl(var(--chart-2))',
@@ -12,8 +13,10 @@ export const CHART_COLORS = {
   tooltipBorder: 'hsl(var(--border))',
 }
 
+/** Defines the default chart margins used across the dashboard. */
 export const CHART_MARGIN = { top: 5, right: 10, left: 10, bottom: 5 }
 
+/** Defines the shared chart animation timings. */
 export const CHART_ANIMATION = {
   duration: 800,
   easing: 'ease-out' as const,
@@ -21,7 +24,7 @@ export const CHART_ANIMATION = {
   slowDuration: 1200,
 }
 
-/** Generate a CSS-safe gradient ID from a name */
+/** Generates a CSS-safe gradient id from an arbitrary name. */
 export function gradientId(name: string): string {
   return `grad-${name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`
 }

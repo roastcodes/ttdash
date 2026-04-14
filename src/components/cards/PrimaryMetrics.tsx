@@ -22,6 +22,7 @@ interface PrimaryMetricsProps {
   viewMode?: ViewMode
 }
 
+/** Renders the primary dashboard KPI cards. */
 export function PrimaryMetrics({
   metrics,
   totalCalendarDays,

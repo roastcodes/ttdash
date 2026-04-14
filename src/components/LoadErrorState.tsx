@@ -17,6 +17,7 @@ interface LoadErrorStateProps {
   actions: LoadErrorAction[]
 }
 
+/** Renders the fatal load-error state with recovery actions. */
 export function LoadErrorState({
   title,
   description,

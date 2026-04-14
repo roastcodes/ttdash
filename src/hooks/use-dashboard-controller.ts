@@ -39,6 +39,7 @@ const BACKUP_FORMAT_VERSION = 1
 const CORRUPT_SETTINGS_MESSAGE = 'Settings file is unreadable or corrupted.'
 const CORRUPT_USAGE_MESSAGE = 'Usage data file is unreadable or corrupted.'
 
+/** Captures one JSON download emitted by the dashboard controller. */
 export type JsonDownloadRecord = {
   filename: string
   mimeType: string
@@ -46,6 +47,7 @@ export type JsonDownloadRecord = {
   text: string
 }
 
+/** Exposes optional browser hooks used by frontend tests. */
 export type DashboardTestHooks = {
   onJsonDownload?: (record: JsonDownloadRecord) => void
   openSettings?: () => void
@@ -83,6 +85,7 @@ function downloadJsonFile(filename: string, data: unknown) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
+/** Creates the dashboard controller with default bootstrap settings. */
 export function useDashboardController(initialSettingsError: string | null = null) {
   return useDashboardControllerWithBootstrap(
     DEFAULT_APP_SETTINGS,
@@ -92,6 +95,7 @@ export function useDashboardController(initialSettingsError: string | null = nul
   )
 }
 
+/** Creates the full dashboard controller from bootstrap settings and live data. */
 export function useDashboardControllerWithBootstrap(
   initialSettings: AppSettings,
   initialSettingsLoadedFromServer = false,

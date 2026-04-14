@@ -28,6 +28,7 @@ interface CostForecastProps {
   viewMode?: ViewMode
 }
 
+/** Renders the current-month cost forecast card. */
 export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
   const { t } = useTranslation()
   const {

@@ -23,6 +23,7 @@ interface TokenEfficiencyProps {
   data: DailyUsage[]
 }
 
+/** Renders cost-per-million-token efficiency over time. */
 export function TokenEfficiency({ data }: TokenEfficiencyProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')

@@ -169,6 +169,7 @@ interface DashboardSectionsProps {
   onDrillDownDateChange: (date: string | null) => void
 }
 
+/** Renders the ordered dashboard sections for the active filters and settings. */
 export function DashboardSections({
   sectionOrder,
   sectionVisibility,

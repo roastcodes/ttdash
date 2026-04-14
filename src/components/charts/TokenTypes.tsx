@@ -41,6 +41,7 @@ function CenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number };
   )
 }
 
+/** Renders the token composition donut chart. */
 export function TokenTypes({ data }: TokenTypesProps) {
   const { t } = useTranslation()
   const total = data.reduce((sum, d) => sum + d.value, 0)

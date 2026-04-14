@@ -50,6 +50,7 @@ function getColor(value: number, maxValue: number, hue: number, isDarkTheme: boo
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`
 }
 
+/** Renders a calendar heatmap for daily cost, request, or token activity. */
 export function HeatmapCalendar({
   data,
   viewMode = 'daily',

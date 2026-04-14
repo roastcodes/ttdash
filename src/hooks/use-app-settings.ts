@@ -21,6 +21,7 @@ function mergeSettings(previous: AppSettings, patch: UpdateSettingsRequest): App
   })
 }
 
+/** Loads, normalizes, and updates persisted app settings. */
 export function useAppSettings(
   availableProviders: string[],
   initialSettings: AppSettings = DEFAULT_APP_SETTINGS,
