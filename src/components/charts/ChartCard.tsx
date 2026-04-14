@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, useInView } from 'framer-motion'
+import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Maximize2 } from 'lucide-react'
@@ -53,7 +53,9 @@ export function useChartAnimationActive() {
 }
 
 export function ChartAnimationAware({ children }: { children: (active: boolean) => ReactNode }) {
-  return <>{children(useChartAnimationActive())}</>
+  const shouldReduceMotion = useReducedMotion()
+  const animationActive = useChartAnimationActive()
+  return <>{children(shouldReduceMotion ? false : animationActive)}</>
 }
 
 interface ChartRevealProps {
@@ -70,6 +72,7 @@ export function ChartReveal({
   duration = 0.7,
 }: ChartRevealProps) {
   const active = useChartAnimationActive()
+  const shouldReduceMotion = useReducedMotion()
   const resolvedDuration = variant === 'radial' ? Math.max(duration, 0.95) : Math.max(duration, 0.9)
 
   const hidden =
@@ -85,6 +88,24 @@ export function ChartReveal({
       : variant === 'radial'
         ? { opacity: 1, scale: 1, rotate: 0 }
         : { opacity: 1, clipPath: 'inset(0 0 0 0 round 16px)', x: 0 }
+
+  if (shouldReduceMotion) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          overflow: variant === 'radial' ? 'visible' : 'hidden',
+          transformOrigin: variant === 'bar' ? 'center bottom' : 'center center',
+          paddingTop: variant === 'radial' ? 8 : 0,
+          paddingBottom: variant === 'radial' ? 8 : 0,
+          boxSizing: 'border-box',
+        }}
+      >
+        {children}
+      </div>
+    )
+  }
 
   return (
     <motion.div
@@ -183,7 +204,7 @@ export function ChartCard({
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              className="absolute top-3 right-3 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity duration-200 p-1.5 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-accent text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="absolute top-3 right-3 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity duration-200 motion-reduce:transition-none p-1.5 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-accent text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               title={t('common.expand')}
               aria-label={t('common.expandWithTitle', { title })}
             >

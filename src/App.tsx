@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'framer-motion'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ToastProvider } from '@/components/ui/toast'
 import { Dashboard } from '@/components/Dashboard'
@@ -26,11 +27,13 @@ export function App({ initialSettings, initialSettingsError = null }: AppProps) 
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <TooltipProvider delayDuration={100}>
-          <Dashboard initialSettingsError={initialSettingsError} />
-        </TooltipProvider>
-      </ToastProvider>
+      <MotionConfig reducedMotion="user">
+        <ToastProvider>
+          <TooltipProvider delayDuration={100}>
+            <Dashboard initialSettingsError={initialSettingsError} />
+          </TooltipProvider>
+        </ToastProvider>
+      </MotionConfig>
     </QueryClientProvider>
   )
 }

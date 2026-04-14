@@ -18,7 +18,9 @@ describe('ExpandableCard', () => {
     )
 
     const button = screen.getByRole('button', { name: 'Forecast vergrössern' })
-    expect(button.className).toContain('group-focus-within:opacity-100')
+    expect(button.className).toContain('opacity-100')
+    expect(button.className).toContain('md:group-focus-within:opacity-100')
+    expect(button.className).toContain('motion-reduce:transition-none')
 
     fireEvent.click(button)
 

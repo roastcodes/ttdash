@@ -345,7 +345,8 @@
     "costByModel": {
       "title": "Cost by model",
       "subtitle": "Cost distribution by model",
-      "total": "Total"
+      "total": "Total",
+      "otherModels": "Other models"
     },
     "costByModelOverTime": {
       "title": "Cost by model over time",

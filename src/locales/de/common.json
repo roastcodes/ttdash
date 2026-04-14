@@ -318,7 +318,7 @@
     },
     "peakWindow": {
       "title": "Peak-Fenster",
-      "summary": "Stärkste 7-Tage-Phase von {{start}} bis {{end}}.",
+      "summary": "Stärkste 7-Tage-Phase von {{start}} bis {{end}}",
       "fallback": "Kein 7-Tage-Fenster verfügbar, daher Fokus auf den teuersten Einzelwert.",
       "peakDay": "Peak Tag",
       "avgPerUnit": "Ø/{{unit}}",
@@ -345,7 +345,8 @@
     "costByModel": {
       "title": "Kosten nach Modell",
       "subtitle": "Kostenverteilung nach Modell",
-      "total": "Gesamt"
+      "total": "Gesamt",
+      "otherModels": "Weitere Modelle"
     },
     "costByModelOverTime": {
       "title": "Kosten nach Modell im Zeitverlauf",

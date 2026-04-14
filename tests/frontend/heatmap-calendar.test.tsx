@@ -49,7 +49,7 @@ describe('HeatmapCalendar', () => {
       </TooltipProvider>,
     )
 
-    const cell = screen.getByRole('img', { name: `${dateLabel}: ${formatCurrency(5)}` })
+    const cell = screen.getByRole('button', { name: `${dateLabel}: ${formatCurrency(5)}` })
 
     expect(cell).toHaveAttribute('tabindex', '0')
     fireEvent.focus(cell)
@@ -78,7 +78,7 @@ describe('HeatmapCalendar', () => {
     )
 
     expect(screen.getByText('We')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: /April 7, 2026/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /April 7, 2026/ })).toBeInTheDocument()
 
     await i18n.changeLanguage('de')
     rerender(
@@ -90,6 +90,79 @@ describe('HeatmapCalendar', () => {
     await waitFor(() => {
       expect(screen.getByText('Mi')).toBeInTheDocument()
     })
-    expect(screen.getByRole('img', { name: /7\. April 2026/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /7\. April 2026/ })).toBeInTheDocument()
+  })
+
+  it('keeps only one heatmap cell in the tab order and supports arrow-key navigation', async () => {
+    const days: DailyUsage[] = [
+      {
+        date: '2026-04-06',
+        inputTokens: 10,
+        outputTokens: 5,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        totalTokens: 15,
+        totalCost: 3,
+        requestCount: 2,
+        modelsUsed: ['gpt-5.4'],
+        modelBreakdowns: [],
+      },
+      {
+        date: '2026-04-07',
+        inputTokens: 12,
+        outputTokens: 6,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        totalTokens: 18,
+        totalCost: 4,
+        requestCount: 3,
+        modelsUsed: ['gpt-5.4'],
+        modelBreakdowns: [],
+      },
+    ]
+
+    render(
+      <TooltipProvider delayDuration={0}>
+        <HeatmapCalendar data={days} metric="cost" />
+      </TooltipProvider>,
+    )
+
+    const tabbableCells = document.querySelectorAll('[role="button"][tabindex="0"]')
+    expect(tabbableCells).toHaveLength(1)
+
+    const firstDay = screen.getByRole('button', { name: /April 6, 2026/ })
+    fireEvent.focus(firstDay)
+    fireEvent.keyDown(firstDay, { key: 'ArrowRight' })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /April 7, 2026/ })).toHaveFocus()
+    })
+  })
+
+  it('uses muted styling for zero-value cells so empty days do not dominate the heatmap', () => {
+    const day: DailyUsage = {
+      date: '2026-04-07',
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      thinkingTokens: 0,
+      totalTokens: 0,
+      totalCost: 0,
+      requestCount: 0,
+      modelsUsed: [],
+      modelBreakdowns: [],
+    }
+
+    render(
+      <TooltipProvider delayDuration={0}>
+        <HeatmapCalendar data={[day]} metric="cost" />
+      </TooltipProvider>,
+    )
+
+    const cell = screen.getByRole('button', { name: /April 7, 2026/ })
+    expect(cell).toHaveAttribute('fill', 'hsl(var(--muted))')
   })
 })

@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import {
@@ -120,10 +128,14 @@ interface DatePickerFieldProps {
 
 function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   const { t } = useTranslation()
+  const dialogId = useId()
+  const dialogLabelId = useId()
+  const dialogDescriptionId = useId()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const overlayRef = useRef<HTMLDivElement | null>(null)
+  const dayButtonRefs = useRef(new Map<string, HTMLButtonElement>())
   const [overlayStyle, setOverlayStyle] = useState<{ top: number; left: number; width: number }>({
     top: 0,
     left: 0,
@@ -151,7 +163,80 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   )
 
   const calendarDays = useMemo(() => buildCalendarDays(displayMonth), [displayMonth])
+  const selectableDates = useMemo(
+    () => calendarDays.filter((day): day is Date => day !== null).map((day) => toLocalDateStr(day)),
+    [calendarDays],
+  )
   const today = localToday()
+  const [focusedDate, setFocusedDate] = useState<string | null>(value ?? today)
+  const scheduleFocus = useCallback((callback: () => void) => {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(callback)
+      return
+    }
+    setTimeout(callback, 0)
+  }, [])
+
+  const clampToMonth = useCallback((date: Date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const day = date.getDate()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    return new Date(year, month, Math.min(day, daysInMonth))
+  }, [])
+
+  const closePicker = useCallback(
+    (restoreFocus = true) => {
+      setOpen(false)
+      if (restoreFocus) {
+        scheduleFocus(() => {
+          triggerRef.current?.focus()
+        })
+      }
+    },
+    [scheduleFocus],
+  )
+
+  const resolveFocusableDate = useCallback(
+    (preferred?: string | null) => {
+      if (preferred && selectableDates.includes(preferred)) return preferred
+      if (value && selectableDates.includes(value)) return value
+      if (selectableDates.includes(today)) return today
+      return selectableDates[0] ?? null
+    },
+    [selectableDates, today, value],
+  )
+
+  const focusDate = useCallback(
+    (nextDate: string | null) => {
+      if (!nextDate) return
+      setFocusedDate(nextDate)
+      scheduleFocus(() => {
+        dayButtonRefs.current.get(nextDate)?.focus()
+      })
+    },
+    [scheduleFocus],
+  )
+
+  const shiftDisplayMonth = useCallback(
+    (offset: number) => {
+      const baseDate = parseLocalDate(focusedDate ?? value ?? today) ?? new Date()
+      const targetDate = clampToMonth(
+        new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, baseDate.getDate()),
+      )
+      setDisplayMonth(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1))
+      setFocusedDate(toLocalDateStr(targetDate))
+    },
+    [clampToMonth, focusedDate, today, value],
+  )
+
+  const selectDate = useCallback(
+    (nextDate: string) => {
+      onChange(nextDate)
+      closePicker()
+    },
+    [closePicker, onChange],
+  )
 
   useEffect(() => {
     if (selectedDate) {
@@ -161,6 +246,8 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
 
   useEffect(() => {
     if (!open) return
+
+    setFocusedDate((prev) => resolveFocusableDate(prev))
 
     const updateOverlayPosition = () => {
       const rect = triggerRef.current?.getBoundingClientRect()
@@ -183,12 +270,12 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node
       if (!containerRef.current?.contains(target) && !overlayRef.current?.contains(target)) {
-        setOpen(false)
+        closePicker(false)
       }
     }
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') closePicker()
     }
 
     window.addEventListener('resize', updateOverlayPosition)
@@ -201,14 +288,98 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [open])
+  }, [closePicker, open, resolveFocusableDate])
+
+  useEffect(() => {
+    if (!open) return
+    const nextFocusedDate = resolveFocusableDate(focusedDate)
+    if (nextFocusedDate !== focusedDate) {
+      setFocusedDate(nextFocusedDate)
+      return
+    }
+    if (nextFocusedDate) {
+      scheduleFocus(() => {
+        dayButtonRefs.current.get(nextFocusedDate)?.focus()
+      })
+    }
+  }, [focusedDate, open, resolveFocusableDate, scheduleFocus])
+
+  const handleDayKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>, currentDate: string) => {
+      const currentIndex = selectableDates.indexOf(currentDate)
+      if (currentIndex < 0) return
+
+      const currentCell = calendarDays.find((day) => day && toLocalDateStr(day) === currentDate)
+      const moveToIndex = (nextIndex: number) => {
+        const nextDate =
+          selectableDates[Math.max(0, Math.min(nextIndex, selectableDates.length - 1))]
+        focusDate(nextDate ?? null)
+      }
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault()
+          moveToIndex(currentIndex - 1)
+          break
+        case 'ArrowRight':
+          event.preventDefault()
+          moveToIndex(currentIndex + 1)
+          break
+        case 'ArrowUp':
+          event.preventDefault()
+          moveToIndex(currentIndex - 7)
+          break
+        case 'ArrowDown':
+          event.preventDefault()
+          moveToIndex(currentIndex + 7)
+          break
+        case 'Home':
+          if (!currentCell) return
+          event.preventDefault()
+          moveToIndex(currentIndex - ((currentCell.getDay() + 6) % 7))
+          break
+        case 'End':
+          if (!currentCell) return
+          event.preventDefault()
+          moveToIndex(currentIndex + (6 - ((currentCell.getDay() + 6) % 7)))
+          break
+        case 'PageUp':
+          event.preventDefault()
+          shiftDisplayMonth(-1)
+          break
+        case 'PageDown':
+          event.preventDefault()
+          shiftDisplayMonth(1)
+          break
+        case 'Enter':
+        case ' ':
+          event.preventDefault()
+          selectDate(currentDate)
+          break
+        default:
+          break
+      }
+    },
+    [calendarDays, focusDate, selectDate, selectableDates, shiftDisplayMonth],
+  )
 
   return (
     <div ref={containerRef} className="relative">
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={open ? dialogId : undefined}
+        onClick={() => {
+          setOpen((prev) => {
+            const nextOpen = !prev
+            if (nextOpen) {
+              setFocusedDate(resolveFocusableDate(value))
+            }
+            return nextOpen
+          })
+        }}
         className="flex h-10 w-full items-center justify-between gap-3 rounded-md border border-border bg-background px-3 pr-14 text-left text-sm transition-colors hover:bg-accent/40"
       >
         <span className={cn('truncate', value ? 'text-foreground' : 'text-muted-foreground')}>
@@ -231,27 +402,33 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
         typeof document !== 'undefined' &&
         createPortal(
           <div
+            id={dialogId}
             ref={overlayRef}
+            role="dialog"
+            aria-modal="false"
+            aria-labelledby={dialogLabelId}
+            aria-describedby={dialogDescriptionId}
             className="fixed z-[999] rounded-xl border border-border/80 bg-card/98 p-3 shadow-2xl backdrop-blur-xl"
             style={{ top: overlayStyle.top, left: overlayStyle.left, width: overlayStyle.width }}
           >
+            <div id={dialogLabelId} className="sr-only">
+              {label}
+            </div>
             <div className="mb-3 flex items-center justify-between gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  setDisplayMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
-                }
+                onClick={() => shiftDisplayMonth(-1)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 aria-label={t('common.previousMonth')}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <div className="text-sm font-medium capitalize">{monthLabel}</div>
+              <div id={dialogDescriptionId} className="text-sm font-medium capitalize">
+                {monthLabel}
+              </div>
               <button
                 type="button"
-                onClick={() =>
-                  setDisplayMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
-                }
+                onClick={() => shiftDisplayMonth(1)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 aria-label={t('common.nextMonth')}
               >
@@ -283,11 +460,16 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
                 return (
                   <button
                     key={iso}
-                    type="button"
-                    onClick={() => {
-                      onChange(iso)
-                      setOpen(false)
+                    ref={(node) => {
+                      if (node) dayButtonRefs.current.set(iso, node)
+                      else dayButtonRefs.current.delete(iso)
                     }}
+                    type="button"
+                    tabIndex={focusedDate === iso ? 0 : -1}
+                    aria-pressed={isSelected}
+                    onFocus={() => setFocusedDate(iso)}
+                    onKeyDown={(event) => handleDayKeyDown(event, iso)}
+                    onClick={() => selectDate(iso)}
                     className={cn(
                       'h-9 rounded-md text-sm font-medium transition-colors',
                       isSelected
@@ -306,7 +488,10 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
             <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-3">
               <button
                 type="button"
-                onClick={() => onChange(undefined)}
+                onClick={() => {
+                  onChange(undefined)
+                  closePicker()
+                }}
                 className="rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 {t('common.reset')}
@@ -316,8 +501,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
                 onClick={() => {
                   const current = today
                   setDisplayMonth(parseLocalDate(current) ?? new Date())
-                  onChange(current)
-                  setOpen(false)
+                  selectDate(current)
                 }}
                 className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
@@ -436,6 +620,8 @@ export function FilterBar({
             ].map((p) => (
               <button
                 key={p.key}
+                type="button"
+                aria-pressed={activePreset === p.key}
                 onClick={() => onApplyPreset(p.key)}
                 className={cn(
                   'rounded-full px-3 py-1.5 text-xs font-medium border transition-all duration-200 min-w-[48px]',
@@ -465,6 +651,7 @@ export function FilterBar({
             {...(endDate ? { value: endDate } : {})}
           />
           <button
+            type="button"
             onClick={() => {
               onStartDateChange(undefined)
               onEndDateChange(undefined)
@@ -486,6 +673,8 @@ export function FilterBar({
                 return (
                   <button
                     key={provider}
+                    type="button"
+                    aria-pressed={isSelected}
                     onClick={() => onToggleProvider(provider)}
                     className={cn(
                       'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold cursor-pointer border transition-all duration-200',
@@ -505,6 +694,7 @@ export function FilterBar({
               })}
               {selectedProviders.length > 0 && (
                 <button
+                  type="button"
                   onClick={onClearProviders}
                   className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-border transition-all duration-200 hover:bg-accent"
                 >
@@ -521,6 +711,7 @@ export function FilterBar({
               </span>
               {selectedModels.length > 0 && (
                 <button
+                  type="button"
                   onClick={onClearModels}
                   className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-border transition-all duration-200 hover:bg-accent"
                 >
@@ -535,6 +726,8 @@ export function FilterBar({
                 return (
                   <button
                     key={model}
+                    type="button"
+                    aria-pressed={isSelected}
                     onClick={() => onToggleModel(model)}
                     className={cn(
                       'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium cursor-pointer',

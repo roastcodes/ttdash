@@ -75,6 +75,15 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
   }
 
   const barWidth = hypotheticalCost > 0 ? (actualCost / hypotheticalCost) * 100 : 100
+  const withoutCacheTextClass = 'text-rose-700 dark:text-rose-300'
+  const withCacheTextClass = 'text-emerald-700 dark:text-emerald-300'
+  const barTrackDangerClass = 'bg-rose-500/12 dark:bg-rose-500/18'
+  const barFillDangerClass = 'bg-rose-500/60 dark:bg-rose-400/60'
+  const barFillSuccessClass = 'bg-emerald-500/65 dark:bg-emerald-400/60'
+  const barSavedSegmentClass =
+    'bg-emerald-500/12 dark:bg-emerald-400/16 border-l border-emerald-500/35 dark:border-emerald-400/30 border-dashed'
+  const barSavedSwatchClass =
+    'bg-emerald-500/12 dark:bg-emerald-400/16 border border-emerald-500/35 dark:border-emerald-400/30 border-dashed'
 
   return (
     <Card>
@@ -88,7 +97,7 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {heuristicModels.length > 0 && (
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-xs text-amber-200/90">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/12 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
             {t('cacheRoi.heuristicFallback', {
               count: heuristicModels.length,
               modelsLabel:
@@ -99,21 +108,23 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <div className="text-xs text-muted-foreground">{t('cacheRoi.withoutCache')}</div>
-            <div className="text-lg font-bold text-red-400">
+            <div className={`text-lg font-bold ${withoutCacheTextClass}`}>
               <FormattedValue value={hypotheticalCost} type="currency" />
             </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">{t('cacheRoi.withCacheActual')}</div>
-            <div className="text-lg font-bold text-green-400">
+            <div className={`text-lg font-bold ${withCacheTextClass}`}>
               <FormattedValue value={actualCost} type="currency" />
             </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">{t('cacheRoi.savings')}</div>
-            <div className="text-lg font-bold text-primary">
+            <div className={`text-lg font-bold ${withCacheTextClass}`}>
               <FormattedValue value={savings} type="currency" />
-              <span className="text-xs ml-1 text-green-400">({formatPercent(savingsPercent)})</span>
+              <span className={`ml-1 text-xs ${withCacheTextClass}`}>
+                ({formatPercent(savingsPercent)})
+              </span>
             </div>
           </div>
           <div>
@@ -130,27 +141,29 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs">
             <span className="text-muted-foreground w-24">{t('cacheRoi.withoutCache')}</span>
-            <div className="flex-1 h-6 bg-red-400/20 rounded-md overflow-hidden">
-              <div className="h-full bg-red-400/60 rounded-md" style={{ width: '100%' }} />
+            <div className={`h-6 flex-1 overflow-hidden rounded-md ${barTrackDangerClass}`}>
+              <div
+                className={`h-full rounded-md ${barFillDangerClass}`}
+                style={{ width: '100%' }}
+              />
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="text-muted-foreground w-24">{t('cacheRoi.withCache')}</span>
             <div className="flex-1 h-6 bg-muted/20 rounded-md overflow-hidden flex">
               <div
-                className="h-full bg-green-400/60 rounded-l-md transition-all duration-1000"
+                className={`h-full rounded-l-md ${barFillSuccessClass} transition-all duration-1000 motion-reduce:transition-none`}
                 style={{ width: `${barWidth}%` }}
               />
-              <div className="h-full bg-green-400/20 flex-1 rounded-r-md border-l border-green-400/30 border-dashed" />
+              <div className={`h-full flex-1 rounded-r-md ${barSavedSegmentClass}`} />
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-sm bg-green-400/60" /> {t('cacheRoi.paid')}
+              <span className={`h-2 w-2 rounded-sm ${barFillSuccessClass}`} /> {t('cacheRoi.paid')}
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-sm bg-green-400/20 border border-green-400/30 border-dashed" />{' '}
-              {t('cacheRoi.saved')}
+              <span className={`h-2 w-2 rounded-sm ${barSavedSwatchClass}`} /> {t('cacheRoi.saved')}
             </span>
           </div>
         </div>
