@@ -18,6 +18,7 @@ import { AlertTriangle, CreditCard, ShieldCheck, TrendingUp } from 'lucide-react
 import { Card, CardContent } from '@/components/ui/card'
 import { SectionHeader } from '@/components/ui/section-header'
 import { ChartAnimationAware, ChartCard, ChartReveal } from '@/components/charts/ChartCard'
+import { ChartLegend } from '@/components/charts/ChartLegend'
 import { CHART_ANIMATION, CHART_COLORS, CHART_MARGIN } from '@/components/charts/chart-theme'
 import { buildProviderMonthlyCosts, getLatestMonth } from '@/lib/provider-limits'
 import i18n from '@/lib/i18n'
@@ -891,7 +892,7 @@ export function ProviderLimitsSection({
                         background: 'color-mix(in srgb, hsl(var(--popover)) 90%, transparent)',
                       }}
                     />
-                    <Legend />
+                    <Legend content={<ChartLegend />} />
                     <ReferenceLine y={0} stroke="hsl(var(--border))" strokeDasharray="4 4" />
                     <Area
                       type="monotone"

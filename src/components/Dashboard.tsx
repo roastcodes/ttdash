@@ -265,7 +265,7 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
             size="sm"
             onClick={handleOpenSettings}
             title={t('header.settings')}
-            className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
+            className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
           >
             <SlidersHorizontal className="h-4 w-4" />
             <span>{t('header.settings')}</span>

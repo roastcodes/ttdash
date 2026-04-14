@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, useInView, useReducedMotion } from 'framer-motion'
+import { useInView } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Maximize2 } from 'lucide-react'
@@ -16,6 +16,7 @@ import { InfoButton } from '@/components/features/help/InfoButton'
 import { cn } from '@/lib/cn'
 import { buildCsvLine } from '@/lib/csv'
 import { formatCurrency } from '@/lib/formatters'
+import { useShouldReduceMotion } from '@/lib/motion'
 
 export { stringifyCsvCell } from '@/lib/csv'
 
@@ -53,7 +54,7 @@ export function useChartAnimationActive() {
 }
 
 export function ChartAnimationAware({ children }: { children: (active: boolean) => ReactNode }) {
-  const shouldReduceMotion = useReducedMotion()
+  const shouldReduceMotion = useShouldReduceMotion()
   const animationActive = useChartAnimationActive()
   return <>{children(shouldReduceMotion ? false : animationActive)}</>
 }
@@ -71,47 +72,11 @@ export function ChartReveal({
   delay = 0,
   duration = 0.7,
 }: ChartRevealProps) {
-  const active = useChartAnimationActive()
-  const shouldReduceMotion = useReducedMotion()
-  const resolvedDuration = variant === 'radial' ? Math.max(duration, 0.95) : Math.max(duration, 0.9)
-
-  const hidden =
-    variant === 'bar'
-      ? { opacity: 0, clipPath: 'inset(100% 0 0 0 round 16px)', y: 10 }
-      : variant === 'radial'
-        ? { opacity: 0, scale: 0.82, rotate: -18 }
-        : { opacity: 0, clipPath: 'inset(0 100% 0 0 round 16px)', x: -8 }
-
-  const visible =
-    variant === 'bar'
-      ? { opacity: 1, clipPath: 'inset(0 0 0 0 round 16px)', y: 0 }
-      : variant === 'radial'
-        ? { opacity: 1, scale: 1, rotate: 0 }
-        : { opacity: 1, clipPath: 'inset(0 0 0 0 round 16px)', x: 0 }
-
-  if (shouldReduceMotion) {
-    return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          overflow: variant === 'radial' ? 'visible' : 'hidden',
-          transformOrigin: variant === 'bar' ? 'center bottom' : 'center center',
-          paddingTop: variant === 'radial' ? 8 : 0,
-          paddingBottom: variant === 'radial' ? 8 : 0,
-          boxSizing: 'border-box',
-        }}
-      >
-        {children}
-      </div>
-    )
-  }
+  void delay
+  void duration
 
   return (
-    <motion.div
-      initial={hidden}
-      animate={active ? visible : hidden}
-      transition={{ duration: resolvedDuration, delay, ease: 'easeOut' }}
+    <div
       style={{
         width: '100%',
         height: '100%',
@@ -123,7 +88,7 @@ export function ChartReveal({
       }}
     >
       {children}
-    </motion.div>
+    </div>
   )
 }
 

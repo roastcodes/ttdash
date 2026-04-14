@@ -143,7 +143,7 @@ export function DashboardSections({
                 viewMode={viewMode}
               />
             </FadeIn>
-            <FadeIn delay={0.1}>
+            <FadeIn delay={0.04}>
               <div className="mt-4">
                 <SecondaryMetrics
                   metrics={metrics}
@@ -180,7 +180,7 @@ export function DashboardSections({
               }
               info={SECTION_HELP.activity}
             />
-            <FadeIn delay={0.2}>
+            <FadeIn delay={0.05}>
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="cost" />
                 <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="requests" />
@@ -197,7 +197,7 @@ export function DashboardSections({
               description={t('dashboard.forecastCache.description')}
               info={SECTION_HELP.forecastCache}
             />
-            <FadeIn delay={0.25}>
+            <FadeIn delay={0.06}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <ExpandableCard title={t('dashboard.cards.costForecast')}>
                   <CostForecast data={filteredData} viewMode={viewMode} />
@@ -228,7 +228,7 @@ export function DashboardSections({
       case 'limits':
         return sectionVisibility.limits ? (
           <div id="limits">
-            <FadeIn delay={0.27}>
+            <FadeIn delay={0.07}>
               <ProviderLimitsSection
                 data={filteredDailyData}
                 providers={visibleLimitProviders}
@@ -247,7 +247,7 @@ export function DashboardSections({
               description={t('dashboard.costAnalysis.description')}
               info={SECTION_HELP.costAnalysis}
             />
-            <FadeIn delay={0.3}>
+            <FadeIn delay={0.08}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <div className="lg:col-span-2">
                   <CostOverTime data={costChartData} onClickDay={onDrillDownDateChange} />
@@ -255,18 +255,18 @@ export function DashboardSections({
                 <CostByModel data={modelPieData} />
               </div>
             </FadeIn>
-            <FadeIn delay={0.35}>
+            <FadeIn delay={0.1}>
               <div className="mt-4">
                 <CostByModelOverTime data={modelCostChartData} models={allModels} />
               </div>
             </FadeIn>
-            <FadeIn delay={0.4}>
+            <FadeIn delay={0.11}>
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <CumulativeCost data={costChartData} rawData={filteredData} />
                 <CostByWeekday data={weekdayData} />
               </div>
             </FadeIn>
-            <FadeIn delay={0.42}>
+            <FadeIn delay={0.12}>
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <TokenEfficiency data={filteredData} />
                 <ModelMix data={filteredData} />
@@ -282,7 +282,7 @@ export function DashboardSections({
               description={t('dashboard.tokenAnalysis.description')}
               info={SECTION_HELP.tokenAnalysis}
             />
-            <FadeIn delay={0.45}>
+            <FadeIn delay={0.13}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <TokensOverTime data={tokenChartData} onClickDay={onDrillDownDateChange} />
                 <TokenTypes data={tokenPieData} />
@@ -298,14 +298,14 @@ export function DashboardSections({
               description={t('dashboard.requestAnalysis.description')}
               info={SECTION_HELP.requestAnalysis}
             />
-            <FadeIn delay={0.47}>
+            <FadeIn delay={0.14}>
               <RequestsOverTime
                 data={requestChartData}
                 viewMode={viewMode}
                 onClickDay={onDrillDownDateChange}
               />
             </FadeIn>
-            <FadeIn delay={0.49}>
+            <FadeIn delay={0.15}>
               <div className="mt-4">
                 <RequestCacheHitRateByModel
                   timelineData={filteredData}
@@ -314,7 +314,7 @@ export function DashboardSections({
                 />
               </div>
             </FadeIn>
-            <FadeIn delay={0.51}>
+            <FadeIn delay={0.16}>
               <div className="mt-4">
                 <RequestQuality metrics={metrics} viewMode={viewMode} />
               </div>
@@ -329,7 +329,7 @@ export function DashboardSections({
               description={t('dashboard.advancedAnalysis.description')}
               info={SECTION_HELP.advancedAnalysis}
             />
-            <FadeIn delay={0.48}>
+            <FadeIn delay={0.145}>
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <DistributionAnalysis data={filteredData} viewMode={viewMode} />
                 <ConcentrationRisk
@@ -340,7 +340,7 @@ export function DashboardSections({
                 />
               </div>
             </FadeIn>
-            <FadeIn delay={0.5}>
+            <FadeIn delay={0.155}>
               <div className="mt-4">
                 <CorrelationAnalysis data={filteredData} />
               </div>
@@ -355,7 +355,7 @@ export function DashboardSections({
               description={t('dashboard.comparisons.description')}
               info={SECTION_HELP.comparisons}
             />
-            <FadeIn delay={0.5}>
+            <FadeIn delay={0.165}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <ExpandableCard
                   title={t('dashboard.cards.periodComparison')}
@@ -397,14 +397,14 @@ export function DashboardSections({
               description={t('dashboard.tables.description')}
               info={SECTION_HELP.tables}
             />
-            <FadeIn delay={0.55}>
+            <FadeIn delay={0.17}>
               <ModelEfficiency
                 modelCosts={modelCosts}
                 totalCost={metrics.totalCost}
                 viewMode={viewMode}
               />
             </FadeIn>
-            <FadeIn delay={0.6}>
+            <FadeIn delay={0.18}>
               <div className="mt-4">
                 <ProviderEfficiency
                   providerMetrics={providerMetrics}
@@ -413,7 +413,7 @@ export function DashboardSections({
                 />
               </div>
             </FadeIn>
-            <FadeIn delay={0.65}>
+            <FadeIn delay={0.19}>
               <div className="mt-4">
                 <RecentDays
                   data={filteredData}

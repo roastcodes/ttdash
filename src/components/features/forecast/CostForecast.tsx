@@ -12,6 +12,7 @@ import {
   Legend,
 } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from '@/components/charts/ChartCard'
+import { ChartLegend } from '@/components/charts/ChartLegend'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from '@/components/charts/chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
@@ -231,7 +232,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
                     axisLine={false}
                   />
                   <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
-                  <Legend />
+                  <Legend content={<ChartLegend />} />
                   <Area
                     type="monotone"
                     dataKey="lower"

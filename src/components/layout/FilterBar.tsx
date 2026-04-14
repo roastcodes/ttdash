@@ -515,6 +515,14 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   )
 }
 
+type FilterVisualState = 'selected' | 'included' | 'inactive'
+
+function getFilterVisualState(isSelected: boolean, hasSelection: boolean): FilterVisualState {
+  if (isSelected) return 'selected'
+  if (!hasSelection) return 'included'
+  return 'inactive'
+}
+
 export function FilterBar({
   viewMode,
   onViewModeChange,
@@ -670,22 +678,36 @@ export function FilterBar({
             <div className="flex flex-wrap gap-1.5">
               {availableProviders.map((provider) => {
                 const isSelected = selectedProviders.includes(provider)
+                const visualState = getFilterVisualState(isSelected, selectedProviders.length > 0)
+                const badgeStyle = getProviderBadgeStyle(provider)
                 return (
                   <button
                     key={provider}
                     type="button"
+                    data-filter-state={visualState}
                     aria-pressed={isSelected}
                     onClick={() => onToggleProvider(provider)}
                     className={cn(
                       'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold cursor-pointer border transition-all duration-200',
-                      isSelected || selectedProviders.length === 0
+                      visualState === 'selected'
                         ? getProviderBadgeClasses(provider)
-                        : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
+                        : visualState === 'included'
+                          ? 'border-border/70 bg-background/70 hover:bg-accent'
+                          : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
                     )}
                     style={
-                      isSelected || selectedProviders.length === 0
-                        ? getProviderBadgeStyle(provider)
-                        : undefined
+                      visualState === 'selected'
+                        ? badgeStyle
+                        : visualState === 'included'
+                          ? {
+                              color: badgeStyle.color,
+                              backgroundColor: badgeStyle.backgroundColor.replace(
+                                /0\.10\)$/,
+                                '0.05)',
+                              ),
+                              borderColor: badgeStyle.borderColor.replace(/0\.20\)$/, '0.14)'),
+                            }
+                          : undefined
                     }
                   >
                     {provider}
@@ -723,25 +745,31 @@ export function FilterBar({
               {allModels.map((model) => {
                 const isSelected = selectedModels.includes(model)
                 const color = getModelColor(model)
+                const visualState = getFilterVisualState(isSelected, selectedModels.length > 0)
                 return (
                   <button
                     key={model}
                     type="button"
+                    data-filter-state={visualState}
                     aria-pressed={isSelected}
                     onClick={() => onToggleModel(model)}
                     className={cn(
                       'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium cursor-pointer',
                       'border transition-all duration-200 hover:scale-[1.03]',
-                      isSelected || selectedModels.length === 0
+                      visualState === 'selected'
                         ? 'opacity-100'
-                        : 'opacity-40 hover:opacity-70',
+                        : visualState === 'included'
+                          ? 'opacity-85'
+                          : 'opacity-40 hover:opacity-70',
                     )}
                     style={{
                       borderColor: color,
                       backgroundColor:
-                        isSelected || selectedModels.length === 0
+                        visualState === 'selected'
                           ? getModelColorAlpha(model, 0.16)
-                          : 'transparent',
+                          : visualState === 'included'
+                            ? getModelColorAlpha(model, 0.08)
+                            : 'transparent',
                       color: color,
                     }}
                   >

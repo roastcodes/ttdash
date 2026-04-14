@@ -264,6 +264,45 @@ describe('FilterBar', () => {
     )
   })
 
+  it('marks unfiltered provider and model chips as included instead of selected', () => {
+    const noop = vi.fn()
+
+    render(
+      <FilterBar
+        viewMode="daily"
+        onViewModeChange={noop}
+        selectedMonth={null}
+        onMonthChange={noop}
+        availableMonths={['2026-03', '2026-04']}
+        availableProviders={['Anthropic', 'OpenAI']}
+        selectedProviders={[]}
+        onToggleProvider={noop}
+        onClearProviders={noop}
+        allModels={['Claude Sonnet 4.5', 'GPT-5.4']}
+        selectedModels={[]}
+        onToggleModel={noop}
+        onClearModels={noop}
+        startDate={undefined}
+        endDate={undefined}
+        onStartDateChange={noop}
+        onEndDateChange={noop}
+        onApplyPreset={noop}
+        onResetAll={noop}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'OpenAI' })).toHaveAttribute(
+      'data-filter-state',
+      'included',
+    )
+    expect(screen.getByRole('button', { name: 'OpenAI' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'GPT-5.4' })).toHaveAttribute(
+      'data-filter-state',
+      'included',
+    )
+    expect(screen.getByRole('button', { name: 'GPT-5.4' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
   it('opens the date picker as a dialog, supports arrow-key navigation, and restores focus on selection', async () => {
     const onStartDateChange = vi.fn()
     const noop = vi.fn()

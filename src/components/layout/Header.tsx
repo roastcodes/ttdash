@@ -219,13 +219,13 @@ export function Header({
         </div>
       </div>
 
-      <div className="grid grid-cols-6 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+      <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
         <Button
           variant="outline"
           size="sm"
           onClick={onAutoImport}
           title={t('emptyState.autoImport')}
-          className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
+          className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
         >
           <Zap className="h-4 w-4" />
           <span>{t('header.import')}</span>
@@ -235,7 +235,7 @@ export function Header({
           size="sm"
           onClick={onUpload}
           title={t('emptyState.uploadFile')}
-          className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
+          className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
         >
           <Upload className="h-4 w-4" />
           <span>{t('header.upload')}</span>
@@ -248,7 +248,7 @@ export function Header({
           size="sm"
           onClick={onExportCSV}
           title={t('commandPalette.commands.exportCsv.label')}
-          className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
+          className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
         >
           <Download className="h-4 w-4" />
           <span>{t('header.csv')}</span>
@@ -259,10 +259,10 @@ export function Header({
           size="sm"
           onClick={onDelete}
           title={t('commandPalette.commands.delete.label')}
-          className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10"
         >
           <Trash2 className="h-4 w-4" />
-          <span className="sm:sr-only">{t('header.delete')}</span>
+          <span>{t('header.delete')}</span>
         </Button>
       </div>
 

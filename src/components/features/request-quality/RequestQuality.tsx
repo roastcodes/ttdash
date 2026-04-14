@@ -1,10 +1,11 @@
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, useInView } from 'framer-motion'
+import { useInView } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatPercent, formatTokens } from '@/lib/formatters'
+import { useShouldReduceMotion } from '@/lib/motion'
 import type { DashboardMetrics, ViewMode } from '@/types'
 
 interface RequestQualityProps {
@@ -16,6 +17,7 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
   const { t } = useTranslation()
   const sectionRef = useRef<HTMLDivElement | null>(null)
   const inView = useInView(sectionRef, { once: true, amount: 0.25 })
+  const shouldReduceMotion = useShouldReduceMotion()
   const cachePerRequest =
     metrics.totalRequests > 0 ? metrics.totalCacheRead / metrics.totalRequests : 0
   const thinkingPerRequest =
@@ -70,40 +72,28 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
           {qualityMetrics.map((item) => (
-            <motion.div
-              key={item.label}
-              className="rounded-xl border border-border/50 bg-muted/15 p-3"
-              initial={{ opacity: 0, y: 12 }}
-              animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-              transition={{ duration: 0.35, delay: 0.05 }}
-            >
+            <div key={item.label} className="rounded-xl border border-border/50 bg-muted/15 p-3">
               <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                 {item.label}
               </div>
               <div className="mt-1 text-lg font-semibold tabular-nums">{item.value}</div>
               <div className="mt-1 text-xs text-muted-foreground">{item.hint}</div>
               <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted/40">
-                <motion.div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{ backgroundColor: `hsl(${item.accent})` }}
-                  initial={{ width: 0 }}
-                  animate={
-                    inView ? { width: `${Math.max(item.progress * 100, 6)}%` } : { width: 0 }
-                  }
-                  transition={{ duration: 0.7, delay: 0.08 }}
+                <div
+                  className="h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none"
+                  style={{
+                    backgroundColor: `hsl(${item.accent})`,
+                    width:
+                      inView || shouldReduceMotion ? `${Math.max(item.progress * 100, 6)}%` : '0%',
+                  }}
                 />
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <motion.div
-            className="rounded-xl border border-border/50 bg-gradient-to-br from-primary/[0.12] via-transparent to-transparent p-4"
-            initial={{ opacity: 0, y: 12 }}
-            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-            transition={{ duration: 0.35, delay: 0.1 }}
-          >
+          <div className="rounded-xl border border-border/50 bg-gradient-to-br from-primary/[0.12] via-transparent to-transparent p-4">
             <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               {t('requestQuality.requestDensity')}
             </div>
@@ -120,13 +110,8 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
                       : t('periods.day'),
               })}
             </div>
-          </motion.div>
-          <motion.div
-            className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-3/[0.12] via-transparent to-transparent p-4"
-            initial={{ opacity: 0, y: 12 }}
-            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-            transition={{ duration: 0.35, delay: 0.14 }}
-          >
+          </div>
+          <div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-3/[0.12] via-transparent to-transparent p-4">
             <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               {t('requestQuality.cacheHitRate')}
             </div>
@@ -134,13 +119,8 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
               {formatPercent(metrics.cacheHitRate, 1)}
             </div>
             <div className="text-xs text-muted-foreground">{t('requestQuality.cacheHitHint')}</div>
-          </motion.div>
-          <motion.div
-            className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-4/[0.12] via-transparent to-transparent p-4"
-            initial={{ opacity: 0, y: 12 }}
-            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-            transition={{ duration: 0.35, delay: 0.18 }}
-          >
+          </div>
+          <div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-4/[0.12] via-transparent to-transparent p-4">
             <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               {t('requestQuality.inputOutput')}
             </div>
@@ -150,13 +130,8 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
             <div className="text-xs text-muted-foreground">
               {t('requestQuality.inputOutputHint')}
             </div>
-          </motion.div>
-          <motion.div
-            className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-5/[0.12] via-transparent to-transparent p-4"
-            initial={{ opacity: 0, y: 12 }}
-            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-            transition={{ duration: 0.35, delay: 0.22 }}
-          >
+          </div>
+          <div className="rounded-xl border border-border/50 bg-gradient-to-br from-chart-5/[0.12] via-transparent to-transparent p-4">
             <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               {t('requestQuality.topRequestModel')}
             </div>
@@ -168,7 +143,7 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
                 ? `${formatNumber(metrics.topRequestModel.requests)} ${t('common.requests')}`
                 : t('requestQuality.noRequestLeader')}
             </div>
-          </motion.div>
+          </div>
         </div>
       </CardContent>
     </Card>

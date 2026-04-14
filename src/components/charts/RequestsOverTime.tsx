@@ -15,6 +15,7 @@ import {
   Cell,
 } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { FormattedValue } from '@/components/ui/formatted-value'
@@ -160,7 +161,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                     content={<CustomTooltip formatter={(v) => formatRequests(v)} />}
                     cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
                   />
-                  <Legend />
+                  <Legend content={<ChartLegend />} />
                   <Line
                     type="monotone"
                     dataKey="totalRequestsMA7"
@@ -352,7 +353,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                             }
                             cursor={{ fill: 'hsl(var(--muted))', opacity: 0.12 }}
                           />
-                          <Legend />
+                          <Legend content={<ChartLegend />} />
                           <Area
                             type="monotone"
                             dataKey="totalRequests"

@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, useInView } from 'framer-motion'
+import { useInView } from 'framer-motion'
 import {
   ResponsiveContainer,
   ScatterChart,
@@ -22,6 +22,7 @@ import {
   formatPercent,
   formatTokens,
 } from '@/lib/formatters'
+import { useShouldReduceMotion } from '@/lib/motion'
 import type { DailyUsage } from '@/types'
 
 interface CorrelationAnalysisProps {
@@ -144,7 +145,6 @@ function CorrelationPanel({
   xTickFormatter,
   yAxisName,
   footer,
-  delay,
 }: {
   title: string
   subtitle: string
@@ -156,23 +156,15 @@ function CorrelationPanel({
   xTickFormatter?: (value: number) => string
   yAxisName: string
   footer: string
-  delay: number
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null)
   const panelInView = useInView(panelRef, { once: true, amount: 0.45 })
-  const [animatePoints, setAnimatePoints] = useState(false)
+  const shouldReduceMotion = useShouldReduceMotion()
+  const animatePoints = shouldReduceMotion ? true : panelInView
   const chartData = animatePoints ? data : []
 
   return (
-    <motion.div
-      ref={panelRef}
-      initial={{ opacity: 0, y: 20 }}
-      animate={panelInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-      transition={{ duration: 0.45, delay, ease: 'easeOut' }}
-      onAnimationComplete={() => {
-        if (panelInView) setAnimatePoints(true)
-      }}
-    >
+    <div ref={panelRef}>
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
           <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -209,7 +201,7 @@ function CorrelationPanel({
               fill={color}
               stroke={color}
               fillOpacity={0.72}
-              isAnimationActive={animatePoints}
+              isAnimationActive={!shouldReduceMotion && animatePoints}
               animationBegin={animationBegin}
               animationDuration={CHART_ANIMATION.duration}
             />
@@ -217,7 +209,7 @@ function CorrelationPanel({
         </ResponsiveContainer>
         <div className="mt-2 text-xs text-muted-foreground">{footer}</div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -301,7 +293,6 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
           xAxisName={t('charts.correlation.requestsAxis')}
           yAxisName={t('charts.correlation.cost')}
           footer={getCorrelationInterpretation(t, requestCostCorrelation, 'requestCost')}
-          delay={0.02}
         />
 
         <CorrelationPanel
@@ -315,7 +306,6 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
           xTickFormatter={(value) => formatPercent(value, 0)}
           yAxisName={t('charts.correlation.costPerRequestAxis')}
           footer={getCorrelationInterpretation(t, cacheEfficiencyCorrelation, 'cacheEfficiency')}
-          delay={0.08}
         />
       </CardContent>
     </Card>

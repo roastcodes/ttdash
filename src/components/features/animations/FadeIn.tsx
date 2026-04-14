@@ -1,5 +1,6 @@
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
+import { useShouldReduceMotion } from '@/lib/motion'
 
 interface FadeInProps {
   children: ReactNode
@@ -16,7 +17,7 @@ export function FadeIn({
   className,
   direction = 'up',
 }: FadeInProps) {
-  const shouldReduceMotion = useReducedMotion()
+  const shouldReduceMotion = useShouldReduceMotion()
   const offsets = {
     up: { y: 20 },
     down: { y: -20 },

@@ -1,6 +1,5 @@
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
 import {
   ResponsiveContainer,
   BarChart,
@@ -16,6 +15,7 @@ import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatTokens, periodLabel } from '@/lib/formatters'
+import { useShouldReduceMotion } from '@/lib/motion'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface DistributionAnalysisProps {
@@ -93,6 +93,7 @@ function DistributionTooltip({
 export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionAnalysisProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
+  const shouldReduceMotion = useShouldReduceMotion()
 
   const distributions = useMemo(() => {
     if (data.length < 2) return []
@@ -149,13 +150,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
       </CardHeader>
       <CardContent className="space-y-5">
         {distributions.map((distribution, index) => (
-          <motion.div
-            key={distribution.title}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.45 }}
-            transition={{ duration: 0.45, delay: 0.04 * index, ease: 'easeOut' }}
-          >
+          <div key={distribution.title}>
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -199,7 +194,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
                     dataKey="count"
                     radius={[6, 6, 0, 0]}
                     fill={`url(#${uid}-distribution-${index})`}
-                    isAnimationActive
+                    isAnimationActive={!shouldReduceMotion}
                     animationBegin={CHART_ANIMATION.stagger * index}
                     animationDuration={CHART_ANIMATION.duration}
                   >
@@ -218,7 +213,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </motion.div>
+          </div>
         ))}
       </CardContent>
     </Card>

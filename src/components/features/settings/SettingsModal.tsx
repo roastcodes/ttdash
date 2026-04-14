@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
@@ -187,6 +187,7 @@ export function SettingsModal({
   const [dragOverSectionId, setDragOverSectionId] = useState<DashboardSectionOrder[number] | null>(
     null,
   )
+  const titleRef = useRef<HTMLHeadingElement | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -270,10 +271,18 @@ export function SettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto overflow-x-visible">
+      <DialogContent
+        className="max-w-5xl max-h-[88vh] overflow-y-auto overflow-x-visible"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          titleRef.current?.focus()
+        }}
+      >
         <DialogHeader className="overflow-visible">
           <InfoHeading info={FEATURE_HELP.providerLimits}>
-            <DialogTitle>{t('settings.modal.title')}</DialogTitle>
+            <DialogTitle ref={titleRef} tabIndex={-1} className="focus:outline-none">
+              {t('settings.modal.title')}
+            </DialogTitle>
           </InfoHeading>
           <DialogDescription>{t('settings.modal.description')}</DialogDescription>
         </DialogHeader>

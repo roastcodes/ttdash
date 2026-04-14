@@ -69,6 +69,8 @@ describe('SettingsModal', () => {
     )
 
     expect(screen.getByText('Dashboard language')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Settings' })).toHaveFocus()
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('settings-language-en'))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))

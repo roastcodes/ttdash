@@ -1,11 +1,12 @@
 import * as React from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/cn'
+import { useShouldReduceMotion } from '@/lib/motion'
 
 type CardProps = React.ComponentPropsWithoutRef<typeof motion.div>
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, ...props }, ref) => {
-  const shouldReduceMotion = useReducedMotion()
+  const shouldReduceMotion = useShouldReduceMotion()
   const motionProps = shouldReduceMotion
     ? {
         initial: false as const,

@@ -18,7 +18,7 @@ export function InfoButton({ text, className }: InfoButtonProps) {
           aria-label={t('common.showInfo')}
           data-info-button="true"
           className={cn(
-            'inline-flex items-center justify-center rounded-sm text-muted-foreground/50 transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            'inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             className,
           )}
         >

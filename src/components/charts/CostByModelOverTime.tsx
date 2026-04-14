@@ -10,6 +10,7 @@ import {
 } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { getModelColor } from '@/lib/model-utils'
@@ -68,7 +69,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                   content={<CustomTooltip formatter={(v) => formatCurrency(v)} />}
                   cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
                 />
-                <Legend />
+                <Legend content={<ChartLegend />} />
                 {models.map((model, index) => (
                   <Line
                     key={`${model}_ma7`}
@@ -138,7 +139,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                   content={<CustomTooltip formatter={(v) => formatCurrency(v)} />}
                   cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
                 />
-                <Legend />
+                <Legend content={<ChartLegend />} />
                 {models.map((model, index) => (
                   <Line
                     key={model}

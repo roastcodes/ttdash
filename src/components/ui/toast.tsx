@@ -2,6 +2,7 @@ import * as React from 'react'
 import { createContext, useContext, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
+import { getMotionAwareClasses, useShouldReduceMotion } from '@/lib/motion'
 
 interface Toast {
   id: string
@@ -19,6 +20,7 @@ const ToastContext = createContext<ToastContextValue | null>(null)
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
+  const shouldReduceMotion = useShouldReduceMotion()
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const addToast = useCallback((message: string, type: Toast['type'] = 'info') => {
@@ -46,7 +48,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             key={toast.id}
             role={toast.type === 'error' ? 'alert' : 'status'}
             aria-atomic="true"
-            className={`rounded-lg border border-border px-4 py-3 text-sm shadow-lg backdrop-blur-sm animate-in slide-in-from-bottom-2 fade-in-0 ${
+            className={`rounded-lg border border-border px-4 py-3 text-sm shadow-lg backdrop-blur-sm ${getMotionAwareClasses(
+              shouldReduceMotion,
+              'animate-in slide-in-from-bottom-2 fade-in-0',
+            )} ${
               toast.type === 'error'
                 ? 'bg-destructive/90 text-destructive-foreground'
                 : toast.type === 'success'

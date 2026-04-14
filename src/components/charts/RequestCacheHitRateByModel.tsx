@@ -15,6 +15,7 @@ import {
   Cell,
 } from 'recharts'
 import { ChartAnimationAware, ChartCard, ChartReveal } from './ChartCard'
+import { ChartLegend } from './ChartLegend'
 import { CHART_ANIMATION, CHART_COLORS, CHART_MARGIN } from './chart-theme'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_HELP } from '@/lib/help-content'
@@ -298,7 +299,7 @@ export function RequestCacheHitRateByModel({
                           }
                           cursor={{ fill: 'hsl(var(--muted))', opacity: 0.12 }}
                         />
-                        <Legend />
+                        <Legend content={<ChartLegend />} />
                         <Area
                           type="monotone"
                           dataKey="totalRate"
@@ -408,7 +409,7 @@ export function RequestCacheHitRateByModel({
                           }
                           cursor={{ fill: 'hsl(var(--muted))', opacity: 0.12 }}
                         />
-                        <Legend />
+                        <Legend content={<ChartLegend />} />
                         <Bar
                           dataKey="totalRate"
                           name={t('charts.requestCacheHitRate.totalRate')}
