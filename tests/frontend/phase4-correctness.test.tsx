@@ -233,7 +233,6 @@ describe('phase 4 UI correctness', () => {
             dateRange={{ start: '2026-04-01', end: '2026-04-13' }}
             isDark={false}
             currentLanguage="de"
-            helpOpen={false}
             streak={22}
             dataSource={null}
             startupAutoLoad={null}

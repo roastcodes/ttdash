@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ModelEfficiency } from '@/components/tables/ModelEfficiency'
 import { ProviderEfficiency } from '@/components/tables/ProviderEfficiency'
@@ -148,5 +148,45 @@ describe('sortable tables', () => {
 
     fireEvent.click(within(costHeader).getByRole('button', { name: /^cost$/i }))
     expect(costHeader).toHaveAttribute('aria-sort', 'ascending')
+  })
+
+  it('reveals all recent days progressively without losing access to later rows', async () => {
+    const days = Array.from({ length: 35 }, (_, index) => {
+      const date = new Date(Date.UTC(2026, 3, index + 1)).toISOString().slice(0, 10)
+
+      return {
+        date,
+        totalCost: index + 1,
+        totalTokens: (index + 1) * 100,
+        inputTokens: (index + 1) * 60,
+        outputTokens: (index + 1) * 40,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        requestCount: index + 1,
+        modelsUsed: ['GPT-5.4'],
+        modelBreakdowns: [
+          {
+            modelName: 'gpt-5.4',
+            cost: index + 1,
+            inputTokens: (index + 1) * 60,
+            outputTokens: (index + 1) * 40,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            requestCount: index + 1,
+          },
+        ],
+      }
+    })
+
+    renderWithProviders(<RecentDays data={days} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /show all/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Showing 35 of 35 days')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /show less/i })).toBeInTheDocument()
+    })
   })
 })

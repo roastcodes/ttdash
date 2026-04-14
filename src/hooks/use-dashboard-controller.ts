@@ -6,7 +6,7 @@ import { useAppSettings } from '@/hooks/use-app-settings'
 import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
 import { useComputedMetrics } from '@/hooks/use-computed-metrics'
 import { useToast } from '@/components/ui/toast'
-import { applyTheme } from '@/lib/app-settings'
+import { applyTheme, DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { downloadCSV } from '@/lib/csv-export'
 import { VERSION } from '@/lib/constants'
 import {
@@ -84,6 +84,14 @@ function downloadJsonFile(filename: string, data: unknown) {
 }
 
 export function useDashboardController(initialSettingsError: string | null = null) {
+  return useDashboardControllerWithBootstrap(DEFAULT_APP_SETTINGS, false, initialSettingsError)
+}
+
+export function useDashboardControllerWithBootstrap(
+  initialSettings: AppSettings,
+  initialSettingsLoadedFromServer = false,
+  initialSettingsError: string | null = null,
+) {
   const { t, i18n } = useTranslation()
   const { data: usageData, isLoading, error: usageError } = useUsageData()
   const uploadMutation = useUploadData()
@@ -129,7 +137,7 @@ export function useDashboardController(initialSettingsError: string | null = nul
     isLoading: settingsLoading,
     error: settingsError,
     hasFetchedAfterMount,
-  } = useAppSettings(allProviders)
+  } = useAppSettings(allProviders, initialSettings, initialSettingsLoadedFromServer)
   const isDark = settings.theme === 'dark'
 
   useEffect(() => {

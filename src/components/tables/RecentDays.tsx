@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,12 +25,81 @@ interface RecentDaysProps {
 }
 
 type SortKey = 'date' | 'cost' | 'tokens' | 'costPerM'
+const DEFAULT_VISIBLE_ROWS = 30
+const SHOW_ALL_BATCH_SIZE = 120
+
+function getUniqueModelsForDay(day: DailyUsage) {
+  return day.modelBreakdowns
+    .map((mb) => ({
+      name: normalizeModelName(mb.modelName),
+      provider: getModelProvider(mb.modelName),
+    }))
+    .filter(
+      (entry, index, values) => values.findIndex((item) => item.name === entry.name) === index,
+    )
+}
+
+function buildBenchmarkMap(data: DailyUsage[]) {
+  const map = new Map<
+    string,
+    { prevCostDelta?: number; avgCost7?: number; avgRequests7?: number }
+  >()
+  let rollingCost = 0
+  let rollingRequests = 0
+
+  for (let index = 0; index < data.length; index += 1) {
+    const current = data[index]
+    if (!current) continue
+
+    if (index > 7) {
+      const outgoing = data[index - 8]
+      if (outgoing) {
+        rollingCost -= outgoing.totalCost
+        rollingRequests -= outgoing.requestCount
+      }
+    }
+
+    if (index > 0) {
+      const previousForWindow = data[index - 1]
+      if (previousForWindow) {
+        rollingCost += previousForWindow.totalCost
+        rollingRequests += previousForWindow.requestCount
+      }
+    }
+
+    const previous = index > 0 ? data[index - 1] : null
+    const windowSize = Math.min(index, 7)
+    const prevCostDelta =
+      previous && previous.totalCost > 0
+        ? ((current.totalCost - previous.totalCost) / previous.totalCost) * 100
+        : null
+
+    map.set(current.date, {
+      ...(prevCostDelta !== null ? { prevCostDelta } : {}),
+      ...(windowSize > 0 ? { avgCost7: rollingCost / windowSize } : {}),
+      ...(windowSize > 0 ? { avgRequests7: rollingRequests / windowSize } : {}),
+    })
+  }
+
+  return map
+}
+
+function getDeferredRowStyle(showAll: boolean, intrinsicSize: string): CSSProperties | undefined {
+  if (!showAll) return undefined
+
+  return {
+    contentVisibility: 'auto',
+    containIntrinsicSize: intrinsicSize,
+  }
+}
 
 export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysProps) {
   const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortAsc, setSortAsc] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(DEFAULT_VISIBLE_ROWS)
+  const [, startTransition] = useTransition()
 
   const sorted = useMemo(() => {
     const items = [...data]
@@ -52,61 +121,81 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
     return items
   }, [data, sortKey, sortAsc])
 
-  const displayed = showAll ? sorted : sorted.slice(0, 30)
+  useEffect(() => {
+    if (!showAll) {
+      setVisibleCount(DEFAULT_VISIBLE_ROWS)
+      return
+    }
+
+    let frameId = 0
+    const revealMore = () => {
+      setVisibleCount((previous) => {
+        if (previous >= sorted.length) return previous
+        const next = Math.min(previous + SHOW_ALL_BATCH_SIZE, sorted.length)
+        if (next < sorted.length) {
+          frameId = window.requestAnimationFrame(revealMore)
+        }
+        return next
+      })
+    }
+
+    frameId = window.requestAnimationFrame(revealMore)
+    return () => window.cancelAnimationFrame(frameId)
+  }, [showAll, sorted.length])
+
+  const displayed = useMemo(
+    () => (showAll ? sorted.slice(0, visibleCount) : sorted.slice(0, DEFAULT_VISIBLE_ROWS)),
+    [showAll, sorted, visibleCount],
+  )
   const chronological = useMemo(
     () => [...data].sort((a, b) => a.date.localeCompare(b.date)),
     [data],
   )
-  const benchmarkMap = useMemo(() => {
-    const map = new Map<
-      string,
-      { prevCostDelta?: number; avgCost7?: number; avgRequests7?: number }
-    >()
-    chronological.forEach((day, index) => {
-      const previous = index > 0 ? chronological[index - 1] : null
-      const window = chronological.slice(Math.max(0, index - 7), index)
-      const prevCostDelta =
-        previous && previous.totalCost > 0
-          ? ((day.totalCost - previous.totalCost) / previous.totalCost) * 100
-          : null
-      const avgCost7 =
-        window.length > 0
-          ? window.reduce((sum, item) => sum + item.totalCost, 0) / window.length
-          : null
-      const avgRequests7 =
-        window.length > 0
-          ? window.reduce((sum, item) => sum + item.requestCount, 0) / window.length
-          : null
-      map.set(day.date, {
-        ...(prevCostDelta !== null ? { prevCostDelta } : {}),
-        ...(avgCost7 !== null ? { avgCost7 } : {}),
-        ...(avgRequests7 !== null ? { avgRequests7 } : {}),
-      })
-    })
-    return map
-  }, [chronological])
+  const benchmarkMap = useMemo(() => buildBenchmarkMap(chronological), [chronological])
 
   const maxCost = useMemo(() => Math.max(...data.map((d) => d.totalCost), 0), [data])
 
   const summary = useMemo(() => {
     if (data.length === 0) return null
-    const totalCost = data.reduce((sum, day) => sum + day.totalCost, 0)
-    const totalTokens = data.reduce((sum, day) => sum + day.totalTokens, 0)
-    const totalRequests = data.reduce((sum, day) => sum + day.requestCount, 0)
-    const cacheShare =
-      totalTokens > 0
-        ? (data.reduce((sum, day) => sum + day.cacheReadTokens, 0) / totalTokens) * 100
-        : 0
-    const top = [...data].sort((a, b) => b.totalCost - a.totalCost)[0] ?? null
+    let totalCost = 0
+    let totalTokens = 0
+    let totalRequests = 0
+    let totalCacheRead = 0
+    let top: DailyUsage | null = null
+
+    for (const day of data) {
+      totalCost += day.totalCost
+      totalTokens += day.totalTokens
+      totalRequests += day.requestCount
+      totalCacheRead += day.cacheReadTokens
+      if (!top || day.totalCost > top.totalCost) {
+        top = day
+      }
+    }
+
+    const cacheShare = totalTokens > 0 ? (totalCacheRead / totalTokens) * 100 : 0
     return { totalCost, totalTokens, totalRequests, cacheShare, top }
   }, [data])
 
+  const rowData = useMemo(
+    () =>
+      displayed.map((day) => ({
+        day,
+        benchmark: benchmarkMap.get(day.date),
+        costPerM: day.totalTokens > 0 ? day.totalCost / (day.totalTokens / 1_000_000) : 0,
+        uniqueModels: getUniqueModelsForDay(day),
+      })),
+    [benchmarkMap, displayed],
+  )
+
   const handleSort = (key: SortKey) => {
-    if (key === sortKey) setSortAsc(!sortAsc)
-    else {
-      setSortKey(key)
-      setSortAsc(false)
-    }
+    startTransition(() => {
+      if (key === sortKey) setSortAsc(!sortAsc)
+      else {
+        setSortKey(key)
+        setSortAsc(false)
+      }
+    })
   }
 
   const getAriaSort = (field: SortKey): 'ascending' | 'descending' | 'none' =>
@@ -133,8 +222,16 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
             })}
           </span>
         </div>
-        {sorted.length > 30 && (
-          <Button variant="ghost" size="sm" onClick={() => setShowAll(!showAll)}>
+        {sorted.length > DEFAULT_VISIBLE_ROWS && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              startTransition(() => {
+                setShowAll((previous) => !previous)
+              })
+            }
+          >
             {showAll ? t('tables.recentDays.showLess') : t('tables.recentDays.showAll')}
           </Button>
         )}
@@ -185,21 +282,23 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
             </div>
           </div>
         )}
+        {showAll && visibleCount < sorted.length && (
+          <div className="mb-3 text-xs text-muted-foreground">
+            {t('tables.recentDays.showing', {
+              shown: visibleCount,
+              total: sorted.length,
+              unit: periodLabel(viewMode, true),
+            })}
+          </div>
+        )}
         <div className="grid gap-2 md:hidden">
-          {displayed.map((day) => {
-            const costPerM = day.totalTokens > 0 ? day.totalCost / (day.totalTokens / 1_000_000) : 0
-            const uniqueModels = day.modelBreakdowns
-              .map((mb) => ({
-                name: normalizeModelName(mb.modelName),
-                provider: getModelProvider(mb.modelName),
-              }))
-              .filter((entry, i, a) => a.findIndex((item) => item.name === entry.name) === i)
-
+          {rowData.map(({ day, benchmark, costPerM, uniqueModels }) => {
             return (
               <button
                 key={day.date}
                 onClick={() => onClickDay?.(day.date)}
                 className="rounded-xl border border-border/50 bg-muted/10 p-3 text-left"
+                style={getDeferredRowStyle(showAll, '220px')}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -215,14 +314,13 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                     <div className="text-xs text-muted-foreground">
                       <FormattedValue value={day.totalTokens} type="tokens" interactive={false} />
                     </div>
-                    {viewMode === 'daily' &&
-                      benchmarkMap.get(day.date)?.prevCostDelta !== undefined && (
-                        <div className="mt-1 text-[10px] text-muted-foreground">
-                          {t('tables.recentDays.previousDay')}{' '}
-                          {benchmarkMap.get(day.date)!.prevCostDelta! >= 0 ? '↑' : '↓'}
-                          {Math.abs(benchmarkMap.get(day.date)!.prevCostDelta!).toFixed(0)}%
-                        </div>
-                      )}
+                    {viewMode === 'daily' && benchmark?.prevCostDelta !== undefined && (
+                      <div className="mt-1 text-[10px] text-muted-foreground">
+                        {t('tables.recentDays.previousDay')}{' '}
+                        {benchmark.prevCostDelta >= 0 ? '↑' : '↓'}
+                        {Math.abs(benchmark.prevCostDelta).toFixed(0)}%
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
@@ -272,12 +370,10 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                     </span>
                   )}
                 </div>
-                {viewMode === 'daily' && benchmarkMap.get(day.date)?.avgCost7 !== undefined && (
+                {viewMode === 'daily' && benchmark?.avgCost7 !== undefined && (
                   <div className="mt-3 text-[10px] text-muted-foreground">
-                    {t('tables.recentDays.avg7d')}{' '}
-                    {formatCurrency(benchmarkMap.get(day.date)!.avgCost7!)} ·{' '}
-                    {t('tables.recentDays.reqAvg')}{' '}
-                    {benchmarkMap.get(day.date)!.avgRequests7?.toFixed(0) ?? '–'}
+                    {t('tables.recentDays.avg7d')} {formatCurrency(benchmark.avgCost7)} ·{' '}
+                    {t('tables.recentDays.reqAvg')} {benchmark.avgRequests7?.toFixed(0) ?? '–'}
                   </div>
                 )}
               </button>
@@ -389,15 +485,16 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
               </tr>
             </thead>
             <tbody>
-              {displayed.map((day) => {
-                const costPerM =
-                  day.totalTokens > 0 ? day.totalCost / (day.totalTokens / 1_000_000) : 0
+              {rowData.map(({ day, benchmark, costPerM, uniqueModels }) => {
                 const intensity = maxCost > 0 ? day.totalCost / maxCost : 0
                 return (
                   <tr
                     key={day.date}
                     className="border-b border-border/50 border-l-[3px] hover:bg-muted/10 transition-colors cursor-pointer active:bg-muted/20"
-                    style={{ borderLeftColor: `hsla(215, 70%, 55%, ${0.2 + intensity * 0.8})` }}
+                    style={{
+                      borderLeftColor: `hsla(215, 70%, 55%, ${0.2 + intensity * 0.8})`,
+                      ...getDeferredRowStyle(showAll, '52px'),
+                    }}
                     onClick={() => onClickDay?.(day.date)}
                   >
                     <td className="px-2 py-2.5 whitespace-nowrap">
@@ -438,46 +535,36 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                     </td>
                     <td className="px-2 py-2.5">
                       <div className="flex flex-wrap gap-1.5">
-                        {day.modelBreakdowns
-                          .map((mb) => ({
-                            name: normalizeModelName(mb.modelName),
-                            provider: getModelProvider(mb.modelName),
-                          }))
-                          .filter(
-                            (entry, i, a) => a.findIndex((item) => item.name === entry.name) === i,
-                          )
-                          .map(({ name, provider }) => (
+                        {uniqueModels.map(({ name, provider }) => (
+                          <span
+                            key={name}
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium leading-tight"
+                            style={{
+                              backgroundColor: getModelColorAlpha(name, 0.16),
+                              color: getModelColor(name),
+                            }}
+                          >
+                            <span>{name}</span>
                             <span
-                              key={name}
-                              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium leading-tight"
-                              style={{
-                                backgroundColor: getModelColorAlpha(name, 0.16),
-                                color: getModelColor(name),
-                              }}
+                              className={cn(
+                                'inline-flex items-center rounded-full border px-1 py-0.5 text-[9px] leading-none',
+                                getProviderBadgeClasses(provider),
+                              )}
                             >
-                              <span>{name}</span>
-                              <span
-                                className={cn(
-                                  'inline-flex items-center rounded-full border px-1 py-0.5 text-[9px] leading-none',
-                                  getProviderBadgeClasses(provider),
-                                )}
-                              >
-                                {provider}
-                              </span>
+                              {provider}
                             </span>
-                          ))}
+                          </span>
+                        ))}
                       </div>
-                      {viewMode === 'daily' &&
-                        benchmarkMap.get(day.date)?.avgCost7 !== undefined && (
-                          <div className="mt-1 text-[10px] text-muted-foreground">
-                            {t('tables.recentDays.previousDay')}{' '}
-                            {benchmarkMap.get(day.date)?.prevCostDelta !== undefined
-                              ? `${benchmarkMap.get(day.date)!.prevCostDelta! >= 0 ? '↑' : '↓'}${Math.abs(benchmarkMap.get(day.date)!.prevCostDelta!).toFixed(0)}%`
-                              : '–'}{' '}
-                            · {t('tables.recentDays.avg7d')}{' '}
-                            {formatCurrency(benchmarkMap.get(day.date)!.avgCost7!)}
-                          </div>
-                        )}
+                      {viewMode === 'daily' && benchmark?.avgCost7 !== undefined && (
+                        <div className="mt-1 text-[10px] text-muted-foreground">
+                          {t('tables.recentDays.previousDay')}{' '}
+                          {benchmark.prevCostDelta !== undefined
+                            ? `${benchmark.prevCostDelta >= 0 ? '↑' : '↓'}${Math.abs(benchmark.prevCostDelta).toFixed(0)}%`
+                            : '–'}{' '}
+                          · {t('tables.recentDays.avg7d')} {formatCurrency(benchmark.avgCost7)}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )

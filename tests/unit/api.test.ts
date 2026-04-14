@@ -69,6 +69,7 @@ describe('api error handling', () => {
     await expect(loadBootstrapSettings()).resolves.toEqual({
       settings: DEFAULT_APP_SETTINGS,
       errorMessage: 'Failed to load settings',
+      loadedFromServer: false,
     })
   })
 })

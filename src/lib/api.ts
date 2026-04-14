@@ -36,6 +36,7 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
 export interface BootstrapSettingsResult {
   settings: AppSettings
   errorMessage: string | null
+  loadedFromServer: boolean
 }
 
 export async function fetchUsage(): Promise<UsageData> {
@@ -100,17 +101,20 @@ export async function loadBootstrapSettings(): Promise<BootstrapSettingsResult> 
       return {
         settings: DEFAULT_APP_SETTINGS,
         errorMessage: await readErrorMessage(response, i18n.t('api.fetchSettingsFailed')),
+        loadedFromServer: false,
       }
     }
 
     return {
       settings: normalizeAppSettings(await parseResponseJson<unknown>(response)),
       errorMessage: null,
+      loadedFromServer: true,
     }
   } catch {
     return {
       settings: DEFAULT_APP_SETTINGS,
       errorMessage: null,
+      loadedFromServer: false,
     }
   }
 }

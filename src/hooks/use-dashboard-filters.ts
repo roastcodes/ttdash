@@ -60,9 +60,10 @@ export function useDashboardFilters(
   data: DailyUsage[],
   defaultFilters: DashboardDefaultFilters = DEFAULT_DASHBOARD_FILTERS,
 ) {
+  const sortedData = useMemo(() => sortByDate(data), [data])
   const resolvedDefaults = useMemo(
-    () => sanitizeDefaultFilters(data, defaultFilters),
-    [data, defaultFilters],
+    () => sanitizeDefaultFilters(sortedData, defaultFilters),
+    [sortedData, defaultFilters],
   )
   const defaultRange = useMemo(
     () => resolvePresetRange(resolvedDefaults.datePreset),
@@ -83,7 +84,7 @@ export function useDashboardFilters(
 
   const applyDefaultFilters = useCallback(
     (nextDefaultFilters: DashboardDefaultFilters = defaultFilters) => {
-      const sanitizedDefaults = sanitizeDefaultFilters(data, nextDefaultFilters)
+      const sanitizedDefaults = sanitizeDefaultFilters(sortedData, nextDefaultFilters)
       const nextRange = resolvePresetRange(sanitizedDefaults.datePreset)
       userModifiedRef.current = false
       appliedDefaultsKeyRef.current = JSON.stringify(sanitizedDefaults)
@@ -94,7 +95,7 @@ export function useDashboardFilters(
       setStartDateState(nextRange.startDate)
       setEndDateState(nextRange.endDate)
     },
-    [data, defaultFilters],
+    [defaultFilters, sortedData],
   )
 
   useEffect(() => {
@@ -170,11 +171,11 @@ export function useDashboardFilters(
   }, [])
 
   const preProviderFilteredData = useMemo(() => {
-    let result = sortByDate(data)
+    let result = sortedData
     result = filterByDateRange(result, startDateState, endDateState)
     result = filterByMonth(result, selectedMonthState)
     return result
-  }, [data, startDateState, endDateState, selectedMonthState])
+  }, [sortedData, startDateState, endDateState, selectedMonthState])
 
   const preModelFilteredData = useMemo(() => {
     let result = preProviderFilteredData
@@ -194,7 +195,7 @@ export function useDashboardFilters(
     return result
   }, [filteredDailyData, viewModeState])
 
-  const availableMonths = useMemo(() => getAvailableMonths(data), [data])
+  const availableMonths = useMemo(() => getAvailableMonths(sortedData), [sortedData])
   const availableProviders = useMemo(
     () => getUniqueProviders(preProviderFilteredData.map((d) => d.modelsUsed)),
     [preProviderFilteredData],

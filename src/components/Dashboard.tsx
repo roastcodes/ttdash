@@ -6,12 +6,12 @@ import { FilterBar } from './layout/FilterBar'
 import { EmptyState } from './EmptyState'
 import { LoadErrorState } from './LoadErrorState'
 import { CommandPalette } from './features/command-palette/CommandPalette'
-import { SettingsModal } from './features/settings/SettingsModal'
 import { PDFReportButton } from './features/pdf-report/PDFReport'
 import { DashboardSections } from './dashboard/DashboardSections'
 import { DashboardSkeleton } from './ui/skeleton'
 import { Button } from './ui/button'
-import { useDashboardController } from '@/hooks/use-dashboard-controller'
+import { useDashboardControllerWithBootstrap } from '@/hooks/use-dashboard-controller'
+import type { AppSettings } from '@/types'
 
 const DrillDownModal = lazy(() =>
   import('./features/drill-down/DrillDownModal').then((module) => ({
@@ -23,14 +23,34 @@ const AutoImportModal = lazy(() =>
     default: module.AutoImportModal,
   })),
 )
+const SettingsModal = lazy(() =>
+  import('./features/settings/SettingsModal').then((module) => ({
+    default: module.SettingsModal,
+  })),
+)
+const HelpPanel = lazy(() =>
+  import('./features/help/HelpPanel').then((module) => ({
+    default: module.HelpPanel,
+  })),
+)
 
 interface DashboardProps {
+  initialSettings: AppSettings
   initialSettingsError?: string | null
+  initialSettingsLoadedFromServer?: boolean
 }
 
-export function Dashboard({ initialSettingsError = null }: DashboardProps) {
+export function Dashboard({
+  initialSettings,
+  initialSettingsError = null,
+  initialSettingsLoadedFromServer = false,
+}: DashboardProps) {
   const { t } = useTranslation()
-  const controller = useDashboardController(initialSettingsError)
+  const controller = useDashboardControllerWithBootstrap(
+    initialSettings,
+    initialSettingsLoadedFromServer,
+    initialSettingsError,
+  )
   const {
     fileInputRef,
     settingsImportInputRef,
@@ -57,7 +77,6 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
     headerDataSource,
     startupAutoLoadBadge,
     animationSeed,
-    daily,
     allProviders,
     settingsProviderOptions,
     settingsModelOptions,
@@ -193,29 +212,39 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
   )
 
   const settingsDialog = (
-    <SettingsModal
-      open={settingsOpen}
-      onOpenChange={setSettingsOpen}
-      language={settings.language}
-      limitProviders={allProviders}
-      filterProviders={settingsProviderOptions}
-      models={settingsModelOptions}
-      limits={settings.providerLimits}
-      defaultFilters={settings.defaultFilters}
-      sectionVisibility={settings.sectionVisibility}
-      sectionOrder={settings.sectionOrder}
-      lastLoadedAt={settings.lastLoadedAt}
-      lastLoadSource={settings.lastLoadSource}
-      cliAutoLoadActive={settings.cliAutoLoadActive}
-      hasData={hasData}
-      onSaveSettings={handleSaveSettings}
-      onExportSettings={handleExportSettings}
-      onImportSettings={handleImportSettings}
-      onExportData={handleExportData}
-      onImportData={handleImportData}
-      settingsBusy={settingsTransferBusy || isSaving}
-      dataBusy={dataTransferBusy}
-    />
+    <Suspense fallback={null}>
+      {settingsOpen && (
+        <SettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          language={settings.language}
+          limitProviders={allProviders}
+          filterProviders={settingsProviderOptions}
+          models={settingsModelOptions}
+          limits={settings.providerLimits}
+          defaultFilters={settings.defaultFilters}
+          sectionVisibility={settings.sectionVisibility}
+          sectionOrder={settings.sectionOrder}
+          lastLoadedAt={settings.lastLoadedAt}
+          lastLoadSource={settings.lastLoadSource}
+          cliAutoLoadActive={settings.cliAutoLoadActive}
+          hasData={hasData}
+          onSaveSettings={handleSaveSettings}
+          onExportSettings={handleExportSettings}
+          onImportSettings={handleImportSettings}
+          onExportData={handleExportData}
+          onImportData={handleImportData}
+          settingsBusy={settingsTransferBusy || isSaving}
+          dataBusy={dataTransferBusy}
+        />
+      )}
+    </Suspense>
+  )
+
+  const helpDialog = (
+    <Suspense fallback={null}>
+      {helpOpen && <HelpPanel open={helpOpen} onOpenChange={setHelpOpen} />}
+    </Suspense>
   )
 
   if (!fatalLoadState && (isLoading || settingsLoading)) {
@@ -274,7 +303,6 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
         dateRange={dateRange}
         isDark={isDark}
         currentLanguage={settings.language}
-        helpOpen={helpOpen}
         streak={streak}
         dataSource={headerDataSource}
         startupAutoLoad={startupAutoLoadBadge}
@@ -300,6 +328,7 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
         pdfButton={
           <PDFReportButton generating={reportGenerating} onGenerate={handleGenerateReport} />
         }
+        helpPanel={helpDialog}
       />
 
       <div id="filters">
@@ -326,10 +355,7 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
         />
       </div>
 
-      <div
-        key={`${animationSeed}-${daily.length}-${daily[daily.length - 1]?.date ?? 'empty'}-${Math.round(metrics.totalCost)}`}
-        className="mt-4 space-y-4"
-      >
+      <div key={animationSeed} className="mt-4 space-y-4">
         <DashboardSections
           sectionOrder={sectionOrder}
           sectionVisibility={sectionVisibility}
@@ -374,7 +400,6 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
           />
         )}
       </Suspense>
-
       <CommandPalette
         isDark={isDark}
         availableProviders={availableProviders}

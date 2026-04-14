@@ -2,6 +2,7 @@
 
 const http = require('http');
 const fs = require('fs');
+const fsPromises = require('fs/promises');
 const os = require('os');
 const path = require('path');
 const readline = require('readline/promises');
@@ -312,6 +313,18 @@ function writeJsonAtomic(filePath, data) {
     fs.chmodSync(tempPath, SECURE_FILE_MODE);
   }
   fs.renameSync(tempPath, filePath);
+}
+
+async function writeJsonAtomicAsync(filePath, data) {
+  await fsPromises.mkdir(path.dirname(filePath), { recursive: true, mode: SECURE_DIR_MODE });
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), {
+    mode: SECURE_FILE_MODE,
+  });
+  if (!IS_WINDOWS) {
+    await fsPromises.chmod(tempPath, SECURE_FILE_MODE);
+  }
+  await fsPromises.rename(tempPath, filePath);
 }
 
 function sleep(ms) {
@@ -1389,8 +1402,8 @@ function readData() {
   }
 }
 
-function writeData(data) {
-  writeJsonAtomic(DATA_FILE, data);
+async function writeData(data) {
+  await writeJsonAtomicAsync(DATA_FILE, data);
 }
 
 function readSettings() {
@@ -1420,11 +1433,11 @@ function readSettingsForWrite() {
   }
 }
 
-function writeSettings(settings) {
-  writeJsonAtomic(SETTINGS_FILE, normalizeSettings(settings));
+async function writeSettings(settings) {
+  await writeJsonAtomicAsync(SETTINGS_FILE, normalizeSettings(settings));
 }
 
-function updateSettings(patch) {
+async function updateSettings(patch) {
   const current = readSettingsForWrite();
   const next = {
     ...current,
@@ -1440,11 +1453,11 @@ function updateSettings(patch) {
   next.language = normalizeLanguage(next.language);
   next.theme = normalizeTheme(next.theme);
 
-  writeSettings(next);
+  await writeSettings(next);
   return toSettingsResponse(next);
 }
 
-function recordDataLoad(source) {
+async function recordDataLoad(source) {
   const current = readSettingsForWrite();
   const next = {
     ...current,
@@ -1452,11 +1465,11 @@ function recordDataLoad(source) {
     lastLoadSource: source,
   };
 
-  writeSettings(next);
+  await writeSettings(next);
   return toSettingsResponse(next);
 }
 
-function clearDataLoadState() {
+async function clearDataLoadState() {
   const current = readSettingsForWrite();
   const next = {
     ...current,
@@ -1464,7 +1477,7 @@ function clearDataLoadState() {
     lastLoadSource: null,
   };
 
-  writeSettings(next);
+  await writeSettings(next);
   return toSettingsResponse(next);
 }
 const { json, readBody, resolveApiPath, sendBuffer, validateMutationRequest } = createHttpUtils({
@@ -1647,8 +1660,8 @@ async function performAutoImport({
     });
 
     const normalized = normalizeIncomingData(JSON.parse(rawJson));
-    writeData(normalized);
-    recordDataLoad(source);
+    await writeData(normalized);
+    await recordDataLoad(source);
 
     return {
       days: normalized.daily.length,
@@ -1744,11 +1757,11 @@ const server = http.createServer(async (req, res) => {
         return json(res, validationError.status, { message: validationError.message });
       }
       try {
-        fs.unlinkSync(DATA_FILE);
+        await fsPromises.unlink(DATA_FILE);
       } catch {
         // Ignore missing data files during reset.
       }
-      clearDataLoadState();
+      await clearDataLoadState();
       return json(res, 200, { success: true });
     }
     return json(res, 405, { message: 'Method Not Allowed' });
@@ -1787,7 +1800,7 @@ const server = http.createServer(async (req, res) => {
         return json(res, validationError.status, { message: validationError.message });
       }
       try {
-        fs.unlinkSync(SETTINGS_FILE);
+        await fsPromises.unlink(SETTINGS_FILE);
       } catch {
         // Ignore missing settings files during reset.
       }
@@ -1801,7 +1814,7 @@ const server = http.createServer(async (req, res) => {
       }
       try {
         const body = await readBody(req);
-        return json(res, 200, updateSettings(body));
+        return json(res, 200, await updateSettings(body));
       } catch (e) {
         if (isPayloadTooLargeError(e)) {
           return json(res, 413, { message: 'Settings request too large' });
@@ -1826,7 +1839,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await readBody(req);
       const importedSettings = normalizeSettings(extractSettingsImportPayload(body));
-      writeSettings(importedSettings);
+      await writeSettings(importedSettings);
       return json(res, 200, toSettingsResponse(importedSettings));
     } catch (e) {
       if (isPayloadTooLargeError(e)) {
@@ -1846,8 +1859,8 @@ const server = http.createServer(async (req, res) => {
       try {
         const body = await readBody(req);
         const normalized = normalizeIncomingData(body);
-        writeData(normalized);
-        recordDataLoad('file');
+        await writeData(normalized);
+        await recordDataLoad('file');
         const days = normalized.daily.length;
         const totalCost = normalized.totals.totalCost;
         return json(res, 200, { days, totalCost });
@@ -1877,8 +1890,8 @@ const server = http.createServer(async (req, res) => {
       const importedData = normalizeIncomingData(extractUsageImportPayload(body));
       const currentData = readData();
       const result = mergeUsageData(currentData, importedData);
-      writeData(result.data);
-      recordDataLoad('file');
+      await writeData(result.data);
+      await recordDataLoad('file');
       return json(res, 200, result.summary);
     } catch (e) {
       if (isPayloadTooLargeError(e)) {

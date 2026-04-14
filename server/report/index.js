@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fsPromises = require('fs/promises');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -14,8 +14,8 @@ function ensureTypstInstalled() {
   });
 }
 
-function writeTextFile(filePath, content) {
-  fs.writeFileSync(filePath, content, 'utf8');
+async function writeTextFile(filePath, content) {
+  await fsPromises.writeFile(filePath, content, 'utf8');
 }
 
 function compileTypst(workingDir, typPath, pdfPath) {
@@ -387,29 +387,31 @@ async function generatePdfReport(allDailyData, options = {}) {
     throw new Error('No data available for the report.');
   }
 
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ttdash-report-'));
+  const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ttdash-report-'));
   const typPath = path.join(tempDir, 'report.typ');
   const pdfPath = path.join(tempDir, 'report.pdf');
   const jsonPath = path.join(tempDir, 'report.json');
 
   try {
-    writeTextFile(typPath, buildTemplate());
-    writeTextFile(jsonPath, JSON.stringify(reportData, null, 2));
+    await writeTextFile(typPath, buildTemplate());
+    await writeTextFile(jsonPath, JSON.stringify(reportData, null, 2));
 
     const charts = createChartAssets(reportData);
-    for (const [filename, content] of Object.entries(charts)) {
-      writeTextFile(path.join(tempDir, filename), content);
-    }
+    await Promise.all(
+      Object.entries(charts).map(([filename, content]) =>
+        writeTextFile(path.join(tempDir, filename), content),
+      ),
+    );
 
     await compileTypst(tempDir, typPath, pdfPath);
 
     return {
-      buffer: fs.readFileSync(pdfPath),
+      buffer: await fsPromises.readFile(pdfPath),
       filename: `ttdash-report-${new Date().toISOString().slice(0, 10)}.pdf`,
       reportData,
     };
   } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true });
+    await fsPromises.rm(tempDir, { recursive: true, force: true });
   }
 }
 

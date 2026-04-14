@@ -13,7 +13,6 @@ import {
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { NPM_PACKAGE_URL, VERSION } from '@/lib/constants'
-import { HelpPanel } from '@/components/features/help/HelpPanel'
 import type { AppLanguage } from '@/types'
 
 interface DataSource {
@@ -33,7 +32,6 @@ interface HeaderProps {
   dateRange: { start: string; end: string } | null
   isDark: boolean
   currentLanguage: AppLanguage
-  helpOpen: boolean
   streak?: number
   dataSource?: DataSource | null
   startupAutoLoad?: StartupAutoLoad | null
@@ -46,6 +44,7 @@ interface HeaderProps {
   onAutoImport: () => void
   settingsButton?: React.ReactNode
   pdfButton?: React.ReactNode
+  helpPanel?: React.ReactNode
 }
 
 function DataSourceBadge({ source }: { source: DataSource }) {
@@ -110,7 +109,6 @@ export function Header({
   dateRange,
   isDark,
   currentLanguage,
-  helpOpen,
   streak,
   dataSource,
   startupAutoLoad,
@@ -123,6 +121,7 @@ export function Header({
   onAutoImport,
   settingsButton,
   pdfButton,
+  helpPanel,
 }: HeaderProps) {
   const { t } = useTranslation()
 
@@ -265,8 +264,7 @@ export function Header({
           <span>{t('header.delete')}</span>
         </Button>
       </div>
-
-      <HelpPanel open={helpOpen} onOpenChange={onHelpOpenChange} />
+      {helpPanel}
     </header>
   )
 }

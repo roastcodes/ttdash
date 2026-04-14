@@ -3,6 +3,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { HelpPanel } from '@/components/features/help/HelpPanel'
 import { Header } from '@/components/layout/Header'
 import { GITHUB_ISSUES_URL, GITHUB_REPO_URL, NPM_PACKAGE_URL, VERSION } from '@/lib/constants'
 import { initI18n } from '@/lib/i18n'
@@ -16,7 +17,6 @@ function HeaderTestHarness() {
       dateRange={null}
       isDark={true}
       currentLanguage="en"
-      helpOpen={helpOpen}
       onHelpOpenChange={setHelpOpen}
       onLanguageChange={noop}
       onToggleTheme={noop}
@@ -24,6 +24,7 @@ function HeaderTestHarness() {
       onDelete={noop}
       onUpload={noop}
       onAutoImport={noop}
+      helpPanel={<HelpPanel open={helpOpen} onOpenChange={setHelpOpen} />}
     />
   )
 }

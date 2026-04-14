@@ -21,13 +21,19 @@ function mergeSettings(previous: AppSettings, patch: UpdateSettingsRequest): App
   })
 }
 
-export function useAppSettings(availableProviders: string[]) {
+export function useAppSettings(
+  availableProviders: string[],
+  initialSettings: AppSettings = DEFAULT_APP_SETTINGS,
+  initialSettingsFresh = false,
+) {
   const queryClient = useQueryClient()
 
   const query = useQuery({
     queryKey: ['settings'],
     queryFn: fetchSettings,
     staleTime: 1000 * 60 * 5,
+    initialData: initialSettings,
+    initialDataUpdatedAt: initialSettingsFresh ? Date.now() : 0,
   })
 
   const mutation = useMutation({

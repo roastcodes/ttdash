@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, Suspense, lazy } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PrimaryMetrics } from '../cards/PrimaryMetrics'
 import { SecondaryMetrics } from '../cards/SecondaryMetrics'
@@ -6,30 +6,10 @@ import { TodayMetrics } from '../cards/TodayMetrics'
 import { MonthMetrics } from '../cards/MonthMetrics'
 import { CostOverTime } from '../charts/CostOverTime'
 import { CostByModel } from '../charts/CostByModel'
-import { CostByModelOverTime } from '../charts/CostByModelOverTime'
-import { CumulativeCost } from '../charts/CumulativeCost'
-import { TokensOverTime } from '../charts/TokensOverTime'
-import { RequestsOverTime } from '../charts/RequestsOverTime'
-import { RequestCacheHitRateByModel } from '../charts/RequestCacheHitRateByModel'
-import { TokenTypes } from '../charts/TokenTypes'
-import { CostByWeekday } from '../charts/CostByWeekday'
-import { TokenEfficiency } from '../charts/TokenEfficiency'
-import { ModelMix } from '../charts/ModelMix'
-import { DistributionAnalysis } from '../charts/DistributionAnalysis'
-import { CorrelationAnalysis } from '../charts/CorrelationAnalysis'
-import { ModelEfficiency } from '../tables/ModelEfficiency'
-import { ProviderEfficiency } from '../tables/ProviderEfficiency'
-import { RecentDays } from '../tables/RecentDays'
 import { HeatmapCalendar } from '../features/heatmap/HeatmapCalendar'
-import { CostForecast } from '../features/forecast/CostForecast'
-import { CacheROI } from '../features/cache-roi/CacheROI'
-import { PeriodComparison } from '../features/comparison/PeriodComparison'
-import { AnomalyDetection } from '../features/anomaly/AnomalyDetection'
 import { UsageInsights } from '../features/insights/UsageInsights'
 import { ConcentrationRisk } from '../features/risk/ConcentrationRisk'
-import { RequestQuality } from '../features/request-quality/RequestQuality'
 import { FadeIn } from '../features/animations/FadeIn'
-import { ProviderLimitsSection } from '../features/limits/ProviderLimitsSection'
 import { SectionHeader } from '../ui/section-header'
 import { ExpandableCard } from '../ui/expandable-card'
 import { SECTION_HELP } from '@/lib/help-content'
@@ -46,6 +26,107 @@ import type {
   ViewMode,
   WeekdayData,
 } from '@/types'
+
+const CostForecast = lazy(() =>
+  import('../features/forecast/CostForecast').then((module) => ({
+    default: module.CostForecast,
+  })),
+)
+const CostByModelOverTime = lazy(() =>
+  import('../charts/CostByModelOverTime').then((module) => ({
+    default: module.CostByModelOverTime,
+  })),
+)
+const CumulativeCost = lazy(() =>
+  import('../charts/CumulativeCost').then((module) => ({
+    default: module.CumulativeCost,
+  })),
+)
+const CostByWeekday = lazy(() =>
+  import('../charts/CostByWeekday').then((module) => ({
+    default: module.CostByWeekday,
+  })),
+)
+const TokenEfficiency = lazy(() =>
+  import('../charts/TokenEfficiency').then((module) => ({
+    default: module.TokenEfficiency,
+  })),
+)
+const ModelMix = lazy(() =>
+  import('../charts/ModelMix').then((module) => ({
+    default: module.ModelMix,
+  })),
+)
+const TokensOverTime = lazy(() =>
+  import('../charts/TokensOverTime').then((module) => ({
+    default: module.TokensOverTime,
+  })),
+)
+const TokenTypes = lazy(() =>
+  import('../charts/TokenTypes').then((module) => ({
+    default: module.TokenTypes,
+  })),
+)
+const RequestsOverTime = lazy(() =>
+  import('../charts/RequestsOverTime').then((module) => ({
+    default: module.RequestsOverTime,
+  })),
+)
+const RequestCacheHitRateByModel = lazy(() =>
+  import('../charts/RequestCacheHitRateByModel').then((module) => ({
+    default: module.RequestCacheHitRateByModel,
+  })),
+)
+const CacheROI = lazy(() =>
+  import('../features/cache-roi/CacheROI').then((module) => ({
+    default: module.CacheROI,
+  })),
+)
+const ProviderLimitsSection = lazy(() =>
+  import('../features/limits/ProviderLimitsSection').then((module) => ({
+    default: module.ProviderLimitsSection,
+  })),
+)
+const RequestQuality = lazy(() =>
+  import('../features/request-quality/RequestQuality').then((module) => ({
+    default: module.RequestQuality,
+  })),
+)
+const DistributionAnalysis = lazy(() =>
+  import('../charts/DistributionAnalysis').then((module) => ({
+    default: module.DistributionAnalysis,
+  })),
+)
+const CorrelationAnalysis = lazy(() =>
+  import('../charts/CorrelationAnalysis').then((module) => ({
+    default: module.CorrelationAnalysis,
+  })),
+)
+const PeriodComparison = lazy(() =>
+  import('../features/comparison/PeriodComparison').then((module) => ({
+    default: module.PeriodComparison,
+  })),
+)
+const AnomalyDetection = lazy(() =>
+  import('../features/anomaly/AnomalyDetection').then((module) => ({
+    default: module.AnomalyDetection,
+  })),
+)
+const ModelEfficiency = lazy(() =>
+  import('../tables/ModelEfficiency').then((module) => ({
+    default: module.ModelEfficiency,
+  })),
+)
+const ProviderEfficiency = lazy(() =>
+  import('../tables/ProviderEfficiency').then((module) => ({
+    default: module.ProviderEfficiency,
+  })),
+)
+const RecentDays = lazy(() =>
+  import('../tables/RecentDays').then((module) => ({
+    default: module.RecentDays,
+  })),
+)
 
 interface DashboardSectionsProps {
   sectionOrder: DashboardSectionId[]
@@ -199,28 +280,32 @@ export function DashboardSections({
             />
             <FadeIn delay={0.06}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <ExpandableCard title={t('dashboard.cards.costForecast')}>
-                  <CostForecast data={filteredData} viewMode={viewMode} />
-                </ExpandableCard>
-                <ExpandableCard
-                  title={t('dashboard.cards.cacheRoi')}
-                  stats={[
-                    {
-                      label: t('dashboard.stats.cacheHitRate'),
-                      value: formatPercent(metrics.cacheHitRate),
-                    },
-                    {
-                      label: t('dashboard.stats.totalTokens'),
-                      value: formatTokens(metrics.totalTokens),
-                    },
-                    {
-                      label: t('dashboard.stats.cacheRead'),
-                      value: formatTokens(metrics.totalCacheRead),
-                    },
-                  ]}
-                >
-                  <CacheROI data={filteredData} viewMode={viewMode} />
-                </ExpandableCard>
+                <Suspense fallback={null}>
+                  <ExpandableCard title={t('dashboard.cards.costForecast')}>
+                    <CostForecast data={filteredData} viewMode={viewMode} />
+                  </ExpandableCard>
+                </Suspense>
+                <Suspense fallback={null}>
+                  <ExpandableCard
+                    title={t('dashboard.cards.cacheRoi')}
+                    stats={[
+                      {
+                        label: t('dashboard.stats.cacheHitRate'),
+                        value: formatPercent(metrics.cacheHitRate),
+                      },
+                      {
+                        label: t('dashboard.stats.totalTokens'),
+                        value: formatTokens(metrics.totalTokens),
+                      },
+                      {
+                        label: t('dashboard.stats.cacheRead'),
+                        value: formatTokens(metrics.totalCacheRead),
+                      },
+                    ]}
+                  >
+                    <CacheROI data={filteredData} viewMode={viewMode} />
+                  </ExpandableCard>
+                </Suspense>
               </div>
             </FadeIn>
           </div>
@@ -229,12 +314,14 @@ export function DashboardSections({
         return sectionVisibility.limits ? (
           <div id="limits">
             <FadeIn delay={0.07}>
-              <ProviderLimitsSection
-                data={filteredDailyData}
-                providers={visibleLimitProviders}
-                limits={providerLimits}
-                selectedMonth={selectedMonth}
-              />
+              <Suspense fallback={null}>
+                <ProviderLimitsSection
+                  data={filteredDailyData}
+                  providers={visibleLimitProviders}
+                  limits={providerLimits}
+                  selectedMonth={selectedMonth}
+                />
+              </Suspense>
             </FadeIn>
           </div>
         ) : null
@@ -257,19 +344,29 @@ export function DashboardSections({
             </FadeIn>
             <FadeIn delay={0.1}>
               <div className="mt-4">
-                <CostByModelOverTime data={modelCostChartData} models={allModels} />
+                <Suspense fallback={null}>
+                  <CostByModelOverTime data={modelCostChartData} models={allModels} />
+                </Suspense>
               </div>
             </FadeIn>
             <FadeIn delay={0.11}>
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <CumulativeCost data={costChartData} rawData={filteredData} />
-                <CostByWeekday data={weekdayData} />
+                <Suspense fallback={null}>
+                  <CumulativeCost data={costChartData} rawData={filteredData} />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <CostByWeekday data={weekdayData} />
+                </Suspense>
               </div>
             </FadeIn>
             <FadeIn delay={0.12}>
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <TokenEfficiency data={filteredData} />
-                <ModelMix data={filteredData} />
+                <Suspense fallback={null}>
+                  <TokenEfficiency data={filteredData} />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <ModelMix data={filteredData} />
+                </Suspense>
               </div>
             </FadeIn>
           </div>
@@ -284,8 +381,12 @@ export function DashboardSections({
             />
             <FadeIn delay={0.13}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <TokensOverTime data={tokenChartData} onClickDay={onDrillDownDateChange} />
-                <TokenTypes data={tokenPieData} />
+                <Suspense fallback={null}>
+                  <TokensOverTime data={tokenChartData} onClickDay={onDrillDownDateChange} />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <TokenTypes data={tokenPieData} />
+                </Suspense>
               </div>
             </FadeIn>
           </div>
@@ -299,24 +400,30 @@ export function DashboardSections({
               info={SECTION_HELP.requestAnalysis}
             />
             <FadeIn delay={0.14}>
-              <RequestsOverTime
-                data={requestChartData}
-                viewMode={viewMode}
-                onClickDay={onDrillDownDateChange}
-              />
+              <Suspense fallback={null}>
+                <RequestsOverTime
+                  data={requestChartData}
+                  viewMode={viewMode}
+                  onClickDay={onDrillDownDateChange}
+                />
+              </Suspense>
             </FadeIn>
             <FadeIn delay={0.15}>
               <div className="mt-4">
-                <RequestCacheHitRateByModel
-                  timelineData={filteredData}
-                  summaryData={filteredDailyData}
-                  viewMode={viewMode}
-                />
+                <Suspense fallback={null}>
+                  <RequestCacheHitRateByModel
+                    timelineData={filteredData}
+                    summaryData={filteredDailyData}
+                    viewMode={viewMode}
+                  />
+                </Suspense>
               </div>
             </FadeIn>
             <FadeIn delay={0.16}>
               <div className="mt-4">
-                <RequestQuality metrics={metrics} viewMode={viewMode} />
+                <Suspense fallback={null}>
+                  <RequestQuality metrics={metrics} viewMode={viewMode} />
+                </Suspense>
               </div>
             </FadeIn>
           </div>
@@ -331,7 +438,9 @@ export function DashboardSections({
             />
             <FadeIn delay={0.145}>
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <DistributionAnalysis data={filteredData} viewMode={viewMode} />
+                <Suspense fallback={null}>
+                  <DistributionAnalysis data={filteredData} viewMode={viewMode} />
+                </Suspense>
                 <ConcentrationRisk
                   topModelShare={metrics.topModelShare}
                   topProviderShare={metrics.topProvider?.share ?? 0}
@@ -342,7 +451,9 @@ export function DashboardSections({
             </FadeIn>
             <FadeIn delay={0.155}>
               <div className="mt-4">
-                <CorrelationAnalysis data={filteredData} />
+                <Suspense fallback={null}>
+                  <CorrelationAnalysis data={filteredData} />
+                </Suspense>
               </div>
             </FadeIn>
           </div>
@@ -357,34 +468,44 @@ export function DashboardSections({
             />
             <FadeIn delay={0.165}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <ExpandableCard
-                  title={t('dashboard.cards.periodComparison')}
-                  stats={[
-                    { label: t('dashboard.stats.dataPoints'), value: String(filteredData.length) },
-                    {
-                      label: t('dashboard.stats.avgCostPerUnit', { unit: periodUnit(viewMode) }),
-                      value: formatCurrency(metrics.avgDailyCost),
-                    },
-                  ]}
-                >
-                  <PeriodComparison data={comparisonData} />
-                </ExpandableCard>
-                <ExpandableCard
-                  title={t('dashboard.cards.anomalyDetection')}
-                  stats={[
-                    { label: t('dashboard.stats.total'), value: formatCurrency(metrics.totalCost) },
-                    {
-                      label: t('dashboard.stats.avgPerUnit', { unit: periodUnit(viewMode) }),
-                      value: formatCurrency(metrics.avgDailyCost),
-                    },
-                  ]}
-                >
-                  <AnomalyDetection
-                    data={filteredData}
-                    onClickDay={onDrillDownDateChange}
-                    viewMode={viewMode}
-                  />
-                </ExpandableCard>
+                <Suspense fallback={null}>
+                  <ExpandableCard
+                    title={t('dashboard.cards.periodComparison')}
+                    stats={[
+                      {
+                        label: t('dashboard.stats.dataPoints'),
+                        value: String(filteredData.length),
+                      },
+                      {
+                        label: t('dashboard.stats.avgCostPerUnit', { unit: periodUnit(viewMode) }),
+                        value: formatCurrency(metrics.avgDailyCost),
+                      },
+                    ]}
+                  >
+                    <PeriodComparison data={comparisonData} />
+                  </ExpandableCard>
+                </Suspense>
+                <Suspense fallback={null}>
+                  <ExpandableCard
+                    title={t('dashboard.cards.anomalyDetection')}
+                    stats={[
+                      {
+                        label: t('dashboard.stats.total'),
+                        value: formatCurrency(metrics.totalCost),
+                      },
+                      {
+                        label: t('dashboard.stats.avgPerUnit', { unit: periodUnit(viewMode) }),
+                        value: formatCurrency(metrics.avgDailyCost),
+                      },
+                    ]}
+                  >
+                    <AnomalyDetection
+                      data={filteredData}
+                      onClickDay={onDrillDownDateChange}
+                      viewMode={viewMode}
+                    />
+                  </ExpandableCard>
+                </Suspense>
               </div>
             </FadeIn>
           </div>
@@ -398,28 +519,34 @@ export function DashboardSections({
               info={SECTION_HELP.tables}
             />
             <FadeIn delay={0.17}>
-              <ModelEfficiency
-                modelCosts={modelCosts}
-                totalCost={metrics.totalCost}
-                viewMode={viewMode}
-              />
-            </FadeIn>
-            <FadeIn delay={0.18}>
-              <div className="mt-4">
-                <ProviderEfficiency
-                  providerMetrics={providerMetrics}
+              <Suspense fallback={null}>
+                <ModelEfficiency
+                  modelCosts={modelCosts}
                   totalCost={metrics.totalCost}
                   viewMode={viewMode}
                 />
+              </Suspense>
+            </FadeIn>
+            <FadeIn delay={0.18}>
+              <div className="mt-4">
+                <Suspense fallback={null}>
+                  <ProviderEfficiency
+                    providerMetrics={providerMetrics}
+                    totalCost={metrics.totalCost}
+                    viewMode={viewMode}
+                  />
+                </Suspense>
               </div>
             </FadeIn>
             <FadeIn delay={0.19}>
               <div className="mt-4">
-                <RecentDays
-                  data={filteredData}
-                  onClickDay={onDrillDownDateChange}
-                  viewMode={viewMode}
-                />
+                <Suspense fallback={null}>
+                  <RecentDays
+                    data={filteredData}
+                    onClickDay={onDrillDownDateChange}
+                    viewMode={viewMode}
+                  />
+                </Suspense>
               </div>
             </FadeIn>
           </div>

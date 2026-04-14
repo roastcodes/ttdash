@@ -106,4 +106,19 @@ describe('react-query hook integrations', () => {
     await waitFor(() => expect(result.current.settings.theme).toBe('dark'))
     expect(result.current.isSaving).toBe(false)
   })
+
+  it('reuses fresh bootstrap settings without refetching on mount', async () => {
+    const bootstrapSettings = {
+      ...DEFAULT_APP_SETTINGS,
+      theme: 'light' as const,
+    }
+
+    const { result } = renderHook(() => useAppSettings([], bootstrapSettings, true), {
+      wrapper: createWrapper(),
+    })
+
+    expect(result.current.settings.theme).toBe('light')
+    expect(result.current.isLoading).toBe(false)
+    expect(apiMocks.fetchSettings).not.toHaveBeenCalled()
+  })
 })
