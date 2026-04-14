@@ -1,4 +1,4 @@
-import * as React from 'react'
+import type * as React from 'react'
 import { createContext, useContext, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'

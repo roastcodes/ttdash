@@ -1,7 +1,10 @@
 import { defineConfig } from 'eslint/config'
 import js from '@eslint/js'
 import eslintConfigPrettier from 'eslint-config-prettier'
+import importPlugin from 'eslint-plugin-import'
 import jsdoc from 'eslint-plugin-jsdoc'
+import jsxA11y from 'eslint-plugin-jsx-a11y'
+import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
@@ -91,6 +94,55 @@ export default defineConfig(
       ],
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
+    },
+  },
+  {
+    files: ['src/**/*.{tsx,jsx}'],
+    extends: [react.configs.flat.recommended, react.configs.flat['jsx-runtime']],
+    languageOptions: {
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+    settings: {
+      react: {
+        version: 'detect',
+      },
+    },
+  },
+  {
+    files: ['src/**/*.{tsx,jsx}'],
+    extends: [jsxA11y.flatConfigs.recommended],
+    languageOptions: {
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+  },
+  {
+    files: ['**/*.{js,cjs,mjs,ts,tsx}'],
+    extends: [importPlugin.flatConfigs.recommended, importPlugin.flatConfigs.typescript],
+    languageOptions: {
+      ecmaVersion: 'latest',
+    },
+    settings: {
+      'import/resolver': {
+        typescript: true,
+        node: true,
+      },
+    },
+    rules: {
+      'import/export': 'error',
+      'import/first': 'error',
+      'import/newline-after-import': 'error',
+      'import/no-duplicates': 'error',
+      'import/no-named-as-default': 'off',
+      'import/no-named-as-default-member': 'off',
+      'import/no-unresolved': 'error',
     },
   },
   {

@@ -2,11 +2,10 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
-import { formatCurrency, formatDate } from '@/lib/formatters'
+import { formatCurrency, formatDate, periodLabel } from '@/lib/formatters'
 import { computeAnomalies } from '@/lib/calculations'
 import { CHART_HELP } from '@/lib/help-content'
 import { TriangleAlert } from 'lucide-react'
-import { periodLabel } from '@/lib/formatters'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface AnomalyDetectionProps {
@@ -72,14 +71,16 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
               const zScore = zScoreNum.toFixed(1)
               const isHigh = day.totalCost > mean
               const severity = Math.abs(zScoreNum) >= 3 ? 'critical' : 'warn'
+              const cardClasses = `flex items-center justify-between p-2 rounded-lg transition-colors ${
+                severity === 'critical'
+                  ? 'bg-red-400/10 hover:bg-red-400/20 border border-red-400/20'
+                  : 'bg-muted/30 hover:bg-muted/50'
+              }`
               return (
-                <div
+                <button
                   key={day.date}
-                  className={`flex items-center justify-between p-2 rounded-lg transition-colors cursor-pointer ${
-                    severity === 'critical'
-                      ? 'bg-red-400/10 hover:bg-red-400/20 border border-red-400/20'
-                      : 'bg-muted/30 hover:bg-muted/50'
-                  }`}
+                  type="button"
+                  className={cardClasses}
                   onClick={() => onClickDay?.(day.date)}
                 >
                   <div className="flex items-center gap-3">
@@ -110,7 +111,7 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
                       {zScore}σ
                     </span>
                   </div>
-                </div>
+                </button>
               )
             })}
         </div>

@@ -5,7 +5,13 @@ import { Button } from '@/components/ui/button'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
-import { formatCurrency, formatDate, formatPercent, formatNumber } from '@/lib/formatters'
+import {
+  formatCurrency,
+  formatDate,
+  formatPercent,
+  formatNumber,
+  periodLabel,
+} from '@/lib/formatters'
 import {
   normalizeModelName,
   getModelColor,
@@ -15,7 +21,6 @@ import {
 } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
-import { periodLabel } from '@/lib/formatters'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface RecentDaysProps {

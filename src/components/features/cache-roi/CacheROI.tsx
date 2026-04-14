@@ -1,14 +1,13 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { formatPercent } from '@/lib/formatters'
+import { formatPercent, periodUnit } from '@/lib/formatters'
 import { normalizeModelName } from '@/lib/model-utils'
 import { MODEL_PRICES } from '@/lib/constants'
 import { Zap } from 'lucide-react'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_HELP } from '@/lib/help-content'
-import { periodUnit } from '@/lib/formatters'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface CacheROIProps {
