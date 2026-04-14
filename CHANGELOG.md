@@ -1,11 +1,12 @@
 # Changelog
 
-## [6.2.1] - 2026-04-14
+## [6.2.1] - 2026-04-15
 
 ### Added
 
 - **Tiefere Drilldown-Analyse für `Letzte Tage`** — der Detaildialog zeigt jetzt deutlich mehr Tages- und Periodenkontext, darunter modellbezogene Kosten-, Token- und Request-Kennzahlen, Provider-Zusammenfassungen, Token-Verteilungen sowie Benchmarks gegen Vorperiode und Kurzzeitschnitt
 - **Direkte Navigation im `Letzte Tage`-Drilldown** — innerhalb des geöffneten Detaildialogs kann jetzt direkt zum vorherigen oder nächsten Tag bzw. zur nächsten Periode gewechselt werden, inklusive Positionsanzeige und Pfeiltasten-Navigation
+- **Verbindliche Docstring-Prüfung für Produktionscode** — kurze englische JSDoc-Kommentare werden jetzt für die öffentliche Produktionsoberfläche des Repos geprüft und lokal wie in CI/Release als eigener Gate mitgeführt
 
 ### Improved
 
@@ -15,12 +16,16 @@
 - **Ladeverhalten und Chunking des Dashboards** — Settings, Help, Drilldown, Auto-Import und viele schwerere Analyse-Sektionen werden jetzt lazy geladen, wodurch der Initialpfad schlanker bleibt, ohne sichtbare Funktionen, Inhalte oder Animationen zu verändern
 - **Lokale Runtime und Report-I/O** — Upload-, Settings- und PDF-/Report-Pfade blockieren den Event Loop weniger stark, weil mehrere synchrone Dateisystemoperationen auf asynchronere Verarbeitung umgestellt wurden
 - **Absicherung für die Weiterentwicklung** — neue und erweiterte Frontend-, Hook-, Daten- und E2E-Tests decken die UI-, Drilldown- und Performance-Verbesserungen gezielt ab
+- **Lint-, Format- und Test-Gates für die Weiterentwicklung** — React-, Accessibility-, Import-, Testing-Library-, jest-dom- und Playwright-Linting sowie Tailwind-Class-Sorting sind jetzt Teil der normalen lokalen und GitHub-Gates
+- **Release- und Maintainer-Dokumentation** — `RELEASING.md` beschreibt jetzt Fehlerszenarien und Retry-Bedingungen klarer, einschließlich 1Password-URL-Validierung und GitHub-Domain-Verifikation
+- **Workflow-Pins und Build-Tooling** — GitHub Actions sind auf aktuelle stabile Commit-Hashes samt präziser Versionskommentare gebracht, und kompatible Direktabhängigkeiten wie `react-i18next` und `typescript-eslint` wurden aktualisiert
 
 ### Fixed
 
 - **Semantik und Bedienbarkeit zentraler Filter- und Overlay-Flächen** — Date-Picker, Filter-Chips, Info-Buttons und Toasts verhalten sich jetzt konsistenter für Keyboard-, Screenreader- und Touch-Nutzung
 - **Bewegungs- und Diagrammverhalten in Dashboard-Sektionen** — doppelte oder unpassende Reveal-/Chart-Animationen, unvollständige Reduced-Motion-Pfade und mehrere Timing-/Discoverability-Probleme in expandierbaren Analyseflächen wurden bereinigt
 - **Skalierungsprobleme in `Letzte Tage` und sekundären Oberflächen** — große Tabellenansichten, Help-/Settings-Öffnung und weitere schwere UI-Pfade reagieren unter größeren Datenmengen robuster als zuvor
+- **Mehrere Review- und CI-Findings aus CodeRabbit und lokaler Validierung** — period-aware Drilldown-Benchmarks, Heatmap-Semantik, Cache-ROI-Vorzeichenlogik, Help-Dialog-Lifecycle, Weekday-Lokalisierung, testbezogene Timer-/RAF-Stabilität und race-sichere serverseitige Datei-Mutationen wurden gezielt bereinigt
 
 ## [6.2.0] - 2026-04-14
 
