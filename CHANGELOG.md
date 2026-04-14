@@ -1,5 +1,27 @@
 # Changelog
 
+## [6.2.1] - 2026-04-14
+
+### Added
+
+- **Tiefere Drilldown-Analyse für `Letzte Tage`** — der Detaildialog zeigt jetzt deutlich mehr Tages- und Periodenkontext, darunter modellbezogene Kosten-, Token- und Request-Kennzahlen, Provider-Zusammenfassungen, Token-Verteilungen sowie Benchmarks gegen Vorperiode und Kurzzeitschnitt
+- **Direkte Navigation im `Letzte Tage`-Drilldown** — innerhalb des geöffneten Detaildialogs kann jetzt direkt zum vorherigen oder nächsten Tag bzw. zur nächsten Periode gewechselt werden, inklusive Positionsanzeige und Pfeiltasten-Navigation
+
+### Improved
+
+- **Umfassende UI-Qualität im gesamten Dashboard** — Filter, Overlays, Toasts, Heatmaps, Tabellen, Karten und Diagrammflächen wurden nach einem tiefen UI-Review gezielt gehärtet, mit besserer Accessibility, klarerer Zustandskommunikation, stärkerer Mobile-Discoverability und konsistenteren Focus-/Zoom-Flows
+- **Detailqualität und Aussagekraft der Dashboard-Ansichten** — Modell- und Provider-Informationen, Chart-Lesbarkeit, Light-/Dark-Parität, Filterstatus-Klarheit und mobile Header-/Legend-Darstellung wurden über mehrere Oberflächen hinweg präzisiert, ohne das bestehende Nutzungsmodell zu verändern
+- **Performance auf Start-, Filter- und Großdatensatzpfaden** — der Dashboard-Root remountet bei normalen Filterwechseln nicht mehr unnötig, Bootstrap-Settings werden ohne sofortigen Doppel-Fetch wiederverwendet, zentrale Datenableitungen laufen gebündelter, und große Tabellen-/Sekundärflächen skalieren spürbar besser
+- **Ladeverhalten und Chunking des Dashboards** — Settings, Help, Drilldown, Auto-Import und viele schwerere Analyse-Sektionen werden jetzt lazy geladen, wodurch der Initialpfad schlanker bleibt, ohne sichtbare Funktionen, Inhalte oder Animationen zu verändern
+- **Lokale Runtime und Report-I/O** — Upload-, Settings- und PDF-/Report-Pfade blockieren den Event Loop weniger stark, weil mehrere synchrone Dateisystemoperationen auf asynchronere Verarbeitung umgestellt wurden
+- **Absicherung für die Weiterentwicklung** — neue und erweiterte Frontend-, Hook-, Daten- und E2E-Tests decken die UI-, Drilldown- und Performance-Verbesserungen gezielt ab
+
+### Fixed
+
+- **Semantik und Bedienbarkeit zentraler Filter- und Overlay-Flächen** — Date-Picker, Filter-Chips, Info-Buttons und Toasts verhalten sich jetzt konsistenter für Keyboard-, Screenreader- und Touch-Nutzung
+- **Bewegungs- und Diagrammverhalten in Dashboard-Sektionen** — doppelte oder unpassende Reveal-/Chart-Animationen, unvollständige Reduced-Motion-Pfade und mehrere Timing-/Discoverability-Probleme in expandierbaren Analyseflächen wurden bereinigt
+- **Skalierungsprobleme in `Letzte Tage` und sekundären Oberflächen** — große Tabellenansichten, Help-/Settings-Öffnung und weitere schwere UI-Pfade reagieren unter größeren Datenmengen robuster als zuvor
+
 ## [6.2.0] - 2026-04-14
 
 ### Added
