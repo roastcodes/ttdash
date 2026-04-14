@@ -11,7 +11,12 @@ import {
   periodLabel,
   formatNumber,
 } from '@/lib/formatters'
-import { getModelColor, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
+import {
+  getModelColor,
+  getModelColorAlpha,
+  getModelProvider,
+  getProviderBadgeClasses,
+} from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
 import type { ViewMode } from '@/types'
@@ -359,7 +364,7 @@ export function ModelEfficiency({
                       className="absolute inset-y-1 left-0 rounded-sm transition-all duration-500"
                       style={{
                         width: `${model.share}%`,
-                        backgroundColor: `${getModelColor(model.name)}20`,
+                        backgroundColor: getModelColorAlpha(model.name, 0.16),
                       }}
                     />
                     <span className="relative">{formatPercent(model.share)}</span>

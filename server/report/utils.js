@@ -12,24 +12,12 @@ const {
   normalizeModelName,
   sortByDate,
 } = require('../../shared/dashboard-domain');
-
-const MODEL_COLORS = {
-  'Opus 4.6': 'rgb(175, 92, 224)',
-  'Opus 4.5': 'rgb(200, 66, 111)',
-  'Sonnet 4.6': 'rgb(71, 134, 221)',
-  'Sonnet 4.5': 'rgb(66, 161, 130)',
-  'Haiku 4.5': 'rgb(231, 146, 34)',
-  'GPT-5.4': 'rgb(230, 98, 56)',
-  'GPT-5': 'rgb(230, 98, 56)',
-  'Gemini 3 Flash Preview': 'rgb(237, 188, 8)',
-  Gemini: 'rgb(237, 188, 8)',
-  OpenCode: 'rgb(51, 181, 193)',
-};
+const { getModelColorRgb } = require('../../shared/model-colors.js');
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
 function getModelColor(name) {
-  return MODEL_COLORS[name] || 'rgb(113, 128, 150)';
+  return getModelColorRgb(name, { theme: 'light' });
 }
 
 function toCostChartData(data) {
