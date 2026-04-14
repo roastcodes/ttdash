@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DrillDownModal } from '@/components/features/drill-down/DrillDownModal'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
@@ -89,6 +89,10 @@ describe('DrillDownModal', () => {
           day={selectedDay}
           contextData={[previousDay, selectedDay]}
           open
+          hasPrevious={true}
+          hasNext={false}
+          currentIndex={2}
+          totalCount={2}
           onClose={() => {}}
         />
       </TooltipProvider>,
@@ -105,6 +109,10 @@ describe('DrillDownModal', () => {
     expect(screen.getByText('Top 3 cost share')).toBeInTheDocument()
     expect(screen.getByText('Cost vs. previous')).toBeInTheDocument()
     expect(screen.getByText('Tokens vs. 7D avg')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous day' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Next day' })).toBeDisabled()
+    expect(screen.getByText('2 / 2')).toBeInTheDocument()
+    expect(screen.getByText('Use ← / →')).toBeInTheDocument()
 
     const modelSection = screen.getByText('Model breakdown').closest('section')
     expect(modelSection).not.toBeNull()
@@ -162,7 +170,16 @@ describe('DrillDownModal', () => {
 
     render(
       <TooltipProvider>
-        <DrillDownModal day={monthEntry} contextData={[monthEntry]} open onClose={() => {}} />
+        <DrillDownModal
+          day={monthEntry}
+          contextData={[monthEntry]}
+          open
+          hasPrevious={false}
+          hasNext={false}
+          currentIndex={1}
+          totalCount={1}
+          onClose={() => {}}
+        />
       </TooltipProvider>,
     )
 
@@ -173,5 +190,62 @@ describe('DrillDownModal', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Type: month')).toBeInTheDocument()
     expect(screen.getAllByText('30 raw days').length).toBeGreaterThan(0)
+  })
+
+  it('supports previous/next buttons and arrow-key navigation', () => {
+    const onPrevious = vi.fn()
+    const onNext = vi.fn()
+    const day: DailyUsage = {
+      date: '2026-04-07',
+      inputTokens: 60,
+      outputTokens: 20,
+      cacheCreationTokens: 10,
+      cacheReadTokens: 10,
+      thinkingTokens: 0,
+      totalTokens: 100,
+      totalCost: 5,
+      requestCount: 2,
+      modelsUsed: ['gpt-5.4'],
+      modelBreakdowns: [
+        {
+          modelName: 'gpt-5.4',
+          inputTokens: 60,
+          outputTokens: 20,
+          cacheCreationTokens: 10,
+          cacheReadTokens: 10,
+          thinkingTokens: 0,
+          cost: 5,
+          requestCount: 2,
+        },
+      ],
+    }
+
+    render(
+      <TooltipProvider>
+        <DrillDownModal
+          day={day}
+          contextData={[day]}
+          open
+          hasPrevious={true}
+          hasNext={true}
+          currentIndex={3}
+          totalCount={8}
+          onPrevious={onPrevious}
+          onNext={onNext}
+          onClose={() => {}}
+        />
+      </TooltipProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous day' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Next day' }))
+
+    const dialog = screen.getByRole('dialog')
+    fireEvent.keyDown(dialog, { key: 'ArrowLeft' })
+    fireEvent.keyDown(dialog, { key: 'ArrowRight' })
+    fireEvent.keyDown(dialog, { key: 'ArrowRight', shiftKey: true })
+
+    expect(onPrevious).toHaveBeenCalledTimes(2)
+    expect(onNext).toHaveBeenCalledTimes(2)
   })
 })

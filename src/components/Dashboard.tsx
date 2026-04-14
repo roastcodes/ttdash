@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SlidersHorizontal } from 'lucide-react'
 import { Header } from './layout/Header'
@@ -153,6 +153,32 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
       />
     </>
   )
+
+  const drillDownSequence = useMemo(
+    () => [...filteredData].sort((a, b) => a.date.localeCompare(b.date)),
+    [filteredData],
+  )
+
+  const drillDownIndex = useMemo(
+    () =>
+      drillDownDate !== null
+        ? drillDownSequence.findIndex((entry) => entry.date === drillDownDate)
+        : -1,
+    [drillDownDate, drillDownSequence],
+  )
+
+  const hasPreviousDrillDown = drillDownIndex > 0
+  const hasNextDrillDown = drillDownIndex >= 0 && drillDownIndex < drillDownSequence.length - 1
+
+  const handleDrillDownPrevious = useCallback(() => {
+    if (!hasPreviousDrillDown) return
+    setDrillDownDate(drillDownSequence[drillDownIndex - 1]?.date ?? null)
+  }, [drillDownIndex, drillDownSequence, hasPreviousDrillDown, setDrillDownDate])
+
+  const handleDrillDownNext = useCallback(() => {
+    if (!hasNextDrillDown) return
+    setDrillDownDate(drillDownSequence[drillDownIndex + 1]?.date ?? null)
+  }, [drillDownIndex, drillDownSequence, hasNextDrillDown, setDrillDownDate])
 
   const autoImportDialog = (
     <Suspense fallback={null}>
@@ -338,6 +364,12 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
             day={drillDownDay}
             contextData={filteredData}
             open={true}
+            hasPrevious={hasPreviousDrillDown}
+            hasNext={hasNextDrillDown}
+            currentIndex={drillDownIndex >= 0 ? drillDownIndex + 1 : 0}
+            totalCount={drillDownSequence.length}
+            onPrevious={handleDrillDownPrevious}
+            onNext={handleDrillDownNext}
             onClose={() => setDrillDownDate(null)}
           />
         )}

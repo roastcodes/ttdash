@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -7,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
 import {
@@ -30,6 +32,12 @@ interface DrillDownModalProps {
   day: DailyUsage | null
   contextData?: DailyUsage[]
   open: boolean
+  hasPrevious?: boolean
+  hasNext?: boolean
+  currentIndex?: number
+  totalCount?: number
+  onPrevious?: () => void
+  onNext?: () => void
   onClose: () => void
 }
 
@@ -87,7 +95,30 @@ function formatDeltaPercent(delta: ReturnType<typeof getDelta>, fallback = '–'
   return `${delta.percent > 0 ? '+' : ''}${delta.percent.toFixed(1)}%`
 }
 
-export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDownModalProps) {
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+
+  const tagName = target.tagName
+  return (
+    target.isContentEditable ||
+    tagName === 'INPUT' ||
+    tagName === 'TEXTAREA' ||
+    tagName === 'SELECT'
+  )
+}
+
+export function DrillDownModal({
+  day,
+  contextData = [],
+  open,
+  hasPrevious: hasPreviousProp,
+  hasNext: hasNextProp,
+  currentIndex: currentIndexProp,
+  totalCount: totalCountProp,
+  onPrevious,
+  onNext,
+  onClose,
+}: DrillDownModalProps) {
   const { t } = useTranslation()
 
   const periodKind = day ? getPeriodKind(day.date) : 'day'
@@ -105,6 +136,10 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
   const previousEntry = contextIndex > 0 ? sortedContextData[contextIndex - 1] : null
   const previousSeven =
     contextIndex > 0 ? sortedContextData.slice(Math.max(0, contextIndex - 7), contextIndex) : []
+  const hasPrevious = hasPreviousProp ?? contextIndex > 0
+  const hasNext = hasNextProp ?? (contextIndex >= 0 && contextIndex < sortedContextData.length - 1)
+  const currentIndex = currentIndexProp ?? (contextIndex >= 0 ? contextIndex + 1 : 0)
+  const totalCount = totalCountProp ?? sortedContextData.length
 
   const tokensTotal = day ? getEntryTokenTotal(day) : 0
   const hasTokens = tokensTotal > 0
@@ -451,16 +486,82 @@ export function DrillDownModal({ day, contextData = [], open, onClose }: DrillDo
     },
   ]
 
+  const previousLabel = t(
+    periodKind === 'day' ? 'drillDown.previousDay' : 'drillDown.previousPeriod',
+  )
+  const nextLabel = t(periodKind === 'day' ? 'drillDown.nextDay' : 'drillDown.nextPeriod')
+
+  const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      isEditableTarget(event.target)
+    ) {
+      return
+    }
+
+    if (event.key === 'ArrowLeft' && hasPrevious) {
+      event.preventDefault()
+      onPrevious?.()
+    }
+
+    if (event.key === 'ArrowRight' && hasNext) {
+      event.preventDefault()
+      onNext?.()
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-5xl max-h-[85vh] overflow-y-auto"
+        onKeyDown={handleDialogKeyDown}
+      >
         <DialogHeader>
-          <DialogTitle>
-            {formatDate(day.date, 'long')} — {formatCurrency(day.totalCost)}
-          </DialogTitle>
-          <DialogDescription>
-            {t('drillDown.description', { periodType: t(`periods.${periodKind}`) })}
-          </DialogDescription>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1.5">
+              <DialogTitle>
+                {formatDate(day.date, 'long')} — {formatCurrency(day.totalCost)}
+              </DialogTitle>
+              <DialogDescription>
+                {t('drillDown.description', { periodType: t(`periods.${periodKind}`) })}
+              </DialogDescription>
+            </div>
+
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onPrevious}
+                  disabled={!hasPrevious}
+                  aria-label={previousLabel}
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                  <span>{previousLabel}</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onNext}
+                  disabled={!hasNext}
+                  aria-label={nextLabel}
+                >
+                  <span>{nextLabel}</span>
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:justify-end">
+                <span>{t('drillDown.position', { current: currentIndex, total: totalCount })}</span>
+                <span aria-hidden="true">·</span>
+                <span>{t('drillDown.keyboardHint')}</span>
+              </div>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-2 pt-1 text-xs text-muted-foreground">
             <span className="rounded-full border border-border/60 bg-muted/20 px-2 py-1">
               {t('drillDown.periodType', { period: t(`periods.${periodKind}`) })}
