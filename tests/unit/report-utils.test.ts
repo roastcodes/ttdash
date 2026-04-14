@@ -206,4 +206,15 @@ describe('report utils', () => {
     expect(report.chartDescriptions.topModels.fullNamesNote).toContain(normalizedLongModelName)
     expect(report.chartDescriptions.tokenTrend.summary).toContain('Peak token volume')
   })
+
+  it('omits the full-names note when top-model labels fit without truncation', async () => {
+    const { buildReportData } = await import('../../server/report/utils.js')
+
+    const report = buildReportData(dashboardFixture, {
+      viewMode: 'daily',
+      language: 'en',
+    })
+
+    expect(report.chartDescriptions.topModels.fullNamesNote).toBeNull()
+  })
 })

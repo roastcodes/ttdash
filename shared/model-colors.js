@@ -167,7 +167,7 @@ function fallbackColor(name, theme) {
 function getModelColorSpec(name, options = {}) {
   const theme = normalizeTheme(options.theme)
   const known = findKnownColor(name)
-  return known ? known[theme] : fallbackColor(name, theme)
+  return known ? { ...known[theme] } : fallbackColor(name, theme)
 }
 
 function toHslString(spec) {

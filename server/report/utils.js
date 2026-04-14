@@ -1,5 +1,6 @@
 const { version: APP_VERSION } = require('../../package.json');
 const { getLanguage, getLocale, translate } = require('./i18n');
+const { truncateTopModelChartLabel } = require('./chart-labels');
 const {
   aggregateToDailyFormat,
   computeMetrics,
@@ -290,12 +291,6 @@ function summarizeSelection(
   return `${visible.join(', ')}${suffix}`;
 }
 
-function truncateLabel(value, maxLength = 28) {
-  const stringValue = String(value || '');
-  if (stringValue.length <= maxLength) return stringValue;
-  return `${stringValue.slice(0, Math.max(1, maxLength - 1)).trimEnd()}…`;
-}
-
 function buildInsights(metrics, { filteredDaily, filtered, language }) {
   const insights = [];
 
@@ -469,7 +464,7 @@ function buildReportData(allDailyData, options = {}) {
 
   const topChartModels = modelRows.slice(0, 8);
   const truncatedTopModelNames = topChartModels
-    .filter((entry) => entry.name.length > 30)
+    .filter((entry) => truncateTopModelChartLabel(entry.name) !== entry.name)
     .map((entry) => entry.name);
   const topModelSummary = metrics.topModel
     ? translate(language, 'report.charts.topModelsSummary', {
@@ -667,7 +662,6 @@ module.exports = {
   formatDate,
   formatDateAxis,
   getModelColor,
-  truncateLabel,
   __test__: {
     getModelProvider,
     normalizeModelName,

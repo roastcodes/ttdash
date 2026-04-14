@@ -338,7 +338,7 @@ function createChartAssets(reportData) {
       getValue: (entry) => entry.cost,
       getLabel: (entry) => entry.name,
       getColor: (entry) => entry.color,
-      formatter: (value) => `$${value.toFixed(value >= 100 ? 0 : 2)}`,
+      formatter: (value) => formatCostAxisValue(value, reportData.meta.language),
     }),
     'token-trend.svg': stackedBarChart(tokenTrend, {
       title: reportData.text.charts.tokenTrend,

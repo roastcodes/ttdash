@@ -1,22 +1,44 @@
 import { createRequire } from 'node:module'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { getModelColor, getModelColorAlpha } from '@/lib/model-utils'
 
 const require = createRequire(import.meta.url)
-const { getModelColor: getSharedModelColor, getModelColorRgb } =
-  require('../../shared/model-colors.js') as {
-    getModelColor: (name: string, options?: { theme?: 'light' | 'dark'; alpha?: number }) => string
-    getModelColorRgb: (
-      name: string,
-      options?: { theme?: 'light' | 'dark'; alpha?: number },
-    ) => string
-  }
+const {
+  getModelColor: getSharedModelColor,
+  getModelColorRgb,
+  getModelColorSpec,
+} = require('../../shared/model-colors.js') as {
+  getModelColor: (name: string, options?: { theme?: 'light' | 'dark'; alpha?: number }) => string
+  getModelColorRgb: (name: string, options?: { theme?: 'light' | 'dark'; alpha?: number }) => string
+  getModelColorSpec: (
+    name: string,
+    options?: { theme?: 'light' | 'dark'; alpha?: number },
+  ) => { h: number; s: number; l: number }
+}
 
 const { getModelColor: getReportModelColor } = require('../../server/report/utils.js') as {
   getModelColor: (name: string) => string
 }
 
 describe('model colors', () => {
+  function setDocumentTheme(isDark: boolean) {
+    ;(
+      globalThis as {
+        document?: { documentElement: { classList: { contains: (name: string) => boolean } } }
+      }
+    ).document = {
+      documentElement: {
+        classList: {
+          contains: (name: string) => name === 'dark' && isDark,
+        },
+      },
+    }
+  }
+
+  afterEach(() => {
+    delete (globalThis as { document?: unknown }).document
+  })
+
   it('assigns curated theme-aware colors to current model families', () => {
     expect(getModelColor('GPT-5.4', 'dark')).toBe('hsl(148, 72%, 57%)')
     expect(getModelColor('GPT-5.4', 'light')).toBe('hsl(148, 68%, 40%)')
@@ -69,6 +91,37 @@ describe('model colors', () => {
     )
     expect(getModelColor('OpenCode', 'light')).toBe(
       getSharedModelColor('OpenCode', { theme: 'light' }),
+    )
+  })
+
+  it('does not expose mutable shared color specs for curated models', () => {
+    const spec = getModelColorSpec('GPT-5.4', { theme: 'dark' })
+    spec.h = 0
+    spec.s = 0
+    spec.l = 0
+
+    expect(getModelColorSpec('GPT-5.4', { theme: 'dark' })).toEqual({
+      h: 148,
+      s: 72,
+      l: 57,
+    })
+  })
+
+  it('uses the dark palette when no theme is passed and the document is dark', () => {
+    setDocumentTheme(true)
+
+    expect(getModelColor('GPT-5.4')).toBe(getModelColor('GPT-5.4', 'dark'))
+    expect(getModelColor('Mystery Frontier Alpha')).toBe(
+      getModelColor('Mystery Frontier Alpha', 'dark'),
+    )
+  })
+
+  it('uses the light palette when no theme is passed and the document is not dark', () => {
+    setDocumentTheme(false)
+
+    expect(getModelColor('GPT-5.4')).toBe(getModelColor('GPT-5.4', 'light'))
+    expect(getModelColorAlpha('Mystery Frontier Alpha', 0.16)).toBe(
+      getModelColorAlpha('Mystery Frontier Alpha', 0.16, 'light'),
     )
   })
 })
