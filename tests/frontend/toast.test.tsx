@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ToastProvider, useToast } from '@/components/ui/toast'
 import { initI18n } from '@/lib/i18n'
 
@@ -19,6 +19,10 @@ describe('ToastProvider', () => {
   beforeEach(async () => {
     vi.useFakeTimers()
     await initI18n('en')
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('announces non-error toasts as status messages and allows explicit dismissal', () => {

@@ -37,6 +37,7 @@ export interface BootstrapSettingsResult {
   settings: AppSettings
   errorMessage: string | null
   loadedFromServer: boolean
+  fetchedAt: number | null
 }
 
 export async function fetchUsage(): Promise<UsageData> {
@@ -95,6 +96,7 @@ export async function fetchSettings(): Promise<AppSettings> {
 
 export async function loadBootstrapSettings(): Promise<BootstrapSettingsResult> {
   try {
+    const fetchedAt = Date.now()
     const response = await fetch('/api/settings')
 
     if (!response.ok) {
@@ -102,6 +104,7 @@ export async function loadBootstrapSettings(): Promise<BootstrapSettingsResult> 
         settings: DEFAULT_APP_SETTINGS,
         errorMessage: await readErrorMessage(response, i18n.t('api.fetchSettingsFailed')),
         loadedFromServer: false,
+        fetchedAt: null,
       }
     }
 
@@ -109,12 +112,14 @@ export async function loadBootstrapSettings(): Promise<BootstrapSettingsResult> 
       settings: normalizeAppSettings(await parseResponseJson<unknown>(response)),
       errorMessage: null,
       loadedFromServer: true,
+      fetchedAt,
     }
   } catch {
     return {
       settings: DEFAULT_APP_SETTINGS,
       errorMessage: null,
       loadedFromServer: false,
+      fetchedAt: null,
     }
   }
 }

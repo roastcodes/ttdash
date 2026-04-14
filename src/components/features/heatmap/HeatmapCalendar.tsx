@@ -352,9 +352,9 @@ export function HeatmapCalendar({
                       fill={getColor(cell.value, maxValue, config.hue, isDarkTheme)}
                       stroke="transparent"
                       strokeWidth={1.5}
-                      className="transition-all duration-150 cursor-pointer focus-visible:stroke-primary"
+                      className="transition-all duration-150 focus-visible:stroke-primary"
                       tabIndex={focusedDate === cell.date ? 0 : -1}
-                      role="button"
+                      role="gridcell"
                       aria-label={accessibleLabel}
                       aria-current={isToday ? 'date' : undefined}
                       onKeyDown={(event) => handleCellKeyDown(event, cell.date)}

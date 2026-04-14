@@ -255,7 +255,7 @@ export function RequestCacheHitRateByModel({
               </div>
               <ChartAnimationAware>
                 {(animate) => (
-                  <ChartReveal variant="line" delay={0.04}>
+                  <ChartReveal variant="line">
                     <ResponsiveContainer
                       width="100%"
                       height={expanded ? expandedLineHeight : lineHeight}
@@ -361,7 +361,7 @@ export function RequestCacheHitRateByModel({
               </div>
               <ChartAnimationAware>
                 {(animate) => (
-                  <ChartReveal variant="line" delay={0.14}>
+                  <ChartReveal variant="line">
                     <ResponsiveContainer
                       width="100%"
                       height={expanded ? expandedBarHeight : compactBarHeight}

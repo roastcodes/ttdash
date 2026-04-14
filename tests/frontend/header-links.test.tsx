@@ -13,19 +13,21 @@ function HeaderTestHarness() {
   const noop = () => {}
 
   return (
-    <Header
-      dateRange={null}
-      isDark={true}
-      currentLanguage="en"
-      onHelpOpenChange={setHelpOpen}
-      onLanguageChange={noop}
-      onToggleTheme={noop}
-      onExportCSV={noop}
-      onDelete={noop}
-      onUpload={noop}
-      onAutoImport={noop}
-      helpPanel={<HelpPanel open={helpOpen} onOpenChange={setHelpOpen} />}
-    />
+    <>
+      <Header
+        dateRange={null}
+        isDark={true}
+        currentLanguage="en"
+        onHelpOpenChange={setHelpOpen}
+        onLanguageChange={noop}
+        onToggleTheme={noop}
+        onExportCSV={noop}
+        onDelete={noop}
+        onUpload={noop}
+        onAutoImport={noop}
+      />
+      <HelpPanel open={helpOpen} onOpenChange={setHelpOpen} />
+    </>
   )
 }
 

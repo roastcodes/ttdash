@@ -38,17 +38,20 @@ interface DashboardProps {
   initialSettings: AppSettings
   initialSettingsError?: string | null
   initialSettingsLoadedFromServer?: boolean
+  initialSettingsFetchedAt?: number | null
 }
 
 export function Dashboard({
   initialSettings,
   initialSettingsError = null,
   initialSettingsLoadedFromServer = false,
+  initialSettingsFetchedAt = null,
 }: DashboardProps) {
   const { t } = useTranslation()
   const controller = useDashboardControllerWithBootstrap(
     initialSettings,
     initialSettingsLoadedFromServer,
+    initialSettingsFetchedAt,
     initialSettingsError,
   )
   const {
@@ -276,6 +279,7 @@ export function Dashboard({
           actions={actions}
         />
         {fileInputs}
+        {helpDialog}
       </>
     )
   }
@@ -291,6 +295,7 @@ export function Dashboard({
         {fileInputs}
         {autoImportDialog}
         {settingsDialog}
+        {helpDialog}
       </>
     )
   }
@@ -298,6 +303,9 @@ export function Dashboard({
   return (
     <div className="min-h-screen max-w-7xl mx-auto px-4 pb-8">
       {fileInputs}
+      {autoImportDialog}
+      {settingsDialog}
+      {helpDialog}
 
       <Header
         dateRange={dateRange}
@@ -328,7 +336,6 @@ export function Dashboard({
         pdfButton={
           <PDFReportButton generating={reportGenerating} onGenerate={handleGenerateReport} />
         }
-        helpPanel={helpDialog}
       />
 
       <div id="filters">
@@ -434,9 +441,6 @@ export function Dashboard({
         onHelp={() => setHelpOpen(true)}
         onLanguageChange={handleLanguageChange}
       />
-
-      {autoImportDialog}
-      {settingsDialog}
     </div>
   )
 }

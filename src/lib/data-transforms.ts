@@ -73,8 +73,8 @@ function getSortedData(data: DailyUsage[]) {
   return sortByDate(data)
 }
 
-function createWeekdayLabels() {
-  const weekdayFormatter = new Intl.DateTimeFormat(getCurrentLocale(), {
+function createWeekdayLabels(locale: string) {
+  const weekdayFormatter = new Intl.DateTimeFormat(locale, {
     weekday: 'short',
     timeZone: 'UTC',
   })
@@ -95,7 +95,10 @@ export interface DashboardChartTransforms {
   weekdayData: WeekdayData[]
 }
 
-export function buildDashboardChartTransforms(data: DailyUsage[]): DashboardChartTransforms {
+export function buildDashboardChartTransforms(
+  data: DailyUsage[],
+  locale = getCurrentLocale(),
+): DashboardChartTransforms {
   const sorted = getSortedData(data)
   if (sorted.length === 0) {
     return {
@@ -103,7 +106,7 @@ export function buildDashboardChartTransforms(data: DailyUsage[]): DashboardChar
       modelCostChartData: [],
       tokenChartData: [],
       requestChartData: [],
-      weekdayData: createWeekdayLabels().map((day) => ({ day, cost: 0 })),
+      weekdayData: createWeekdayLabels(locale).map((day) => ({ day, cost: 0 })),
     }
   }
 
@@ -140,7 +143,7 @@ export function buildDashboardChartTransforms(data: DailyUsage[]): DashboardChar
     modelRequestArrays[name] = []
   }
 
-  const weekdayLabels = createWeekdayLabels()
+  const weekdayLabels = createWeekdayLabels(locale)
   const weekdayCosts: Record<number, number[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
 
   const modelBreakdownByIndex = sorted.map((entry) => {

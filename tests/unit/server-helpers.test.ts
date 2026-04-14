@@ -4,7 +4,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const {
-  __test__: { commandExists, getExecutableName, listenOnAvailablePort },
+  __test__: {
+    commandExists,
+    getExecutableName,
+    listenOnAvailablePort,
+    withFileMutationLock,
+    getPendingFileMutationLockCount,
+  },
 } = require('../../server.js') as {
   __test__: {
     commandExists: (command: string, args?: string[]) => Promise<boolean>
@@ -21,6 +27,8 @@ const {
       log?: (message: string) => void,
       rangeStartPort?: number,
     ) => Promise<number>
+    withFileMutationLock: <T>(filePath: string, operation: () => Promise<T>) => Promise<T>
+    getPendingFileMutationLockCount: () => number
   }
 }
 const { isLoopbackHost } = require('../../server/runtime.js') as {
@@ -151,5 +159,50 @@ describe('server helper utilities', () => {
     await expect(
       listenOnAvailablePort(fakeServer, 5200, 5201, '127.0.0.1', () => undefined, 5200),
     ).rejects.toBe(permissionError)
+  })
+
+  it('serializes operations for the same file path and cleans up locks afterwards', async () => {
+    const events: string[] = []
+    let releaseFirst: (() => void) | null = null
+
+    const first = withFileMutationLock('/tmp/settings.json', async () => {
+      events.push('first:start')
+      await new Promise<void>((resolve) => {
+        releaseFirst = () => {
+          events.push('first:end')
+          resolve()
+        }
+      })
+    })
+
+    const second = withFileMutationLock('/tmp/settings.json', async () => {
+      events.push('second:start')
+      events.push('second:end')
+    })
+
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(events).toEqual(['first:start'])
+    expect(getPendingFileMutationLockCount()).toBeGreaterThan(0)
+
+    releaseFirst?.()
+    await Promise.all([first, second])
+    await Promise.resolve()
+
+    expect(events).toEqual(['first:start', 'first:end', 'second:start', 'second:end'])
+    expect(getPendingFileMutationLockCount()).toBe(0)
+  })
+
+  it('releases a file lock after errors so later operations can proceed', async () => {
+    await expect(
+      withFileMutationLock('/tmp/data.json', async () => {
+        throw new Error('boom')
+      }),
+    ).rejects.toThrow('boom')
+
+    await expect(withFileMutationLock('/tmp/data.json', async () => 'ok')).resolves.toBe('ok')
+    await Promise.resolve()
+    expect(getPendingFileMutationLockCount()).toBe(0)
   })
 })

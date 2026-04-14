@@ -86,7 +86,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
             {t('charts.tokensOverTime.allTypes')}
           </div>
-          <ChartReveal variant="line" delay={0.06}>
+          <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={180}>
               <ComposedChart data={totalPerDay} margin={CHART_MARGIN}>
                 <defs>
@@ -288,7 +288,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
         </div>
         <ChartAnimationAware>
           {(animate) => (
-            <ChartReveal variant="line" delay={0.04}>
+            <ChartReveal variant="line">
               <ResponsiveContainer width="100%" height={150}>
                 <ComposedChart data={data} margin={CHART_MARGIN} onClick={handleClick}>
                   <defs>
@@ -380,7 +380,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
         </div>
         <ChartAnimationAware>
           {(animate) => (
-            <ChartReveal variant="line" delay={0.08}>
+            <ChartReveal variant="line">
               <ResponsiveContainer width="100%" height={110}>
                 <ComposedChart data={data} margin={CHART_MARGIN} onClick={handleClick}>
                   <defs>

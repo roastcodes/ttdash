@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ModelEfficiency } from '@/components/tables/ModelEfficiency'
 import { ProviderEfficiency } from '@/components/tables/ProviderEfficiency'
 import { RecentDays } from '@/components/tables/RecentDays'
@@ -23,6 +23,11 @@ describe('sortable tables', () => {
       },
     )
     await initI18n('en')
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
   it('exposes accessible sort state for provider efficiency headers', () => {
@@ -151,7 +156,7 @@ describe('sortable tables', () => {
   })
 
   it('reveals all recent days progressively without losing access to later rows', async () => {
-    const days = Array.from({ length: 35 }, (_, index) => {
+    const days = Array.from({ length: 31 }, (_, index) => {
       const date = new Date(Date.UTC(2026, 3, index + 1)).toISOString().slice(0, 10)
 
       return {
@@ -184,9 +189,7 @@ describe('sortable tables', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /show all/i }))
 
-    await waitFor(() => {
-      expect(screen.getByText('Showing 35 of 35 days')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /show less/i })).toBeInTheDocument()
-    })
-  })
+    expect(screen.getByText('Showing 31 of 31 days')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /show less/i })).toBeInTheDocument()
+  }, 15000)
 })

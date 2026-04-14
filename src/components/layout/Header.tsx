@@ -44,7 +44,6 @@ interface HeaderProps {
   onAutoImport: () => void
   settingsButton?: React.ReactNode
   pdfButton?: React.ReactNode
-  helpPanel?: React.ReactNode
 }
 
 function DataSourceBadge({ source }: { source: DataSource }) {
@@ -121,7 +120,6 @@ export function Header({
   onAutoImport,
   settingsButton,
   pdfButton,
-  helpPanel,
 }: HeaderProps) {
   const { t } = useTranslation()
 
@@ -264,7 +262,6 @@ export function Header({
           <span>{t('header.delete')}</span>
         </Button>
       </div>
-      {helpPanel}
     </header>
   )
 }

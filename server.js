@@ -272,6 +272,7 @@ const BACKGROUND_LOG_DIR = path.join(APP_PATHS.cacheDir, 'background');
 const BACKGROUND_INSTANCES_LOCK_DIR = path.join(APP_PATHS.configDir, 'background-instances.lock');
 const BACKGROUND_INSTANCES_LOCK_TIMEOUT_MS = 5000;
 const BACKGROUND_INSTANCES_LOCK_STALE_MS = 10000;
+const fileMutationLocks = new Map();
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -325,6 +326,27 @@ async function writeJsonAtomicAsync(filePath, data) {
     await fsPromises.chmod(tempPath, SECURE_FILE_MODE);
   }
   await fsPromises.rename(tempPath, filePath);
+}
+
+async function withFileMutationLock(filePath, operation) {
+  const previous = fileMutationLocks.get(filePath) || Promise.resolve();
+  let releaseCurrent;
+  const current = new Promise((resolve) => {
+    releaseCurrent = resolve;
+  });
+
+  fileMutationLocks.set(filePath, current);
+
+  await previous.catch(() => undefined);
+
+  try {
+    return await operation();
+  } finally {
+    releaseCurrent();
+    if (fileMutationLocks.get(filePath) === current) {
+      fileMutationLocks.delete(filePath);
+    }
+  }
 }
 
 function sleep(ms) {
@@ -1438,47 +1460,53 @@ async function writeSettings(settings) {
 }
 
 async function updateSettings(patch) {
-  const current = readSettingsForWrite();
-  const next = {
-    ...current,
-    ...(patch && typeof patch === 'object' ? patch : {}),
-  };
+  return withFileMutationLock(SETTINGS_FILE, async () => {
+    const current = readSettingsForWrite();
+    const next = {
+      ...current,
+      ...(patch && typeof patch === 'object' ? patch : {}),
+    };
 
-  if (patch && Object.prototype.hasOwnProperty.call(patch, 'providerLimits')) {
-    next.providerLimits = normalizeProviderLimits(patch.providerLimits);
-  } else {
-    next.providerLimits = current.providerLimits;
-  }
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'providerLimits')) {
+      next.providerLimits = normalizeProviderLimits(patch.providerLimits);
+    } else {
+      next.providerLimits = current.providerLimits;
+    }
 
-  next.language = normalizeLanguage(next.language);
-  next.theme = normalizeTheme(next.theme);
+    next.language = normalizeLanguage(next.language);
+    next.theme = normalizeTheme(next.theme);
 
-  await writeSettings(next);
-  return toSettingsResponse(next);
+    await writeSettings(next);
+    return toSettingsResponse(next);
+  });
 }
 
 async function recordDataLoad(source) {
-  const current = readSettingsForWrite();
-  const next = {
-    ...current,
-    lastLoadedAt: new Date().toISOString(),
-    lastLoadSource: source,
-  };
+  return withFileMutationLock(SETTINGS_FILE, async () => {
+    const current = readSettingsForWrite();
+    const next = {
+      ...current,
+      lastLoadedAt: new Date().toISOString(),
+      lastLoadSource: source,
+    };
 
-  await writeSettings(next);
-  return toSettingsResponse(next);
+    await writeSettings(next);
+    return toSettingsResponse(next);
+  });
 }
 
 async function clearDataLoadState() {
-  const current = readSettingsForWrite();
-  const next = {
-    ...current,
-    lastLoadedAt: null,
-    lastLoadSource: null,
-  };
+  return withFileMutationLock(SETTINGS_FILE, async () => {
+    const current = readSettingsForWrite();
+    const next = {
+      ...current,
+      lastLoadedAt: null,
+      lastLoadSource: null,
+    };
 
-  await writeSettings(next);
-  return toSettingsResponse(next);
+    await writeSettings(next);
+    return toSettingsResponse(next);
+  });
 }
 const { json, readBody, resolveApiPath, sendBuffer, validateMutationRequest } = createHttpUtils({
   apiPrefix: API_PREFIX,
@@ -1660,7 +1688,9 @@ async function performAutoImport({
     });
 
     const normalized = normalizeIncomingData(JSON.parse(rawJson));
-    await writeData(normalized);
+    await withFileMutationLock(DATA_FILE, async () => {
+      await writeData(normalized);
+    });
     await recordDataLoad(source);
 
     return {
@@ -1756,11 +1786,13 @@ const server = http.createServer(async (req, res) => {
       if (validationError) {
         return json(res, validationError.status, { message: validationError.message });
       }
-      try {
-        await fsPromises.unlink(DATA_FILE);
-      } catch {
-        // Ignore missing data files during reset.
-      }
+      await withFileMutationLock(DATA_FILE, async () => {
+        try {
+          await fsPromises.unlink(DATA_FILE);
+        } catch {
+          // Ignore missing data files during reset.
+        }
+      });
       await clearDataLoadState();
       return json(res, 200, { success: true });
     }
@@ -1799,11 +1831,13 @@ const server = http.createServer(async (req, res) => {
       if (validationError) {
         return json(res, validationError.status, { message: validationError.message });
       }
-      try {
-        await fsPromises.unlink(SETTINGS_FILE);
-      } catch {
-        // Ignore missing settings files during reset.
-      }
+      await withFileMutationLock(SETTINGS_FILE, async () => {
+        try {
+          await fsPromises.unlink(SETTINGS_FILE);
+        } catch {
+          // Ignore missing settings files during reset.
+        }
+      });
       return json(res, 200, { success: true, settings: readSettings() });
     }
 
@@ -1839,7 +1873,9 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await readBody(req);
       const importedSettings = normalizeSettings(extractSettingsImportPayload(body));
-      await writeSettings(importedSettings);
+      await withFileMutationLock(SETTINGS_FILE, async () => {
+        await writeSettings(importedSettings);
+      });
       return json(res, 200, toSettingsResponse(importedSettings));
     } catch (e) {
       if (isPayloadTooLargeError(e)) {
@@ -1859,7 +1895,9 @@ const server = http.createServer(async (req, res) => {
       try {
         const body = await readBody(req);
         const normalized = normalizeIncomingData(body);
-        await writeData(normalized);
+        await withFileMutationLock(DATA_FILE, async () => {
+          await writeData(normalized);
+        });
         await recordDataLoad('file');
         const days = normalized.daily.length;
         const totalCost = normalized.totals.totalCost;
@@ -1888,9 +1926,12 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await readBody(req);
       const importedData = normalizeIncomingData(extractUsageImportPayload(body));
-      const currentData = readData();
-      const result = mergeUsageData(currentData, importedData);
-      await writeData(result.data);
+      const result = await withFileMutationLock(DATA_FILE, async () => {
+        const currentData = readData();
+        const merged = mergeUsageData(currentData, importedData);
+        await writeData(merged.data);
+        return merged;
+      });
       await recordDataLoad('file');
       return json(res, 200, result.summary);
     } catch (e) {
@@ -2109,6 +2150,8 @@ module.exports = {
     commandExists,
     getExecutableName,
     listenOnAvailablePort,
+    withFileMutationLock,
+    getPendingFileMutationLockCount: () => fileMutationLocks.size,
   },
 };
 

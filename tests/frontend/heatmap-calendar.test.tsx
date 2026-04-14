@@ -49,7 +49,7 @@ describe('HeatmapCalendar', () => {
       </TooltipProvider>,
     )
 
-    const cell = screen.getByRole('button', { name: `${dateLabel}: ${formatCurrency(5)}` })
+    const cell = screen.getByRole('gridcell', { name: `${dateLabel}: ${formatCurrency(5)}` })
 
     expect(cell).toHaveAttribute('tabindex', '0')
     fireEvent.focus(cell)
@@ -78,7 +78,7 @@ describe('HeatmapCalendar', () => {
     )
 
     expect(screen.getByText('We')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /April 7, 2026/ })).toBeInTheDocument()
+    expect(screen.getByRole('gridcell', { name: /April 7, 2026/ })).toBeInTheDocument()
 
     await i18n.changeLanguage('de')
     rerender(
@@ -90,7 +90,7 @@ describe('HeatmapCalendar', () => {
     await waitFor(() => {
       expect(screen.getByText('Mi')).toBeInTheDocument()
     })
-    expect(screen.getByRole('button', { name: /7\. April 2026/ })).toBeInTheDocument()
+    expect(screen.getByRole('gridcell', { name: /7\. April 2026/ })).toBeInTheDocument()
   })
 
   it('keeps only one heatmap cell in the tab order and supports arrow-key navigation', async () => {
@@ -129,15 +129,15 @@ describe('HeatmapCalendar', () => {
       </TooltipProvider>,
     )
 
-    const tabbableCells = document.querySelectorAll('[role="button"][tabindex="0"]')
+    const tabbableCells = document.querySelectorAll('[role="gridcell"][tabindex="0"]')
     expect(tabbableCells).toHaveLength(1)
 
-    const firstDay = screen.getByRole('button', { name: /April 6, 2026/ })
+    const firstDay = screen.getByRole('gridcell', { name: /April 6, 2026/ })
     fireEvent.focus(firstDay)
     fireEvent.keyDown(firstDay, { key: 'ArrowRight' })
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /April 7, 2026/ })).toHaveFocus()
+      expect(screen.getByRole('gridcell', { name: /April 7, 2026/ })).toHaveFocus()
     })
   })
 
@@ -162,7 +162,7 @@ describe('HeatmapCalendar', () => {
       </TooltipProvider>,
     )
 
-    const cell = screen.getByRole('button', { name: /April 7, 2026/ })
+    const cell = screen.getByRole('gridcell', { name: /April 7, 2026/ })
     expect(cell).toHaveAttribute('fill', 'hsl(var(--muted))')
   })
 })

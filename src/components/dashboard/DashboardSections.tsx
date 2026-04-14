@@ -12,6 +12,7 @@ import { ConcentrationRisk } from '../features/risk/ConcentrationRisk'
 import { FadeIn } from '../features/animations/FadeIn'
 import { SectionHeader } from '../ui/section-header'
 import { ExpandableCard } from '../ui/expandable-card'
+import { ChartCardSkeleton } from '../ui/skeleton'
 import { SECTION_HELP } from '@/lib/help-content'
 import { formatCurrency, formatPercent, formatTokens, periodUnit } from '@/lib/formatters'
 import type {
@@ -196,6 +197,10 @@ export function DashboardSections({
 }: DashboardSectionsProps) {
   const { t } = useTranslation()
 
+  const lazyCardFallback = (className?: string) => (
+    <ChartCardSkeleton className={className ?? 'h-[360px]'} />
+  )
+
   const renderSection = (sectionId: DashboardSectionId) => {
     switch (sectionId) {
       case 'insights':
@@ -280,12 +285,12 @@ export function DashboardSections({
             />
             <FadeIn delay={0.06}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[360px]')}>
                   <ExpandableCard title={t('dashboard.cards.costForecast')}>
                     <CostForecast data={filteredData} viewMode={viewMode} />
                   </ExpandableCard>
                 </Suspense>
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[360px]')}>
                   <ExpandableCard
                     title={t('dashboard.cards.cacheRoi')}
                     stats={[
@@ -314,7 +319,7 @@ export function DashboardSections({
         return sectionVisibility.limits ? (
           <div id="limits">
             <FadeIn delay={0.07}>
-              <Suspense fallback={null}>
+              <Suspense fallback={lazyCardFallback('h-[420px]')}>
                 <ProviderLimitsSection
                   data={filteredDailyData}
                   providers={visibleLimitProviders}
@@ -344,27 +349,27 @@ export function DashboardSections({
             </FadeIn>
             <FadeIn delay={0.1}>
               <div className="mt-4">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[320px]')}>
                   <CostByModelOverTime data={modelCostChartData} models={allModels} />
                 </Suspense>
               </div>
             </FadeIn>
             <FadeIn delay={0.11}>
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[320px]')}>
                   <CumulativeCost data={costChartData} rawData={filteredData} />
                 </Suspense>
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[320px]')}>
                   <CostByWeekday data={weekdayData} />
                 </Suspense>
               </div>
             </FadeIn>
             <FadeIn delay={0.12}>
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[320px]')}>
                   <TokenEfficiency data={filteredData} />
                 </Suspense>
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[320px]')}>
                   <ModelMix data={filteredData} />
                 </Suspense>
               </div>
@@ -381,10 +386,10 @@ export function DashboardSections({
             />
             <FadeIn delay={0.13}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[320px]')}>
                   <TokensOverTime data={tokenChartData} onClickDay={onDrillDownDateChange} />
                 </Suspense>
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[320px]')}>
                   <TokenTypes data={tokenPieData} />
                 </Suspense>
               </div>
@@ -400,7 +405,7 @@ export function DashboardSections({
               info={SECTION_HELP.requestAnalysis}
             />
             <FadeIn delay={0.14}>
-              <Suspense fallback={null}>
+              <Suspense fallback={lazyCardFallback('h-[320px]')}>
                 <RequestsOverTime
                   data={requestChartData}
                   viewMode={viewMode}
@@ -410,7 +415,7 @@ export function DashboardSections({
             </FadeIn>
             <FadeIn delay={0.15}>
               <div className="mt-4">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[320px]')}>
                   <RequestCacheHitRateByModel
                     timelineData={filteredData}
                     summaryData={filteredDailyData}
@@ -421,7 +426,7 @@ export function DashboardSections({
             </FadeIn>
             <FadeIn delay={0.16}>
               <div className="mt-4">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[280px]')}>
                   <RequestQuality metrics={metrics} viewMode={viewMode} />
                 </Suspense>
               </div>
@@ -438,7 +443,7 @@ export function DashboardSections({
             />
             <FadeIn delay={0.145}>
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[320px]')}>
                   <DistributionAnalysis data={filteredData} viewMode={viewMode} />
                 </Suspense>
                 <ConcentrationRisk
@@ -451,7 +456,7 @@ export function DashboardSections({
             </FadeIn>
             <FadeIn delay={0.155}>
               <div className="mt-4">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[320px]')}>
                   <CorrelationAnalysis data={filteredData} />
                 </Suspense>
               </div>
@@ -468,7 +473,7 @@ export function DashboardSections({
             />
             <FadeIn delay={0.165}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[360px]')}>
                   <ExpandableCard
                     title={t('dashboard.cards.periodComparison')}
                     stats={[
@@ -485,7 +490,7 @@ export function DashboardSections({
                     <PeriodComparison data={comparisonData} />
                   </ExpandableCard>
                 </Suspense>
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[360px]')}>
                   <ExpandableCard
                     title={t('dashboard.cards.anomalyDetection')}
                     stats={[
@@ -519,7 +524,7 @@ export function DashboardSections({
               info={SECTION_HELP.tables}
             />
             <FadeIn delay={0.17}>
-              <Suspense fallback={null}>
+              <Suspense fallback={lazyCardFallback('h-[320px]')}>
                 <ModelEfficiency
                   modelCosts={modelCosts}
                   totalCost={metrics.totalCost}
@@ -529,7 +534,7 @@ export function DashboardSections({
             </FadeIn>
             <FadeIn delay={0.18}>
               <div className="mt-4">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[320px]')}>
                   <ProviderEfficiency
                     providerMetrics={providerMetrics}
                     totalCost={metrics.totalCost}
@@ -540,7 +545,7 @@ export function DashboardSections({
             </FadeIn>
             <FadeIn delay={0.19}>
               <div className="mt-4">
-                <Suspense fallback={null}>
+                <Suspense fallback={lazyCardFallback('h-[360px]')}>
                   <RecentDays
                     data={filteredData}
                     onClickDay={onDrillDownDateChange}

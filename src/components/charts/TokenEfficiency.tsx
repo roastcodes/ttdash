@@ -58,7 +58,7 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
     >
       <ChartAnimationAware>
         {(animate) => (
-          <ChartReveal variant="line" delay={0.04}>
+          <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={250}>
               <ComposedChart data={chartData} margin={CHART_MARGIN}>
                 <defs>

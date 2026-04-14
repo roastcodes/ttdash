@@ -87,7 +87,7 @@ export function ModelMix({ data }: ModelMixProps) {
     >
       <ChartAnimationAware>
         {(animate) => (
-          <ChartReveal variant="line" delay={0.05}>
+          <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={250}>
               <AreaChart data={chartData} margin={CHART_MARGIN} stackOffset="none">
                 <defs>

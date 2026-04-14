@@ -70,6 +70,7 @@ describe('api error handling', () => {
       settings: DEFAULT_APP_SETTINGS,
       errorMessage: 'Failed to load settings',
       loadedFromServer: false,
+      fetchedAt: null,
     })
   })
 })

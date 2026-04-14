@@ -41,6 +41,9 @@ beforeAll(async () => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+
   if (typeof document !== 'undefined') {
     cleanup()
   }

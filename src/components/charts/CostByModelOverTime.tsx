@@ -44,7 +44,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
             {t('charts.costByModelOverTime.movingAverageHeading')}
           </div>
-          <ChartReveal variant="line" delay={0.08}>
+          <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={350}>
               <LineChart data={data} margin={CHART_MARGIN}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />

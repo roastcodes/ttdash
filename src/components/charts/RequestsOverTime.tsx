@@ -139,7 +139,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
               {trendHeading}
             </div>
-            <ChartReveal variant="line" delay={0.08}>
+            <ChartReveal variant="line">
               <ResponsiveContainer width="100%" height={360}>
                 <ComposedChart data={data} margin={CHART_MARGIN}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
@@ -408,7 +408,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
               <div className="min-w-0 pt-1">
                 <ChartAnimationAware>
                   {(animate) => (
-                    <ChartReveal variant="radial" delay={0.04}>
+                    <ChartReveal variant="radial">
                       <ResponsiveContainer width="100%" height={donutHeight}>
                         <PieChart>
                           <Pie

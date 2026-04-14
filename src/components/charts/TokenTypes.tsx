@@ -63,7 +63,7 @@ export function TokenTypes({ data }: TokenTypesProps) {
         return (
           <ChartAnimationAware>
             {(animate) => (
-              <ChartReveal variant="radial" delay={0.04}>
+              <ChartReveal variant="radial">
                 <ResponsiveContainer width="100%" height={chartHeight}>
                   <PieChart>
                     <Pie

@@ -25,6 +25,7 @@ export function useAppSettings(
   availableProviders: string[],
   initialSettings: AppSettings = DEFAULT_APP_SETTINGS,
   initialSettingsFresh = false,
+  initialSettingsFetchedAt: number | null = null,
 ) {
   const queryClient = useQueryClient()
 
@@ -33,7 +34,10 @@ export function useAppSettings(
     queryFn: fetchSettings,
     staleTime: 1000 * 60 * 5,
     initialData: initialSettings,
-    initialDataUpdatedAt: initialSettingsFresh ? Date.now() : 0,
+    initialDataUpdatedAt:
+      initialSettingsFresh && typeof initialSettingsFetchedAt === 'number'
+        ? initialSettingsFetchedAt
+        : 0,
   })
 
   const mutation = useMutation({

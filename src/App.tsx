@@ -10,12 +10,14 @@ interface AppProps {
   initialSettings: AppSettings
   initialSettingsError?: string | null
   initialSettingsLoadedFromServer?: boolean
+  initialSettingsFetchedAt?: number | null
 }
 
 export function App({
   initialSettings,
   initialSettingsError = null,
   initialSettingsLoadedFromServer = false,
+  initialSettingsFetchedAt = null,
 }: AppProps) {
   const [queryClient] = useState(() => {
     return new QueryClient({
@@ -37,6 +39,7 @@ export function App({
               initialSettings={initialSettings}
               initialSettingsError={initialSettingsError}
               initialSettingsLoadedFromServer={initialSettingsLoadedFromServer}
+              initialSettingsFetchedAt={initialSettingsFetchedAt}
             />
           </TooltipProvider>
         </ToastProvider>

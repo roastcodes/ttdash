@@ -204,7 +204,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
       >
         <ChartAnimationAware>
           {(animate) => (
-            <ChartReveal variant="line" delay={0.05}>
+            <ChartReveal variant="line">
               <ResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData} margin={CHART_MARGIN}>
                   <defs>

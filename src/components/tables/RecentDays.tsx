@@ -127,6 +127,13 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
       return
     }
 
+    const initialVisibleCount = Math.min(DEFAULT_VISIBLE_ROWS + SHOW_ALL_BATCH_SIZE, sorted.length)
+    setVisibleCount(initialVisibleCount)
+
+    if (initialVisibleCount >= sorted.length) {
+      return
+    }
+
     let frameId = 0
     const revealMore = () => {
       setVisibleCount((previous) => {

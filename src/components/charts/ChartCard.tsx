@@ -62,19 +62,9 @@ export function ChartAnimationAware({ children }: { children: (active: boolean) 
 interface ChartRevealProps {
   children: ReactNode
   variant?: 'line' | 'bar' | 'radial'
-  delay?: number
-  duration?: number
 }
 
-export function ChartReveal({
-  children,
-  variant = 'line',
-  delay = 0,
-  duration = 0.7,
-}: ChartRevealProps) {
-  void delay
-  void duration
-
+export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
   return (
     <div
       style={{

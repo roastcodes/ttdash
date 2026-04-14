@@ -845,7 +845,7 @@ export function ProviderLimitsSection({
         >
           <ChartAnimationAware>
             {(animate) => (
-              <ChartReveal variant="line" delay={0.06}>
+              <ChartReveal variant="line">
                 <ResponsiveContainer width="100%" height={320}>
                   <ComposedChart data={timelineData} margin={CHART_MARGIN}>
                     <defs>

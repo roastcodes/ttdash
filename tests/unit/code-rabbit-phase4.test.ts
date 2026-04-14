@@ -1,5 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { filterByModels, getDateRange, toWeekdayData } from '@/lib/data-transforms'
+import {
+  buildDashboardChartTransforms,
+  filterByModels,
+  getDateRange,
+  toWeekdayData,
+} from '@/lib/data-transforms'
 import { coerceNumber, formatMonthYear } from '@/lib/formatters'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
@@ -106,5 +111,30 @@ describe('phase 4 correctness helpers', () => {
 
     expect(weekdayData[0]?.day).toBe('Mo')
     expect(weekdayData[0]?.cost).toBe(9)
+  })
+
+  it('rebuilds weekday labels for the active locale instead of reusing stale labels', async () => {
+    const data: DailyUsage[] = [
+      {
+        date: '2026-04-06',
+        inputTokens: 10,
+        outputTokens: 5,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        totalTokens: 15,
+        totalCost: 9,
+        requestCount: 1,
+        modelsUsed: ['gpt-5.4'],
+        modelBreakdowns: [],
+      },
+    ]
+
+    const english = buildDashboardChartTransforms(data, 'en-US')
+    await initI18n('de')
+    const german = buildDashboardChartTransforms(data, 'de-CH')
+
+    expect(english.weekdayData[0]?.day).toBe('Mo')
+    expect(german.weekdayData[2]?.day).toBe('Mi')
   })
 })

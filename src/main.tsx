@@ -11,6 +11,7 @@ async function bootstrap() {
     settings: initialSettings,
     errorMessage: initialSettingsError,
     loadedFromServer: initialSettingsLoadedFromServer,
+    fetchedAt: initialSettingsFetchedAt,
   } = await loadBootstrapSettings()
   applyTheme(initialSettings.theme)
   await initI18n(initialSettings.language)
@@ -21,6 +22,7 @@ async function bootstrap() {
         initialSettings={initialSettings}
         initialSettingsError={initialSettingsError}
         initialSettingsLoadedFromServer={initialSettingsLoadedFromServer}
+        initialSettingsFetchedAt={initialSettingsFetchedAt}
       />
     </StrictMode>,
   )

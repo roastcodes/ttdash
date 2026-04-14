@@ -74,9 +74,15 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
     )
   }
 
-  const barWidth = hypotheticalCost > 0 ? (actualCost / hypotheticalCost) * 100 : 100
+  const savingsSign = Math.sign(savings)
+  const hasPositiveSavings = savingsSign > 0
+  const barWidth = Math.max(
+    0,
+    Math.min(100, hypotheticalCost > 0 ? (actualCost / hypotheticalCost) * 100 : 100),
+  )
   const withoutCacheTextClass = 'text-rose-700 dark:text-rose-300'
-  const withCacheTextClass = 'text-emerald-700 dark:text-emerald-300'
+  const withCacheTextClass =
+    savingsSign < 0 ? 'text-rose-700 dark:text-rose-300' : 'text-emerald-700 dark:text-emerald-300'
   const barTrackDangerClass = 'bg-rose-500/12 dark:bg-rose-500/18'
   const barFillDangerClass = 'bg-rose-500/60 dark:bg-rose-400/60'
   const barFillSuccessClass = 'bg-emerald-500/65 dark:bg-emerald-400/60'
@@ -152,10 +158,12 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
             <span className="text-muted-foreground w-24">{t('cacheRoi.withCache')}</span>
             <div className="flex-1 h-6 bg-muted/20 rounded-md overflow-hidden flex">
               <div
-                className={`h-full rounded-l-md ${barFillSuccessClass} transition-all duration-1000 motion-reduce:transition-none`}
+                className={`h-full rounded-l-md ${hasPositiveSavings ? barFillSuccessClass : barFillDangerClass} transition-all duration-1000 motion-reduce:transition-none`}
                 style={{ width: `${barWidth}%` }}
               />
-              <div className={`h-full flex-1 rounded-r-md ${barSavedSegmentClass}`} />
+              <div
+                className={`h-full flex-1 rounded-r-md ${hasPositiveSavings ? barSavedSegmentClass : 'bg-muted/10'}`}
+              />
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground">

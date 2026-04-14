@@ -108,7 +108,7 @@ describe('DrillDownModal', () => {
     expect(screen.getByText('Provider summary')).toBeInTheDocument()
     expect(screen.getByText('Top 3 cost share')).toBeInTheDocument()
     expect(screen.getByText('Cost vs. previous')).toBeInTheDocument()
-    expect(screen.getByText('Tokens vs. 7D avg')).toBeInTheDocument()
+    expect(screen.getByText('Tokens vs. 1D avg')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Previous day' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Next day' })).toBeDisabled()
     expect(screen.getByText('2 / 2')).toBeInTheDocument()
@@ -190,6 +190,76 @@ describe('DrillDownModal', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Type: month')).toBeInTheDocument()
     expect(screen.getAllByText('30 raw days').length).toBeGreaterThan(0)
+  })
+
+  it('uses period-aware benchmark labels for monthly and yearly drilldowns', () => {
+    const monthlyEntry: DailyUsage = {
+      date: '2026-04',
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 10,
+      thinkingTokens: 0,
+      totalTokens: 160,
+      totalCost: 12,
+      requestCount: 4,
+      modelsUsed: ['gpt-5.4'],
+      modelBreakdowns: [],
+      _aggregatedDays: 30,
+    }
+    const previousMonth: DailyUsage = {
+      ...monthlyEntry,
+      date: '2026-03',
+      totalCost: 10,
+      requestCount: 3,
+    }
+    const yearlyEntry: DailyUsage = {
+      ...monthlyEntry,
+      date: '2026',
+      totalCost: 120,
+      requestCount: 40,
+      _aggregatedDays: 365,
+    }
+    const previousYear: DailyUsage = {
+      ...yearlyEntry,
+      date: '2025',
+      totalCost: 100,
+      requestCount: 35,
+    }
+
+    const { rerender } = render(
+      <TooltipProvider>
+        <DrillDownModal
+          day={monthlyEntry}
+          contextData={[previousMonth, monthlyEntry]}
+          open
+          hasPrevious={true}
+          hasNext={false}
+          currentIndex={2}
+          totalCount={2}
+          onClose={() => {}}
+        />
+      </TooltipProvider>,
+    )
+
+    expect(screen.getByText('Cost vs. 1M avg')).toBeInTheDocument()
+
+    rerender(
+      <TooltipProvider>
+        <DrillDownModal
+          day={yearlyEntry}
+          contextData={[previousYear, yearlyEntry]}
+          open
+          hasPrevious={true}
+          hasNext={false}
+          currentIndex={2}
+          totalCount={2}
+          onClose={() => {}}
+        />
+      </TooltipProvider>,
+    )
+
+    expect(screen.getByText('Cost vs. 1Y avg')).toBeInTheDocument()
   })
 
   it('supports previous/next buttons and arrow-key navigation', () => {

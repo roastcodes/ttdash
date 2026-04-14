@@ -4,11 +4,11 @@ import { computeMetrics, computeModelCosts, computeProviderMetrics } from '@/lib
 import { buildDashboardChartTransforms } from '@/lib/data-transforms'
 import { getUniqueModels } from '@/lib/model-utils'
 
-export function useComputedMetrics(data: DailyUsage[]) {
+export function useComputedMetrics(data: DailyUsage[], locale: string) {
   const metrics = useMemo(() => computeMetrics(data), [data])
   const modelCosts = useMemo(() => computeModelCosts(data), [data])
   const providerMetrics = useMemo(() => computeProviderMetrics(data), [data])
-  const chartTransforms = useMemo(() => buildDashboardChartTransforms(data), [data])
+  const chartTransforms = useMemo(() => buildDashboardChartTransforms(data, locale), [data, locale])
   const allModels = useMemo(() => getUniqueModels(data.map((d) => d.modelsUsed)), [data])
 
   const modelPieData = useMemo(() => {

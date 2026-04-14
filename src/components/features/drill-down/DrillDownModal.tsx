@@ -107,6 +107,10 @@ function isEditableTarget(target: EventTarget | null) {
   )
 }
 
+function getBenchmarkWindowLabel(count: number, unitLabel: string) {
+  return `${count}${unitLabel}`
+}
+
 export function DrillDownModal({
   day,
   contextData = [],
@@ -276,6 +280,10 @@ export function DrillDownModal({
           previousSeven.reduce((sum, entry) => sum + getEntryTokenTotal(entry), 0),
         )
       : null
+  const benchmarkWindowLabel = getBenchmarkWindowLabel(
+    previousSeven.length > 0 ? previousSeven.length : 7,
+    t(`drillDown.windowUnit.${periodKind}`),
+  )
 
   const previousTokens = previousEntry ? getEntryTokenTotal(previousEntry) : null
   const previousCostPerMillion = previousEntry
@@ -382,7 +390,7 @@ export function DrillDownModal({
       ),
     },
     {
-      label: t('drillDown.costPerMillionVsAverage7d'),
+      label: t('drillDown.costPerMillionVsAverageWindow', { window: benchmarkWindowLabel }),
       primary: formatDeltaValue(
         costPerMillion !== null ? getDelta(costPerMillion, avgCostPerMillion7) : null,
         formatCurrency,
@@ -390,19 +398,19 @@ export function DrillDownModal({
       secondary: avgCostPerMillion7 !== null ? formatCurrency(avgCostPerMillion7) : '–',
     },
     {
-      label: t('drillDown.costVsAverage7d'),
+      label: t('drillDown.costVsAverageWindow', { window: benchmarkWindowLabel }),
       primary: formatDeltaValue(getDelta(day.totalCost, avgCost7), formatCurrency),
       secondary: avgCost7 !== null ? formatCurrency(avgCost7) : '–',
     },
     {
-      label: t('drillDown.requestsVsAverage7d'),
+      label: t('drillDown.requestsVsAverageWindow', { window: benchmarkWindowLabel }),
       primary: formatDeltaValue(getDelta(day.requestCount, avgRequests7), (value) =>
         formatNumber(Math.round(value)),
       ),
       secondary: avgRequests7 !== null ? formatNumber(Math.round(avgRequests7)) : '–',
     },
     {
-      label: t('drillDown.tokensVsAverage7d'),
+      label: t('drillDown.tokensVsAverageWindow', { window: benchmarkWindowLabel }),
       primary: formatDeltaValue(getDelta(tokensTotal, avgTokens7), formatTokens),
       secondary: avgTokens7 !== null ? formatTokens(avgTokens7) : '–',
     },

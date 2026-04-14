@@ -2,7 +2,7 @@
 
 import { render, screen } from '@testing-library/react'
 import { useEffect } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FadeIn } from '@/components/features/animations/FadeIn'
 import { ChartReveal } from '@/components/charts/ChartCard'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -35,6 +35,10 @@ describe('motion accessibility', () => {
     )
 
     await initI18n('en')
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('renders FadeIn content without transform styles when reduced motion is requested', () => {

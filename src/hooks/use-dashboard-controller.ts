@@ -84,12 +84,18 @@ function downloadJsonFile(filename: string, data: unknown) {
 }
 
 export function useDashboardController(initialSettingsError: string | null = null) {
-  return useDashboardControllerWithBootstrap(DEFAULT_APP_SETTINGS, false, initialSettingsError)
+  return useDashboardControllerWithBootstrap(
+    DEFAULT_APP_SETTINGS,
+    false,
+    null,
+    initialSettingsError,
+  )
 }
 
 export function useDashboardControllerWithBootstrap(
   initialSettings: AppSettings,
   initialSettingsLoadedFromServer = false,
+  initialSettingsFetchedAt: number | null = null,
   initialSettingsError: string | null = null,
 ) {
   const { t, i18n } = useTranslation()
@@ -137,7 +143,12 @@ export function useDashboardControllerWithBootstrap(
     isLoading: settingsLoading,
     error: settingsError,
     hasFetchedAfterMount,
-  } = useAppSettings(allProviders, initialSettings, initialSettingsLoadedFromServer)
+  } = useAppSettings(
+    allProviders,
+    initialSettings,
+    initialSettingsLoadedFromServer,
+    initialSettingsFetchedAt,
+  )
   const isDark = settings.theme === 'dark'
 
   useEffect(() => {
@@ -238,7 +249,7 @@ export function useDashboardControllerWithBootstrap(
     dateRange,
   } = filters
 
-  const computed = useComputedMetrics(filteredData)
+  const computed = useComputedMetrics(filteredData, i18n.resolvedLanguage ?? i18n.language)
   const {
     metrics,
     modelCosts,
