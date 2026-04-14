@@ -9,7 +9,12 @@ import {
   SelectItem,
 } from '@/components/ui/select'
 import { cn } from '@/lib/cn'
-import { getModelColor, getProviderBadgeClasses, getProviderBadgeStyle } from '@/lib/model-utils'
+import {
+  getModelColor,
+  getModelColorAlpha,
+  getProviderBadgeClasses,
+  getProviderBadgeStyle,
+} from '@/lib/model-utils'
 import { formatDate, formatMonthYear, localToday, toLocalDateStr } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
 import { CalendarDays, ChevronLeft, ChevronRight, X } from 'lucide-react'
@@ -541,7 +546,9 @@ export function FilterBar({
                     style={{
                       borderColor: color,
                       backgroundColor:
-                        isSelected || selectedModels.length === 0 ? `${color}20` : 'transparent',
+                        isSelected || selectedModels.length === 0
+                          ? getModelColorAlpha(model, 0.16)
+                          : 'transparent',
                       color: color,
                     }}
                   >

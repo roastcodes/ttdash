@@ -3,19 +3,6 @@ export const GITHUB_REPO_URL = 'https://github.com/roastcodes/ttdash'
 export const GITHUB_ISSUES_URL = 'https://github.com/roastcodes/ttdash/issues'
 export const NPM_PACKAGE_URL = `https://www.npmjs.com/package/@roastcodes/ttdash/v/${VERSION}`
 
-export const MODEL_COLORS: Record<string, string> = {
-  'Opus 4.6': 'hsl(262, 60%, 55%)',
-  'Opus 4.5': 'hsl(340, 55%, 52%)',
-  'Sonnet 4.6': 'hsl(215, 70%, 55%)',
-  'Sonnet 4.5': 'hsl(160, 50%, 42%)',
-  'Haiku 4.5': 'hsl(35, 80%, 52%)',
-  'GPT-5.4': 'hsl(12, 78%, 56%)',
-  'GPT-5': 'hsl(12, 78%, 56%)',
-  'Gemini 3 Flash Preview': 'hsl(48, 92%, 50%)',
-  Gemini: 'hsl(48, 92%, 50%)',
-  OpenCode: 'hsl(186, 58%, 48%)',
-}
-
 export const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
 export const VIEW_MODE_LABELS = {

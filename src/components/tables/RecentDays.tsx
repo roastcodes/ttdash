@@ -9,6 +9,7 @@ import { formatCurrency, formatDate, formatPercent, formatNumber } from '@/lib/f
 import {
   normalizeModelName,
   getModelColor,
+  getModelColorAlpha,
   getModelProvider,
   getProviderBadgeClasses,
 } from '@/lib/model-utils'
@@ -250,7 +251,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                       key={name}
                       className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium leading-tight"
                       style={{
-                        backgroundColor: `${getModelColor(name)}20`,
+                        backgroundColor: getModelColorAlpha(name, 0.16),
                         color: getModelColor(name),
                       }}
                     >
@@ -450,7 +451,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                               key={name}
                               className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium leading-tight"
                               style={{
-                                backgroundColor: `${getModelColor(name)}20`,
+                                backgroundColor: getModelColorAlpha(name, 0.16),
                                 color: getModelColor(name),
                               }}
                             >

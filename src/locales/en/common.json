@@ -1101,7 +1101,15 @@
     "charts": {
       "costTrend": "Cost trend",
       "topModels": "Top models by cost",
-      "tokenTrend": "Token mix by period"
+      "tokenTrend": "Token mix by period",
+      "costTrendAlt": "Line chart showing report cost by period.",
+      "costTrendSummary": "Latest {{latest}}. Peak {{peak}} on {{date}}.",
+      "topModelsAlt": "Horizontal bar chart comparing the highest-cost models in the report.",
+      "topModelsSummary": "{{model}} leads with {{cost}} and {{share}} of report cost.",
+      "topModelsFullNames": "Full chart labels: {{names}}.",
+      "tokenTrendAlt": "Stacked bar chart showing the token mix for each report period.",
+      "tokenTrendSummary": "Total {{total}}. Peak token volume {{peak}} on {{date}}.",
+      "noDataSummary": "Not enough data for a stable chart summary."
     },
     "interpretation": {
       "summary": "This report covers {{days}} raw days and {{periods}} aggregated periods. Peak period: {{peak}}. Top model: {{topModel}}. Leading provider: {{topProvider}}.",

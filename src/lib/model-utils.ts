@@ -1,26 +1,16 @@
-import { MODEL_COLORS } from './constants'
 import {
   getModelProvider as getSharedModelProvider,
   normalizeModelName as normalizeSharedModelName,
 } from '../../shared/dashboard-domain.js'
+import {
+  getModelColor as getSharedModelColor,
+  type ModelColorTheme,
+} from '../../shared/model-colors.js'
 
-const DYNAMIC_COLOR_CACHE = new Map<string, string>()
-
-function dynamicColor(name: string): string {
-  const cached = DYNAMIC_COLOR_CACHE.get(name)
-  if (cached) return cached
-
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0
-  }
-
-  const hue = Math.abs(hash) % 360
-  const saturation = 62 + (Math.abs(hash) % 12)
-  const lightness = 54 + (Math.abs(hash >> 3) % 8)
-  const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`
-  DYNAMIC_COLOR_CACHE.set(name, color)
-  return color
+function resolveModelTheme(theme?: ModelColorTheme): ModelColorTheme {
+  if (theme === 'light' || theme === 'dark') return theme
+  if (typeof document === 'undefined') return 'dark'
+  return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
 }
 
 export function normalizeModelName(raw: string): string {
@@ -133,8 +123,15 @@ export function getProviderBadgeStyle(provider: string): {
   }
 }
 
-export function getModelColor(name: string): string {
-  return MODEL_COLORS[name] ?? dynamicColor(name)
+export function getModelColor(name: string, theme?: ModelColorTheme): string {
+  return getSharedModelColor(name, { theme: resolveModelTheme(theme) })
+}
+
+export function getModelColorAlpha(name: string, alpha: number, theme?: ModelColorTheme): string {
+  return getSharedModelColor(name, {
+    theme: resolveModelTheme(theme),
+    alpha,
+  })
 }
 
 export function getUniqueModels(modelsUsed: string[][]): string[] {

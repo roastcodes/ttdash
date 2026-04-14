@@ -1,5 +1,17 @@
 # Changelog
 
+## [6.2.0] - 2026-04-14
+
+### Added
+
+- **Zentrales modellbasiertes Farbsystem** — bekannte Modellfamilien nutzen jetzt eine kuratierte, theme-aware Palette mit stabilen Familienfarben, kontrollierten Fallbacks für unbekannte Modelle und gezielten Tests für UI- und Report-Konsistenz
+
+### Improved
+
+- **Modellfarb-Integration im Dashboard und Report** — Filter, Tabellen und PDF-/Report-Ausgabe greifen jetzt auf dieselbe Farbquelle zu, Versionen innerhalb einer Modellfamilie lassen sich besser unterscheiden, und Light-/Dark-Kontexte werden sauberer berücksichtigt
+- **PDF-Report-Qualität und Semantik** — Kostenachsen bleiben auch bei kleinen Werten wahrheitsgetreu, Charts erhalten beschreibende Alternativtexte und sichtbare Kurzsummaries, der Report trägt jetzt einen echten Dokumenttitel in den PDF-Metadaten, und der Seitenfluss vermeidet unnötige Leerflächen
+- **PDF-Report-Absicherung für die Weiterentwicklung** — neue Unit- und Integrationstests prüfen Chart-Formatierung, Chart-Beschreibungen und zentrale PDF-Strukturmerkmale statt nur den reinen Binary-Exportpfad
+
 ## [6.1.9] - 2026-04-14
 
 ### Added

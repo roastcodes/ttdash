@@ -175,4 +175,46 @@ describe('report utils', () => {
 
     expect(report.meta.filterSummary.selectedModelsLabel).toBe('Claude Sonnet 4.5')
   })
+
+  it('builds localized chart descriptions and exposes full labels for truncated model names', async () => {
+    const { buildReportData } = await import('../../server/report/utils.js')
+
+    const longModelName =
+      'This is a very long model name that should stay understandable in the PDF'
+    const dataWithLongModel = dashboardFixture.map((day, index) => ({
+      ...day,
+      modelBreakdowns: day.modelBreakdowns.map((entry, entryIndex) =>
+        index === 0 && entryIndex === 0
+          ? {
+              ...entry,
+              modelName: longModelName,
+              cost: entry.cost + 50,
+            }
+          : entry,
+      ),
+    }))
+
+    const report = buildReportData(dataWithLongModel, {
+      viewMode: 'daily',
+      language: 'en',
+    })
+    const normalizedLongModelName = report.topModels[0].name
+
+    expect(report.chartDescriptions.costTrend.alt).toBe('Line chart showing report cost by period.')
+    expect(report.chartDescriptions.costTrend.summary).toContain('Peak')
+    expect(report.chartDescriptions.topModels.summary).toContain(normalizedLongModelName)
+    expect(report.chartDescriptions.topModels.fullNamesNote).toContain(normalizedLongModelName)
+    expect(report.chartDescriptions.tokenTrend.summary).toContain('Peak token volume')
+  })
+
+  it('omits the full-names note when top-model labels fit without truncation', async () => {
+    const { buildReportData } = await import('../../server/report/utils.js')
+
+    const report = buildReportData(dashboardFixture, {
+      viewMode: 'daily',
+      language: 'en',
+    })
+
+    expect(report.chartDescriptions.topModels.fullNamesNote).toBeNull()
+  })
 })

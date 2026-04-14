@@ -1,3 +1,5 @@
+const { truncateTopModelChartLabel } = require('./chart-labels');
+
 function escapeXml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -18,12 +20,6 @@ ${body}
 }
 
 const DEFAULT_FONT_FAMILY = 'Liberation Sans, DejaVu Sans, Arial, sans-serif';
-
-function truncateSvgLabel(value, maxLength = 28) {
-  const stringValue = String(value || '');
-  if (stringValue.length <= maxLength) return stringValue;
-  return `${stringValue.slice(0, Math.max(1, maxLength - 1)).trimEnd()}…`;
-}
 
 function lineChart(
   data,
@@ -136,7 +132,7 @@ function horizontalBarChart(
     top: 46,
     right: 100,
     bottom: 24,
-    left: clamp(180 + longestLabelLength * 3.4, 220, 320),
+    left: clamp(180 + longestLabelLength * 3.4, 220, 360),
   };
   const plotWidth = width - margin.left - margin.right;
   const barGap = 18;
@@ -158,7 +154,7 @@ function horizontalBarChart(
         const value = getValue(entry);
         const barWidth = clamp((value / maxValue) * plotWidth, 0, plotWidth);
         return `
-        <text x="${margin.left - 18}" y="${y + barHeight / 2 + 4}" text-anchor="end" font-size="13" font-family="${fontFamily}" fill="#122033">${escapeXml(truncateSvgLabel(getLabel(entry), 30))}</text>
+        <text x="${margin.left - 18}" y="${y + barHeight / 2 + 4}" text-anchor="end" font-size="13" font-family="${fontFamily}" fill="#122033">${escapeXml(truncateTopModelChartLabel(getLabel(entry)))}</text>
         <rect x="${margin.left}" y="${y}" width="${plotWidth}" height="${barHeight}" rx="12" fill="#eef3f8"/>
         <rect x="${margin.left}" y="${y}" width="${barWidth}" height="${barHeight}" rx="12" fill="${getColor(entry)}"/>
         <text x="${margin.left + plotWidth + 12}" y="${y + barHeight / 2 + 4}" font-size="12" font-family="${fontFamily}" fill="#475569">${escapeXml(formatter(value))}</text>
