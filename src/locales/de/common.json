@@ -1101,7 +1101,15 @@
     "charts": {
       "costTrend": "Kostenverlauf",
       "topModels": "Top-Modelle nach Kosten",
-      "tokenTrend": "Token-Mix pro Zeitraum"
+      "tokenTrend": "Token-Mix pro Zeitraum",
+      "costTrendAlt": "Liniendiagramm der Report-Kosten pro Zeitraum.",
+      "costTrendSummary": "Letzter Wert {{latest}}. Peak {{peak}} am {{date}}.",
+      "topModelsAlt": "Horizontales Balkendiagramm der teuersten Modelle im Report.",
+      "topModelsSummary": "{{model}} führt mit {{cost}} und {{share}} der Report-Kosten.",
+      "topModelsFullNames": "Vollständige Diagramm-Labels: {{names}}.",
+      "tokenTrendAlt": "Gestapeltes Balkendiagramm des Token-Mix pro Report-Zeitraum.",
+      "tokenTrendSummary": "Gesamt {{total}}. Höchstes Token-Volumen {{peak}} am {{date}}.",
+      "noDataSummary": "Nicht genug Daten für eine belastbare Diagramm-Zusammenfassung."
     },
     "interpretation": {
       "summary": "Dieser Report umfasst {{days}} Rohdaten-Tage und {{periods}} aggregierte Zeiträume. Spitzenzeitraum: {{peak}}. Top-Modell: {{topModel}}. Führender Anbieter: {{topProvider}}.",

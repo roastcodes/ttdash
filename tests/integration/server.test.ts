@@ -1113,6 +1113,12 @@ describe('local server API', () => {
     const pdf = Buffer.from(await response.arrayBuffer())
     expect(pdf.subarray(0, 5).toString('ascii')).toBe('%PDF-')
     expect(pdf.length).toBeGreaterThan(1000)
+
+    const pdfText = pdf.toString('latin1')
+    expect(pdfText).toContain('/StructTreeRoot')
+    expect(pdfText).toContain('/Figure')
+    expect(pdfText).toContain('/Title')
+    expect(pdfText).toContain('/Alt')
   })
 
   it('rejects malformed report payloads before report generation starts', async () => {

@@ -3,7 +3,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const { buildReportData, formatCompactAxis, formatDateAxis } = require('./utils');
-const { translate } = require('./i18n');
+const { getLocale, translate } = require('./i18n');
 const { horizontalBarChart, lineChart, stackedBarChart } = require('./charts');
 
 function ensureTypstInstalled() {
@@ -39,9 +39,40 @@ function compileTypst(workingDir, typPath, pdfPath) {
   });
 }
 
+function formatCostAxisValue(value, language = 'de') {
+  const numericValue = Number(value) || 0;
+  const absoluteValue = Math.abs(numericValue);
+  const locale = getLocale(language);
+
+  if (absoluteValue >= 100) {
+    return `$${Math.round(numericValue).toLocaleString(locale)}`;
+  }
+
+  if (absoluteValue >= 10) {
+    return `$${numericValue.toLocaleString(locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+    })}`;
+  }
+
+  if (absoluteValue >= 1) {
+    return `$${numericValue.toLocaleString(locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+
+  return `$${numericValue.toLocaleString(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 function buildTemplate() {
   return `
 #let report = json("report.json")
+
+#set document(title: report.meta.reportTitle)
 
 #set page(
   paper: "a4",
@@ -56,10 +87,10 @@ function buildTemplate() {
 #let muted = rgb("#5c6b7e")
 #let panel = rgb("#ffffff")
 #let line = rgb("#d9e2ec")
-#let accent = rgb("#1d6fd8")
+#let accent = rgb("#175fc0")
 #let accent-soft = rgb("#eaf2ff")
 #let good = rgb("#16825d")
-#let warn = rgb("#c67700")
+#let warn = rgb("#9a5a00")
 
 #let metric-card(label, value, note: none, tone: accent) = rect(
   inset: 10pt,
@@ -86,6 +117,22 @@ function buildTemplate() {
     #text(size: 9pt, fill: tone, weight: "bold")[#title]
     #v(4pt)
     #text(size: 9.6pt, fill: ink)[#body]
+  ],
+)
+
+#let chart-panel(file, alt, summary, note: none) = rect(
+  inset: 10pt,
+  radius: 14pt,
+  fill: panel,
+  stroke: (paint: line, thickness: 0.8pt),
+  [
+    #image(file, width: 100%, alt: alt)
+    #v(6pt)
+    #text(size: 8.7pt, fill: muted)[#summary]
+    #if note != none [
+      #v(4pt)
+      #text(size: 8.5pt, fill: muted)[#note]
+    ]
   ],
 )
 
@@ -150,21 +197,26 @@ function buildTemplate() {
 #grid(
   columns: (1fr, 1fr),
   gutter: 10pt,
-  rect(inset: 10pt, radius: 14pt, fill: panel, stroke: (paint: line, thickness: 0.8pt))[
-    #image("cost-trend.svg", width: 100%)
-  ],
-  rect(inset: 10pt, radius: 14pt, fill: panel, stroke: (paint: line, thickness: 0.8pt))[
-    #image("top-models.svg", width: 100%)
-  ],
+  chart-panel(
+    "cost-trend.svg",
+    report.chartDescriptions.costTrend.alt,
+    report.chartDescriptions.costTrend.summary,
+  ),
+  chart-panel(
+    "top-models.svg",
+    report.chartDescriptions.topModels.alt,
+    report.chartDescriptions.topModels.summary,
+    note: report.chartDescriptions.topModels.fullNamesNote,
+  ),
 )
 
 #v(10pt)
 
-#rect(inset: 10pt, radius: 14pt, fill: panel, stroke: (paint: line, thickness: 0.8pt))[
-  #image("token-trend.svg", width: 100%)
-]
-
-#pagebreak()
+#chart-panel(
+  "token-trend.svg",
+  report.chartDescriptions.tokenTrend.alt,
+  report.chartDescriptions.tokenTrend.summary,
+)
 
 #v(12pt)
 
@@ -279,7 +331,7 @@ function createChartAssets(reportData) {
       title: reportData.text.charts.costTrend,
       valueKey: 'cost',
       secondaryKey: reportData.meta.filterSummary.viewModeKey === 'daily' ? 'ma7' : null,
-      formatter: (value) => `$${Math.round(value)}`,
+      formatter: (value) => formatCostAxisValue(value, reportData.meta.language),
     }),
     'top-models.svg': horizontalBarChart(topModels, {
       title: reportData.text.charts.topModels,
@@ -363,4 +415,9 @@ async function generatePdfReport(allDailyData, options = {}) {
 
 module.exports = {
   generatePdfReport,
+  __test__: {
+    buildTemplate,
+    createChartAssets,
+    formatCostAxisValue,
+  },
 };

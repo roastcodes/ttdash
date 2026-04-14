@@ -136,7 +136,7 @@ function horizontalBarChart(
     top: 46,
     right: 100,
     bottom: 24,
-    left: clamp(180 + longestLabelLength * 3.4, 220, 320),
+    left: clamp(180 + longestLabelLength * 3.4, 220, 360),
   };
   const plotWidth = width - margin.left - margin.right;
   const barGap = 18;
@@ -158,7 +158,7 @@ function horizontalBarChart(
         const value = getValue(entry);
         const barWidth = clamp((value / maxValue) * plotWidth, 0, plotWidth);
         return `
-        <text x="${margin.left - 18}" y="${y + barHeight / 2 + 4}" text-anchor="end" font-size="13" font-family="${fontFamily}" fill="#122033">${escapeXml(truncateSvgLabel(getLabel(entry), 30))}</text>
+        <text x="${margin.left - 18}" y="${y + barHeight / 2 + 4}" text-anchor="end" font-size="13" font-family="${fontFamily}" fill="#122033">${escapeXml(truncateSvgLabel(getLabel(entry), 34))}</text>
         <rect x="${margin.left}" y="${y}" width="${plotWidth}" height="${barHeight}" rx="12" fill="#eef3f8"/>
         <rect x="${margin.left}" y="${y}" width="${barWidth}" height="${barHeight}" rx="12" fill="${getColor(entry)}"/>
         <text x="${margin.left + plotWidth + 12}" y="${y + barHeight / 2 + 4}" font-size="12" font-family="${fontFamily}" fill="#475569">${escapeXml(formatter(value))}</text>

@@ -220,6 +220,16 @@ function formatPercent(value, language = 'de') {
   })}%`;
 }
 
+function findPeakEntry(data, getValue) {
+  let best = null;
+  for (const entry of data) {
+    if (!best || getValue(entry) > getValue(best)) {
+      best = entry;
+    }
+  }
+  return best;
+}
+
 function formatCompactNumber(value, language = 'de') {
   if (!Number.isFinite(value)) return '0';
 
@@ -397,6 +407,9 @@ function buildReportData(allDailyData, options = {}) {
   const topProviderValue = metrics.topProvider ? metrics.topProvider.name : notAvailable;
   const insights = buildInsights(metrics, { filteredDaily, filtered, language });
   const avgPeriodCost = filtered.length > 0 ? metrics.totalCost / filtered.length : 0;
+  const latestPeriod = filtered[filtered.length - 1] || null;
+  const peakCostPeriod = findPeakEntry(filtered, (entry) => entry.totalCost);
+  const peakTokenPeriod = findPeakEntry(filtered, (entry) => entry.totalTokens);
   const recentRows = sortByDate(filtered)
     .slice(-12)
     .reverse()
@@ -453,6 +466,34 @@ function buildReportData(allDailyData, options = {}) {
       tone: 'warn',
     },
   ];
+
+  const topChartModels = modelRows.slice(0, 8);
+  const truncatedTopModelNames = topChartModels
+    .filter((entry) => entry.name.length > 30)
+    .map((entry) => entry.name);
+  const topModelSummary = metrics.topModel
+    ? translate(language, 'report.charts.topModelsSummary', {
+        model: metrics.topModel.name,
+        cost: formatCurrency(metrics.topModel.cost, language),
+        share: formatPercent(metrics.topModelShare, language),
+      })
+    : translate(language, 'report.charts.noDataSummary');
+  const costTrendSummary =
+    latestPeriod && peakCostPeriod
+      ? translate(language, 'report.charts.costTrendSummary', {
+          latest: formatCurrency(latestPeriod.totalCost, language),
+          peak: formatCurrency(peakCostPeriod.totalCost, language),
+          date: formatDate(peakCostPeriod.date, 'long', language),
+        })
+      : translate(language, 'report.charts.noDataSummary');
+  const tokenTrendSummary =
+    peakTokenPeriod && metrics.totalTokens > 0
+      ? translate(language, 'report.charts.tokenTrendSummary', {
+          total: formatCompact(metrics.totalTokens, language),
+          peak: formatCompact(peakTokenPeriod.totalTokens, language),
+          date: formatDate(peakTokenPeriod.date, 'long', language),
+        })
+      : translate(language, 'report.charts.noDataSummary');
 
   const interpretationSummary = translate(language, 'report.interpretation.summary', {
     days: formatInteger(filteredDaily.length, language),
@@ -518,6 +559,26 @@ function buildReportData(allDailyData, options = {}) {
       tokensLabel: formatCompact(entry.tokens, language),
     })),
     recentPeriods: recentRows,
+    chartDescriptions: {
+      costTrend: {
+        alt: translate(language, 'report.charts.costTrendAlt'),
+        summary: costTrendSummary,
+      },
+      topModels: {
+        alt: translate(language, 'report.charts.topModelsAlt'),
+        summary: topModelSummary,
+        fullNamesNote:
+          truncatedTopModelNames.length > 0
+            ? translate(language, 'report.charts.topModelsFullNames', {
+                names: truncatedTopModelNames.join(', '),
+              })
+            : null,
+      },
+      tokenTrend: {
+        alt: translate(language, 'report.charts.tokenTrendAlt'),
+        summary: tokenTrendSummary,
+      },
+    },
     labels: {
       dateRangeText: dateRange
         ? `${formatDate(dateRange.start, 'long', language)} - ${formatDate(dateRange.end, 'long', language)}`
