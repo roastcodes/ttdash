@@ -72,6 +72,18 @@ export function SecondaryMetrics({
           volatility: Math.round(metrics.requestVolatility),
         })
       : null
+  const topCostInfo =
+    viewMode === 'yearly'
+      ? METRIC_HELP.mostExpensiveYear
+      : viewMode === 'monthly'
+        ? METRIC_HELP.mostExpensiveMonth
+        : METRIC_HELP.mostExpensiveDay
+  const avgCostInfo =
+    viewMode === 'yearly'
+      ? METRIC_HELP.avgCostPerYear
+      : viewMode === 'monthly'
+        ? METRIC_HELP.avgCostPerMonth
+        : METRIC_HELP.avgCostPerDay
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -88,7 +100,7 @@ export function SecondaryMetrics({
             metrics.topDay ? <FormattedValue value={metrics.topDay.cost} type="currency" /> : '–'
           }
           icon={<TrendingUp className="h-4 w-4" />}
-          info={METRIC_HELP.mostExpensiveDay}
+          info={topCostInfo}
           {...(topDaySubtitle ? { subtitle: topDaySubtitle } : {})}
         />
       </DashboardMotionItem>
@@ -116,7 +128,7 @@ export function SecondaryMetrics({
             )
           }
           icon={<ChartBar className="h-4 w-4" />}
-          info={METRIC_HELP.avgCostPerDay}
+          info={avgCostInfo}
           {...(peakSubtitle ? { subtitle: peakSubtitle } : {})}
         />
       </DashboardMotionItem>

@@ -29,11 +29,20 @@ interface InsightCardProps {
   summary: string
   details: { label: string; value: ReactNode }[]
   className?: string
+  testId?: string
 }
 
-function InsightCard({ title, icon, value, summary, details, className }: InsightCardProps) {
+function InsightCard({
+  title,
+  icon,
+  value,
+  summary,
+  details,
+  className,
+  testId,
+}: InsightCardProps) {
   return (
-    <Card className={`h-full overflow-hidden p-5 ${className ?? ''}`.trim()}>
+    <Card className={`h-full overflow-hidden p-5 ${className ?? ''}`.trim()} data-testid={testId}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -93,9 +102,13 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
         description={t('dashboard.insights.description')}
         info={SECTION_HELP.insights}
       />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
-        <DashboardMotionItem order={0} className="h-full">
+      <div
+        className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4"
+        data-testid="usage-insights-grid"
+      >
+        <DashboardMotionItem order={0} className="h-full" data-testid="usage-insight-motion-item">
           <InsightCard
+            testId="usage-insight-card"
             title={t('insights.concentration.title')}
             icon={<Building2 className="h-5 w-5" />}
             value={metrics.topProvider ? formatPercent(metrics.topProvider.share, 0) : '–'}
@@ -125,8 +138,9 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
           />
         </DashboardMotionItem>
 
-        <DashboardMotionItem order={1} className="h-full">
+        <DashboardMotionItem order={1} className="h-full" data-testid="usage-insight-motion-item">
           <InsightCard
+            testId="usage-insight-card"
             title={t('insights.requestEconomy.title')}
             icon={<Activity className="h-5 w-5" />}
             value={
@@ -181,8 +195,9 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
           />
         </DashboardMotionItem>
 
-        <DashboardMotionItem order={2} className="h-full">
+        <DashboardMotionItem order={2} className="h-full" data-testid="usage-insight-motion-item">
           <InsightCard
+            testId="usage-insight-card"
             title={t('insights.usagePatterns.title')}
             icon={<Layers3 className="h-5 w-5" />}
             value={
@@ -229,8 +244,9 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
           />
         </DashboardMotionItem>
 
-        <DashboardMotionItem order={3} className="h-full">
+        <DashboardMotionItem order={3} className="h-full" data-testid="usage-insight-motion-item">
           <InsightCard
+            testId="usage-insight-card"
             title={t('insights.peakWindow.title')}
             icon={<TrendingUp className="h-5 w-5" />}
             value={

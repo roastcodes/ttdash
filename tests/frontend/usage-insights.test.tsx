@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { UsageInsights } from '@/components/features/insights/UsageInsights'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -56,16 +56,19 @@ describe('UsageInsights', () => {
   })
 
   it('keeps the animated insight grid items stretched to full height', () => {
-    const { container } = render(
+    render(
       <TooltipProvider>
         <UsageInsights metrics={metrics} viewMode="daily" totalCalendarDays={92} />
       </TooltipProvider>,
     )
 
-    const motionItems = container.querySelectorAll('.grid > .h-full')
-    const cards = container.querySelectorAll('.grid > .h-full > .h-full')
+    const grid = screen.getByTestId('usage-insights-grid')
+    const motionItems = within(grid).getAllByTestId('usage-insight-motion-item')
+    const cards = within(grid).getAllByTestId('usage-insight-card')
 
-    expect(motionItems.length).toBeGreaterThanOrEqual(4)
-    expect(cards.length).toBeGreaterThanOrEqual(4)
+    expect(motionItems).toHaveLength(4)
+    expect(cards).toHaveLength(4)
+    motionItems.forEach((item) => expect(item).toHaveClass('h-full'))
+    cards.forEach((card) => expect(card).toHaveClass('h-full'))
   })
 })

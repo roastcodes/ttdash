@@ -67,7 +67,7 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          {qualityMetrics.map((item) => (
+          {qualityMetrics.map((item, index) => (
             <div key={item.label} className="rounded-xl border border-border/50 bg-muted/15 p-3">
               <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                 {item.label}
@@ -77,6 +77,7 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
               <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted/40">
                 <AnimatedBarFill
                   className="h-full rounded-full"
+                  order={index}
                   style={{
                     backgroundColor: `hsl(${item.accent})`,
                   }}

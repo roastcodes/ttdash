@@ -94,7 +94,7 @@ export function getScatterAnimationProps(active: boolean, delayOffsetMs = 0) {
   return {
     isAnimationActive: active,
     animationBegin: CHART_ANIMATION.chartStartDelay + delayOffsetMs,
-    animationDuration: CHART_ANIMATION.barDuration,
+    animationDuration: CHART_ANIMATION.revealDuration,
     animationEasing: CHART_ANIMATION.easing,
   }
 }

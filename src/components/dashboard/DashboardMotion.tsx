@@ -102,6 +102,7 @@ interface DashboardMotionItemProps {
   order?: number
   delayMs?: number
   amount?: number
+  'data-testid'?: string
 }
 
 /** Reveals one dashboard child element with the shared timing policy. */
@@ -111,6 +112,7 @@ export function DashboardMotionItem({
   order = 0,
   delayMs,
   amount,
+  'data-testid': dataTestId,
 }: DashboardMotionItemProps) {
   const itemRef = useRef<HTMLDivElement | null>(null)
   const itemMotion = useDashboardElementMotion(itemRef, {
@@ -122,7 +124,7 @@ export function DashboardMotionItem({
 
   if (itemMotion.shouldReduceMotion) {
     return (
-      <div ref={itemRef} className={className}>
+      <div ref={itemRef} className={className} data-testid={dataTestId}>
         {children}
       </div>
     )
@@ -132,6 +134,7 @@ export function DashboardMotionItem({
     <motion.div
       ref={itemRef}
       className={className}
+      data-testid={dataTestId}
       initial={false}
       animate={
         itemMotion.active
@@ -261,7 +264,8 @@ export function AnimatedDashboardSection({
 
   const shouldRenderContent = eager || contentPrepared
   const showPlaceholder = !sectionVisible
-  const contentStyle = sectionVisible ? {} : { opacity: 0, pointerEvents: 'none' as const }
+  const hiddenContentStyle = { opacity: 0, pointerEvents: 'none' as const }
+  const hiddenAnimatedContentStyle = { pointerEvents: 'none' as const }
 
   const contextValue = useMemo<DashboardSectionMotionState>(
     () => ({
@@ -296,13 +300,14 @@ export function AnimatedDashboardSection({
               <div
                 {...(!sectionVisible ? { inert: true } : {})}
                 className={contentClassName}
-                style={contentStyle}
+                style={sectionVisible ? undefined : hiddenContentStyle}
               >
                 {children}
               </div>
             ) : (
               <motion.div
                 {...(!sectionVisible ? { inert: true } : {})}
+                {...(!sectionVisible ? { style: hiddenAnimatedContentStyle } : {})}
                 initial={{
                   opacity: 0,
                   y: DASHBOARD_MOTION.sectionRevealOffset,
@@ -317,7 +322,6 @@ export function AnimatedDashboardSection({
                   ease: DASHBOARD_MOTION.sectionRevealEase,
                 }}
                 className={contentClassName}
-                style={contentStyle}
               >
                 {children}
               </motion.div>
