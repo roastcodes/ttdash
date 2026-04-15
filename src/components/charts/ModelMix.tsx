@@ -10,7 +10,7 @@ import {
   Tooltip,
 } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import { CHART_COLORS, CHART_MARGIN, getAreaAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import { getModelColor, normalizeModelName } from '@/lib/model-utils'
 import { coerceNumber, formatDateAxis, formatPercent } from '@/lib/formatters'
@@ -141,10 +141,7 @@ export function ModelMix({ data }: ModelMixProps) {
                       strokeOpacity={0.6}
                       fill={`url(#${id})`}
                       name={model}
-                      isAnimationActive={animate}
-                      animationBegin={CHART_ANIMATION.stagger * (index % 5)}
-                      animationDuration={CHART_ANIMATION.duration}
-                      animationEasing={CHART_ANIMATION.easing}
+                      {...getAreaAnimationProps(animate, { order: index % 5, role: 'stacked' })}
                     />
                   )
                 })}

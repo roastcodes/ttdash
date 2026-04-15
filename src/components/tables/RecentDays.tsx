@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FormattedValue } from '@/components/ui/formatted-value'
+import { AnimatedBarFill } from '@/components/features/animations/AnimatedBarFill'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import {
@@ -567,9 +568,11 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                       {formatDate(day.date, 'long')}
                     </td>
                     <td className="relative px-2 py-2.5 text-right font-mono tabular-nums">
-                      <div
-                        className="absolute inset-y-1 left-0 rounded-sm bg-primary/8 transition-all duration-300"
-                        style={{ width: `${maxCost > 0 ? (day.totalCost / maxCost) * 100 : 0}%` }}
+                      <AnimatedBarFill
+                        className="absolute inset-y-1 left-0 rounded-sm bg-primary/8"
+                        width={`${maxCost > 0 ? (day.totalCost / maxCost) * 100 : 0}%`}
+                        delayMs={140}
+                        durationMs={520}
                       />
                       <span className="relative">
                         <FormattedValue value={day.totalCost} type="currency" />

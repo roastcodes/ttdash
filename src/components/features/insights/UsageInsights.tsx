@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Activity, Building2, Layers3, Sparkles, TrendingUp } from 'lucide-react'
+import { DashboardMotionItem } from '@/components/dashboard/DashboardMotion'
 import { Card } from '@/components/ui/card'
 import { SectionHeader } from '@/components/ui/section-header'
-import { FadeIn } from '@/components/features/animations/FadeIn'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SECTION_HELP } from '@/lib/help-content'
 import {
@@ -28,11 +28,21 @@ interface InsightCardProps {
   value: ReactNode
   summary: string
   details: { label: string; value: ReactNode }[]
+  className?: string
+  testId?: string
 }
 
-function InsightCard({ title, icon, value, summary, details }: InsightCardProps) {
+function InsightCard({
+  title,
+  icon,
+  value,
+  summary,
+  details,
+  className,
+  testId,
+}: InsightCardProps) {
   return (
-    <Card className="overflow-hidden p-5">
+    <Card className={`h-full overflow-hidden p-5 ${className ?? ''}`.trim()} data-testid={testId}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -92,9 +102,13 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
         description={t('dashboard.insights.description')}
         info={SECTION_HELP.insights}
       />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
-        <FadeIn delay={0.03}>
+      <div
+        className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4"
+        data-testid="usage-insights-grid"
+      >
+        <DashboardMotionItem order={0} className="h-full" data-testid="usage-insight-motion-item">
           <InsightCard
+            testId="usage-insight-card"
             title={t('insights.concentration.title')}
             icon={<Building2 className="h-5 w-5" />}
             value={metrics.topProvider ? formatPercent(metrics.topProvider.share, 0) : '–'}
@@ -122,10 +136,11 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
               },
             ]}
           />
-        </FadeIn>
+        </DashboardMotionItem>
 
-        <FadeIn delay={0.08}>
+        <DashboardMotionItem order={1} className="h-full" data-testid="usage-insight-motion-item">
           <InsightCard
+            testId="usage-insight-card"
             title={t('insights.requestEconomy.title')}
             icon={<Activity className="h-5 w-5" />}
             value={
@@ -178,10 +193,11 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
               },
             ]}
           />
-        </FadeIn>
+        </DashboardMotionItem>
 
-        <FadeIn delay={0.13}>
+        <DashboardMotionItem order={2} className="h-full" data-testid="usage-insight-motion-item">
           <InsightCard
+            testId="usage-insight-card"
             title={t('insights.usagePatterns.title')}
             icon={<Layers3 className="h-5 w-5" />}
             value={
@@ -226,10 +242,11 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
               },
             ]}
           />
-        </FadeIn>
+        </DashboardMotionItem>
 
-        <FadeIn delay={0.18}>
+        <DashboardMotionItem order={3} className="h-full" data-testid="usage-insight-motion-item">
           <InsightCard
+            testId="usage-insight-card"
             title={t('insights.peakWindow.title')}
             icon={<TrendingUp className="h-5 w-5" />}
             value={
@@ -263,10 +280,10 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
               { label: t('insights.peakWindow.signal'), value: peakSignal },
             ]}
           />
-        </FadeIn>
+        </DashboardMotionItem>
       </div>
 
-      <FadeIn delay={0.22}>
+      <DashboardMotionItem order={4}>
         <div className="mt-4 rounded-2xl border border-border/60 bg-gradient-to-r from-primary/[0.08] via-transparent to-chart-3/[0.08] px-4 py-3 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-2 font-medium text-foreground">
             <Sparkles className="h-4 w-4 text-primary" />
@@ -289,7 +306,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
               : t('insights.quickRead.fallback')}
           </span>
         </div>
-      </FadeIn>
+      </DashboardMotionItem>
     </div>
   )
 }

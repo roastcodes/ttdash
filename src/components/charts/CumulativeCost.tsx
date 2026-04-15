@@ -12,7 +12,12 @@ import {
 } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import {
+  CHART_COLORS,
+  CHART_MARGIN,
+  getAreaAnimationProps,
+  getLineAnimationProps,
+} from './chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { computeCurrentMonthForecast } from '@/lib/calculations'
 import { CHART_HELP } from '@/lib/help-content'
@@ -113,10 +118,7 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
                     fill: 'hsl(var(--background))',
                   }}
                   dot={false}
-                  isAnimationActive={animate}
-                  animationBegin={0}
-                  animationDuration={CHART_ANIMATION.duration}
-                  animationEasing={CHART_ANIMATION.easing}
+                  {...getAreaAnimationProps(animate)}
                   connectNulls={false}
                 />
                 <Line
@@ -128,9 +130,7 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
                   dot={false}
                   name={t('charts.cumulativeCost.projection')}
                   connectNulls
-                  isAnimationActive={animate}
-                  animationBegin={CHART_ANIMATION.stagger}
-                  animationDuration={CHART_ANIMATION.slowDuration}
+                  {...getLineAnimationProps(animate, { role: 'secondary' })}
                 />
               </ComposedChart>
             </ResponsiveContainer>

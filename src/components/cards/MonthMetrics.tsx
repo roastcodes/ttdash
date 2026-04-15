@@ -11,9 +11,9 @@ import {
   BrainCircuit,
 } from 'lucide-react'
 import { MetricCard } from './MetricCard'
+import { DashboardMotionItem } from '@/components/dashboard/DashboardMotion'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
-import { FadeIn } from '@/components/features/animations/FadeIn'
 import { SECTION_HELP } from '@/lib/help-content'
 import { formatCurrency, formatMonthYear, localMonth } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
@@ -144,8 +144,8 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
         description={t('metricCards.month.description')}
         info={SECTION_HELP.currentMonth}
       />
-      <FadeIn delay={0.08}>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-8">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-8">
+        <DashboardMotionItem order={0}>
           <MetricCard
             label={t('metricCards.month.costMonth')}
             value={<FormattedValue value={agg.totalCost} type="currency" />}
@@ -159,12 +159,16 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
                 : null
             }
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={1}>
           <MetricCard
             label={t('metricCards.month.tokensMonth')}
             value={<FormattedValue value={agg.totalTokens} type="tokens" />}
             icon={<Coins className="h-4 w-4" />}
             {...(tokensSubtitle ? { subtitle: tokensSubtitle } : {})}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={2}>
           <MetricCard
             label={t('metricCards.month.activeDays')}
             value={`${agg.activeDays} / ${agg.dayOfMonth}`}
@@ -173,18 +177,24 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
             })}
             icon={<CalendarDays className="h-4 w-4" />}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={3}>
           <MetricCard
             label={t('metricCards.month.models')}
             value={String(agg.modelCount)}
             icon={<Cpu className="h-4 w-4" />}
             {...(modelsSubtitle ? { subtitle: modelsSubtitle } : {})}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={4}>
           <MetricCard
             label={t('metricCards.month.costPerMillion')}
             value={<FormattedValue value={agg.costPerMillion} type="currency" />}
             icon={<TrendingDown className="h-4 w-4" />}
             {...(costPerMillionSubtitle ? { subtitle: costPerMillionSubtitle } : {})}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={5}>
           <MetricCard
             label={t('metricCards.month.cacheHitRate')}
             value={<FormattedValue value={agg.cacheHitRate} type="percent" />}
@@ -194,6 +204,8 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
             })}
             icon={<Database className="h-4 w-4" />}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={6}>
           <MetricCard
             label={t('metricCards.month.requests')}
             value={
@@ -220,14 +232,16 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
             }
             icon={<Activity className="h-4 w-4" />}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={7}>
           <MetricCard
             label={t('metricCards.month.thinking')}
             value={<FormattedValue value={agg.thinkingTokens} type="tokens" />}
             icon={<BrainCircuit className="h-4 w-4" />}
             {...(thinkingSubtitle ? { subtitle: thinkingSubtitle } : {})}
           />
-        </div>
-      </FadeIn>
+        </DashboardMotionItem>
+      </div>
     </div>
   )
 }

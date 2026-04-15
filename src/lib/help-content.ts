@@ -20,9 +20,17 @@ const HELP_CONTENT = {
         'Zeigt die durchschnittlichen Kosten pro 1 Million verarbeiteter Tokens. Niedrigere Werte sprechen für effizientere Nutzung.',
       mostExpensiveDay:
         'Zeigt den Zeitraumspunkt mit den höchsten API-Kosten im aktuellen Ausschnitt.',
+      mostExpensiveMonth: 'Zeigt den Monat mit den höchsten API-Kosten im aktuellen Ausschnitt.',
+      mostExpensiveYear: 'Zeigt das Jahr mit den höchsten API-Kosten im aktuellen Ausschnitt.',
       cheapestDay:
         'Zeigt den Zeitraumspunkt mit den niedrigsten API-Kosten im aktuellen Ausschnitt.',
       avgCostPerDay: 'Zeigt die durchschnittlichen Kosten pro aktivem Zeitraumspunkt.',
+      peak7Days:
+        'Zeigt das teuerste rollierende 7-Tage-Fenster im aktuellen Ausschnitt und macht kurzfristige Lastspitzen sichtbar.',
+      avgCostPerMonth:
+        'Zeigt die durchschnittlichen Kosten pro aktivem Monat im aktuellen Ausschnitt.',
+      avgCostPerYear:
+        'Zeigt die durchschnittlichen Kosten pro aktivem Jahr im aktuellen Ausschnitt.',
       outputTokens:
         'Zeigt die Menge der generierten Output-Tokens. Diese sind meist teurer als reine Input-Tokens.',
     },
@@ -134,8 +142,14 @@ const HELP_CONTENT = {
       costPerMillion:
         'Shows average cost per 1 million processed tokens. Lower values indicate more efficient usage.',
       mostExpensiveDay: 'Shows the period point with the highest API cost in the current slice.',
+      mostExpensiveMonth: 'Shows the month with the highest API cost in the current slice.',
+      mostExpensiveYear: 'Shows the year with the highest API cost in the current slice.',
       cheapestDay: 'Shows the period point with the lowest API cost in the current slice.',
       avgCostPerDay: 'Shows the average cost per active period point.',
+      peak7Days:
+        'Shows the highest-cost rolling 7-day window in the current slice to highlight short-term peaks.',
+      avgCostPerMonth: 'Shows the average cost per active month in the current slice.',
+      avgCostPerYear: 'Shows the average cost per active year in the current slice.',
       outputTokens:
         'Shows the volume of generated output tokens. These are usually more expensive than pure input tokens.',
     },

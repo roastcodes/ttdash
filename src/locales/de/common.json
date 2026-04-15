@@ -239,6 +239,7 @@
       "vsAverage": "{{direction}}{{value}}% vs. Ø",
       "vsAverageWithVolatility": "{{direction}}{{value}}% vs. Ø · σ Anf. {{volatility}}",
       "medianInfo": "Der Median zeigt den typischen Wert und ist weniger anfällig für Ausreisser als der Durchschnitt.",
+      "dominantProviderInfo": "Zeigt den Anbieter mit dem grössten Kostenanteil im aktuellen Ausschnitt zusammen mit dessen Gewichtung und Kostenbeitrag.",
       "requestLeader": "{{model}} · {{requests}} Anfragen",
       "dominantProviderSubtitle": "{{share}} Anteil · {{cost}}{{requestLeader}}"
     },

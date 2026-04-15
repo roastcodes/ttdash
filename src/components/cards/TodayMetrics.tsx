@@ -8,10 +8,10 @@ import {
   BrainCircuit,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { DashboardMotionItem } from '@/components/dashboard/DashboardMotion'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
-import { FadeIn } from '@/components/features/animations/FadeIn'
 import { SECTION_HELP } from '@/lib/help-content'
 import { formatCurrency, formatPercent, formatDate, formatTokens } from '@/lib/formatters'
 import { normalizeModelName } from '@/lib/model-utils'
@@ -83,8 +83,8 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
         description={t('metricCards.today.description')}
         info={SECTION_HELP.today}
       />
-      <FadeIn delay={0.05}>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6">
+        <DashboardMotionItem order={0}>
           <MetricCard
             label={t('metricCards.today.costToday')}
             value={<FormattedValue value={today.totalCost} type="currency" />}
@@ -96,6 +96,8 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
             }
             {...(costSubtitle ? { subtitle: costSubtitle } : {})}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={1}>
           <MetricCard
             label={t('metricCards.today.tokensToday')}
             value={
@@ -113,12 +115,16 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
             icon={<Coins className="h-4 w-4" />}
             {...(tokensSubtitle ? { subtitle: tokensSubtitle } : {})}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={2}>
           <MetricCard
             label={t('metricCards.today.models')}
             value={String(modelsCount)}
             icon={<Cpu className="h-4 w-4" />}
             {...(modelSubtitle ? { subtitle: modelSubtitle } : {})}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={3}>
           <MetricCard
             label={t('metricCards.today.costPerMillion')}
             value={
@@ -132,6 +138,8 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
             icon={<TrendingDown className="h-4 w-4" />}
             {...(costPerMillionSubtitle ? { subtitle: costPerMillionSubtitle } : {})}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={4}>
           <MetricCard
             label={t('metricCards.today.cacheHitRate')}
             value={<FormattedValue value={cacheHitRate} type="percent" />}
@@ -140,6 +148,8 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
             })}
             icon={<Database className="h-4 w-4" />}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={5}>
           <MetricCard
             label={t('metricCards.today.requests')}
             value={
@@ -159,14 +169,16 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
             subtitle={requestsSubtitle}
             icon={<Activity className="h-4 w-4" />}
           />
+        </DashboardMotionItem>
+        <DashboardMotionItem order={6}>
           <MetricCard
             label={t('metricCards.today.thinking')}
             value={<FormattedValue value={today.thinkingTokens} type="tokens" />}
             icon={<BrainCircuit className="h-4 w-4" />}
             {...(thinkingSubtitle ? { subtitle: thinkingSubtitle } : {})}
           />
-        </div>
-      </FadeIn>
+        </DashboardMotionItem>
+      </div>
     </div>
   )
 }

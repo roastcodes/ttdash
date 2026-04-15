@@ -8,11 +8,17 @@ import {
   type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useInView } from 'framer-motion'
+import { motion, useInView } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Maximize2 } from 'lucide-react'
 import { InfoButton } from '@/components/features/help/InfoButton'
+import {
+  DASHBOARD_MOTION,
+  useDashboardElementMotion,
+  useDashboardSectionMotion,
+} from '@/components/dashboard/DashboardMotion'
+import { CHART_ANIMATION } from './chart-theme'
 import { cn } from '@/lib/cn'
 import { buildCsvLine } from '@/lib/csv'
 import { formatCurrency } from '@/lib/formatters'
@@ -48,18 +54,43 @@ export function buildChartCsv(chartData: Record<string, unknown>[]): string {
   ].join('\n')
 }
 
-const ChartAnimationContext = createContext(false)
+interface ChartAnimationState {
+  active: boolean
+  delayMs: number
+  runKey: number
+}
+
+const ChartAnimationContext = createContext<ChartAnimationState>({
+  active: false,
+  delayMs: 0,
+  runKey: 0,
+})
 
 /** Returns whether chart-specific animation should currently run. */
 export function useChartAnimationActive() {
+  return useContext(ChartAnimationContext).active
+}
+
+/** Returns the current chart animation state. */
+export function useChartAnimationState() {
   return useContext(ChartAnimationContext)
+}
+
+/** Returns the current chart animation delay in milliseconds. */
+export function useChartAnimationDelay() {
+  return useContext(ChartAnimationContext).delayMs
+}
+
+/** Returns the current chart animation run key. */
+export function useChartAnimationRunKey() {
+  return useContext(ChartAnimationContext).runKey
 }
 
 /** Exposes the current chart animation state to a render prop. */
 export function ChartAnimationAware({ children }: { children: (active: boolean) => ReactNode }) {
   const shouldReduceMotion = useShouldReduceMotion()
-  const animationActive = useChartAnimationActive()
-  return <>{children(shouldReduceMotion ? false : animationActive)}</>
+  const animationState = useChartAnimationState()
+  return <>{children(shouldReduceMotion ? false : animationState.active)}</>
 }
 
 interface ChartRevealProps {
@@ -69,20 +100,36 @@ interface ChartRevealProps {
 
 /** Wraps chart content in the shared reveal policy for its chart variant. */
 export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
+  const shouldReduceMotion = useShouldReduceMotion()
+  const active = useChartAnimationActive()
+  const runKey = useChartAnimationRunKey()
+  const wrapperStyle = {
+    width: '100%',
+    height: '100%',
+    overflow: variant === 'radial' ? 'visible' : 'hidden',
+    transformOrigin: variant === 'bar' ? 'center bottom' : 'center center',
+    paddingTop: variant === 'radial' ? 8 : 0,
+    paddingBottom: variant === 'radial' ? 8 : 0,
+    boxSizing: 'border-box',
+  } as const
+
+  if (shouldReduceMotion) {
+    return <div style={wrapperStyle}>{children}</div>
+  }
+
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        overflow: variant === 'radial' ? 'visible' : 'hidden',
-        transformOrigin: variant === 'bar' ? 'center bottom' : 'center center',
-        paddingTop: variant === 'radial' ? 8 : 0,
-        paddingBottom: variant === 'radial' ? 8 : 0,
-        boxSizing: 'border-box',
+    <motion.div
+      style={wrapperStyle}
+      initial={false}
+      animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+      transition={{
+        duration: CHART_ANIMATION.revealDuration / 1000,
+        delay: 0,
+        ease: DASHBOARD_MOTION.sectionRevealEase,
       }}
     >
-      {children}
-    </div>
+      <div key={shouldReduceMotion ? 'reduced-motion' : `chart-run-${runKey}`}>{children}</div>
+    </motion.div>
   )
 }
 
@@ -101,10 +148,40 @@ export function ChartCard({
   expandedExtra,
 }: ChartCardProps) {
   const { t } = useTranslation()
+  const sectionMotion = useDashboardSectionMotion()
   const [expanded, setExpanded] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
   const isInView = useInView(cardRef, { once: true, amount: 0.25 })
-  const animationActive = isInView || expanded
+  const elementMotion = useDashboardElementMotion(cardRef, {
+    kind: 'chart',
+    amount: 0.3,
+  })
+  const animationState = useMemo<ChartAnimationState>(() => {
+    if (expanded) {
+      return { active: true, delayMs: 0, runKey: 1 }
+    }
+
+    if (sectionMotion) {
+      return {
+        active: elementMotion.active,
+        delayMs: elementMotion.delayMs,
+        runKey: elementMotion.runKey,
+      }
+    }
+
+    return {
+      active: isInView,
+      delayMs: DASHBOARD_MOTION.chartStartDelayMs,
+      runKey: isInView ? 1 : 0,
+    }
+  }, [
+    elementMotion.active,
+    elementMotion.delayMs,
+    elementMotion.runKey,
+    expanded,
+    isInView,
+    sectionMotion,
+  ])
 
   const stats = useMemo(() => {
     if (!chartData || !valueKey) return null
@@ -125,6 +202,7 @@ export function ChartCard({
   const fmt = valueFormatter ?? formatCurrency
   const renderChildren = (isExpanded: boolean) =>
     typeof children === 'function' ? children(isExpanded) : children
+  const isSectionVisible = sectionMotion?.sectionVisible ?? true
 
   const handleExport = useCallback(() => {
     if (!chartData || chartData.length === 0) return
@@ -156,7 +234,7 @@ export function ChartCard({
 
   return (
     <>
-      <ChartAnimationContext.Provider value={animationActive}>
+      <ChartAnimationContext.Provider value={animationState}>
         <Card ref={cardRef} className={cn('group relative', className)}>
           {header}
           <CardContent>{renderChildren(false)}</CardContent>
@@ -164,6 +242,7 @@ export function ChartCard({
             <button
               type="button"
               onClick={() => setExpanded(true)}
+              tabIndex={isSectionVisible ? undefined : -1}
               className="absolute top-3 right-3 z-10 rounded-lg border border-border/50 bg-background/80 p-1.5 text-muted-foreground opacity-100 backdrop-blur-sm transition-opacity duration-200 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
               title={t('common.expand')}
               aria-label={t('common.expandWithTitle', { title })}
@@ -181,7 +260,7 @@ export function ChartCard({
             <DialogDescription className="sr-only">
               {t('chartCard.expandedDescription')}
             </DialogDescription>
-            <ChartAnimationContext.Provider value={expanded}>
+            <ChartAnimationContext.Provider value={{ active: expanded, delayMs: 0, runKey: 1 }}>
               <div className="relative flex h-full flex-col">
                 <div className="p-4 pb-2 sm:p-6">
                   <div className="flex items-center justify-between">

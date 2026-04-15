@@ -1,6 +1,5 @@
 import { useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useInView } from 'framer-motion'
 import {
   ResponsiveContainer,
   ScatterChart,
@@ -12,8 +11,9 @@ import {
   ZAxis,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import { CHART_COLORS, CHART_MARGIN, getScatterAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import {
   formatCurrency,
@@ -22,7 +22,6 @@ import {
   formatPercent,
   formatTokens,
 } from '@/lib/formatters'
-import { useShouldReduceMotion } from '@/lib/motion'
 import type { DailyUsage } from '@/types'
 
 interface CorrelationAnalysisProps {
@@ -145,6 +144,8 @@ function CorrelationPanel({
   xTickFormatter,
   yAxisName,
   footer,
+  showPoints,
+  animatePoints,
 }: {
   title: string
   subtitle: string
@@ -156,15 +157,13 @@ function CorrelationPanel({
   xTickFormatter?: (value: number) => string
   yAxisName: string
   footer: string
+  showPoints: boolean
+  animatePoints: boolean
 }) {
-  const panelRef = useRef<HTMLDivElement | null>(null)
-  const panelInView = useInView(panelRef, { once: true, amount: 0.45 })
-  const shouldReduceMotion = useShouldReduceMotion()
-  const animatePoints = shouldReduceMotion ? true : panelInView
-  const chartData = animatePoints ? data : []
+  const chartData = showPoints ? data : []
 
   return (
-    <div ref={panelRef}>
+    <div>
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
           <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
@@ -201,9 +200,7 @@ function CorrelationPanel({
               fill={color}
               stroke={color}
               fillOpacity={0.72}
-              isAnimationActive={!shouldReduceMotion && animatePoints}
-              animationBegin={animationBegin}
-              animationDuration={CHART_ANIMATION.duration}
+              {...getScatterAnimationProps(animatePoints, animationBegin)}
             />
           </ScatterChart>
         </ResponsiveContainer>
@@ -216,6 +213,13 @@ function CorrelationPanel({
 /** Renders scatter-plot based correlation analysis for the current dataset. */
 export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   const { t } = useTranslation()
+  const cardRef = useRef<HTMLDivElement | null>(null)
+  const chartMotion = useDashboardElementMotion(cardRef, {
+    kind: 'chart',
+    amount: 0.28,
+  })
+  const showPoints = chartMotion.shouldReduceMotion || chartMotion.active
+  const animatePoints = !chartMotion.shouldReduceMotion && chartMotion.active
   const requestVsCost = useMemo<ScatterPoint[]>(
     () =>
       data.map((entry) => ({
@@ -258,7 +262,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
 
   if (data.length < 2) {
     return (
-      <Card>
+      <Card ref={cardRef}>
         <CardHeader>
           <InfoHeading info={CHART_HELP.correlationAnalysis}>
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -276,7 +280,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   }
 
   return (
-    <Card>
+    <Card ref={cardRef}>
       <CardHeader>
         <InfoHeading info={CHART_HELP.correlationAnalysis}>
           <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -286,23 +290,29 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <CorrelationPanel
+          key={`request-cost-${chartMotion.runKey}`}
           title={t('charts.correlation.requestsVsCost')}
           subtitle={`r ${requestCostCorrelation.toFixed(2)} · ${t('charts.correlation.points', { count: requestVsCost.length })}`}
           mode="requestCost"
           data={requestVsCost}
           color={CHART_COLORS.cost}
+          showPoints={showPoints}
+          animatePoints={animatePoints}
           xAxisName={t('charts.correlation.requestsAxis')}
           yAxisName={t('charts.correlation.cost')}
           footer={getCorrelationInterpretation(t, requestCostCorrelation, 'requestCost')}
         />
 
         <CorrelationPanel
+          key={`cache-cost-${chartMotion.runKey}`}
           title={t('charts.correlation.cacheVsCostPerRequest')}
           subtitle={`r ${cacheEfficiencyCorrelation.toFixed(2)} · ${t('charts.correlation.points', { count: cacheVsCostPerRequest.length })}`}
           mode="cacheEfficiency"
           data={cacheVsCostPerRequest}
           color={CHART_COLORS.cumulative}
-          animationBegin={CHART_ANIMATION.stagger}
+          showPoints={showPoints}
+          animatePoints={animatePoints}
+          animationBegin={70}
           xAxisName={t('charts.correlation.cacheRate')}
           xTickFormatter={(value) => formatPercent(value, 0)}
           yAxisName={t('charts.correlation.costPerRequestAxis')}

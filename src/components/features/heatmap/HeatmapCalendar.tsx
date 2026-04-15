@@ -6,8 +6,10 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
+import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { DASHBOARD_MOTION, useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_HELP } from '@/lib/help-content'
 import {
@@ -32,6 +34,9 @@ const CELL_GAP = 2
 const TOTAL = CELL_SIZE + CELL_GAP
 const LEFT_GUTTER = 30
 const TOP_GUTTER = 26
+const CELL_STAGGER_WEEK_OFFSET_MS = 12
+const CELL_STAGGER_DAY_OFFSET_MS = 6
+const TODAY_OUTLINE_EXTRA_DELAY_MS = 90
 
 function resolveHeatmapLightness(intensity: number, isDarkTheme: boolean) {
   if (intensity < 0.15) return isDarkTheme ? 28 : 88
@@ -60,6 +65,7 @@ export function HeatmapCalendar({
 }: HeatmapCalendarProps) {
   const { t } = useTranslation()
   const locale = getCurrentLocale()
+  const cardRef = useRef<HTMLDivElement | null>(null)
   const dayButtonRefs = useRef(new Map<string, SVGRectElement>())
   const [tooltip, setTooltip] = useState<{
     x: number
@@ -68,6 +74,10 @@ export function HeatmapCalendar({
     value: number
   } | null>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const heatmapMotion = useDashboardElementMotion(cardRef, {
+    kind: 'chart',
+    amount: 0.32,
+  })
   const dayLabels = useMemo(
     () =>
       Array.from({ length: 7 }, (_, index) => index).map((index) =>
@@ -175,6 +185,9 @@ export function HeatmapCalendar({
   }, [config, data, locale])
 
   const todayStr = localToday()
+  const shouldReduceMotion = heatmapMotion.shouldReduceMotion
+  const animateCells = !shouldReduceMotion && heatmapMotion.active
+  const cellAnimationDelayMs = heatmapMotion.delayMs
   const axisColor = 'hsl(var(--muted-foreground))'
   const todayOutlineColor = 'hsl(var(--primary))'
   const [focusedDate, setFocusedDate] = useState<string | null>(null)
@@ -301,7 +314,7 @@ export function HeatmapCalendar({
   const svgHeight = 7 * TOTAL + TOP_GUTTER + 8
 
   return (
-    <Card className="overflow-visible">
+    <Card ref={cardRef} className="overflow-visible">
       <CardHeader className="pb-2">
         <InfoHeading info={infoText}>
           <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -364,10 +377,49 @@ export function HeatmapCalendar({
                       date: formattedDate,
                       value: config.formatter(cell.value),
                     })
+                    const cellMotionProps = shouldReduceMotion
+                      ? {}
+                      : {
+                          initial: { opacity: 0, fillOpacity: 0, scale: 0.96 },
+                          animate: {
+                            opacity: animateCells ? 1 : 0,
+                            fillOpacity: animateCells ? 1 : 0,
+                            scale: animateCells ? 1 : 0.96,
+                          },
+                          transition: {
+                            duration: 0.28,
+                            delay:
+                              (animateCells
+                                ? cellAnimationDelayMs +
+                                  cell.week *
+                                    (DASHBOARD_MOTION.itemStaggerMs + CELL_STAGGER_WEEK_OFFSET_MS) +
+                                  cell.day * CELL_STAGGER_DAY_OFFSET_MS
+                                : 0) / 1000,
+                            ease: [0.22, 1, 0.36, 1] as const,
+                          },
+                        }
+                    const todayOutlineMotionProps = shouldReduceMotion
+                      ? {}
+                      : {
+                          initial: { opacity: 0 },
+                          animate: { opacity: animateCells ? 1 : 0 },
+                          transition: {
+                            duration: 0.2,
+                            delay:
+                              (animateCells
+                                ? cellAnimationDelayMs +
+                                  cell.week *
+                                    (DASHBOARD_MOTION.itemStaggerMs + CELL_STAGGER_WEEK_OFFSET_MS) +
+                                  cell.day * CELL_STAGGER_DAY_OFFSET_MS +
+                                  TODAY_OUTLINE_EXTRA_DELAY_MS
+                                : 0) / 1000,
+                            ease: [0.22, 1, 0.36, 1] as const,
+                          },
+                        }
 
                     return (
                       <g key={cell.date}>
-                        <rect
+                        <motion.rect
                           ref={(node) => {
                             if (node) dayButtonRefs.current.set(cell.date, node)
                             else dayButtonRefs.current.delete(cell.date)
@@ -410,11 +462,12 @@ export function HeatmapCalendar({
                           }}
                           onBlur={() => setTooltip(null)}
                           onMouseLeave={() => setTooltip(null)}
+                          {...cellMotionProps}
                         >
                           <title>{accessibleLabel}</title>
-                        </rect>
+                        </motion.rect>
                         {isToday && (
-                          <rect
+                          <motion.rect
                             x={LEFT_GUTTER + cell.week * TOTAL - 1}
                             y={TOP_GUTTER + cell.day * TOTAL - 1}
                             width={CELL_SIZE + 2}
@@ -423,6 +476,7 @@ export function HeatmapCalendar({
                             fill="none"
                             stroke={todayOutlineColor}
                             strokeWidth={1.5}
+                            {...todayOutlineMotionProps}
                           />
                         )}
                       </g>

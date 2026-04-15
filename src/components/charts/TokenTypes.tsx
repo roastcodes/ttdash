@@ -1,8 +1,9 @@
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_COLORS, CHART_ANIMATION } from './chart-theme'
+import { CHART_COLORS, getRadialAnimationProps } from './chart-theme'
 import { formatTokens } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
 
@@ -76,10 +77,7 @@ export function TokenTypes({ data }: TokenTypesProps) {
                       paddingAngle={2}
                       dataKey="value"
                       nameKey="name"
-                      isAnimationActive={animate}
-                      animationDuration={CHART_ANIMATION.duration}
-                      animationBegin={CHART_ANIMATION.stagger}
-                      animationEasing={CHART_ANIMATION.easing}
+                      {...getRadialAnimationProps(animate)}
                     >
                       {data.map((entry) => (
                         <Cell
@@ -91,15 +89,16 @@ export function TokenTypes({ data }: TokenTypesProps) {
                     </Pie>
                     <Tooltip content={<CustomTooltip formatter={(v) => formatTokens(v)} />} />
                     <Legend
-                      wrapperStyle={{ fontSize: '12px', paddingTop: expanded ? '22px' : '8px' }}
-                      formatter={(value: string) => {
-                        const entry = data.find((d) => d.name === value)
-                        return (
-                          <span className="text-xs text-foreground">
-                            {value} ({entry ? formatTokens(entry.value) : ''})
-                          </span>
-                        )
-                      }}
+                      content={
+                        <ChartLegend
+                          className={expanded ? 'pt-[22px]' : 'pt-2'}
+                          renderLabel={(entry: { value?: string | number }) => {
+                            const value = String(entry.value ?? '')
+                            const segment = data.find((item) => item.name === value)
+                            return `${value} (${segment ? formatTokens(segment.value) : ''})`
+                          }}
+                        />
+                      }
                     />
                   </PieChart>
                 </ResponsiveContainer>

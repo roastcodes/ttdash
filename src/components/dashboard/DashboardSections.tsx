@@ -1,4 +1,11 @@
-import { Fragment, Suspense, lazy } from 'react'
+import {
+  Fragment,
+  Suspense,
+  lazy,
+  type ComponentType,
+  type LazyExoticComponent,
+  type ReactNode,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { PrimaryMetrics } from '../cards/PrimaryMetrics'
 import { SecondaryMetrics } from '../cards/SecondaryMetrics'
@@ -9,11 +16,11 @@ import { CostByModel } from '../charts/CostByModel'
 import { HeatmapCalendar } from '../features/heatmap/HeatmapCalendar'
 import { UsageInsights } from '../features/insights/UsageInsights'
 import { ConcentrationRisk } from '../features/risk/ConcentrationRisk'
-import { FadeIn } from '../features/animations/FadeIn'
 import { SectionHeader } from '../ui/section-header'
 import { ExpandableCard } from '../ui/expandable-card'
 import { ChartCardSkeleton } from '../ui/skeleton'
 import { ErrorBoundary } from '../ui/error-boundary'
+import { AnimatedDashboardSection } from './DashboardMotion'
 import { SECTION_HELP } from '@/lib/help-content'
 import { cn } from '@/lib/cn'
 import type { ModelCostChartPoint } from '@/lib/data-transforms'
@@ -31,102 +38,122 @@ import type {
   WeekdayData,
 } from '@/types'
 
-const CostForecast = lazy(() =>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PreloadableLazyComponent<T extends ComponentType<any>> = LazyExoticComponent<T> & {
+  preload: () => Promise<{ default: T }>
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lazyWithPreload<T extends ComponentType<any>>(
+  loader: () => Promise<{ default: T }>,
+): PreloadableLazyComponent<T> {
+  const Component = lazy(loader) as PreloadableLazyComponent<T>
+  Component.preload = loader
+  return Component
+}
+
+function preloadComponents(
+  ...components: Array<{ preload: () => Promise<unknown> }>
+): Promise<unknown[]> {
+  return Promise.all(components.map((component) => component.preload()))
+}
+
+const CostForecast = lazyWithPreload(() =>
   import('../features/forecast/CostForecast').then((module) => ({
     default: module.CostForecast,
   })),
 )
-const CostByModelOverTime = lazy(() =>
+const CostByModelOverTime = lazyWithPreload(() =>
   import('../charts/CostByModelOverTime').then((module) => ({
     default: module.CostByModelOverTime,
   })),
 )
-const CumulativeCost = lazy(() =>
+const CumulativeCost = lazyWithPreload(() =>
   import('../charts/CumulativeCost').then((module) => ({
     default: module.CumulativeCost,
   })),
 )
-const CostByWeekday = lazy(() =>
+const CostByWeekday = lazyWithPreload(() =>
   import('../charts/CostByWeekday').then((module) => ({
     default: module.CostByWeekday,
   })),
 )
-const TokenEfficiency = lazy(() =>
+const TokenEfficiency = lazyWithPreload(() =>
   import('../charts/TokenEfficiency').then((module) => ({
     default: module.TokenEfficiency,
   })),
 )
-const ModelMix = lazy(() =>
+const ModelMix = lazyWithPreload(() =>
   import('../charts/ModelMix').then((module) => ({
     default: module.ModelMix,
   })),
 )
-const TokensOverTime = lazy(() =>
+const TokensOverTime = lazyWithPreload(() =>
   import('../charts/TokensOverTime').then((module) => ({
     default: module.TokensOverTime,
   })),
 )
-const TokenTypes = lazy(() =>
+const TokenTypes = lazyWithPreload(() =>
   import('../charts/TokenTypes').then((module) => ({
     default: module.TokenTypes,
   })),
 )
-const RequestsOverTime = lazy(() =>
+const RequestsOverTime = lazyWithPreload(() =>
   import('../charts/RequestsOverTime').then((module) => ({
     default: module.RequestsOverTime,
   })),
 )
-const RequestCacheHitRateByModel = lazy(() =>
+const RequestCacheHitRateByModel = lazyWithPreload(() =>
   import('../charts/RequestCacheHitRateByModel').then((module) => ({
     default: module.RequestCacheHitRateByModel,
   })),
 )
-const CacheROI = lazy(() =>
+const CacheROI = lazyWithPreload(() =>
   import('../features/cache-roi/CacheROI').then((module) => ({
     default: module.CacheROI,
   })),
 )
-const ProviderLimitsSection = lazy(() =>
+const ProviderLimitsSection = lazyWithPreload(() =>
   import('../features/limits/ProviderLimitsSection').then((module) => ({
     default: module.ProviderLimitsSection,
   })),
 )
-const RequestQuality = lazy(() =>
+const RequestQuality = lazyWithPreload(() =>
   import('../features/request-quality/RequestQuality').then((module) => ({
     default: module.RequestQuality,
   })),
 )
-const DistributionAnalysis = lazy(() =>
+const DistributionAnalysis = lazyWithPreload(() =>
   import('../charts/DistributionAnalysis').then((module) => ({
     default: module.DistributionAnalysis,
   })),
 )
-const CorrelationAnalysis = lazy(() =>
+const CorrelationAnalysis = lazyWithPreload(() =>
   import('../charts/CorrelationAnalysis').then((module) => ({
     default: module.CorrelationAnalysis,
   })),
 )
-const PeriodComparison = lazy(() =>
+const PeriodComparison = lazyWithPreload(() =>
   import('../features/comparison/PeriodComparison').then((module) => ({
     default: module.PeriodComparison,
   })),
 )
-const AnomalyDetection = lazy(() =>
+const AnomalyDetection = lazyWithPreload(() =>
   import('../features/anomaly/AnomalyDetection').then((module) => ({
     default: module.AnomalyDetection,
   })),
 )
-const ModelEfficiency = lazy(() =>
+const ModelEfficiency = lazyWithPreload(() =>
   import('../tables/ModelEfficiency').then((module) => ({
     default: module.ModelEfficiency,
   })),
 )
-const ProviderEfficiency = lazy(() =>
+const ProviderEfficiency = lazyWithPreload(() =>
   import('../tables/ProviderEfficiency').then((module) => ({
     default: module.ProviderEfficiency,
   })),
 )
-const RecentDays = lazy(() =>
+const RecentDays = lazyWithPreload(() =>
   import('../tables/RecentDays').then((module) => ({
     default: module.RecentDays,
   })),
@@ -225,148 +252,206 @@ export function DashboardSections({
     </div>
   )
 
-  const renderLazySection = (content: React.ReactNode, className?: string) => (
+  const renderLazySection = (content: ReactNode, className?: string) => (
     <ErrorBoundary fallback={lazyErrorFallback(className)}>
       <Suspense fallback={lazyCardFallback(className)}>{content}</Suspense>
     </ErrorBoundary>
   )
 
+  const sectionPlaceholderClassName: Record<DashboardSectionId, string> = {
+    insights: 'min-h-[260px]',
+    metrics: 'min-h-[320px]',
+    today: 'min-h-[320px]',
+    currentMonth: 'min-h-[360px]',
+    activity: 'min-h-[360px]',
+    forecastCache: 'min-h-[420px]',
+    limits: 'min-h-[480px]',
+    costAnalysis: 'min-h-[980px]',
+    tokenAnalysis: 'min-h-[380px]',
+    requestAnalysis: 'min-h-[760px]',
+    advancedAnalysis: 'min-h-[760px]',
+    comparisons: 'min-h-[420px]',
+    tables: 'min-h-[900px]',
+  }
+  const sectionAnchorMap: Partial<Record<DashboardSectionId, string>> = {
+    costAnalysis: 'charts',
+    currentMonth: 'current-month',
+    tokenAnalysis: 'token-analysis',
+    requestAnalysis: 'request-analysis',
+    advancedAnalysis: 'advanced-analysis',
+  }
+
+  const renderAnimatedSection = (
+    sectionId: DashboardSectionId,
+    children: ReactNode,
+    {
+      eager = false,
+      onPreload,
+    }: { eager?: boolean; onPreload?: () => void | Promise<unknown> } = {},
+  ) => {
+    const sectionAnchorId = sectionAnchorMap[sectionId] ?? sectionId
+
+    return (
+      <AnimatedDashboardSection
+        id={sectionAnchorId}
+        eager={eager}
+        placeholderClassName={sectionPlaceholderClassName[sectionId]}
+        onPreload={onPreload}
+      >
+        {children}
+      </AnimatedDashboardSection>
+    )
+  }
+
   const renderSection = (sectionId: DashboardSectionId) => {
     switch (sectionId) {
       case 'insights':
-        return sectionVisibility.insights ? (
-          <div id="insights">
-            <UsageInsights
-              metrics={metrics}
-              viewMode={viewMode}
-              totalCalendarDays={totalCalendarDays}
-            />
-          </div>
-        ) : null
-      case 'metrics':
-        return sectionVisibility.metrics ? (
-          <div id="metrics">
-            <SectionHeader
-              title={t('dashboard.metrics.title')}
-              badge={t('dashboard.metrics.badge')}
-              description={t('dashboard.metrics.description')}
-              info={SECTION_HELP.metrics}
-            />
-            <FadeIn delay={0}>
-              <PrimaryMetrics
+        return sectionVisibility.insights
+          ? renderAnimatedSection(
+              'insights',
+              <UsageInsights
                 metrics={metrics}
-                totalCalendarDays={totalCalendarDays}
                 viewMode={viewMode}
-              />
-            </FadeIn>
-            <FadeIn delay={0.04}>
-              <div className="mt-4">
-                <SecondaryMetrics
+                totalCalendarDays={totalCalendarDays}
+              />,
+              { eager: true },
+            )
+          : null
+      case 'metrics':
+        return sectionVisibility.metrics
+          ? renderAnimatedSection(
+              'metrics',
+              <>
+                <SectionHeader
+                  title={t('dashboard.metrics.title')}
+                  badge={t('dashboard.metrics.badge')}
+                  description={t('dashboard.metrics.description')}
+                  info={SECTION_HELP.metrics}
+                />
+                <PrimaryMetrics
                   metrics={metrics}
-                  dailyCosts={filteredData.map((entry) => entry.totalCost)}
+                  totalCalendarDays={totalCalendarDays}
                   viewMode={viewMode}
                 />
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
+                <div className="mt-4">
+                  <SecondaryMetrics
+                    metrics={metrics}
+                    dailyCosts={filteredData.map((entry) => entry.totalCost)}
+                    viewMode={viewMode}
+                  />
+                </div>
+              </>,
+              { eager: true },
+            )
+          : null
       case 'today':
-        return sectionVisibility.today && todayData ? (
-          <div id="today">
-            <TodayMetrics today={todayData} metrics={metrics} />
-          </div>
-        ) : null
+        return sectionVisibility.today && todayData
+          ? renderAnimatedSection('today', <TodayMetrics today={todayData} metrics={metrics} />, {
+              eager: true,
+            })
+          : null
       case 'currentMonth':
-        return sectionVisibility.currentMonth && hasCurrentMonthData ? (
-          <div id="current-month">
-            <MonthMetrics daily={filteredDailyData} metrics={metrics} />
-          </div>
-        ) : null
+        return sectionVisibility.currentMonth && hasCurrentMonthData
+          ? renderAnimatedSection(
+              'currentMonth',
+              <MonthMetrics daily={filteredDailyData} metrics={metrics} />,
+              {
+                eager: true,
+              },
+            )
+          : null
       case 'activity':
-        return sectionVisibility.activity ? (
-          <div id="activity">
-            <SectionHeader
-              title={t('dashboard.activity.title')}
-              description={
-                viewMode === 'daily'
-                  ? t('dashboard.activity.dailyDescription')
-                  : viewMode === 'monthly'
-                    ? t('dashboard.activity.monthlyDescription')
-                    : t('dashboard.activity.yearlyDescription')
-              }
-              info={SECTION_HELP.activity}
-            />
-            <FadeIn delay={0.05}>
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-                <HeatmapCalendar
-                  data={filteredData}
-                  viewMode={viewMode}
-                  metric="cost"
-                  isDark={isDark}
+        return sectionVisibility.activity
+          ? renderAnimatedSection(
+              'activity',
+              <>
+                <SectionHeader
+                  title={t('dashboard.activity.title')}
+                  description={
+                    viewMode === 'daily'
+                      ? t('dashboard.activity.dailyDescription')
+                      : viewMode === 'monthly'
+                        ? t('dashboard.activity.monthlyDescription')
+                        : t('dashboard.activity.yearlyDescription')
+                  }
+                  info={SECTION_HELP.activity}
                 />
-                <HeatmapCalendar
-                  data={filteredData}
-                  viewMode={viewMode}
-                  metric="requests"
-                  isDark={isDark}
-                />
-                <HeatmapCalendar
-                  data={filteredData}
-                  viewMode={viewMode}
-                  metric="tokens"
-                  isDark={isDark}
-                />
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                  <HeatmapCalendar
+                    data={filteredData}
+                    viewMode={viewMode}
+                    metric="cost"
+                    isDark={isDark}
+                  />
+                  <HeatmapCalendar
+                    data={filteredData}
+                    viewMode={viewMode}
+                    metric="requests"
+                    isDark={isDark}
+                  />
+                  <HeatmapCalendar
+                    data={filteredData}
+                    viewMode={viewMode}
+                    metric="tokens"
+                    isDark={isDark}
+                  />
+                </div>
+              </>,
+            )
+          : null
       case 'forecastCache':
-        return sectionVisibility.forecastCache ? (
-          <div id="forecast-cache">
-            <SectionHeader
-              title={t('dashboard.forecastCache.title')}
-              description={t('dashboard.forecastCache.description')}
-              info={SECTION_HELP.forecastCache}
-            />
-            <FadeIn delay={0.06}>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {renderLazySection(
-                  <ExpandableCard title={t('dashboard.cards.costForecast')}>
-                    <CostForecast data={filteredData} viewMode={viewMode} />
-                  </ExpandableCard>,
-                  'h-[360px]',
-                )}
-                {renderLazySection(
-                  <ExpandableCard
-                    title={t('dashboard.cards.cacheRoi')}
-                    stats={[
-                      {
-                        label: t('dashboard.stats.cacheHitRate'),
-                        value: formatPercent(metrics.cacheHitRate),
-                      },
-                      {
-                        label: t('dashboard.stats.totalTokens'),
-                        value: formatTokens(metrics.totalTokens),
-                      },
-                      {
-                        label: t('dashboard.stats.cacheRead'),
-                        value: formatTokens(metrics.totalCacheRead),
-                      },
-                    ]}
-                  >
-                    <CacheROI data={filteredData} viewMode={viewMode} />
-                  </ExpandableCard>,
-                  'h-[360px]',
-                )}
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
+        return sectionVisibility.forecastCache
+          ? renderAnimatedSection(
+              'forecastCache',
+              <>
+                <SectionHeader
+                  title={t('dashboard.forecastCache.title')}
+                  description={t('dashboard.forecastCache.description')}
+                  info={SECTION_HELP.forecastCache}
+                />
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {renderLazySection(
+                    <ExpandableCard title={t('dashboard.cards.costForecast')}>
+                      <CostForecast data={filteredData} viewMode={viewMode} />
+                    </ExpandableCard>,
+                    'h-[360px]',
+                  )}
+                  {renderLazySection(
+                    <ExpandableCard
+                      title={t('dashboard.cards.cacheRoi')}
+                      stats={[
+                        {
+                          label: t('dashboard.stats.cacheHitRate'),
+                          value: formatPercent(metrics.cacheHitRate),
+                        },
+                        {
+                          label: t('dashboard.stats.totalTokens'),
+                          value: formatTokens(metrics.totalTokens),
+                        },
+                        {
+                          label: t('dashboard.stats.cacheRead'),
+                          value: formatTokens(metrics.totalCacheRead),
+                        },
+                      ]}
+                    >
+                      <CacheROI data={filteredData} viewMode={viewMode} />
+                    </ExpandableCard>,
+                    'h-[360px]',
+                  )}
+                </div>
+              </>,
+              {
+                onPreload: () => {
+                  return preloadComponents(CostForecast, CacheROI)
+                },
+              },
+            )
+          : null
       case 'limits':
-        return sectionVisibility.limits ? (
-          <div id="limits">
-            <FadeIn delay={0.07}>
-              {renderLazySection(
+        return sectionVisibility.limits
+          ? renderAnimatedSection(
+              'limits',
+              renderLazySection(
                 <ProviderLimitsSection
                   data={filteredDailyData}
                   providers={visibleLimitProviders}
@@ -374,238 +459,274 @@ export function DashboardSections({
                   selectedMonth={selectedMonth}
                 />,
                 'h-[420px]',
-              )}
-            </FadeIn>
-          </div>
-        ) : null
+              ),
+              {
+                onPreload: () => {
+                  return preloadComponents(ProviderLimitsSection)
+                },
+              },
+            )
+          : null
       case 'costAnalysis':
-        return sectionVisibility.costAnalysis ? (
-          <div id="charts">
-            <SectionHeader
-              title={t('dashboard.costAnalysis.title')}
-              badge={`${allModels.length} ${t('common.models')}`}
-              description={t('dashboard.costAnalysis.description')}
-              info={SECTION_HELP.costAnalysis}
-            />
-            <FadeIn delay={0.08}>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <div className="lg:col-span-2">
-                  <CostOverTime data={costChartData} onClickDay={onDrillDownDateChange} />
+        return sectionVisibility.costAnalysis
+          ? renderAnimatedSection(
+              'costAnalysis',
+              <>
+                <SectionHeader
+                  title={t('dashboard.costAnalysis.title')}
+                  badge={`${allModels.length} ${t('common.models')}`}
+                  description={t('dashboard.costAnalysis.description')}
+                  info={SECTION_HELP.costAnalysis}
+                />
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  <div className="lg:col-span-2">
+                    <CostOverTime data={costChartData} onClickDay={onDrillDownDateChange} />
+                  </div>
+                  <CostByModel data={modelPieData} />
                 </div>
-                <CostByModel data={modelPieData} />
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.1}>
-              <div className="mt-4">
-                {renderLazySection(
-                  <CostByModelOverTime data={modelCostChartData} models={allModels} />,
-                  'h-[320px]',
-                )}
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.11}>
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {renderLazySection(
-                  <CumulativeCost data={costChartData} rawData={filteredData} />,
-                  'h-[320px]',
-                )}
-                {renderLazySection(<CostByWeekday data={weekdayData} />, 'h-[320px]')}
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.12}>
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {renderLazySection(<TokenEfficiency data={filteredData} />, 'h-[320px]')}
-                {renderLazySection(<ModelMix data={filteredData} />, 'h-[320px]')}
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
+                <div className="mt-4">
+                  {renderLazySection(
+                    <CostByModelOverTime data={modelCostChartData} models={allModels} />,
+                    'h-[320px]',
+                  )}
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {renderLazySection(
+                    <CumulativeCost data={costChartData} rawData={filteredData} />,
+                    'h-[320px]',
+                  )}
+                  {renderLazySection(<CostByWeekday data={weekdayData} />, 'h-[320px]')}
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {renderLazySection(<TokenEfficiency data={filteredData} />, 'h-[320px]')}
+                  {renderLazySection(<ModelMix data={filteredData} />, 'h-[320px]')}
+                </div>
+              </>,
+              {
+                onPreload: () => {
+                  return preloadComponents(
+                    CostByModelOverTime,
+                    CumulativeCost,
+                    CostByWeekday,
+                    TokenEfficiency,
+                    ModelMix,
+                  )
+                },
+              },
+            )
+          : null
       case 'tokenAnalysis':
-        return sectionVisibility.tokenAnalysis ? (
-          <div id="token-analysis">
-            <SectionHeader
-              title={t('dashboard.tokenAnalysis.title')}
-              description={t('dashboard.tokenAnalysis.description')}
-              info={SECTION_HELP.tokenAnalysis}
-            />
-            <FadeIn delay={0.13}>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                {renderLazySection(
-                  <TokensOverTime data={tokenChartData} onClickDay={onDrillDownDateChange} />,
-                  'h-[320px]',
-                )}
-                {renderLazySection(<TokenTypes data={tokenPieData} />, 'h-[320px]')}
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
+        return sectionVisibility.tokenAnalysis
+          ? renderAnimatedSection(
+              'tokenAnalysis',
+              <>
+                <SectionHeader
+                  title={t('dashboard.tokenAnalysis.title')}
+                  description={t('dashboard.tokenAnalysis.description')}
+                  info={SECTION_HELP.tokenAnalysis}
+                />
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  {renderLazySection(
+                    <TokensOverTime data={tokenChartData} onClickDay={onDrillDownDateChange} />,
+                    'h-[320px]',
+                  )}
+                  {renderLazySection(<TokenTypes data={tokenPieData} />, 'h-[320px]')}
+                </div>
+              </>,
+              {
+                onPreload: () => {
+                  return preloadComponents(TokensOverTime, TokenTypes)
+                },
+              },
+            )
+          : null
       case 'requestAnalysis':
-        return sectionVisibility.requestAnalysis && metrics.hasRequestData ? (
-          <div id="request-analysis">
-            <SectionHeader
-              title={t('dashboard.requestAnalysis.title')}
-              description={t('dashboard.requestAnalysis.description')}
-              info={SECTION_HELP.requestAnalysis}
-            />
-            <FadeIn delay={0.14}>
-              {renderLazySection(
-                <RequestsOverTime
-                  data={requestChartData}
-                  viewMode={viewMode}
-                  onClickDay={onDrillDownDateChange}
-                />,
-                'h-[320px]',
-              )}
-            </FadeIn>
-            <FadeIn delay={0.15}>
-              <div className="mt-4">
+        return sectionVisibility.requestAnalysis && metrics.hasRequestData
+          ? renderAnimatedSection(
+              'requestAnalysis',
+              <>
+                <SectionHeader
+                  title={t('dashboard.requestAnalysis.title')}
+                  description={t('dashboard.requestAnalysis.description')}
+                  info={SECTION_HELP.requestAnalysis}
+                />
                 {renderLazySection(
-                  <RequestCacheHitRateByModel
-                    timelineData={filteredData}
-                    summaryData={filteredDailyData}
+                  <RequestsOverTime
+                    data={requestChartData}
                     viewMode={viewMode}
+                    onClickDay={onDrillDownDateChange}
                   />,
                   'h-[320px]',
                 )}
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.16}>
-              <div className="mt-4">
-                {renderLazySection(
-                  <RequestQuality metrics={metrics} viewMode={viewMode} />,
-                  'h-[280px]',
-                )}
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
-      case 'advancedAnalysis':
-        return sectionVisibility.advancedAnalysis ? (
-          <div id="advanced-analysis">
-            <SectionHeader
-              title={t('dashboard.advancedAnalysis.title')}
-              description={t('dashboard.advancedAnalysis.description')}
-              info={SECTION_HELP.advancedAnalysis}
-            />
-            <FadeIn delay={0.145}>
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                {renderLazySection(
-                  <DistributionAnalysis data={filteredData} viewMode={viewMode} />,
-                  'h-[320px]',
-                )}
-                <ConcentrationRisk
-                  topModelShare={metrics.topModelShare}
-                  topProviderShare={metrics.topProvider?.share ?? 0}
-                  modelConcentrationIndex={metrics.modelConcentrationIndex}
-                  providerConcentrationIndex={metrics.providerConcentrationIndex}
-                />
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.155}>
-              <div className="mt-4">
-                {renderLazySection(<CorrelationAnalysis data={filteredData} />, 'h-[320px]')}
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
-      case 'comparisons':
-        return sectionVisibility.comparisons ? (
-          <div id="comparisons">
-            <SectionHeader
-              title={t('dashboard.comparisons.title')}
-              description={t('dashboard.comparisons.description')}
-              info={SECTION_HELP.comparisons}
-            />
-            <FadeIn delay={0.165}>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {renderLazySection(
-                  <ExpandableCard
-                    title={t('dashboard.cards.periodComparison')}
-                    stats={[
-                      {
-                        label: t('dashboard.stats.dataPoints'),
-                        value: String(filteredData.length),
-                      },
-                      {
-                        label: t('dashboard.stats.avgCostPerUnit', { unit: periodUnit(viewMode) }),
-                        value: formatCurrency(metrics.avgDailyCost),
-                      },
-                    ]}
-                  >
-                    <PeriodComparison data={comparisonData} />
-                  </ExpandableCard>,
-                  'h-[360px]',
-                )}
-                {renderLazySection(
-                  <ExpandableCard
-                    title={t('dashboard.cards.anomalyDetection')}
-                    stats={[
-                      {
-                        label: t('dashboard.stats.total'),
-                        value: formatCurrency(metrics.totalCost),
-                      },
-                      {
-                        label: t('dashboard.stats.avgPerUnit', { unit: periodUnit(viewMode) }),
-                        value: formatCurrency(metrics.avgDailyCost),
-                      },
-                    ]}
-                  >
-                    <AnomalyDetection
-                      data={filteredData}
-                      onClickDay={onDrillDownDateChange}
+                <div className="mt-4">
+                  {renderLazySection(
+                    <RequestCacheHitRateByModel
+                      timelineData={filteredData}
+                      summaryData={filteredDailyData}
                       viewMode={viewMode}
-                    />
-                  </ExpandableCard>,
-                  'h-[360px]',
-                )}
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
+                    />,
+                    'h-[320px]',
+                  )}
+                </div>
+                <div className="mt-4">
+                  {renderLazySection(
+                    <RequestQuality metrics={metrics} viewMode={viewMode} />,
+                    'h-[280px]',
+                  )}
+                </div>
+              </>,
+              {
+                onPreload: () => {
+                  return preloadComponents(
+                    RequestsOverTime,
+                    RequestCacheHitRateByModel,
+                    RequestQuality,
+                  )
+                },
+              },
+            )
+          : null
+      case 'advancedAnalysis':
+        return sectionVisibility.advancedAnalysis
+          ? renderAnimatedSection(
+              'advancedAnalysis',
+              <>
+                <SectionHeader
+                  title={t('dashboard.advancedAnalysis.title')}
+                  description={t('dashboard.advancedAnalysis.description')}
+                  info={SECTION_HELP.advancedAnalysis}
+                />
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  {renderLazySection(
+                    <DistributionAnalysis data={filteredData} viewMode={viewMode} />,
+                    'h-[320px]',
+                  )}
+                  <ConcentrationRisk
+                    topModelShare={metrics.topModelShare}
+                    topProviderShare={metrics.topProvider?.share ?? 0}
+                    modelConcentrationIndex={metrics.modelConcentrationIndex}
+                    providerConcentrationIndex={metrics.providerConcentrationIndex}
+                  />
+                </div>
+                <div className="mt-4">
+                  {renderLazySection(<CorrelationAnalysis data={filteredData} />, 'h-[320px]')}
+                </div>
+              </>,
+              {
+                onPreload: () => {
+                  return preloadComponents(DistributionAnalysis, CorrelationAnalysis)
+                },
+              },
+            )
+          : null
+      case 'comparisons':
+        return sectionVisibility.comparisons
+          ? renderAnimatedSection(
+              'comparisons',
+              <>
+                <SectionHeader
+                  title={t('dashboard.comparisons.title')}
+                  description={t('dashboard.comparisons.description')}
+                  info={SECTION_HELP.comparisons}
+                />
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {renderLazySection(
+                    <ExpandableCard
+                      title={t('dashboard.cards.periodComparison')}
+                      stats={[
+                        {
+                          label: t('dashboard.stats.dataPoints'),
+                          value: String(filteredData.length),
+                        },
+                        {
+                          label: t('dashboard.stats.avgCostPerUnit', {
+                            unit: periodUnit(viewMode),
+                          }),
+                          value: formatCurrency(metrics.avgDailyCost),
+                        },
+                      ]}
+                    >
+                      <PeriodComparison data={comparisonData} />
+                    </ExpandableCard>,
+                    'h-[360px]',
+                  )}
+                  {renderLazySection(
+                    <ExpandableCard
+                      title={t('dashboard.cards.anomalyDetection')}
+                      stats={[
+                        {
+                          label: t('dashboard.stats.total'),
+                          value: formatCurrency(metrics.totalCost),
+                        },
+                        {
+                          label: t('dashboard.stats.avgPerUnit', { unit: periodUnit(viewMode) }),
+                          value: formatCurrency(metrics.avgDailyCost),
+                        },
+                      ]}
+                    >
+                      <AnomalyDetection
+                        data={filteredData}
+                        onClickDay={onDrillDownDateChange}
+                        viewMode={viewMode}
+                      />
+                    </ExpandableCard>,
+                    'h-[360px]',
+                  )}
+                </div>
+              </>,
+              {
+                onPreload: () => {
+                  return preloadComponents(PeriodComparison, AnomalyDetection)
+                },
+              },
+            )
+          : null
       case 'tables':
-        return sectionVisibility.tables ? (
-          <div id="tables">
-            <SectionHeader
-              title={t('dashboard.tables.title')}
-              description={t('dashboard.tables.description')}
-              info={SECTION_HELP.tables}
-            />
-            <FadeIn delay={0.17}>
-              {renderLazySection(
-                <ModelEfficiency
-                  modelCosts={modelCosts}
-                  totalCost={metrics.totalCost}
-                  viewMode={viewMode}
-                />,
-                'h-[320px]',
-              )}
-            </FadeIn>
-            <FadeIn delay={0.18}>
-              <div className="mt-4">
+        return sectionVisibility.tables
+          ? renderAnimatedSection(
+              'tables',
+              <>
+                <SectionHeader
+                  title={t('dashboard.tables.title')}
+                  description={t('dashboard.tables.description')}
+                  info={SECTION_HELP.tables}
+                />
                 {renderLazySection(
-                  <ProviderEfficiency
-                    providerMetrics={providerMetrics}
+                  <ModelEfficiency
+                    modelCosts={modelCosts}
                     totalCost={metrics.totalCost}
                     viewMode={viewMode}
                   />,
                   'h-[320px]',
                 )}
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.19}>
-              <div className="mt-4">
-                {renderLazySection(
-                  <RecentDays
-                    data={filteredData}
-                    onClickDay={onDrillDownDateChange}
-                    viewMode={viewMode}
-                  />,
-                  'h-[360px]',
-                )}
-              </div>
-            </FadeIn>
-          </div>
-        ) : null
+                <div className="mt-4">
+                  {renderLazySection(
+                    <ProviderEfficiency
+                      providerMetrics={providerMetrics}
+                      totalCost={metrics.totalCost}
+                      viewMode={viewMode}
+                    />,
+                    'h-[320px]',
+                  )}
+                </div>
+                <div className="mt-4">
+                  {renderLazySection(
+                    <RecentDays
+                      data={filteredData}
+                      onClickDay={onDrillDownDateChange}
+                      viewMode={viewMode}
+                    />,
+                    'h-[360px]',
+                  )}
+                </div>
+              </>,
+              {
+                onPreload: () => {
+                  return preloadComponents(ModelEfficiency, ProviderEfficiency, RecentDays)
+                },
+              },
+            )
+          : null
       default:
         return null
     }

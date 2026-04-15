@@ -12,7 +12,12 @@ import {
 } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import {
+  CHART_COLORS,
+  CHART_MARGIN,
+  getAreaAnimationProps,
+  getLineAnimationProps,
+} from './chart-theme'
 import { formatTokens, formatDateAxis } from '@/lib/formatters'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { CHART_HELP } from '@/lib/help-content'
@@ -123,8 +128,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                   fill={`url(#${gid('total')})`}
                   strokeWidth={1.5}
                   name={t('charts.tokensOverTime.totalTokens')}
-                  isAnimationActive={animate}
-                  animationDuration={CHART_ANIMATION.duration}
+                  {...getAreaAnimationProps(animate)}
                 />
                 <Line
                   type="monotone"
@@ -135,9 +139,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                   dot={false}
                   connectNulls
                   name={t('charts.tokensOverTime.movingAverage')}
-                  isAnimationActive={animate}
-                  animationBegin={CHART_ANIMATION.stagger}
-                  animationDuration={CHART_ANIMATION.slowDuration}
+                  {...getLineAnimationProps(animate, { role: 'secondary' })}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -236,8 +238,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     fill={`url(#${gid('cacheRead')})`}
                     strokeWidth={1.5}
                     name="Cache Read"
-                    isAnimationActive={animate}
-                    animationDuration={CHART_ANIMATION.duration}
+                    {...getAreaAnimationProps(animate)}
                   />
                   <Area
                     type="monotone"
@@ -246,8 +247,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     fill={`url(#${gid('cacheWrite')})`}
                     strokeWidth={1.5}
                     name="Cache Write"
-                    isAnimationActive={animate}
-                    animationDuration={CHART_ANIMATION.duration}
+                    {...getAreaAnimationProps(animate, { order: 1, role: 'stacked' })}
                   />
                   <Line
                     type="monotone"
@@ -258,9 +258,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     dot={false}
                     connectNulls
                     name={`Cache Read ${t('charts.tokensOverTime.averageSuffix')}`}
-                    isAnimationActive={animate}
-                    animationBegin={CHART_ANIMATION.stagger}
-                    animationDuration={CHART_ANIMATION.slowDuration}
+                    {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
                   <Line
                     type="monotone"
@@ -271,9 +269,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     dot={false}
                     connectNulls
                     name={`Cache Write ${t('charts.tokensOverTime.averageSuffix')}`}
-                    isAnimationActive={animate}
-                    animationBegin={CHART_ANIMATION.stagger * 2}
-                    animationDuration={CHART_ANIMATION.slowDuration}
+                    {...getLineAnimationProps(animate, { order: 1, role: 'secondary' })}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -329,8 +325,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     fill={`url(#${gid('output')})`}
                     strokeWidth={1.5}
                     name="Output"
-                    isAnimationActive={animate}
-                    animationDuration={CHART_ANIMATION.duration}
+                    {...getAreaAnimationProps(animate)}
                   />
                   <Area
                     type="monotone"
@@ -339,8 +334,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     fill={`url(#${gid('input')})`}
                     strokeWidth={1.5}
                     name="Input"
-                    isAnimationActive={animate}
-                    animationDuration={CHART_ANIMATION.duration}
+                    {...getAreaAnimationProps(animate, { order: 1, role: 'stacked' })}
                   />
                   <Line
                     type="monotone"
@@ -351,9 +345,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     dot={false}
                     connectNulls
                     name={`Output ${t('charts.tokensOverTime.averageSuffix')}`}
-                    isAnimationActive={animate}
-                    animationBegin={CHART_ANIMATION.stagger}
-                    animationDuration={CHART_ANIMATION.slowDuration}
+                    {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
                   <Line
                     type="monotone"
@@ -364,9 +356,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     dot={false}
                     connectNulls
                     name={`Input ${t('charts.tokensOverTime.averageSuffix')}`}
-                    isAnimationActive={animate}
-                    animationBegin={CHART_ANIMATION.stagger * 2}
-                    animationDuration={CHART_ANIMATION.slowDuration}
+                    {...getLineAnimationProps(animate, { order: 1, role: 'secondary' })}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -418,8 +408,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     fill={`url(#${gid('thinking')})`}
                     strokeWidth={1.5}
                     name="Thinking"
-                    isAnimationActive={animate}
-                    animationDuration={CHART_ANIMATION.duration}
+                    {...getAreaAnimationProps(animate)}
                   />
                   <Line
                     type="monotone"
@@ -430,9 +419,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     dot={false}
                     connectNulls
                     name={`Thinking ${t('charts.tokensOverTime.averageSuffix')}`}
-                    isAnimationActive={animate}
-                    animationBegin={CHART_ANIMATION.stagger}
-                    animationDuration={CHART_ANIMATION.slowDuration}
+                    {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
                 </ComposedChart>
               </ResponsiveContainer>

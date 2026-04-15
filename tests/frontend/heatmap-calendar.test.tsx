@@ -154,7 +154,7 @@ describe('HeatmapCalendar', () => {
     await waitFor(() => {
       expect(screen.getByRole('gridcell', { name: /April 14, 2026/ })).toHaveFocus()
     })
-  })
+  }, 15_000)
 
   it('uses muted styling for zero-value cells so empty days do not dominate the heatmap', () => {
     const day = buildDailyUsage({

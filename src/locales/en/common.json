@@ -239,6 +239,7 @@
       "vsAverage": "{{direction}}{{value}}% vs avg",
       "vsAverageWithVolatility": "{{direction}}{{value}}% vs avg · σ Req {{volatility}}",
       "medianInfo": "The median shows the typical value and is less sensitive to outliers than the average.",
+      "dominantProviderInfo": "Shows the provider with the largest share of cost in the current slice, together with its relative weight and cost contribution.",
       "requestLeader": "{{model}} · {{requests}} req",
       "dominantProviderSubtitle": "{{share}} share · {{cost}}{{requestLeader}}"
     },
