@@ -179,6 +179,10 @@
       "title": "Tabellen",
       "description": "Detaillierte Aufschlüsselungen"
     },
+    "lazySectionError": {
+      "title": "Sektion nicht verfügbar",
+      "description": "Diese Dashboard-Sektion konnte gerade nicht geladen werden."
+    },
     "cards": {
       "periodComparison": "Periodenvergleich",
       "anomalyDetection": "Anomalie-Erkennung",

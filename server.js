@@ -393,14 +393,11 @@ async function writeFileMutationLockOwner(lockDir) {
 
 async function shouldReapFileMutationLock(lockDir) {
   const ownerPath = getFileMutationLockOwnerPath(lockDir);
+  let owner = null;
 
   try {
     const rawOwner = await fsPromises.readFile(ownerPath, 'utf-8');
-    const owner = JSON.parse(rawOwner);
-
-    if (Number.isInteger(owner?.pid)) {
-      return !isProcessRunning(owner.pid);
-    }
+    owner = JSON.parse(rawOwner);
   } catch (error) {
     if (error?.code !== 'ENOENT') {
       // Fall back to age-based cleanup if the owner metadata is missing or malformed.
@@ -408,8 +405,21 @@ async function shouldReapFileMutationLock(lockDir) {
   }
 
   try {
+    const ownerCreatedAt = owner?.createdAt ? Date.parse(owner.createdAt) : Number.NaN;
     const stats = await fsPromises.stat(lockDir);
-    return Date.now() - stats.mtimeMs > FILE_MUTATION_LOCK_STALE_MS;
+    const lockAgeMs = Number.isFinite(ownerCreatedAt)
+      ? Date.now() - ownerCreatedAt
+      : Date.now() - stats.mtimeMs;
+
+    if (lockAgeMs > FILE_MUTATION_LOCK_STALE_MS) {
+      return true;
+    }
+
+    if (Number.isInteger(owner?.pid)) {
+      return !isProcessRunning(owner.pid);
+    }
+
+    return false;
   } catch (error) {
     if (error?.code === 'ENOENT') {
       return false;

@@ -179,6 +179,10 @@
       "title": "Tables",
       "description": "Detailed breakdowns"
     },
+    "lazySectionError": {
+      "title": "Section unavailable",
+      "description": "This dashboard section could not be loaded right now."
+    },
     "cards": {
       "periodComparison": "Period comparison",
       "anomalyDetection": "Anomaly detection",

@@ -8,6 +8,23 @@ import { formatCurrency } from '@/lib/formatters'
 import i18n, { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
 
+function buildDailyUsage(overrides: Partial<DailyUsage> = {}): DailyUsage {
+  return {
+    date: '2026-04-07',
+    inputTokens: 10,
+    outputTokens: 5,
+    cacheCreationTokens: 0,
+    cacheReadTokens: 0,
+    thinkingTokens: 0,
+    totalTokens: 15,
+    totalCost: 5,
+    requestCount: 2,
+    modelsUsed: ['gpt-5.4'],
+    modelBreakdowns: [],
+    ...overrides,
+  }
+}
+
 describe('HeatmapCalendar', () => {
   beforeEach(async () => {
     vi.stubGlobal(
@@ -23,19 +40,7 @@ describe('HeatmapCalendar', () => {
   })
 
   it('exposes daily cells with keyboard-accessible labels and focus details', async () => {
-    const day: DailyUsage = {
-      date: '2026-04-07',
-      inputTokens: 10,
-      outputTokens: 5,
-      cacheCreationTokens: 0,
-      cacheReadTokens: 0,
-      thinkingTokens: 0,
-      totalTokens: 15,
-      totalCost: 5,
-      requestCount: 2,
-      modelsUsed: ['gpt-5.4'],
-      modelBreakdowns: [],
-    }
+    const day = buildDailyUsage()
 
     const dateLabel = new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
@@ -58,19 +63,7 @@ describe('HeatmapCalendar', () => {
   })
 
   it('updates weekday and aria labels when the language changes at runtime', async () => {
-    const day: DailyUsage = {
-      date: '2026-04-07',
-      inputTokens: 10,
-      outputTokens: 5,
-      cacheCreationTokens: 0,
-      cacheReadTokens: 0,
-      thinkingTokens: 0,
-      totalTokens: 15,
-      totalCost: 5,
-      requestCount: 2,
-      modelsUsed: ['gpt-5.4'],
-      modelBreakdowns: [],
-    }
+    const day = buildDailyUsage()
 
     const { rerender } = render(
       <TooltipProvider delayDuration={0}>
@@ -96,58 +89,31 @@ describe('HeatmapCalendar', () => {
 
   it('keeps only one heatmap cell in the tab order and supports arrow-key navigation', async () => {
     const days: DailyUsage[] = [
-      {
-        date: '2026-04-06',
-        inputTokens: 10,
-        outputTokens: 5,
-        cacheCreationTokens: 0,
-        cacheReadTokens: 0,
-        thinkingTokens: 0,
-        totalTokens: 15,
-        totalCost: 3,
-        requestCount: 2,
-        modelsUsed: ['gpt-5.4'],
-        modelBreakdowns: [],
-      },
-      {
+      buildDailyUsage({ date: '2026-04-06', totalCost: 3 }),
+      buildDailyUsage({
         date: '2026-04-07',
         inputTokens: 12,
         outputTokens: 6,
-        cacheCreationTokens: 0,
-        cacheReadTokens: 0,
-        thinkingTokens: 0,
         totalTokens: 18,
         totalCost: 4,
         requestCount: 3,
-        modelsUsed: ['gpt-5.4'],
-        modelBreakdowns: [],
-      },
-      {
+      }),
+      buildDailyUsage({
         date: '2026-04-13',
         inputTokens: 14,
         outputTokens: 7,
-        cacheCreationTokens: 0,
-        cacheReadTokens: 0,
-        thinkingTokens: 0,
         totalTokens: 21,
         totalCost: 6,
         requestCount: 4,
-        modelsUsed: ['gpt-5.4'],
-        modelBreakdowns: [],
-      },
-      {
+      }),
+      buildDailyUsage({
         date: '2026-04-14',
         inputTokens: 16,
         outputTokens: 8,
-        cacheCreationTokens: 0,
-        cacheReadTokens: 0,
-        thinkingTokens: 0,
         totalTokens: 24,
         totalCost: 7,
         requestCount: 5,
-        modelsUsed: ['gpt-5.4'],
-        modelBreakdowns: [],
-      },
+      }),
     ]
 
     render(
@@ -191,19 +157,14 @@ describe('HeatmapCalendar', () => {
   })
 
   it('uses muted styling for zero-value cells so empty days do not dominate the heatmap', () => {
-    const day: DailyUsage = {
-      date: '2026-04-07',
+    const day = buildDailyUsage({
       inputTokens: 0,
       outputTokens: 0,
-      cacheCreationTokens: 0,
-      cacheReadTokens: 0,
-      thinkingTokens: 0,
       totalTokens: 0,
       totalCost: 0,
       requestCount: 0,
       modelsUsed: [],
-      modelBreakdowns: [],
-    }
+    })
 
     render(
       <TooltipProvider delayDuration={0}>
@@ -216,19 +177,7 @@ describe('HeatmapCalendar', () => {
   })
 
   it('updates theme-dependent cell colors immediately when the theme prop changes', () => {
-    const day: DailyUsage = {
-      date: '2026-04-07',
-      inputTokens: 10,
-      outputTokens: 5,
-      cacheCreationTokens: 0,
-      cacheReadTokens: 0,
-      thinkingTokens: 0,
-      totalTokens: 15,
-      totalCost: 5,
-      requestCount: 2,
-      modelsUsed: ['gpt-5.4'],
-      modelBreakdowns: [],
-    }
+    const day = buildDailyUsage()
 
     const { rerender } = render(
       <TooltipProvider delayDuration={0}>

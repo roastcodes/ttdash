@@ -177,10 +177,12 @@ describe('server helper utilities', () => {
   })
 
   it('serializes operations for the same file path and cleans up locks afterwards', async () => {
+    const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-lock-same-file-'))
+    const settingsFile = path.join(tempDir, 'settings.json')
     const events: string[] = []
     let releaseFirst: (() => void) | null = null
 
-    const first = withFileMutationLock('/tmp/settings.json', async () => {
+    const first = withFileMutationLock(settingsFile, async () => {
       events.push('first:start')
       await new Promise<void>((resolve) => {
         releaseFirst = () => {
@@ -190,7 +192,7 @@ describe('server helper utilities', () => {
       })
     })
 
-    const second = withFileMutationLock('/tmp/settings.json', async () => {
+    const second = withFileMutationLock(settingsFile, async () => {
       events.push('second:start')
       events.push('second:end')
     })
@@ -206,22 +208,29 @@ describe('server helper utilities', () => {
 
     expect(events).toEqual(['first:start', 'first:end', 'second:start', 'second:end'])
     expect(getPendingFileMutationLockCount()).toBe(0)
+    await fsPromises.rm(tempDir, { recursive: true, force: true })
   })
 
   it('releases a file lock after errors so later operations can proceed', async () => {
+    const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-lock-error-'))
+    const dataFile = path.join(tempDir, 'data.json')
     await expect(
-      withFileMutationLock('/tmp/data.json', async () => {
+      withFileMutationLock(dataFile, async () => {
         throw new Error('boom')
       }),
     ).rejects.toThrow('boom')
 
-    await expect(withFileMutationLock('/tmp/data.json', async () => 'ok')).resolves.toBe('ok')
+    await expect(withFileMutationLock(dataFile, async () => 'ok')).resolves.toBe('ok')
     await vi.waitFor(() => {
       expect(getPendingFileMutationLockCount()).toBe(0)
     })
+    await fsPromises.rm(tempDir, { recursive: true, force: true })
   })
 
   it('serializes overlapping multi-file operations in a stable order', async () => {
+    const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-lock-ordered-'))
+    const settingsFile = path.join(tempDir, 'settings.json')
+    const dataFile = path.join(tempDir, 'data.json')
     const events: string[] = []
     let releaseFirst: (() => void) | null = null
     let signalFirstStarted: (() => void) | null = null
@@ -229,30 +238,24 @@ describe('server helper utilities', () => {
       signalFirstStarted = resolve
     })
 
-    const first = withOrderedFileMutationLocks(
-      ['/tmp/settings.json', '/tmp/data.json'],
-      async () => {
-        events.push('first:start')
-        signalFirstStarted?.()
-        await new Promise<void>((resolve) => {
-          releaseFirst = () => {
-            events.push('first:end')
-            resolve()
-          }
-        })
-      },
-    )
+    const first = withOrderedFileMutationLocks([settingsFile, dataFile], async () => {
+      events.push('first:start')
+      signalFirstStarted?.()
+      await new Promise<void>((resolve) => {
+        releaseFirst = () => {
+          events.push('first:end')
+          resolve()
+        }
+      })
+    })
 
     await firstStarted
     expect(events).toEqual(['first:start'])
 
-    const second = withOrderedFileMutationLocks(
-      ['/tmp/data.json', '/tmp/settings.json'],
-      async () => {
-        events.push('second:start')
-        events.push('second:end')
-      },
-    )
+    const second = withOrderedFileMutationLocks([dataFile, settingsFile], async () => {
+      events.push('second:start')
+      events.push('second:end')
+    })
 
     await vi.waitFor(() => {
       expect(events).toEqual(['first:start'])
@@ -263,6 +266,7 @@ describe('server helper utilities', () => {
 
     expect(events).toEqual(['first:start', 'first:end', 'second:start', 'second:end'])
     expect(getPendingFileMutationLockCount()).toBe(0)
+    await fsPromises.rm(tempDir, { recursive: true, force: true })
   })
 
   it('reaps stale cross-process lock directories left behind by dead owners', async () => {
@@ -274,6 +278,27 @@ describe('server helper utilities', () => {
     await fsPromises.writeFile(
       path.join(lockDir, 'owner.json'),
       JSON.stringify({ pid: 999_999_999, createdAt: new Date().toISOString() }),
+    )
+
+    await expect(withFileMutationLock(targetFile, async () => 'ok')).resolves.toBe('ok')
+    expect(existsSync(lockDir)).toBe(false)
+
+    await fsPromises.rm(targetDir, { recursive: true, force: true })
+  })
+
+  it('reaps stale locks even when the recorded pid is still running', async () => {
+    const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-stale-pid-lock-'))
+    const targetFile = path.join(targetDir, 'settings.json')
+    const lockDir = getFileMutationLockDir(targetFile)
+
+    await fsPromises.mkdir(lockDir, { recursive: true })
+    await fsPromises.writeFile(
+      path.join(lockDir, 'owner.json'),
+      JSON.stringify({
+        pid: process.pid,
+        createdAt: new Date(Date.now() - 60_000).toISOString(),
+        instanceId: 'stale-instance',
+      }),
     )
 
     await expect(withFileMutationLock(targetFile, async () => 'ok')).resolves.toBe('ok')
