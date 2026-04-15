@@ -55,14 +55,14 @@ describe('api error handling', () => {
     await expect(fetchSettings()).rejects.toThrow('Settings file is unreadable or corrupted.')
   })
 
-  it('normalizes reduced-motion preferences returned by the settings API', async () => {
+  it('falls back to the system motion preference for invalid settings API values', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
             language: 'en',
-            reducedMotionPreference: 'never',
+            reducedMotionPreference: 'invalid',
           }),
           {
             status: 200,
@@ -74,7 +74,7 @@ describe('api error handling', () => {
 
     await expect(fetchSettings()).resolves.toMatchObject({
       language: 'en',
-      reducedMotionPreference: 'never',
+      reducedMotionPreference: 'system',
       theme: 'dark',
     })
   })

@@ -125,4 +125,16 @@ describe('SettingsModal', () => {
       }),
     )
   })
+
+  it('renders natural German labels for the dashboard motion settings', async () => {
+    await initI18n('de')
+    renderSettingsModal({
+      reducedMotionPreference: 'always',
+    })
+
+    expect(screen.getByText('Dashboard-Einstellungen')).toBeInTheDocument()
+    expect(screen.getByText(/Browsereinstellung/)).toBeInTheDocument()
+    expect(screen.getByText(/Toast-Benachrichtigungen/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Immer' })).toHaveAttribute('aria-pressed', 'true')
+  })
 })

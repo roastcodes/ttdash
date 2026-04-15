@@ -87,6 +87,26 @@ describe('motion accessibility', () => {
     expect(dialog).not.toHaveClass('data-[state=open]:zoom-in-95')
   })
 
+  it('does not subscribe to browser motion changes when the override is forced', () => {
+    const matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }))
+
+    vi.stubGlobal('matchMedia', matchMedia)
+
+    renderWithMotionPreference(<MotionProbe />, 'always')
+
+    expect(screen.getByTestId('motion-probe')).toHaveTextContent('reduce')
+    expect(matchMedia).not.toHaveBeenCalled()
+  })
+
   it('forces reduced motion across dashboard and app ui when the override is always', () => {
     installMatchMedia(false)
 

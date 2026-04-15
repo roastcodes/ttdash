@@ -71,7 +71,7 @@ export function AppMotionProvider({
   preference: ReducedMotionPreference
   children: ReactNode
 }) {
-  const systemReducedMotion = useSystemReducedMotion()
+  const systemReducedMotion = useSystemReducedMotion(preference === 'system')
   const shouldReduceMotion =
     preference === 'always' ? true : preference === 'never' ? false : systemReducedMotion
   const contextValue = useMemo(
