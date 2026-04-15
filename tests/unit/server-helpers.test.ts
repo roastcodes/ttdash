@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events'
+import { fork } from 'node:child_process'
 import { existsSync, promises as fsPromises } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
@@ -10,6 +11,7 @@ const {
   __test__: {
     commandExists,
     getExecutableName,
+    getFileMutationLockDir,
     listenOnAvailablePort,
     unlinkIfExists,
     writeJsonAtomicAsync,
@@ -21,6 +23,7 @@ const {
   __test__: {
     commandExists: (command: string, args?: string[]) => Promise<boolean>
     getExecutableName: (baseName: string, isWindows?: boolean) => string
+    getFileMutationLockDir: (filePath: string) => string
     listenOnAvailablePort: (
       serverInstance: {
         once: (event: string, handler: (...args: unknown[]) => void) => unknown
@@ -192,10 +195,9 @@ describe('server helper utilities', () => {
       events.push('second:end')
     })
 
-    await Promise.resolve()
-    await Promise.resolve()
-
-    expect(events).toEqual(['first:start'])
+    await vi.waitFor(() => {
+      expect(events).toEqual(['first:start'])
+    })
     expect(getPendingFileMutationLockCount()).toBeGreaterThan(0)
 
     releaseFirst?.()
@@ -214,8 +216,9 @@ describe('server helper utilities', () => {
     ).rejects.toThrow('boom')
 
     await expect(withFileMutationLock('/tmp/data.json', async () => 'ok')).resolves.toBe('ok')
-    await Promise.resolve()
-    expect(getPendingFileMutationLockCount()).toBe(0)
+    await vi.waitFor(() => {
+      expect(getPendingFileMutationLockCount()).toBe(0)
+    })
   })
 
   it('serializes overlapping multi-file operations in a stable order', async () => {
@@ -251,16 +254,102 @@ describe('server helper utilities', () => {
       },
     )
 
-    await Promise.resolve()
-    await Promise.resolve()
-
-    expect(events).toEqual(['first:start'])
+    await vi.waitFor(() => {
+      expect(events).toEqual(['first:start'])
+    })
 
     releaseFirst?.()
     await Promise.all([first, second])
 
     expect(events).toEqual(['first:start', 'first:end', 'second:start', 'second:end'])
     expect(getPendingFileMutationLockCount()).toBe(0)
+  })
+
+  it('reaps stale cross-process lock directories left behind by dead owners', async () => {
+    const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-file-lock-'))
+    const targetFile = path.join(targetDir, 'settings.json')
+    const lockDir = getFileMutationLockDir(targetFile)
+
+    await fsPromises.mkdir(lockDir, { recursive: true })
+    await fsPromises.writeFile(
+      path.join(lockDir, 'owner.json'),
+      JSON.stringify({ pid: 999_999_999, createdAt: new Date().toISOString() }),
+    )
+
+    await expect(withFileMutationLock(targetFile, async () => 'ok')).resolves.toBe('ok')
+    expect(existsSync(lockDir)).toBe(false)
+
+    await fsPromises.rm(targetDir, { recursive: true, force: true })
+  })
+
+  it('serializes file mutations across processes via the sidecar lock directory', async () => {
+    const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-cross-process-lock-'))
+    const targetFile = path.join(targetDir, 'data.json')
+    const childScriptPath = path.join(targetDir, 'lock-holder.cjs')
+
+    await fsPromises.writeFile(
+      childScriptPath,
+      `
+const serverPath = process.argv[2]
+const filePath = process.argv[3]
+process.argv = process.argv.slice(0, 2)
+const { __test__: { withFileMutationLock } } = require(serverPath)
+
+withFileMutationLock(filePath, async () => {
+  if (typeof process.send === 'function') {
+    process.send('locked')
+  }
+  await new Promise((resolve) => setTimeout(resolve, 250))
+}).then(() => process.exit(0)).catch((error) => {
+  console.error(error)
+  process.exit(1)
+})
+`.trim(),
+    )
+
+    const child = fork(childScriptPath, [path.resolve('server.js'), targetFile], {
+      cwd: process.cwd(),
+      stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      child.once('message', (message) => {
+        if (message === 'locked') {
+          resolve()
+          return
+        }
+        reject(new Error(`Unexpected child message: ${String(message)}`))
+      })
+      child.once('error', reject)
+      child.once('exit', (code) => {
+        if (code !== 0) {
+          reject(new Error(`Lock holder exited early with code ${code}`))
+        }
+      })
+    })
+
+    const startedAt = Date.now()
+    await withFileMutationLock(targetFile, async () => undefined)
+    const waitedMs = Date.now() - startedAt
+
+    expect(waitedMs).toBeGreaterThanOrEqual(150)
+
+    if (child.exitCode === null) {
+      await new Promise<void>((resolve, reject) => {
+        child.once('exit', (code) => {
+          if (code === 0) {
+            resolve()
+            return
+          }
+          reject(new Error(`Lock holder exited with code ${code}`))
+        })
+        child.once('error', reject)
+      })
+    } else {
+      expect(child.exitCode).toBe(0)
+    }
+
+    await fsPromises.rm(targetDir, { recursive: true, force: true })
   })
 
   it('removes temporary files when atomic async writes fail after creating the temp file', async () => {

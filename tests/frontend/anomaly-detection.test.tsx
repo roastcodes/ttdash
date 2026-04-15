@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AnomalyDetection } from '@/components/features/anomaly/AnomalyDetection'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
@@ -60,6 +60,8 @@ const anomalyFixture: DailyUsage[] = [
   },
 ]
 
+const anomalyButtonName = /fri, 04\/03\/2026/i
+
 describe('AnomalyDetection', () => {
   beforeEach(async () => {
     vi.stubGlobal(
@@ -74,6 +76,10 @@ describe('AnomalyDetection', () => {
     await initI18n('en')
   })
 
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('disables anomaly cards when no drilldown callback is available', () => {
     render(
       <TooltipProvider>
@@ -81,7 +87,7 @@ describe('AnomalyDetection', () => {
       </TooltipProvider>,
     )
 
-    const anomalyButton = screen.getByRole('button', { name: /fri, 04\/03\/2026/i })
+    const anomalyButton = screen.getByRole('button', { name: anomalyButtonName })
 
     expect(anomalyButton).toBeDisabled()
     expect(anomalyButton).toHaveAttribute('aria-disabled', 'true')
@@ -98,7 +104,7 @@ describe('AnomalyDetection', () => {
       </TooltipProvider>,
     )
 
-    const anomalyButton = screen.getByRole('button', { name: /fri, 04\/03\/2026/i })
+    const anomalyButton = screen.getByRole('button', { name: anomalyButtonName })
 
     expect(anomalyButton).toBeEnabled()
     expect(anomalyButton).toHaveAttribute('aria-disabled', 'false')

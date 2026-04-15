@@ -388,6 +388,7 @@ export function Dashboard({
           comparisonData={comparisonData}
           modelCosts={modelCosts}
           providerMetrics={providerMetrics}
+          isDark={isDark}
           onDrillDownDateChange={setDrillDownDate}
         />
       </div>

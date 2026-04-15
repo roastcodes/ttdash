@@ -167,6 +167,7 @@ interface DashboardSectionsProps {
     }
   >
   providerMetrics: Map<string, AggregateMetrics>
+  isDark: boolean
   onDrillDownDateChange: (date: string | null) => void
 }
 
@@ -195,12 +196,16 @@ export function DashboardSections({
   comparisonData,
   modelCosts,
   providerMetrics,
+  isDark,
   onDrillDownDateChange,
 }: DashboardSectionsProps) {
   const { t } = useTranslation()
 
   const lazyCardFallback = (className?: string) => (
-    <ChartCardSkeleton className={className ?? 'h-[360px]'} />
+    <ChartCardSkeleton
+      className={className ?? 'h-[360px]'}
+      bodyClassName={className ?? 'h-[360px]'}
+    />
   )
 
   const renderSection = (sectionId: DashboardSectionId) => {
@@ -270,9 +275,24 @@ export function DashboardSections({
             />
             <FadeIn delay={0.05}>
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-                <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="cost" />
-                <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="requests" />
-                <HeatmapCalendar data={filteredData} viewMode={viewMode} metric="tokens" />
+                <HeatmapCalendar
+                  data={filteredData}
+                  viewMode={viewMode}
+                  metric="cost"
+                  isDark={isDark}
+                />
+                <HeatmapCalendar
+                  data={filteredData}
+                  viewMode={viewMode}
+                  metric="requests"
+                  isDark={isDark}
+                />
+                <HeatmapCalendar
+                  data={filteredData}
+                  viewMode={viewMode}
+                  metric="tokens"
+                  isDark={isDark}
+                />
               </div>
             </FadeIn>
           </div>

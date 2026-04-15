@@ -272,6 +272,8 @@ const BACKGROUND_LOG_DIR = path.join(APP_PATHS.cacheDir, 'background');
 const BACKGROUND_INSTANCES_LOCK_DIR = path.join(APP_PATHS.configDir, 'background-instances.lock');
 const BACKGROUND_INSTANCES_LOCK_TIMEOUT_MS = 5000;
 const BACKGROUND_INSTANCES_LOCK_STALE_MS = 10000;
+const FILE_MUTATION_LOCK_TIMEOUT_MS = 10000;
+const FILE_MUTATION_LOCK_STALE_MS = 30000;
 const fileMutationLocks = new Map();
 
 const MIME_TYPES = {
@@ -356,6 +358,124 @@ async function unlinkIfExists(filePath) {
   }
 }
 
+function getFileMutationLockDir(filePath) {
+  return `${filePath}.lock`;
+}
+
+function getFileMutationLockOwnerPath(lockDir) {
+  return path.join(lockDir, 'owner.json');
+}
+
+async function removeFileMutationLockDir(lockDir) {
+  try {
+    await fsPromises.rm(lockDir, { recursive: true, force: true });
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
+async function writeFileMutationLockOwner(lockDir) {
+  const ownerPath = getFileMutationLockOwnerPath(lockDir);
+  const owner = {
+    pid: process.pid,
+    createdAt: new Date().toISOString(),
+    instanceId: RUNTIME_INSTANCE.id,
+  };
+  await fsPromises.writeFile(ownerPath, JSON.stringify(owner, null, 2), {
+    mode: SECURE_FILE_MODE,
+  });
+  if (!IS_WINDOWS) {
+    await fsPromises.chmod(ownerPath, SECURE_FILE_MODE);
+  }
+}
+
+async function shouldReapFileMutationLock(lockDir) {
+  const ownerPath = getFileMutationLockOwnerPath(lockDir);
+
+  try {
+    const rawOwner = await fsPromises.readFile(ownerPath, 'utf-8');
+    const owner = JSON.parse(rawOwner);
+
+    if (Number.isInteger(owner?.pid)) {
+      return !isProcessRunning(owner.pid);
+    }
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      // Fall back to age-based cleanup if the owner metadata is missing or malformed.
+    }
+  }
+
+  try {
+    const stats = await fsPromises.stat(lockDir);
+    return Date.now() - stats.mtimeMs > FILE_MUTATION_LOCK_STALE_MS;
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function withCrossProcessFileMutationLock(
+  filePath,
+  operation,
+  timeoutMs = FILE_MUTATION_LOCK_TIMEOUT_MS,
+) {
+  const lockDir = getFileMutationLockDir(filePath);
+  const startedAt = Date.now();
+
+  while (true) {
+    try {
+      await fsPromises.mkdir(path.dirname(lockDir), {
+        recursive: true,
+        mode: SECURE_DIR_MODE,
+      });
+      await fsPromises.mkdir(lockDir, { mode: SECURE_DIR_MODE });
+      if (!IS_WINDOWS) {
+        await fsPromises.chmod(lockDir, SECURE_DIR_MODE);
+      }
+
+      try {
+        await writeFileMutationLockOwner(lockDir);
+      } catch (error) {
+        await removeFileMutationLockDir(lockDir).catch(() => undefined);
+        throw error;
+      }
+
+      break;
+    } catch (error) {
+      if (!error || error.code !== 'EEXIST') {
+        throw error;
+      }
+
+      if (await shouldReapFileMutationLock(lockDir)) {
+        await removeFileMutationLockDir(lockDir).catch(() => undefined);
+        continue;
+      }
+
+      if (Date.now() - startedAt >= timeoutMs) {
+        throw new Error(`Could not acquire file mutation lock for ${path.basename(filePath)}.`, {
+          cause: error,
+        });
+      }
+
+      await sleep(50);
+    }
+  }
+
+  try {
+    return await operation();
+  } finally {
+    try {
+      await removeFileMutationLockDir(lockDir);
+    } catch {
+      // Ignore cleanup races so the original operation result wins.
+    }
+  }
+}
+
 async function withFileMutationLock(filePath, operation) {
   const previous = fileMutationLocks.get(filePath) || Promise.resolve();
   let releaseCurrent;
@@ -368,7 +488,7 @@ async function withFileMutationLock(filePath, operation) {
   await previous.catch(() => undefined);
 
   try {
-    return await operation();
+    return await withCrossProcessFileMutationLock(filePath, operation);
   } finally {
     releaseCurrent();
     if (fileMutationLocks.get(filePath) === current) {
@@ -1865,11 +1985,7 @@ const server = http.createServer(async (req, res) => {
         return json(res, validationError.status, { message: validationError.message });
       }
       await withFileMutationLock(SETTINGS_FILE, async () => {
-        try {
-          await fsPromises.unlink(SETTINGS_FILE);
-        } catch {
-          // Ignore missing settings files during reset.
-        }
+        await unlinkIfExists(SETTINGS_FILE);
       });
       return json(res, 200, { success: true, settings: readSettings() });
     }
@@ -2189,6 +2305,7 @@ module.exports = {
     commandExists,
     getExecutableName,
     listenOnAvailablePort,
+    getFileMutationLockDir,
     unlinkIfExists,
     writeJsonAtomicAsync,
     withFileMutationLock,

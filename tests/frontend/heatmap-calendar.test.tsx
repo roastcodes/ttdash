@@ -122,6 +122,32 @@ describe('HeatmapCalendar', () => {
         modelsUsed: ['gpt-5.4'],
         modelBreakdowns: [],
       },
+      {
+        date: '2026-04-13',
+        inputTokens: 14,
+        outputTokens: 7,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        totalTokens: 21,
+        totalCost: 6,
+        requestCount: 4,
+        modelsUsed: ['gpt-5.4'],
+        modelBreakdowns: [],
+      },
+      {
+        date: '2026-04-14',
+        inputTokens: 16,
+        outputTokens: 8,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        totalTokens: 24,
+        totalCost: 7,
+        requestCount: 5,
+        modelsUsed: ['gpt-5.4'],
+        modelBreakdowns: [],
+      },
     ]
 
     render(
@@ -134,12 +160,33 @@ describe('HeatmapCalendar', () => {
     const tabbableCells = document.querySelectorAll('[role="gridcell"][tabindex="0"]')
     expect(tabbableCells).toHaveLength(1)
 
-    const firstDay = screen.getByRole('gridcell', { name: /April 6, 2026/ })
-    fireEvent.focus(firstDay)
-    fireEvent.keyDown(firstDay, { key: 'ArrowRight' })
+    const mondayFirstWeek = screen.getByRole('gridcell', { name: /April 6, 2026/ })
+    fireEvent.focus(mondayFirstWeek)
+    fireEvent.keyDown(mondayFirstWeek, { key: 'ArrowRight' })
+
+    await waitFor(() => {
+      expect(screen.getByRole('gridcell', { name: /April 13, 2026/ })).toHaveFocus()
+    })
+
+    const mondaySecondWeek = screen.getByRole('gridcell', { name: /April 13, 2026/ })
+    fireEvent.keyDown(mondaySecondWeek, { key: 'ArrowDown' })
+
+    await waitFor(() => {
+      expect(screen.getByRole('gridcell', { name: /April 14, 2026/ })).toHaveFocus()
+    })
+
+    const tuesdaySecondWeek = screen.getByRole('gridcell', { name: /April 14, 2026/ })
+    fireEvent.keyDown(tuesdaySecondWeek, { key: 'Home' })
 
     await waitFor(() => {
       expect(screen.getByRole('gridcell', { name: /April 7, 2026/ })).toHaveFocus()
+    })
+
+    const tuesdayFirstWeek = screen.getByRole('gridcell', { name: /April 7, 2026/ })
+    fireEvent.keyDown(tuesdayFirstWeek, { key: 'End' })
+
+    await waitFor(() => {
+      expect(screen.getByRole('gridcell', { name: /April 14, 2026/ })).toHaveFocus()
     })
   })
 
@@ -166,5 +213,40 @@ describe('HeatmapCalendar', () => {
 
     const cell = screen.getByRole('gridcell', { name: /April 7, 2026/ })
     expect(cell).toHaveAttribute('fill', 'hsl(var(--muted))')
+  })
+
+  it('updates theme-dependent cell colors immediately when the theme prop changes', () => {
+    const day: DailyUsage = {
+      date: '2026-04-07',
+      inputTokens: 10,
+      outputTokens: 5,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      thinkingTokens: 0,
+      totalTokens: 15,
+      totalCost: 5,
+      requestCount: 2,
+      modelsUsed: ['gpt-5.4'],
+      modelBreakdowns: [],
+    }
+
+    const { rerender } = render(
+      <TooltipProvider delayDuration={0}>
+        <HeatmapCalendar data={[day]} metric="cost" isDark={false} />
+      </TooltipProvider>,
+    )
+
+    const cell = screen.getByRole('gridcell', { name: /April 7, 2026/ })
+    const lightFill = cell.getAttribute('fill')
+
+    rerender(
+      <TooltipProvider delayDuration={0}>
+        <HeatmapCalendar data={[day]} metric="cost" isDark={true} />
+      </TooltipProvider>,
+    )
+
+    expect(screen.getByRole('gridcell', { name: /April 7, 2026/ }).getAttribute('fill')).not.toBe(
+      lightFill,
+    )
   })
 })

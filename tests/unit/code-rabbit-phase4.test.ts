@@ -137,9 +137,11 @@ describe('phase 4 correctness helpers', () => {
     })
 
     expect(result.current.weekdayData[2]?.day).toBe('We')
+    expect(result.current.weekdayData[0]?.cost).toBe(9)
 
     rerender({ locale: 'de-CH' })
 
     expect(result.current.weekdayData[2]?.day).toBe('Mi')
+    expect(result.current.weekdayData[0]?.cost).toBe(9)
   })
 })

@@ -24,6 +24,7 @@ interface HeatmapCalendarProps {
   data: DailyUsage[]
   viewMode?: ViewMode
   metric?: 'cost' | 'requests' | 'tokens'
+  isDark?: boolean
 }
 
 const CELL_SIZE = 14
@@ -55,6 +56,7 @@ export function HeatmapCalendar({
   data,
   viewMode = 'daily',
   metric = 'cost',
+  isDark = false,
 }: HeatmapCalendarProps) {
   const { t } = useTranslation()
   const locale = getCurrentLocale()
@@ -173,8 +175,6 @@ export function HeatmapCalendar({
   }, [config, data, locale])
 
   const todayStr = localToday()
-  const isDarkTheme =
-    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
   const axisColor = 'hsl(var(--muted-foreground))'
   const todayOutlineColor = 'hsl(var(--primary))'
   const [focusedDate, setFocusedDate] = useState<string | null>(null)
@@ -219,47 +219,57 @@ export function HeatmapCalendar({
 
   const handleCellKeyDown = useCallback(
     (event: ReactKeyboardEvent<SVGRectElement>, currentDate: string) => {
-      const currentIndex = availableDates.indexOf(currentDate)
-      if (currentIndex < 0) return
-
-      const currentCell = cells[currentIndex]
+      const currentCell = cells.find((cell) => cell.date === currentDate)
       if (!currentCell) return
 
-      const moveToIndex = (nextIndex: number) => {
-        const nextDate = availableDates[Math.max(0, Math.min(nextIndex, availableDates.length - 1))]
-        focusDate(nextDate ?? null)
+      const currentRow = currentCell.day
+      const currentColumn = currentCell.week
+
+      const moveToCell = (rowIndex: number, columnIndex: number) => {
+        const targetRow = cellRows[Math.max(0, Math.min(rowIndex, cellRows.length - 1))]
+        if (!targetRow || targetRow.length === 0) return
+
+        const nextCell = targetRow[Math.max(0, Math.min(columnIndex, targetRow.length - 1))]
+        focusDate(nextCell?.date ?? null)
+      }
+
+      const moveToRowBoundary = (targetColumn: 0 | 'end') => {
+        const row = cellRows[currentRow]
+        if (!row || row.length === 0) return
+        const nextCell = targetColumn === 0 ? row[0] : row[row.length - 1]
+        focusDate(nextCell?.date ?? null)
       }
 
       switch (event.key) {
         case 'ArrowLeft':
           event.preventDefault()
-          moveToIndex(currentIndex - 1)
+          moveToCell(currentRow, currentColumn - 1)
           break
         case 'ArrowRight':
           event.preventDefault()
-          moveToIndex(currentIndex + 1)
+          moveToCell(currentRow, currentColumn + 1)
           break
         case 'ArrowUp':
           event.preventDefault()
-          moveToIndex(currentIndex - 7)
+          moveToCell(currentRow - 1, currentColumn)
           break
         case 'ArrowDown':
           event.preventDefault()
-          moveToIndex(currentIndex + 7)
+          moveToCell(currentRow + 1, currentColumn)
           break
         case 'Home':
           event.preventDefault()
-          moveToIndex(currentIndex - currentCell.day)
+          moveToRowBoundary(0)
           break
         case 'End':
           event.preventDefault()
-          moveToIndex(currentIndex + (6 - currentCell.day))
+          moveToRowBoundary('end')
           break
         default:
           break
       }
     },
-    [availableDates, cells, focusDate],
+    [cellRows, cells, focusDate],
   )
 
   // Heatmap only makes sense for daily view
@@ -367,7 +377,7 @@ export function HeatmapCalendar({
                           width={CELL_SIZE}
                           height={CELL_SIZE}
                           rx={2}
-                          fill={getColor(cell.value, maxValue, config.hue, isDarkTheme)}
+                          fill={getColor(cell.value, maxValue, config.hue, isDark)}
                           stroke="transparent"
                           strokeWidth={1.5}
                           className="transition-all duration-150 focus-visible:stroke-primary"
@@ -441,7 +451,7 @@ export function HeatmapCalendar({
                 key={i}
                 className="h-3 w-3 rounded-sm"
                 style={{
-                  backgroundColor: getColor(level * maxValue, maxValue, config.hue, isDarkTheme),
+                  backgroundColor: getColor(level * maxValue, maxValue, config.hue, isDark),
                 }}
               />
             ))}

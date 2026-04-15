@@ -17,7 +17,13 @@ function MetricCardSkeleton() {
   )
 }
 
-function ChartCardSkeleton({ className }: { className?: string }) {
+function ChartCardSkeleton({
+  className,
+  bodyClassName,
+}: {
+  className?: string
+  bodyClassName?: string
+}) {
   return (
     <div
       className={cn('rounded-xl border border-border/50 bg-card/80 backdrop-blur-xl', className)}
@@ -26,7 +32,7 @@ function ChartCardSkeleton({ className }: { className?: string }) {
         <Skeleton className="h-4 w-32" />
       </div>
       <div className="p-4 pt-0">
-        <Skeleton className="h-[300px] w-full rounded-lg" />
+        <Skeleton className={cn('h-[300px] w-full rounded-lg', bodyClassName)} />
       </div>
     </div>
   )
