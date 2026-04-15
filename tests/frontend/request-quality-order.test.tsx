@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RequestQuality } from '@/components/features/request-quality/RequestQuality'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
@@ -50,6 +50,10 @@ describe('RequestQuality bar ordering', () => {
       },
     )
     await initI18n('en')
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('passes deterministic bar order values to AnimatedBarFill', () => {

@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 
+import { useRef } from 'react'
 import { act, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ChartCard, useChartAnimationState } from '@/components/charts/ChartCard'
 import {
   AnimatedDashboardSection,
+  DashboardMotionItem,
+  useDashboardElementMotion,
   useDashboardSectionMotion,
 } from '@/components/dashboard/DashboardMotion'
 import { initI18n } from '@/lib/i18n'
@@ -48,6 +51,17 @@ function MotionProbe() {
       <div data-testid="chart-delay">{String(motion?.chartStartDelayMs)}</div>
       <div data-testid="chart-active">{String(chartMotion.active)}</div>
     </>
+  )
+}
+
+function ItemMotionProbe() {
+  const itemRef = useRef<HTMLDivElement | null>(null)
+  const itemMotion = useDashboardElementMotion(itemRef)
+
+  return (
+    <div ref={itemRef} data-testid="item-active">
+      {String(itemMotion.active)}
+    </div>
   )
 }
 
@@ -176,5 +190,42 @@ describe('AnimatedDashboardSection', () => {
     })
 
     expect(screen.getByTestId('section-visible')).toHaveTextContent('true')
+  })
+
+  it('treats item motion as active when IntersectionObserver is unavailable', async () => {
+    vi.unstubAllGlobals()
+
+    render(
+      <AnimatedDashboardSection id="demo" eager>
+        <ItemMotionProbe />
+      </AnimatedDashboardSection>,
+    )
+
+    expect(screen.getByTestId('item-active')).toHaveTextContent('true')
+  })
+
+  it('keeps hidden dashboard items non-interactive until they reveal', () => {
+    render(
+      <AnimatedDashboardSection id="demo" eager>
+        <DashboardMotionItem data-testid="item-wrapper">
+          <button type="button">Item action</button>
+        </DashboardMotionItem>
+      </AnimatedDashboardSection>,
+    )
+
+    const wrapper = screen.getByTestId('item-wrapper')
+    const button = screen.getByRole('button', { name: 'Item action', hidden: true })
+
+    expect(wrapper).toHaveAttribute('aria-hidden', 'true')
+    expect(wrapper).toHaveStyle({ pointerEvents: 'none' })
+    expect(button).toHaveAttribute('tabindex', '-1')
+
+    act(() => {
+      MockIntersectionObserver.instances[0]?.trigger(true)
+    })
+
+    expect(wrapper).toHaveAttribute('aria-hidden', 'false')
+    expect(wrapper).not.toHaveStyle({ pointerEvents: 'none' })
+    expect(button).not.toHaveAttribute('tabindex', '-1')
   })
 })

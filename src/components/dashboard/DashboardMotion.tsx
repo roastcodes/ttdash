@@ -9,7 +9,7 @@ import {
   type RefObject,
   type ReactNode,
 } from 'react'
-import { AnimatePresence, motion, useInView } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/cn'
 import { useShouldReduceMotion } from '@/lib/motion'
 
@@ -58,6 +58,41 @@ interface DashboardElementMotionState {
   shouldReduceMotion: boolean
 }
 
+function useElementInView<T extends Element>(ref: RefObject<T | null>, amount: number) {
+  const [isInView, setIsInView] = useState(typeof IntersectionObserver === 'undefined')
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsInView(true)
+      return
+    }
+
+    if (isInView) return
+
+    const element = ref.current
+    if (!element) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (entry?.isIntersecting) {
+          setIsInView(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: amount },
+    )
+
+    observer.observe(element)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [amount, isInView, ref])
+
+  return isInView
+}
+
 /** Tracks one dashboard element and only activates motion once the element itself is visible. */
 export function useDashboardElementMotion<T extends Element>(
   ref: RefObject<T | null>,
@@ -70,8 +105,9 @@ export function useDashboardElementMotion<T extends Element>(
 ): DashboardElementMotionState {
   const sectionMotion = useDashboardSectionMotion()
   const shouldReduceMotion = useShouldReduceMotion()
-  const isInView = useInView(ref, { once: true, amount })
-  const active = (sectionMotion?.sectionVisible ?? true) && isInView
+  const observerMissing = typeof IntersectionObserver === 'undefined'
+  const isInView = useElementInView(ref, amount)
+  const active = (sectionMotion?.sectionVisible ?? true) && (observerMissing ? true : isInView)
   const [runKey, setRunKey] = useState(0)
   const previousActiveRef = useRef(false)
 
@@ -122,6 +158,38 @@ export function DashboardMotionItem({
     ...(amount !== undefined ? { amount } : {}),
   })
 
+  useEffect(() => {
+    const element = itemRef.current
+    if (!element) return
+
+    const focusableElements = element.querySelectorAll<HTMLElement>(
+      'a[href], button, input, select, textarea, [tabindex]',
+    )
+
+    focusableElements.forEach((focusable) => {
+      if (!itemMotion.active) {
+        if (!focusable.hasAttribute('data-dashboard-motion-tabindex')) {
+          focusable.setAttribute(
+            'data-dashboard-motion-tabindex',
+            focusable.getAttribute('tabindex') ?? '',
+          )
+        }
+        focusable.tabIndex = -1
+        return
+      }
+
+      if (!focusable.hasAttribute('data-dashboard-motion-tabindex')) return
+
+      const originalTabIndex = focusable.getAttribute('data-dashboard-motion-tabindex')
+      if (originalTabIndex) {
+        focusable.setAttribute('tabindex', originalTabIndex)
+      } else {
+        focusable.removeAttribute('tabindex')
+      }
+      focusable.removeAttribute('data-dashboard-motion-tabindex')
+    })
+  }, [itemMotion.active])
+
   if (itemMotion.shouldReduceMotion) {
     return (
       <div ref={itemRef} className={className} data-testid={dataTestId}>
@@ -135,6 +203,8 @@ export function DashboardMotionItem({
       ref={itemRef}
       className={className}
       data-testid={dataTestId}
+      aria-hidden={!itemMotion.active}
+      {...(!itemMotion.active ? { style: { pointerEvents: 'none' as const } } : {})}
       initial={false}
       animate={
         itemMotion.active

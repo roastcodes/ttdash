@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SecondaryMetrics } from '@/components/cards/SecondaryMetrics'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
@@ -57,6 +57,35 @@ describe('SecondaryMetrics help text', () => {
       },
     )
     await initI18n('en')
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('uses peak-window help text when viewMode is daily', () => {
+    render(
+      <TooltipProvider>
+        <SecondaryMetrics
+          metrics={{
+            ...metrics,
+            busiestWeek: {
+              start: '2026-04-04',
+              end: '2026-04-10',
+              cost: 210,
+            },
+          }}
+          dailyCosts={[12, 24, 48]}
+          viewMode="daily"
+        />
+      </TooltipProvider>,
+    )
+
+    const infoTexts = screen.getAllByTestId('metric-info').map((node) => node.textContent)
+
+    expect(infoTexts).toContain(
+      'Shows the highest-cost rolling 7-day window in the current slice to highlight short-term peaks.',
+    )
   })
 
   it('uses month-specific help text when viewMode is monthly', () => {

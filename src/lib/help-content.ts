@@ -25,6 +25,8 @@ const HELP_CONTENT = {
       cheapestDay:
         'Zeigt den Zeitraumspunkt mit den niedrigsten API-Kosten im aktuellen Ausschnitt.',
       avgCostPerDay: 'Zeigt die durchschnittlichen Kosten pro aktivem Zeitraumspunkt.',
+      peak7Days:
+        'Zeigt das teuerste rollierende 7-Tage-Fenster im aktuellen Ausschnitt und macht kurzfristige Lastspitzen sichtbar.',
       avgCostPerMonth:
         'Zeigt die durchschnittlichen Kosten pro aktivem Monat im aktuellen Ausschnitt.',
       avgCostPerYear:
@@ -144,6 +146,8 @@ const HELP_CONTENT = {
       mostExpensiveYear: 'Shows the year with the highest API cost in the current slice.',
       cheapestDay: 'Shows the period point with the lowest API cost in the current slice.',
       avgCostPerDay: 'Shows the average cost per active period point.',
+      peak7Days:
+        'Shows the highest-cost rolling 7-day window in the current slice to highlight short-term peaks.',
       avgCostPerMonth: 'Shows the average cost per active month in the current slice.',
       avgCostPerYear: 'Shows the average cost per active year in the current slice.',
       outputTokens:
