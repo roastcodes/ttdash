@@ -13,7 +13,7 @@ import {
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import { CHART_COLORS, CHART_MARGIN, getScatterAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import {
   formatCurrency,
@@ -201,9 +201,7 @@ function CorrelationPanel({
               fill={color}
               stroke={color}
               fillOpacity={0.72}
-              isAnimationActive={!shouldReduceMotion && animatePoints}
-              animationBegin={animationBegin}
-              animationDuration={CHART_ANIMATION.duration}
+              {...getScatterAnimationProps(!shouldReduceMotion && animatePoints, animationBegin)}
             />
           </ScatterChart>
         </ResponsiveContainer>
@@ -302,7 +300,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
           mode="cacheEfficiency"
           data={cacheVsCostPerRequest}
           color={CHART_COLORS.cumulative}
-          animationBegin={CHART_ANIMATION.stagger}
+          animationBegin={70}
           xAxisName={t('charts.correlation.cacheRate')}
           xTickFormatter={(value) => formatPercent(value, 0)}
           yAxisName={t('charts.correlation.costPerRequestAxis')}

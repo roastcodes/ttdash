@@ -12,7 +12,7 @@ import {
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import { CHART_COLORS, CHART_MARGIN, getBarAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatTokens, periodLabel } from '@/lib/formatters'
 import { useShouldReduceMotion } from '@/lib/motion'
@@ -195,9 +195,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
                     dataKey="count"
                     radius={[6, 6, 0, 0]}
                     fill={`url(#${uid}-distribution-${index})`}
-                    isAnimationActive={!shouldReduceMotion}
-                    animationBegin={CHART_ANIMATION.stagger * index}
-                    animationDuration={CHART_ANIMATION.duration}
+                    {...getBarAnimationProps(!shouldReduceMotion, index)}
                   >
                     {distribution.data.map((_, binIndex) => {
                       const intensity =

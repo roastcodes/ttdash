@@ -18,10 +18,89 @@ export const CHART_MARGIN = { top: 5, right: 10, left: 10, bottom: 5 }
 
 /** Defines the shared chart animation timings. */
 export const CHART_ANIMATION = {
-  duration: 800,
+  duration: 760,
   easing: 'ease-out' as const,
-  stagger: 140,
-  slowDuration: 1200,
+  stagger: 70,
+  slowDuration: 900,
+  chartStartDelay: 120,
+  barDuration: 520,
+  radialDuration: 700,
+  revealDuration: 360,
+}
+
+type SeriesRole = 'primary' | 'secondary' | 'stacked'
+
+/** Builds the shared animation props for line-like series. */
+export function getLineAnimationProps(
+  active: boolean,
+  {
+    order = 0,
+    role = 'primary',
+  }: {
+    order?: number
+    role?: SeriesRole
+  } = {},
+) {
+  const delayOffset =
+    role === 'secondary'
+      ? 140 + order * CHART_ANIMATION.stagger
+      : role === 'stacked'
+        ? order * CHART_ANIMATION.stagger
+        : order * CHART_ANIMATION.stagger
+
+  return {
+    isAnimationActive: active,
+    animationBegin: CHART_ANIMATION.chartStartDelay + delayOffset,
+    animationDuration:
+      role === 'secondary' ? CHART_ANIMATION.slowDuration : CHART_ANIMATION.duration,
+    animationEasing: CHART_ANIMATION.easing,
+  }
+}
+
+/** Builds the shared animation props for area-like series. */
+export function getAreaAnimationProps(
+  active: boolean,
+  {
+    order = 0,
+    role = 'primary',
+  }: {
+    order?: number
+    role?: SeriesRole
+  } = {},
+) {
+  return {
+    ...getLineAnimationProps(active, { order, role }),
+  }
+}
+
+/** Builds the shared animation props for bar-like series. */
+export function getBarAnimationProps(active: boolean, order = 0) {
+  return {
+    isAnimationActive: active,
+    animationBegin: CHART_ANIMATION.chartStartDelay + order * 90,
+    animationDuration: CHART_ANIMATION.barDuration,
+    animationEasing: CHART_ANIMATION.easing,
+  }
+}
+
+/** Builds the shared animation props for donut/pie/radial series. */
+export function getRadialAnimationProps(active: boolean, order = 0) {
+  return {
+    isAnimationActive: active,
+    animationBegin: CHART_ANIMATION.chartStartDelay + 20 + order * 80,
+    animationDuration: CHART_ANIMATION.radialDuration,
+    animationEasing: CHART_ANIMATION.easing,
+  }
+}
+
+/** Builds the shared animation props for scatter-like series. */
+export function getScatterAnimationProps(active: boolean, delayOffsetMs = 0) {
+  return {
+    isAnimationActive: active,
+    animationBegin: CHART_ANIMATION.chartStartDelay + delayOffsetMs,
+    animationDuration: CHART_ANIMATION.barDuration,
+    animationEasing: CHART_ANIMATION.easing,
+  }
 }
 
 /** Generates a CSS-safe gradient id from an arbitrary name. */

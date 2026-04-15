@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import { CHART_COLORS, CHART_MARGIN, getLineAnimationProps } from './chart-theme'
 import { getModelColor } from '@/lib/model-utils'
 import type { ModelCostChartPoint } from '@/lib/data-transforms'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
@@ -82,9 +82,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                     strokeWidth={2}
                     strokeDasharray="5 4"
                     connectNulls
-                    isAnimationActive={animate}
-                    animationBegin={CHART_ANIMATION.stagger * (index % 5)}
-                    animationDuration={CHART_ANIMATION.slowDuration}
+                    {...getLineAnimationProps(animate, { order: index % 5, role: 'secondary' })}
                   />
                 ))}
               </LineChart>
@@ -150,10 +148,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                     name={model}
                     dot={false}
                     strokeWidth={1.5}
-                    isAnimationActive={animate}
-                    animationBegin={CHART_ANIMATION.stagger * (index % 5)}
-                    animationDuration={CHART_ANIMATION.duration}
-                    animationEasing={CHART_ANIMATION.easing}
+                    {...getLineAnimationProps(animate, { order: index % 5 })}
                   />
                 ))}
               </LineChart>

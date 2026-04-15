@@ -14,7 +14,12 @@ import {
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import {
+  CHART_COLORS,
+  CHART_MARGIN,
+  getAreaAnimationProps,
+  getLineAnimationProps,
+} from './chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
 import type { ChartDataPoint } from '@/types'
@@ -126,10 +131,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
                     fill: 'hsl(var(--background))',
                   }}
                   dot={false}
-                  isAnimationActive={animate}
-                  animationBegin={0}
-                  animationDuration={CHART_ANIMATION.duration}
-                  animationEasing={CHART_ANIMATION.easing}
+                  {...getAreaAnimationProps(animate)}
                 />
                 <Line
                   type="monotone"
@@ -140,9 +142,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   connectNulls
-                  isAnimationActive={animate}
-                  animationBegin={CHART_ANIMATION.stagger}
-                  animationDuration={CHART_ANIMATION.slowDuration}
+                  {...getLineAnimationProps(animate, { role: 'secondary' })}
                 />
               </ComposedChart>
             </ResponsiveContainer>

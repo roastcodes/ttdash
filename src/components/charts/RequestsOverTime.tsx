@@ -17,7 +17,13 @@ import {
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import {
+  CHART_COLORS,
+  CHART_MARGIN,
+  getAreaAnimationProps,
+  getLineAnimationProps,
+  getRadialAnimationProps,
+} from './chart-theme'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { formatDateAxis, periodUnit } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
@@ -172,9 +178,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                     strokeWidth={2.5}
                     strokeDasharray="6 4"
                     connectNulls
-                    isAnimationActive={animate}
-                    animationBegin={0}
-                    animationDuration={CHART_ANIMATION.slowDuration}
+                    {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
                   {(summary?.topModels ?? []).map(([model], index) => (
                     <Line
@@ -187,9 +191,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                       strokeWidth={2}
                       strokeDasharray="5 4"
                       connectNulls
-                      isAnimationActive={animate}
-                      animationBegin={CHART_ANIMATION.stagger * (index % 6)}
-                      animationDuration={CHART_ANIMATION.slowDuration}
+                      {...getLineAnimationProps(animate, { order: index % 6, role: 'secondary' })}
                     />
                   ))}
                 </ComposedChart>
@@ -369,8 +371,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                               stroke: CHART_COLORS.cumulative,
                               fill: 'hsl(var(--background))',
                             }}
-                            isAnimationActive={animate}
-                            animationDuration={CHART_ANIMATION.duration}
+                            {...getAreaAnimationProps(animate)}
                           />
                           <Line
                             type="monotone"
@@ -381,9 +382,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                             strokeWidth={2.2}
                             strokeDasharray="5 5"
                             connectNulls
-                            isAnimationActive={animate}
-                            animationBegin={CHART_ANIMATION.stagger}
-                            animationDuration={CHART_ANIMATION.slowDuration}
+                            {...getLineAnimationProps(animate, { role: 'secondary' })}
                           />
                           {visibleModels.map((model, index) => (
                             <Line
@@ -394,9 +393,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                               name={model}
                               dot={false}
                               strokeWidth={1.6}
-                              isAnimationActive={animate}
-                              animationBegin={CHART_ANIMATION.stagger * ((index % 5) + 1)}
-                              animationDuration={CHART_ANIMATION.duration}
+                              {...getLineAnimationProps(animate, { order: (index % 5) + 1 })}
                             />
                           ))}
                         </ComposedChart>
@@ -421,10 +418,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                             paddingAngle={2}
                             dataKey="value"
                             nameKey="name"
-                            isAnimationActive={animate}
-                            animationDuration={CHART_ANIMATION.duration}
-                            animationBegin={CHART_ANIMATION.stagger}
-                            animationEasing={CHART_ANIMATION.easing}
+                            {...getRadialAnimationProps(animate)}
                           >
                             {donutData.map((entry) => (
                               <Cell key={entry.name} fill={getModelColor(entry.name)} />

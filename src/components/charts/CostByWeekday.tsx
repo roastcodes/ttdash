@@ -12,7 +12,7 @@ import { useState, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import { CHART_COLORS, CHART_MARGIN, getBarAnimationProps } from './chart-theme'
 import { coerceNumber, formatCurrency } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
 import type { WeekdayData } from '@/types'
@@ -105,10 +105,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
                   dataKey="cost"
                   radius={[4, 4, 0, 0]}
                   name={t('charts.costByWeekday.averageCost')}
-                  isAnimationActive={animate}
-                  animationBegin={CHART_ANIMATION.stagger}
-                  animationDuration={CHART_ANIMATION.duration}
-                  animationEasing={CHART_ANIMATION.easing}
+                  {...getBarAnimationProps(animate)}
                 >
                   {data.map((_, index) => {
                     let fill = `url(#${gid('weekday')})`

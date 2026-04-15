@@ -13,7 +13,12 @@ import {
 } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
+import {
+  CHART_COLORS,
+  CHART_MARGIN,
+  getAreaAnimationProps,
+  getLineAnimationProps,
+} from './chart-theme'
 import { computeMovingAverage } from '@/lib/calculations'
 import { CHART_HELP } from '@/lib/help-content'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
@@ -104,8 +109,7 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
                   strokeWidth={1.5}
                   name={t('charts.tokenEfficiency.series')}
                   dot={false}
-                  isAnimationActive={animate}
-                  animationDuration={CHART_ANIMATION.duration}
+                  {...getAreaAnimationProps(animate)}
                 />
                 <Line
                   type="monotone"
@@ -116,9 +120,7 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
                   dot={false}
                   connectNulls
                   name={t('charts.tokenEfficiency.movingAverage')}
-                  isAnimationActive={animate}
-                  animationBegin={CHART_ANIMATION.stagger}
-                  animationDuration={CHART_ANIMATION.slowDuration}
+                  {...getLineAnimationProps(animate, { role: 'secondary' })}
                 />
               </ComposedChart>
             </ResponsiveContainer>

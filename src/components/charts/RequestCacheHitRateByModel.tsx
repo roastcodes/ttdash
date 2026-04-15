@@ -16,7 +16,13 @@ import {
 } from 'recharts'
 import { ChartAnimationAware, ChartCard, ChartReveal } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
-import { CHART_ANIMATION, CHART_COLORS, CHART_MARGIN } from './chart-theme'
+import {
+  CHART_COLORS,
+  CHART_MARGIN,
+  getAreaAnimationProps,
+  getBarAnimationProps,
+  getLineAnimationProps,
+} from './chart-theme'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_HELP } from '@/lib/help-content'
 import { computeCacheHitRateByModel, computeMovingAverage } from '@/lib/calculations'
@@ -315,9 +321,7 @@ export function RequestCacheHitRateByModel({
                             stroke: CHART_COLORS.cost,
                             fill: 'hsl(var(--background))',
                           }}
-                          isAnimationActive={animate}
-                          animationDuration={CHART_ANIMATION.duration}
-                          animationEasing={CHART_ANIMATION.easing}
+                          {...getAreaAnimationProps(animate)}
                         />
                         <Line
                           type="monotone"
@@ -328,10 +332,7 @@ export function RequestCacheHitRateByModel({
                           strokeWidth={2}
                           strokeDasharray="5 5"
                           connectNulls
-                          isAnimationActive={animate}
-                          animationBegin={CHART_ANIMATION.stagger}
-                          animationDuration={CHART_ANIMATION.slowDuration}
-                          animationEasing={CHART_ANIMATION.easing}
+                          {...getLineAnimationProps(animate, { role: 'secondary' })}
                         />
                         {lineSeries.map((series, index) => (
                           <Line
@@ -343,10 +344,10 @@ export function RequestCacheHitRateByModel({
                             dot={false}
                             strokeWidth={1.8}
                             connectNulls
-                            isAnimationActive={animate}
-                            animationBegin={CHART_ANIMATION.stagger * (index + 2)}
-                            animationDuration={CHART_ANIMATION.slowDuration}
-                            animationEasing={CHART_ANIMATION.easing}
+                            {...getLineAnimationProps(animate, {
+                              order: index + 2,
+                              role: 'secondary',
+                            })}
                           />
                         ))}
                       </ComposedChart>
@@ -416,9 +417,7 @@ export function RequestCacheHitRateByModel({
                           name={t('charts.requestCacheHitRate.totalRate')}
                           radius={[0, 4, 4, 0]}
                           fill={CHART_COLORS.cacheRead}
-                          isAnimationActive={animate}
-                          animationDuration={CHART_ANIMATION.duration}
-                          animationEasing={CHART_ANIMATION.easing}
+                          {...getBarAnimationProps(animate)}
                         >
                           {barData.map((entry) => (
                             <Cell
@@ -437,10 +436,7 @@ export function RequestCacheHitRateByModel({
                           name={t('charts.requestCacheHitRate.trailing7Rate')}
                           radius={[0, 4, 4, 0]}
                           fill={CHART_COLORS.ma7}
-                          isAnimationActive={animate}
-                          animationBegin={CHART_ANIMATION.stagger}
-                          animationDuration={CHART_ANIMATION.slowDuration}
-                          animationEasing={CHART_ANIMATION.easing}
+                          {...getBarAnimationProps(animate, 1)}
                         >
                           {barData.map((entry) => (
                             <Cell

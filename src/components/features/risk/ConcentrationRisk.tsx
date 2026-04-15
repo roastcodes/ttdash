@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AnimatedBarFill } from '@/components/features/animations/AnimatedBarFill'
 import { useTranslation } from 'react-i18next'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
@@ -55,9 +56,9 @@ export function ConcentrationRisk({
               </span>
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted/40">
-              <div
+              <AnimatedBarFill
                 className="h-full rounded-full bg-primary"
-                style={{ width: `${Math.min(topModelShare, 100)}%` }}
+                width={`${Math.min(topModelShare, 100)}%`}
               />
             </div>
             <div className="mt-2 text-xs text-muted-foreground">
@@ -81,9 +82,9 @@ export function ConcentrationRisk({
               </span>
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted/40">
-              <div
+              <AnimatedBarFill
                 className="h-full rounded-full bg-chart-3"
-                style={{ width: `${Math.min(topProviderShare, 100)}%` }}
+                width={`${Math.min(topProviderShare, 100)}%`}
               />
             </div>
             <div className="mt-2 text-xs text-muted-foreground">

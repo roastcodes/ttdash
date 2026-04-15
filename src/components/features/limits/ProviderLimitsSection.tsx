@@ -17,9 +17,16 @@ import {
 import { AlertTriangle, CreditCard, ShieldCheck, TrendingUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { SectionHeader } from '@/components/ui/section-header'
+import { useDashboardSectionMotion } from '@/components/dashboard/dashboard-motion'
+import { AnimatedBarFill } from '@/components/features/animations/AnimatedBarFill'
 import { ChartAnimationAware, ChartCard, ChartReveal } from '@/components/charts/ChartCard'
 import { ChartLegend } from '@/components/charts/ChartLegend'
-import { CHART_ANIMATION, CHART_COLORS, CHART_MARGIN } from '@/components/charts/chart-theme'
+import {
+  CHART_COLORS,
+  CHART_MARGIN,
+  getAreaAnimationProps,
+  getLineAnimationProps,
+} from '@/components/charts/chart-theme'
 import { buildProviderMonthlyCosts, getLatestMonth } from '@/lib/provider-limits'
 import i18n from '@/lib/i18n'
 import { CHART_HELP, SECTION_HELP } from '@/lib/help-content'
@@ -96,8 +103,10 @@ export function ProviderLimitsSection({
   selectedMonth,
 }: ProviderLimitsSectionProps) {
   const { t } = useTranslation()
+  const sectionMotion = useDashboardSectionMotion()
   const sectionRef = useRef<HTMLDivElement | null>(null)
-  const inView = useInView(sectionRef, { once: true, amount: 0.2 })
+  const localInView = useInView(sectionRef, { once: true, amount: 0.2 })
+  const inView = sectionMotion?.sectionVisible ?? localInView
 
   const {
     rows,
@@ -220,7 +229,7 @@ export function ProviderLimitsSection({
   if (providers.length === 0) return null
 
   return (
-    <div id="limits" ref={sectionRef}>
+    <div ref={sectionRef}>
       <SectionHeader
         title={t('limits.sectionTitle')}
         badge={t('limits.providersBadge', { count: providers.length })}
@@ -375,7 +384,7 @@ export function ProviderLimitsSection({
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-muted/30">
                         {row.monthlyLimit > 0 ? (
-                          <motion.div
+                          <AnimatedBarFill
                             className={
                               row.riskStatus === 'limit'
                                 ? 'h-full bg-red-400'
@@ -383,13 +392,10 @@ export function ProviderLimitsSection({
                                   ? 'h-full bg-amber-400'
                                   : 'h-full'
                             }
-                            initial={{ width: 0 }}
-                            animate={inView ? { width: `${riskProgress}%` } : { width: 0 }}
-                            transition={{
-                              duration: 0.8,
-                              delay: 0.08 + index * 0.04,
-                              ease: 'easeOut',
-                            }}
+                            width={`${riskProgress}%`}
+                            active={inView}
+                            delayMs={220 + index * 40}
+                            durationMs={680}
                             {...(row.riskStatus === 'limit' || row.riskStatus === 'warning'
                               ? {}
                               : { style: { backgroundColor: providerStyle.color } })}
@@ -421,23 +427,16 @@ export function ProviderLimitsSection({
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-muted/30">
                         {row.hasSubscription ? (
-                          <motion.div
+                          <AnimatedBarFill
                             className={
                               row.subscriptionStatus === 'gain'
                                 ? 'h-full bg-emerald-400'
                                 : 'h-full bg-amber-300'
                             }
-                            initial={{ width: 0 }}
-                            animate={
-                              inView
-                                ? { width: `${Math.max(8, subscriptionProgressWidth)}%` }
-                                : { width: 0 }
-                            }
-                            transition={{
-                              duration: 0.8,
-                              delay: 0.12 + index * 0.04,
-                              ease: 'easeOut',
-                            }}
+                            width={`${Math.max(8, subscriptionProgressWidth)}%`}
+                            active={inView}
+                            delayMs={260 + index * 40}
+                            durationMs={680}
                           />
                         ) : (
                           <div className="h-full w-full bg-muted/20" />
@@ -531,32 +530,26 @@ export function ProviderLimitsSection({
                             style={{ left: limitPosition, width: `calc(100% - ${limitPosition})` }}
                           />
 
-                          <motion.div
+                          <AnimatedBarFill
                             className={
                               row.riskStatus === 'warning'
                                 ? 'absolute top-5 left-0 h-4 rounded-full bg-amber-400'
                                 : 'absolute top-5 left-0 h-4 rounded-full bg-sky-400'
                             }
-                            initial={{ width: 0 }}
-                            animate={inView ? { width: withinLimitWidth } : { width: 0 }}
-                            transition={{
-                              duration: 0.75,
-                              delay: 0.08 + index * 0.04,
-                              ease: 'easeOut',
-                            }}
+                            width={withinLimitWidth}
+                            active={inView}
+                            delayMs={220 + index * 40}
+                            durationMs={680}
                           />
 
                           {row.overrun > 0 && (
-                            <motion.div
+                            <AnimatedBarFill
                               className="absolute top-5 h-4 rounded-r-full bg-red-400"
                               style={{ left: limitPosition }}
-                              initial={{ width: 0 }}
-                              animate={inView ? { width: overLimitWidth } : { width: 0 }}
-                              transition={{
-                                duration: 0.75,
-                                delay: 0.14 + index * 0.04,
-                                ease: 'easeOut',
-                              }}
+                              width={overLimitWidth}
+                              active={inView}
+                              delayMs={260 + index * 40}
+                              durationMs={680}
                             />
                           )}
 
@@ -572,15 +565,12 @@ export function ProviderLimitsSection({
                           </div>
                         </>
                       ) : (
-                        <motion.div
+                        <AnimatedBarFill
                           className="absolute top-5 left-0 h-4 rounded-full bg-muted-foreground/40"
-                          initial={{ width: 0 }}
-                          animate={inView ? { width: costWidth } : { width: 0 }}
-                          transition={{
-                            duration: 0.75,
-                            delay: 0.08 + index * 0.04,
-                            ease: 'easeOut',
-                          }}
+                          width={costWidth}
+                          active={inView}
+                          delayMs={220 + index * 40}
+                          durationMs={680}
                         />
                       )}
 
@@ -724,28 +714,22 @@ export function ProviderLimitsSection({
                             style={{ left: subPosition, width: `calc(100% - ${subPosition})` }}
                           />
 
-                          <motion.div
+                          <AnimatedBarFill
                             className="absolute top-5 left-0 h-4 rounded-full bg-amber-300"
-                            initial={{ width: 0 }}
-                            animate={inView ? { width: withinSubscriptionWidth } : { width: 0 }}
-                            transition={{
-                              duration: 0.75,
-                              delay: 0.08 + index * 0.04,
-                              ease: 'easeOut',
-                            }}
+                            width={withinSubscriptionWidth}
+                            active={inView}
+                            delayMs={220 + index * 40}
+                            durationMs={680}
                           />
 
                           {row.subscriptionGain > 0 && (
-                            <motion.div
+                            <AnimatedBarFill
                               className="absolute top-5 h-4 rounded-r-full bg-emerald-400"
                               style={{ left: subPosition }}
-                              initial={{ width: 0 }}
-                              animate={inView ? { width: overSubscriptionWidth } : { width: 0 }}
-                              transition={{
-                                duration: 0.75,
-                                delay: 0.14 + index * 0.04,
-                                ease: 'easeOut',
-                              }}
+                              width={overSubscriptionWidth}
+                              active={inView}
+                              delayMs={260 + index * 40}
+                              durationMs={680}
                             />
                           )}
 
@@ -761,15 +745,12 @@ export function ProviderLimitsSection({
                           </div>
                         </>
                       ) : (
-                        <motion.div
+                        <AnimatedBarFill
                           className="absolute top-5 left-0 h-4 rounded-full bg-muted-foreground/40"
-                          initial={{ width: 0 }}
-                          animate={inView ? { width: costWidth } : { width: 0 }}
-                          transition={{
-                            duration: 0.75,
-                            delay: 0.08 + index * 0.04,
-                            ease: 'easeOut',
-                          }}
+                          width={costWidth}
+                          active={inView}
+                          delayMs={220 + index * 40}
+                          durationMs={680}
                         />
                       )}
 
@@ -902,9 +883,7 @@ export function ProviderLimitsSection({
                       stroke="rgb(74 222 128)"
                       fill="url(#limits-gain-area)"
                       strokeWidth={2}
-                      isAnimationActive={animate}
-                      animationBegin={0}
-                      animationDuration={CHART_ANIMATION.duration}
+                      {...getAreaAnimationProps(animate)}
                     />
                     <Area
                       type="monotone"
@@ -913,9 +892,7 @@ export function ProviderLimitsSection({
                       stroke="rgb(248 113 113)"
                       fill="url(#limits-risk-area)"
                       strokeWidth={2}
-                      isAnimationActive={animate}
-                      animationBegin={CHART_ANIMATION.stagger * 1.2}
-                      animationDuration={CHART_ANIMATION.duration}
+                      {...getAreaAnimationProps(animate, { order: 1, role: 'stacked' })}
                     />
                     <Line
                       type="monotone"
@@ -924,9 +901,7 @@ export function ProviderLimitsSection({
                       stroke={CHART_COLORS.cost}
                       strokeWidth={2}
                       dot={false}
-                      isAnimationActive={animate}
-                      animationBegin={CHART_ANIMATION.stagger * 1.6}
-                      animationDuration={CHART_ANIMATION.slowDuration}
+                      {...getLineAnimationProps(animate, { role: 'secondary' })}
                     />
                     <Line
                       type="monotone"
@@ -937,9 +912,7 @@ export function ProviderLimitsSection({
                       strokeWidth={2}
                       dot={false}
                       connectNulls
-                      isAnimationActive={animate}
-                      animationBegin={CHART_ANIMATION.stagger * 2}
-                      animationDuration={CHART_ANIMATION.slowDuration}
+                      {...getLineAnimationProps(animate, { order: 1, role: 'secondary' })}
                     />
                     <Line
                       type="monotone"
@@ -950,9 +923,7 @@ export function ProviderLimitsSection({
                       strokeWidth={2}
                       dot={false}
                       connectNulls
-                      isAnimationActive={animate}
-                      animationBegin={CHART_ANIMATION.stagger * 2.3}
-                      animationDuration={CHART_ANIMATION.slowDuration}
+                      {...getLineAnimationProps(animate, { order: 2, role: 'secondary' })}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>

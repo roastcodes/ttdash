@@ -1,8 +1,8 @@
-import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useInView } from 'framer-motion'
+import { useDashboardSectionMotion } from '@/components/dashboard/dashboard-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
+import { AnimatedBarFill } from '@/components/features/animations/AnimatedBarFill'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatPercent, formatTokens } from '@/lib/formatters'
 import { useShouldReduceMotion } from '@/lib/motion'
@@ -16,8 +16,7 @@ interface RequestQualityProps {
 /** Renders request-efficiency summary cards for the current slice. */
 export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
   const { t } = useTranslation()
-  const sectionRef = useRef<HTMLDivElement | null>(null)
-  const inView = useInView(sectionRef, { once: true, amount: 0.25 })
+  const sectionMotion = useDashboardSectionMotion()
   const shouldReduceMotion = useShouldReduceMotion()
   const cachePerRequest =
     metrics.totalRequests > 0 ? metrics.totalCacheRead / metrics.totalRequests : 0
@@ -62,7 +61,7 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
   ]
 
   return (
-    <Card ref={sectionRef} className="overflow-visible">
+    <Card className="overflow-visible">
       <CardHeader>
         <InfoHeading info={FEATURE_HELP.requestQuality}>
           <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -72,29 +71,38 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          {qualityMetrics.map((item) => (
-            <div key={item.label} className="rounded-xl border border-border/50 bg-muted/15 p-3">
-              <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
-                {item.label}
-              </div>
-              <div className="mt-1 text-lg font-semibold tabular-nums">{item.value}</div>
-              <div className="mt-1 text-xs text-muted-foreground">{item.hint}</div>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted/40">
-                <div
-                  className="h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none"
-                  style={{
-                    backgroundColor: `hsl(${item.accent})`,
-                    width:
-                      (inView || shouldReduceMotion) && metrics.hasRequestData
+          {qualityMetrics.map((item) => {
+            const barActive =
+              shouldReduceMotion || sectionMotion?.sectionVisible !== undefined
+                ? shouldReduceMotion || sectionMotion?.sectionVisible
+                : undefined
+
+            return (
+              <div key={item.label} className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
+                  {item.label}
+                </div>
+                <div className="mt-1 text-lg font-semibold tabular-nums">{item.value}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{item.hint}</div>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted/40">
+                  <AnimatedBarFill
+                    className="h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none"
+                    style={{
+                      backgroundColor: `hsl(${item.accent})`,
+                    }}
+                    width={
+                      metrics.hasRequestData
                         ? item.progress > 0
                           ? `${Math.max(item.progress * 100, 6)}%`
                           : '0%'
-                        : '0%',
-                  }}
-                />
+                        : '0%'
+                    }
+                    {...(barActive !== undefined ? { active: barActive } : {})}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">

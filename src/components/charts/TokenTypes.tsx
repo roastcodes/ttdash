@@ -2,7 +2,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recha
 import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_COLORS, CHART_ANIMATION } from './chart-theme'
+import { CHART_COLORS, getRadialAnimationProps } from './chart-theme'
 import { formatTokens } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
 
@@ -76,10 +76,7 @@ export function TokenTypes({ data }: TokenTypesProps) {
                       paddingAngle={2}
                       dataKey="value"
                       nameKey="name"
-                      isAnimationActive={animate}
-                      animationDuration={CHART_ANIMATION.duration}
-                      animationBegin={CHART_ANIMATION.stagger}
-                      animationEasing={CHART_ANIMATION.easing}
+                      {...getRadialAnimationProps(animate)}
                     >
                       {data.map((entry) => (
                         <Cell

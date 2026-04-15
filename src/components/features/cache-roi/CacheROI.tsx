@@ -6,6 +6,7 @@ import { normalizeModelName } from '@/lib/model-utils'
 import { MODEL_PRICES } from '@/lib/constants'
 import { Zap } from 'lucide-react'
 import { FormattedValue } from '@/components/ui/formatted-value'
+import { AnimatedBarFill } from '@/components/features/animations/AnimatedBarFill'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_HELP } from '@/lib/help-content'
 import type { DailyUsage, ViewMode } from '@/types'
@@ -157,9 +158,9 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
           <div className="flex items-center gap-2 text-xs">
             <span className="w-24 text-muted-foreground">{t('cacheRoi.withCache')}</span>
             <div className="flex h-6 flex-1 overflow-hidden rounded-md bg-muted/20">
-              <div
+              <AnimatedBarFill
                 className={`h-full rounded-l-md ${hasPositiveSavings ? barFillSuccessClass : barFillDangerClass} transition-all duration-1000 motion-reduce:transition-none`}
-                style={{ width: `${barWidth}%` }}
+                width={`${barWidth}%`}
               />
               <div
                 className={`h-full flex-1 rounded-r-md ${hasPositiveSavings ? barSavedSegmentClass : 'bg-muted/10'}`}

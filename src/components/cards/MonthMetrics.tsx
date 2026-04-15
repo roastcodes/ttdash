@@ -13,7 +13,6 @@ import {
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
-import { FadeIn } from '@/components/features/animations/FadeIn'
 import { SECTION_HELP } from '@/lib/help-content'
 import { formatCurrency, formatMonthYear, localMonth } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
@@ -144,90 +143,88 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
         description={t('metricCards.month.description')}
         info={SECTION_HELP.currentMonth}
       />
-      <FadeIn delay={0.08}>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-8">
-          <MetricCard
-            label={t('metricCards.month.costMonth')}
-            value={<FormattedValue value={agg.totalCost} type="currency" />}
-            subtitle={t('metricCards.month.avgPerDay', {
-              value: formatCurrency(agg.totalCost / agg.activeDays),
-            })}
-            icon={<DollarSign className="h-4 w-4" />}
-            trend={
-              diffToPrev !== null
-                ? { value: diffToPrev, label: t('metricCards.month.vsPreviousMonth') }
-                : null
-            }
-          />
-          <MetricCard
-            label={t('metricCards.month.tokensMonth')}
-            value={<FormattedValue value={agg.totalTokens} type="tokens" />}
-            icon={<Coins className="h-4 w-4" />}
-            {...(tokensSubtitle ? { subtitle: tokensSubtitle } : {})}
-          />
-          <MetricCard
-            label={t('metricCards.month.activeDays')}
-            value={`${agg.activeDays} / ${agg.dayOfMonth}`}
-            subtitle={t('metricCards.month.coverage', {
-              value: wholePercentFormatter.format(agg.activeDays / agg.dayOfMonth),
-            })}
-            icon={<CalendarDays className="h-4 w-4" />}
-          />
-          <MetricCard
-            label={t('metricCards.month.models')}
-            value={String(agg.modelCount)}
-            icon={<Cpu className="h-4 w-4" />}
-            {...(modelsSubtitle ? { subtitle: modelsSubtitle } : {})}
-          />
-          <MetricCard
-            label={t('metricCards.month.costPerMillion')}
-            value={<FormattedValue value={agg.costPerMillion} type="currency" />}
-            icon={<TrendingDown className="h-4 w-4" />}
-            {...(costPerMillionSubtitle ? { subtitle: costPerMillionSubtitle } : {})}
-          />
-          <MetricCard
-            label={t('metricCards.month.cacheHitRate')}
-            value={<FormattedValue value={agg.cacheHitRate} type="percent" />}
-            subtitle={t('metricCards.month.cacheMix', {
-              input: wholePercentFormatter.format(ioTotal > 0 ? agg.inputTokens / ioTotal : 0),
-              output: wholePercentFormatter.format(ioTotal > 0 ? agg.outputTokens / ioTotal : 0),
-            })}
-            icon={<Database className="h-4 w-4" />}
-          />
-          <MetricCard
-            label={t('metricCards.month.requests')}
-            value={
-              agg.requestCount > 0 ? (
-                <FormattedValue
-                  value={agg.requestCount}
-                  type="number"
-                  label={t('metricCards.month.requestsInMonth')}
-                  insight={t('metricCards.month.costPerRequest', {
-                    value: formatCurrency(agg.totalCost / agg.requestCount),
-                  })}
-                />
-              ) : (
-                t('common.notAvailable')
-              )
-            }
-            subtitle={
-              agg.requestCount > 0
-                ? t('metricCards.month.requestsSubtitle', {
-                    value: (agg.requestCount / agg.activeDays).toFixed(1),
-                    cost: formatCurrency(agg.totalCost / agg.requestCount),
-                  })
-                : t('metricCards.month.requestCountersMissing')
-            }
-            icon={<Activity className="h-4 w-4" />}
-          />
-          <MetricCard
-            label={t('metricCards.month.thinking')}
-            value={<FormattedValue value={agg.thinkingTokens} type="tokens" />}
-            icon={<BrainCircuit className="h-4 w-4" />}
-            {...(thinkingSubtitle ? { subtitle: thinkingSubtitle } : {})}
-          />
-        </div>
-      </FadeIn>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-8">
+        <MetricCard
+          label={t('metricCards.month.costMonth')}
+          value={<FormattedValue value={agg.totalCost} type="currency" />}
+          subtitle={t('metricCards.month.avgPerDay', {
+            value: formatCurrency(agg.totalCost / agg.activeDays),
+          })}
+          icon={<DollarSign className="h-4 w-4" />}
+          trend={
+            diffToPrev !== null
+              ? { value: diffToPrev, label: t('metricCards.month.vsPreviousMonth') }
+              : null
+          }
+        />
+        <MetricCard
+          label={t('metricCards.month.tokensMonth')}
+          value={<FormattedValue value={agg.totalTokens} type="tokens" />}
+          icon={<Coins className="h-4 w-4" />}
+          {...(tokensSubtitle ? { subtitle: tokensSubtitle } : {})}
+        />
+        <MetricCard
+          label={t('metricCards.month.activeDays')}
+          value={`${agg.activeDays} / ${agg.dayOfMonth}`}
+          subtitle={t('metricCards.month.coverage', {
+            value: wholePercentFormatter.format(agg.activeDays / agg.dayOfMonth),
+          })}
+          icon={<CalendarDays className="h-4 w-4" />}
+        />
+        <MetricCard
+          label={t('metricCards.month.models')}
+          value={String(agg.modelCount)}
+          icon={<Cpu className="h-4 w-4" />}
+          {...(modelsSubtitle ? { subtitle: modelsSubtitle } : {})}
+        />
+        <MetricCard
+          label={t('metricCards.month.costPerMillion')}
+          value={<FormattedValue value={agg.costPerMillion} type="currency" />}
+          icon={<TrendingDown className="h-4 w-4" />}
+          {...(costPerMillionSubtitle ? { subtitle: costPerMillionSubtitle } : {})}
+        />
+        <MetricCard
+          label={t('metricCards.month.cacheHitRate')}
+          value={<FormattedValue value={agg.cacheHitRate} type="percent" />}
+          subtitle={t('metricCards.month.cacheMix', {
+            input: wholePercentFormatter.format(ioTotal > 0 ? agg.inputTokens / ioTotal : 0),
+            output: wholePercentFormatter.format(ioTotal > 0 ? agg.outputTokens / ioTotal : 0),
+          })}
+          icon={<Database className="h-4 w-4" />}
+        />
+        <MetricCard
+          label={t('metricCards.month.requests')}
+          value={
+            agg.requestCount > 0 ? (
+              <FormattedValue
+                value={agg.requestCount}
+                type="number"
+                label={t('metricCards.month.requestsInMonth')}
+                insight={t('metricCards.month.costPerRequest', {
+                  value: formatCurrency(agg.totalCost / agg.requestCount),
+                })}
+              />
+            ) : (
+              t('common.notAvailable')
+            )
+          }
+          subtitle={
+            agg.requestCount > 0
+              ? t('metricCards.month.requestsSubtitle', {
+                  value: (agg.requestCount / agg.activeDays).toFixed(1),
+                  cost: formatCurrency(agg.totalCost / agg.requestCount),
+                })
+              : t('metricCards.month.requestCountersMissing')
+          }
+          icon={<Activity className="h-4 w-4" />}
+        />
+        <MetricCard
+          label={t('metricCards.month.thinking')}
+          value={<FormattedValue value={agg.thinkingTokens} type="tokens" />}
+          icon={<BrainCircuit className="h-4 w-4" />}
+          {...(thinkingSubtitle ? { subtitle: thinkingSubtitle } : {})}
+        />
+      </div>
     </div>
   )
 }

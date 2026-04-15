@@ -2,7 +2,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recha
 import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_ANIMATION } from './chart-theme'
+import { getRadialAnimationProps } from './chart-theme'
 import { getModelColor } from '@/lib/model-utils'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
@@ -84,10 +84,7 @@ export function CostByModel({ data }: CostByModelProps) {
                         paddingAngle={2}
                         dataKey="value"
                         nameKey="name"
-                        isAnimationActive={animate}
-                        animationDuration={CHART_ANIMATION.duration}
-                        animationBegin={CHART_ANIMATION.stagger}
-                        animationEasing={CHART_ANIMATION.easing}
+                        {...getRadialAnimationProps(animate)}
                         label={false}
                       >
                         {data.map((entry) => (

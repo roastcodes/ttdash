@@ -8,11 +8,16 @@ import {
   type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useInView } from 'framer-motion'
+import { motion, useInView } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Maximize2 } from 'lucide-react'
 import { InfoButton } from '@/components/features/help/InfoButton'
+import {
+  DASHBOARD_MOTION,
+  useDashboardSectionMotion,
+} from '@/components/dashboard/dashboard-motion'
+import { CHART_ANIMATION } from './chart-theme'
 import { cn } from '@/lib/cn'
 import { buildCsvLine } from '@/lib/csv'
 import { formatCurrency } from '@/lib/formatters'
@@ -48,18 +53,33 @@ export function buildChartCsv(chartData: Record<string, unknown>[]): string {
   ].join('\n')
 }
 
-const ChartAnimationContext = createContext(false)
+interface ChartAnimationState {
+  active: boolean
+  delayMs: number
+}
+
+const ChartAnimationContext = createContext<ChartAnimationState>({ active: false, delayMs: 0 })
 
 /** Returns whether chart-specific animation should currently run. */
 export function useChartAnimationActive() {
+  return useContext(ChartAnimationContext).active
+}
+
+/** Returns the current chart animation state. */
+export function useChartAnimationState() {
   return useContext(ChartAnimationContext)
+}
+
+/** Returns the current chart animation delay in milliseconds. */
+export function useChartAnimationDelay() {
+  return useContext(ChartAnimationContext).delayMs
 }
 
 /** Exposes the current chart animation state to a render prop. */
 export function ChartAnimationAware({ children }: { children: (active: boolean) => ReactNode }) {
   const shouldReduceMotion = useShouldReduceMotion()
-  const animationActive = useChartAnimationActive()
-  return <>{children(shouldReduceMotion ? false : animationActive)}</>
+  const animationState = useChartAnimationState()
+  return <>{children(shouldReduceMotion ? false : animationState.active)}</>
 }
 
 interface ChartRevealProps {
@@ -69,20 +89,36 @@ interface ChartRevealProps {
 
 /** Wraps chart content in the shared reveal policy for its chart variant. */
 export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
+  const shouldReduceMotion = useShouldReduceMotion()
+  const active = useChartAnimationActive()
+  const delayMs = useChartAnimationDelay()
+  const wrapperStyle = {
+    width: '100%',
+    height: '100%',
+    overflow: variant === 'radial' ? 'visible' : 'hidden',
+    transformOrigin: variant === 'bar' ? 'center bottom' : 'center center',
+    paddingTop: variant === 'radial' ? 8 : 0,
+    paddingBottom: variant === 'radial' ? 8 : 0,
+    boxSizing: 'border-box',
+  } as const
+
+  if (shouldReduceMotion) {
+    return <div style={wrapperStyle}>{children}</div>
+  }
+
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        overflow: variant === 'radial' ? 'visible' : 'hidden',
-        transformOrigin: variant === 'bar' ? 'center bottom' : 'center center',
-        paddingTop: variant === 'radial' ? 8 : 0,
-        paddingBottom: variant === 'radial' ? 8 : 0,
-        boxSizing: 'border-box',
+    <motion.div
+      style={wrapperStyle}
+      initial={false}
+      animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+      transition={{
+        duration: CHART_ANIMATION.revealDuration / 1000,
+        delay: active ? delayMs / 1000 : 0,
+        ease: DASHBOARD_MOTION.sectionRevealEase,
       }}
     >
       {children}
-    </div>
+    </motion.div>
   )
 }
 
@@ -101,10 +137,27 @@ export function ChartCard({
   expandedExtra,
 }: ChartCardProps) {
   const { t } = useTranslation()
+  const sectionMotion = useDashboardSectionMotion()
   const [expanded, setExpanded] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
   const isInView = useInView(cardRef, { once: true, amount: 0.25 })
-  const animationActive = isInView || expanded
+  const animationState = useMemo<ChartAnimationState>(() => {
+    if (expanded) {
+      return { active: true, delayMs: 0 }
+    }
+
+    if (sectionMotion) {
+      return {
+        active: sectionMotion.sectionVisible,
+        delayMs: sectionMotion.chartStartDelayMs,
+      }
+    }
+
+    return {
+      active: isInView,
+      delayMs: DASHBOARD_MOTION.chartStartDelayMs,
+    }
+  }, [expanded, isInView, sectionMotion])
 
   const stats = useMemo(() => {
     if (!chartData || !valueKey) return null
@@ -156,7 +209,7 @@ export function ChartCard({
 
   return (
     <>
-      <ChartAnimationContext.Provider value={animationActive}>
+      <ChartAnimationContext.Provider value={animationState}>
         <Card ref={cardRef} className={cn('group relative', className)}>
           {header}
           <CardContent>{renderChildren(false)}</CardContent>
@@ -181,7 +234,7 @@ export function ChartCard({
             <DialogDescription className="sr-only">
               {t('chartCard.expandedDescription')}
             </DialogDescription>
-            <ChartAnimationContext.Provider value={expanded}>
+            <ChartAnimationContext.Provider value={{ active: expanded, delayMs: 0 }}>
               <div className="relative flex h-full flex-col">
                 <div className="p-4 pb-2 sm:p-6">
                   <div className="flex items-center justify-between">

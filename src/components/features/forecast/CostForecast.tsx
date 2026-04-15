@@ -14,7 +14,12 @@ import {
 import { ChartCard, ChartAnimationAware, ChartReveal } from '@/components/charts/ChartCard'
 import { ChartLegend } from '@/components/charts/ChartLegend'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
-import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from '@/components/charts/chart-theme'
+import {
+  CHART_COLORS,
+  CHART_MARGIN,
+  getAreaAnimationProps,
+  getLineAnimationProps,
+} from '@/components/charts/chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { computeCurrentMonthForecast } from '@/lib/calculations'
 import { MetricCard } from '@/components/cards/MetricCard'
@@ -250,9 +255,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
                     fill={CHART_COLORS.cumulative}
                     fillOpacity={0.12}
                     name={t('forecast.uncertaintyBand')}
-                    isAnimationActive={animate}
-                    animationBegin={CHART_ANIMATION.stagger}
-                    animationDuration={CHART_ANIMATION.duration}
+                    {...getAreaAnimationProps(animate, { role: 'stacked' })}
                   />
                   <Area
                     type="monotone"
@@ -263,10 +266,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
                     strokeWidth={2}
                     dot={false}
                     connectNulls
-                    isAnimationActive={animate}
-                    animationBegin={0}
-                    animationDuration={CHART_ANIMATION.duration}
-                    animationEasing={CHART_ANIMATION.easing}
+                    {...getAreaAnimationProps(animate)}
                   />
                   <Line
                     type="monotone"
@@ -277,9 +277,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
                     strokeWidth={2}
                     strokeDasharray="6 3"
                     connectNulls
-                    isAnimationActive={animate}
-                    animationBegin={CHART_ANIMATION.stagger * 2}
-                    animationDuration={CHART_ANIMATION.slowDuration}
+                    {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
