@@ -123,6 +123,9 @@ export function Header({
   pdfButton,
 }: HeaderProps) {
   const { t } = useTranslation()
+  const themeToggleLabel = isDark
+    ? t('commandPalette.commands.themeLight.label')
+    : t('commandPalette.commands.themeDark.label')
 
   return (
     <header className="space-y-3 px-1 py-4">
@@ -158,8 +161,8 @@ export function Header({
                 variant="ghost"
                 size="icon"
                 onClick={onToggleTheme}
-                aria-label={t('commandPalette.commands.themeDark.description')}
-                title={t('commandPalette.commands.themeDark.description')}
+                aria-label={themeToggleLabel}
+                title={themeToggleLabel}
               >
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
@@ -214,8 +217,8 @@ export function Header({
             variant="ghost"
             size="icon"
             onClick={onToggleTheme}
-            aria-label={t('commandPalette.commands.themeDark.description')}
-            title={t('commandPalette.commands.themeDark.description')}
+            aria-label={themeToggleLabel}
+            title={themeToggleLabel}
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>

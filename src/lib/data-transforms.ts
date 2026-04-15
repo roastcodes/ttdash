@@ -94,10 +94,15 @@ function createWeekdayLabels(locale: string) {
   )
 }
 
+/** Describes a chart point with dynamic per-model cost series and optional moving averages. */
+export interface ModelCostChartPoint extends ChartDataPoint {
+  [key: string]: string | number | undefined
+}
+
 /** Describes the chart transform bundle built from filtered usage data. */
 export interface DashboardChartTransforms {
   costChartData: ChartDataPoint[]
-  modelCostChartData: Array<ChartDataPoint & Record<string, number>>
+  modelCostChartData: ModelCostChartPoint[]
   tokenChartData: TokenChartDataPoint[]
   requestChartData: RequestChartDataPoint[]
   weekdayData: WeekdayData[]
@@ -188,7 +193,7 @@ export function buildDashboardChartTransforms(
 
   let cumulative = 0
   const costChartData: ChartDataPoint[] = []
-  const modelCostChartData: Array<ChartDataPoint & Record<string, number>> = []
+  const modelCostChartData: ModelCostChartPoint[] = []
   const tokenChartData: TokenChartDataPoint[] = []
   const requestChartData: RequestChartDataPoint[] = []
 
@@ -210,7 +215,7 @@ export function buildDashboardChartTransforms(
     }
     costChartData.push(costPoint)
 
-    const modelCostPoint: Record<string, unknown> = { date: entry.date, cost: entry.totalCost }
+    const modelCostPoint: ModelCostChartPoint = { date: entry.date, cost: entry.totalCost }
     const requestPoint: RequestChartDataPoint = {
       date: entry.date,
       totalRequests: entry.requestCount,
@@ -229,7 +234,7 @@ export function buildDashboardChartTransforms(
       requestPoint[`${name}_ma7`] = modelRequestMA7[name]?.[index]
     }
 
-    modelCostChartData.push(modelCostPoint as ChartDataPoint & Record<string, number>)
+    modelCostChartData.push(modelCostPoint)
     requestChartData.push(requestPoint)
 
     const tokenPoint: TokenChartDataPoint = {
@@ -275,9 +280,7 @@ export function toCostChartData(data: DailyUsage[]): ChartDataPoint[] {
 }
 
 /** Returns chart-ready per-model cost data. */
-export function toModelCostChartData(
-  data: DailyUsage[],
-): (ChartDataPoint & Record<string, number>)[] {
+export function toModelCostChartData(data: DailyUsage[]): ModelCostChartPoint[] {
   return buildDashboardChartTransforms(data).modelCostChartData
 }
 

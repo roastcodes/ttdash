@@ -252,14 +252,19 @@ export function DrillDownModal({
   const avgTokensPerRequest = toPerRequest(tokensTotal, day.requestCount)
   const avgCostPerRequest = toPerRequest(day.totalCost, day.requestCount)
   const costPerMillion = toPerMillion(day.totalCost, tokensTotal)
+  const hasRequestCounts =
+    day.requestCount > 0 ||
+    day.modelBreakdowns.some((modelBreakdown) => modelBreakdown.requestCount > 0) ||
+    contextData.some((entry) => entry.requestCount > 0)
   const costRanking =
     [...contextData]
       .sort((a, b) => b.totalCost - a.totalCost)
       .findIndex((entry) => entry.date === day.date) + 1
-  const requestRanking =
-    [...contextData]
-      .sort((a, b) => b.requestCount - a.requestCount)
-      .findIndex((entry) => entry.date === day.date) + 1
+  const requestRanking = hasRequestCounts
+    ? [...contextData]
+        .sort((a, b) => b.requestCount - a.requestCount)
+        .findIndex((entry) => entry.date === day.date) + 1
+    : 0
 
   const avgCost7 =
     previousSeven.length > 0
@@ -292,10 +297,12 @@ export function DrillDownModal({
     : null
 
   const topCostModel = modelData[0] ?? null
-  const topRequestModel = modelData.reduce(
-    (best, current) => (!best || current.requests > best.requests ? current : best),
-    null as (typeof modelData)[number] | null,
-  )
+  const topRequestModel = hasRequestCounts
+    ? modelData.reduce(
+        (best, current) => (!best || current.requests > best.requests ? current : best),
+        null as (typeof modelData)[number] | null,
+      )
+    : null
   const topTokenModel = modelData.reduce(
     (best, current) => (!best || current.tokens > best.tokens ? current : best),
     null as (typeof modelData)[number] | null,

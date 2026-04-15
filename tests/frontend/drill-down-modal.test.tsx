@@ -264,6 +264,52 @@ describe('DrillDownModal', () => {
     expect(screen.getByText('Cost vs. 1Y avg')).toBeInTheDocument()
   })
 
+  it('shows unavailable request ranking and top request model when request counts are missing', () => {
+    const selectedDay: DailyUsage = {
+      date: '2026-04-07',
+      inputTokens: 700,
+      outputTokens: 230,
+      cacheCreationTokens: 40,
+      cacheReadTokens: 80,
+      thinkingTokens: 50,
+      totalTokens: 1000,
+      totalCost: 28,
+      requestCount: 0,
+      modelsUsed: ['gpt-5.4', 'claude-opus-4.1'],
+      modelBreakdowns: [
+        {
+          modelName: 'gpt-5.4',
+          inputTokens: 450,
+          outputTokens: 150,
+          cacheCreationTokens: 20,
+          cacheReadTokens: 40,
+          thinkingTokens: 40,
+          cost: 18,
+          requestCount: 0,
+        },
+        {
+          modelName: 'claude-opus-4.1',
+          inputTokens: 250,
+          outputTokens: 80,
+          cacheCreationTokens: 20,
+          cacheReadTokens: 40,
+          thinkingTokens: 10,
+          cost: 10,
+          requestCount: 0,
+        },
+      ],
+    }
+
+    render(
+      <TooltipProvider>
+        <DrillDownModal day={selectedDay} contextData={[selectedDay]} open onClose={() => {}} />
+      </TooltipProvider>,
+    )
+
+    expect(screen.getByText('Request rank').closest('div.rounded-lg')).toHaveTextContent('–')
+    expect(screen.getByText('Top by requests').closest('div.rounded-lg')).toHaveTextContent('–')
+  })
+
   it('supports previous/next buttons and arrow-key navigation', () => {
     const onPrevious = vi.fn()
     const onNext = vi.fn()

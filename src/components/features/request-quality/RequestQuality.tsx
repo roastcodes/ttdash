@@ -86,7 +86,9 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
                     backgroundColor: `hsl(${item.accent})`,
                     width:
                       (inView || shouldReduceMotion) && metrics.hasRequestData
-                        ? `${Math.max(item.progress * 100, 6)}%`
+                        ? item.progress > 0
+                          ? `${Math.max(item.progress * 100, 6)}%`
+                          : '0%'
                         : '0%',
                   }}
                 />

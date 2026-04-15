@@ -1,11 +1,10 @@
+// @vitest-environment jsdom
+
+import { renderHook } from '@testing-library/react'
 import { beforeAll, describe, expect, it } from 'vitest'
-import {
-  buildDashboardChartTransforms,
-  filterByModels,
-  getDateRange,
-  toWeekdayData,
-} from '@/lib/data-transforms'
+import { filterByModels, getDateRange, toWeekdayData } from '@/lib/data-transforms'
 import { coerceNumber, formatMonthYear } from '@/lib/formatters'
+import { useComputedMetrics } from '@/hooks/use-computed-metrics'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
 
@@ -116,7 +115,7 @@ describe('phase 4 correctness helpers', () => {
     expect(weekdayData[0]?.cost).toBe(9)
   })
 
-  it('rebuilds weekday labels for the active locale instead of reusing stale labels', async () => {
+  it('rebuilds weekday labels in the memoized metrics hook when the locale changes', () => {
     const data: DailyUsage[] = [
       {
         date: '2026-04-06',
@@ -133,11 +132,14 @@ describe('phase 4 correctness helpers', () => {
       },
     ]
 
-    const english = buildDashboardChartTransforms(data, 'en-US')
-    await initI18n('de')
-    const german = buildDashboardChartTransforms(data, 'de-CH')
+    const { result, rerender } = renderHook(({ locale }) => useComputedMetrics(data, locale), {
+      initialProps: { locale: 'en-US' },
+    })
 
-    expect(english.weekdayData[0]?.day).toBe('Mo')
-    expect(german.weekdayData[2]?.day).toBe('Mi')
+    expect(result.current.weekdayData[2]?.day).toBe('We')
+
+    rerender({ locale: 'de-CH' })
+
+    expect(result.current.weekdayData[2]?.day).toBe('Mi')
   })
 })

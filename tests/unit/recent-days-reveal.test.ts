@@ -11,6 +11,23 @@ describe('RecentDays progressive reveal helpers', () => {
     expect(getShowAllInitialVisibleCount(151)).toBe(150)
   })
 
+  it('returns null and avoids scheduling when all rows fit in the initial batch', () => {
+    const updates: number[] = []
+    const scheduleFrame = vi.fn<(callback: FrameRequestCallback) => number>()
+
+    const frameId = scheduleProgressiveRowReveal(
+      150,
+      (value) => {
+        updates.push(typeof value === 'number' ? value : value(updates.at(-1) ?? 30))
+      },
+      scheduleFrame,
+    )
+
+    expect(frameId).toBeNull()
+    expect(updates).toEqual([150])
+    expect(scheduleFrame).not.toHaveBeenCalled()
+  })
+
   it('schedules an animation frame only when rows remain after the initial batch', () => {
     const updates: number[] = []
     const scheduleFrame = vi.fn<(callback: FrameRequestCallback) => number>().mockReturnValue(1)

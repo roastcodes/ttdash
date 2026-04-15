@@ -322,10 +322,10 @@ async function writeJsonAtomicAsync(filePath, data) {
 
   try {
     await fsPromises.mkdir(path.dirname(filePath), { recursive: true, mode: SECURE_DIR_MODE });
+    tempPathCreated = true;
     await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), {
       mode: SECURE_FILE_MODE,
     });
-    tempPathCreated = true;
 
     if (!IS_WINDOWS) {
       await fsPromises.chmod(tempPath, SECURE_FILE_MODE);
@@ -343,6 +343,16 @@ async function writeJsonAtomicAsync(filePath, data) {
       }
     }
     throw error;
+  }
+}
+
+async function unlinkIfExists(filePath) {
+  try {
+    await fsPromises.unlink(filePath);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
   }
 }
 
@@ -1811,11 +1821,7 @@ const server = http.createServer(async (req, res) => {
         return json(res, validationError.status, { message: validationError.message });
       }
       await withSettingsAndDataMutationLock(async () => {
-        try {
-          await fsPromises.unlink(DATA_FILE);
-        } catch {
-          // Ignore missing data files during reset.
-        }
+        await unlinkIfExists(DATA_FILE);
         await updateDataLoadState({
           lastLoadedAt: null,
           lastLoadSource: null,
@@ -2183,6 +2189,7 @@ module.exports = {
     commandExists,
     getExecutableName,
     listenOnAvailablePort,
+    unlinkIfExists,
     writeJsonAtomicAsync,
     withFileMutationLock,
     withOrderedFileMutationLocks,

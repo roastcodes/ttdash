@@ -14,12 +14,12 @@ import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { getModelColor } from '@/lib/model-utils'
+import type { ModelCostChartPoint } from '@/lib/data-transforms'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
-import type { ChartDataPoint } from '@/types'
 
 interface CostByModelOverTimeProps {
-  data: (ChartDataPoint & Record<string, number>)[]
+  data: ModelCostChartPoint[]
   models: string[]
 }
 

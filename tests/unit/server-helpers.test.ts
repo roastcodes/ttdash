@@ -11,6 +11,7 @@ const {
     commandExists,
     getExecutableName,
     listenOnAvailablePort,
+    unlinkIfExists,
     writeJsonAtomicAsync,
     withFileMutationLock,
     withOrderedFileMutationLocks,
@@ -32,6 +33,7 @@ const {
       log?: (message: string) => void,
       rangeStartPort?: number,
     ) => Promise<number>
+    unlinkIfExists: (filePath: string) => Promise<void>
     writeJsonAtomicAsync: (filePath: string, data: unknown) => Promise<void>
     withFileMutationLock: <T>(filePath: string, operation: () => Promise<T>) => Promise<T>
     withOrderedFileMutationLocks: <T>(
@@ -281,5 +283,43 @@ describe('server helper utilities', () => {
     unlinkSpy.mockRestore()
     nowSpy.mockRestore()
     await fsPromises.rm(targetDir, { recursive: true, force: true })
+  })
+
+  it('removes temporary files when writeFile rejects after creating the temp file', async () => {
+    const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-write-json-'))
+    const targetFile = path.join(targetDir, 'settings.json')
+    const expectedTempPath = `${targetFile}.${process.pid}.1700000000001.tmp`
+    const writeError = Object.assign(new Error('write failed'), { code: 'EIO' })
+    const originalWriteFile = fsPromises.writeFile.bind(fsPromises)
+    const writeSpy = vi
+      .spyOn(fsPromises, 'writeFile')
+      .mockImplementation(async (filePath, data) => {
+        await originalWriteFile(filePath, data)
+        throw writeError
+      })
+    const unlinkSpy = vi.spyOn(fsPromises, 'unlink')
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1700000000001)
+
+    await expect(writeJsonAtomicAsync(targetFile, { ok: true })).rejects.toBe(writeError)
+
+    expect(writeSpy).toHaveBeenCalled()
+    expect(unlinkSpy).toHaveBeenCalledWith(expectedTempPath)
+    expect(existsSync(expectedTempPath)).toBe(false)
+
+    writeSpy.mockRestore()
+    unlinkSpy.mockRestore()
+    nowSpy.mockRestore()
+    await fsPromises.rm(targetDir, { recursive: true, force: true })
+  })
+
+  it('swallows missing-file deletes but rethrows other unlink failures', async () => {
+    await expect(unlinkIfExists('/tmp/does-not-exist.json')).resolves.toBeUndefined()
+
+    const permissionError = Object.assign(new Error('permission denied'), { code: 'EACCES' })
+    const unlinkSpy = vi.spyOn(fsPromises, 'unlink').mockRejectedValue(permissionError)
+
+    await expect(unlinkIfExists('/tmp/protected.json')).rejects.toBe(permissionError)
+
+    unlinkSpy.mockRestore()
   })
 })

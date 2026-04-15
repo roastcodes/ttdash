@@ -75,9 +75,7 @@ describe('Header external links', () => {
     const helpButtons = screen.getAllByRole('button', { name: 'Help & shortcuts' })
     expect(helpButtons.length).toBeGreaterThan(0)
 
-    expect(
-      screen.getAllByRole('button', { name: 'Switch between light and dark theme' }).length,
-    ).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: 'Enable light mode' }).length).toBeGreaterThan(0)
 
     expect(screen.getByRole('button', { name: 'EN' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'DE' })).toHaveAttribute('aria-pressed', 'false')

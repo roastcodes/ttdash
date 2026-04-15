@@ -192,7 +192,7 @@ export function HeatmapCalendar({
   )
   const defaultFocusedDate = useMemo(
     () =>
-      (availableDates.includes(todayStr) ? todayStr : null) ??
+      (availableDates.includes(todayStr) ? todayStr : undefined) ??
       cells.find((cell) => cell.value > 0)?.date ??
       availableDates[0] ??
       null,

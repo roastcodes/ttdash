@@ -61,4 +61,24 @@ describe('RequestQuality', () => {
     expect(progressBars.length).toBeGreaterThanOrEqual(4)
     expect(screen.getAllByText('n/a').length).toBeGreaterThanOrEqual(4)
   })
+
+  it('keeps real zero-value metrics at 0% width even when request data exists', () => {
+    const { container } = render(
+      <TooltipProvider>
+        <RequestQuality
+          metrics={{
+            ...baseMetrics,
+            hasRequestData: true,
+            totalRequests: 4,
+            activeDays: 2,
+          }}
+          viewMode="daily"
+        />
+      </TooltipProvider>,
+    )
+
+    const progressBars = container.querySelectorAll('[style*="width: 0%"]')
+    expect(progressBars.length).toBeGreaterThanOrEqual(4)
+    expect(screen.queryByText('n/a')).not.toBeInTheDocument()
+  })
 })

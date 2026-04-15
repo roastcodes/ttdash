@@ -14,6 +14,7 @@ import { SectionHeader } from '../ui/section-header'
 import { ExpandableCard } from '../ui/expandable-card'
 import { ChartCardSkeleton } from '../ui/skeleton'
 import { SECTION_HELP } from '@/lib/help-content'
+import type { ModelCostChartPoint } from '@/lib/data-transforms'
 import { formatCurrency, formatPercent, formatTokens, periodUnit } from '@/lib/formatters'
 import type {
   AggregateMetrics,
@@ -145,7 +146,7 @@ interface DashboardSectionsProps {
   allModels: string[]
   costChartData: ChartDataPoint[]
   modelPieData: Array<{ name: string; value: number }>
-  modelCostChartData: Array<ChartDataPoint & Record<string, number>>
+  modelCostChartData: ModelCostChartPoint[]
   weekdayData: WeekdayData[]
   tokenChartData: TokenChartDataPoint[]
   tokenPieData: Array<{ name: string; value: number }>
