@@ -16,13 +16,18 @@ class MockIntersectionObserver {
   static instances: MockIntersectionObserver[] = []
 
   callback: IntersectionObserverCallback
+  options?: IntersectionObserverInit
+  observedTargets = new Set<Element>()
 
-  constructor(callback: IntersectionObserverCallback) {
+  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
     this.callback = callback
+    this.options = options
     MockIntersectionObserver.instances.push(this)
   }
 
-  observe() {}
+  observe(target: Element) {
+    this.observedTargets.add(target)
+  }
 
   unobserve() {}
 
@@ -39,6 +44,16 @@ class MockIntersectionObserver {
       this as unknown as IntersectionObserver,
     )
   }
+}
+
+function getObserver(predicate: (observer: MockIntersectionObserver) => boolean) {
+  const observer = MockIntersectionObserver.instances.find(predicate)
+  expect(observer).toBeDefined()
+  return observer!
+}
+
+function getObservers(predicate: (observer: MockIntersectionObserver) => boolean) {
+  return MockIntersectionObserver.instances.filter(predicate)
 }
 
 function MotionProbe() {
@@ -98,7 +113,7 @@ describe('AnimatedDashboardSection', () => {
     expect(screen.queryByTestId('section-visible')).not.toBeInTheDocument()
 
     act(() => {
-      MockIntersectionObserver.instances[0]?.trigger(true)
+      getObserver((observer) => observer.options?.rootMargin === '0px 0px 45% 0px').trigger(true)
     })
 
     await act(async () => {
@@ -109,7 +124,7 @@ describe('AnimatedDashboardSection', () => {
     expect(screen.queryByTestId('section-visible')).not.toBeInTheDocument()
 
     act(() => {
-      MockIntersectionObserver.instances[1]?.trigger(true)
+      getObserver((observer) => observer.options?.threshold === 0.14).trigger(true)
     })
 
     expect(screen.queryByTestId('section-visible')).not.toBeInTheDocument()
@@ -123,7 +138,11 @@ describe('AnimatedDashboardSection', () => {
     expect(screen.getByTestId('chart-active')).toHaveTextContent('false')
 
     act(() => {
-      MockIntersectionObserver.instances.slice(2).forEach((observer) => observer.trigger(true))
+      getObservers(
+        (observer) =>
+          observer.options?.rootMargin !== '0px 0px 45% 0px' &&
+          observer.options?.threshold !== 0.14,
+      ).forEach((observer) => observer.trigger(true))
     })
 
     expect(screen.getByTestId('section-visible')).toHaveTextContent('true')
@@ -145,7 +164,7 @@ describe('AnimatedDashboardSection', () => {
     )
 
     act(() => {
-      MockIntersectionObserver.instances[0]?.trigger(true)
+      getObserver((observer) => observer.options?.rootMargin === '0px 0px 45% 0px').trigger(true)
     })
 
     await act(async () => {
@@ -159,7 +178,7 @@ describe('AnimatedDashboardSection', () => {
     expect(button).toHaveAttribute('tabindex', '-1')
 
     act(() => {
-      MockIntersectionObserver.instances[1]?.trigger(true)
+      getObserver((observer) => observer.options?.threshold === 0.14).trigger(true)
     })
 
     expect(document.querySelector('[data-section-visible="true"]')).toBeInTheDocument()
@@ -181,8 +200,8 @@ describe('AnimatedDashboardSection', () => {
     )
 
     act(() => {
-      MockIntersectionObserver.instances[0]?.trigger(true)
-      MockIntersectionObserver.instances[1]?.trigger(true)
+      getObserver((observer) => observer.options?.rootMargin === '0px 0px 45% 0px').trigger(true)
+      getObserver((observer) => observer.options?.threshold === 0.14).trigger(true)
     })
 
     await act(async () => {
@@ -221,7 +240,9 @@ describe('AnimatedDashboardSection', () => {
     expect(button).toHaveAttribute('tabindex', '-1')
 
     act(() => {
-      MockIntersectionObserver.instances[0]?.trigger(true)
+      getObservers((observer) => observer.options?.threshold === 0.24).forEach((observer) =>
+        observer.trigger(true),
+      )
     })
 
     expect(wrapper).toHaveAttribute('aria-hidden', 'false')
