@@ -71,7 +71,7 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
               const zScore = zScoreNum.toFixed(1)
               const isHigh = day.totalCost > mean
               const severity = Math.abs(zScoreNum) >= 3 ? 'critical' : 'warn'
-              const cardClasses = `flex items-center justify-between p-2 rounded-lg transition-colors ${
+              const cardClasses = `flex w-full items-center justify-between rounded-lg p-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
                 severity === 'critical'
                   ? 'bg-red-400/10 hover:bg-red-400/20 border border-red-400/20'
                   : 'bg-muted/30 hover:bg-muted/50'
@@ -81,6 +81,8 @@ export function AnomalyDetection({ data, onClickDay, viewMode = 'daily' }: Anoma
                   key={day.date}
                   type="button"
                   className={cardClasses}
+                  disabled={!onClickDay}
+                  aria-disabled={!onClickDay}
                   onClick={() => onClickDay?.(day.date)}
                 >
                   <div className="flex items-center gap-3">
