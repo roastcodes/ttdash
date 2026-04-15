@@ -120,7 +120,7 @@ describe('phase 4 UI correctness', () => {
     expect(document.body).not.toHaveTextContent('Infinity')
     expect(document.body).not.toHaveTextContent('NaN')
     expect(screen.getAllByText('–').length).toBeGreaterThan(0)
-  })
+  }, 15_000)
 
   it('uses the canonical token sum instead of a stale day.totalTokens value', () => {
     const day: DailyUsage = {

@@ -11,7 +11,7 @@ import {
   BrainCircuit,
 } from 'lucide-react'
 import { MetricCard } from './MetricCard'
-import { DashboardMotionItem } from '@/components/dashboard/dashboard-motion'
+import { DashboardMotionItem } from '@/components/dashboard/DashboardMotion'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
 import { SECTION_HELP } from '@/lib/help-content'

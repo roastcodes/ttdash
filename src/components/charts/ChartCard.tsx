@@ -17,7 +17,7 @@ import {
   DASHBOARD_MOTION,
   useDashboardElementMotion,
   useDashboardSectionMotion,
-} from '@/components/dashboard/dashboard-motion'
+} from '@/components/dashboard/DashboardMotion'
 import { CHART_ANIMATION } from './chart-theme'
 import { cn } from '@/lib/cn'
 import { buildCsvLine } from '@/lib/csv'
@@ -202,6 +202,7 @@ export function ChartCard({
   const fmt = valueFormatter ?? formatCurrency
   const renderChildren = (isExpanded: boolean) =>
     typeof children === 'function' ? children(isExpanded) : children
+  const isSectionVisible = sectionMotion?.sectionVisible ?? true
 
   const handleExport = useCallback(() => {
     if (!chartData || chartData.length === 0) return
@@ -241,6 +242,7 @@ export function ChartCard({
             <button
               type="button"
               onClick={() => setExpanded(true)}
+              tabIndex={isSectionVisible ? undefined : -1}
               className="absolute top-3 right-3 z-10 rounded-lg border border-border/50 bg-background/80 p-1.5 text-muted-foreground opacity-100 backdrop-blur-sm transition-opacity duration-200 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
               title={t('common.expand')}
               aria-label={t('common.expandWithTitle', { title })}

@@ -60,6 +60,7 @@ export function RequestCacheHitRateByModel({
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
   const totalLabel = t('charts.requestCacheHitRate.total')
+  const trendRate = 'trailing7Rate' as const
   const trendLabel =
     viewMode === 'daily'
       ? t('charts.requestCacheHitRate.trailing7Rate')
@@ -195,10 +196,10 @@ export function RequestCacheHitRateByModel({
             </div>
             <div>
               <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
-                {t('charts.requestCacheHitRate.trailing7Rate')}
+                {trendLabel}
               </div>
               <div className="text-lg font-semibold tabular-nums">
-                {formatRate(entry.trailing7Rate)}
+                {formatRate(entry[trendRate])}
               </div>
             </div>
           </div>
@@ -223,10 +224,10 @@ export function RequestCacheHitRateByModel({
           </div>
           <div className="rounded-lg bg-muted/20 p-2">
             <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
-              {t('charts.requestCacheHitRate.trailing7Rate')}
+              {trendLabel}
             </div>
             <div className="text-sm font-semibold tabular-nums">
-              {formatRate(summary.total.trailing7Rate)}
+              {formatRate(summary.total[trendRate])}
             </div>
           </div>
           <div className="rounded-lg bg-muted/20 p-2">
@@ -396,7 +397,7 @@ export function RequestCacheHitRateByModel({
                             formatter={(value) => formatRate(value)}
                             pinnedEntryNames={[
                               t('charts.requestCacheHitRate.totalRate'),
-                              t('charts.requestCacheHitRate.trailing7Rate'),
+                              trendLabel,
                             ]}
                             showComputedTotal={false}
                           />
@@ -424,8 +425,8 @@ export function RequestCacheHitRateByModel({
                         ))}
                       </Bar>
                       <Bar
-                        dataKey="trailing7Rate"
-                        name={t('charts.requestCacheHitRate.trailing7Rate')}
+                        dataKey={trendRate}
+                        name={trendLabel}
                         radius={[0, 4, 4, 0]}
                         fill={CHART_COLORS.ma7}
                         {...getBarAnimationProps(animate, 1)}
@@ -458,7 +459,7 @@ export function RequestCacheHitRateByModel({
       title={t('charts.requestCacheHitRate.title')}
       subtitle={t('charts.requestCacheHitRate.subtitle', {
         total: formatRate(summary.total.totalRate),
-        trailing: formatRate(summary.total.trailing7Rate),
+        trailing: formatRate(summary.total[trendRate]),
       })}
       info={CHART_HELP.requestCacheHitRate}
       chartData={barData as unknown as Record<string, unknown>[]}

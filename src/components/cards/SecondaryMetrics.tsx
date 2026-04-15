@@ -1,6 +1,6 @@
 import { TrendingUp, ChartBar, Sigma, Building2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { DashboardMotionItem } from '@/components/dashboard/dashboard-motion'
+import { DashboardMotionItem } from '@/components/dashboard/DashboardMotion'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import {
@@ -97,7 +97,7 @@ export function SecondaryMetrics({
           label={t('metricCards.secondary.dominantProvider')}
           value={metrics.topProvider?.name ?? '–'}
           icon={<Building2 className="h-4 w-4" />}
-          info={t('metricCards.secondary.medianInfo')}
+          info={t('metricCards.secondary.dominantProviderInfo')}
           {...(topProviderSubtitle ? { subtitle: topProviderSubtitle } : {})}
         />
       </DashboardMotionItem>

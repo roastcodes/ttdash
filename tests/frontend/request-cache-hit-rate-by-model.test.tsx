@@ -106,4 +106,25 @@ describe('RequestCacheHitRateByModel', () => {
     expect(screen.getByTestId('snapshot-bar-totalRate')).toBeInTheDocument()
     expect(screen.getByTestId('snapshot-bar-trailing7Rate')).toBeInTheDocument()
   })
+
+  it('uses the trend label consistently outside daily mode', () => {
+    render(
+      <TooltipProvider>
+        <RequestCacheHitRateByModel
+          timelineData={[
+            buildDay({ date: '2026-03-01' }),
+            buildDay({ date: '2026-04-01', cacheReadTokens: 35, totalTokens: 190 }),
+          ]}
+          summaryData={[
+            buildDay({ date: '2026-03-01' }),
+            buildDay({ date: '2026-04-01', cacheReadTokens: 35, totalTokens: 190 }),
+          ]}
+          viewMode="monthly"
+        />
+      </TooltipProvider>,
+    )
+
+    expect(screen.getAllByText('Trend avg').length).toBeGreaterThan(0)
+    expect(screen.queryByText('7-day avg')).not.toBeInTheDocument()
+  })
 })

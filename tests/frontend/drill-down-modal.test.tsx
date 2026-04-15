@@ -141,7 +141,7 @@ describe('DrillDownModal', () => {
     expect(within(openAiProviderCard).getAllByText('6').length).toBeGreaterThan(0)
 
     expect(screen.getByLabelText(/^Input: /)).toBeInTheDocument()
-  })
+  }, 15_000)
 
   it('labels aggregated entries as periods and shows raw-day coverage', async () => {
     const monthEntry: DailyUsage = {

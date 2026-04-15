@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Activity, Building2, Layers3, Sparkles, TrendingUp } from 'lucide-react'
-import { DashboardMotionItem } from '@/components/dashboard/dashboard-motion'
+import { DashboardMotionItem } from '@/components/dashboard/DashboardMotion'
 import { Card } from '@/components/ui/card'
 import { SectionHeader } from '@/components/ui/section-header'
 import { FormattedValue } from '@/components/ui/formatted-value'
@@ -28,11 +28,12 @@ interface InsightCardProps {
   value: ReactNode
   summary: string
   details: { label: string; value: ReactNode }[]
+  className?: string
 }
 
-function InsightCard({ title, icon, value, summary, details }: InsightCardProps) {
+function InsightCard({ title, icon, value, summary, details, className }: InsightCardProps) {
   return (
-    <Card className="overflow-hidden p-5">
+    <Card className={`h-full overflow-hidden p-5 ${className ?? ''}`.trim()}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -93,7 +94,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
         info={SECTION_HELP.insights}
       />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
-        <DashboardMotionItem order={0}>
+        <DashboardMotionItem order={0} className="h-full">
           <InsightCard
             title={t('insights.concentration.title')}
             icon={<Building2 className="h-5 w-5" />}
@@ -124,7 +125,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
           />
         </DashboardMotionItem>
 
-        <DashboardMotionItem order={1}>
+        <DashboardMotionItem order={1} className="h-full">
           <InsightCard
             title={t('insights.requestEconomy.title')}
             icon={<Activity className="h-5 w-5" />}
@@ -180,7 +181,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
           />
         </DashboardMotionItem>
 
-        <DashboardMotionItem order={2}>
+        <DashboardMotionItem order={2} className="h-full">
           <InsightCard
             title={t('insights.usagePatterns.title')}
             icon={<Layers3 className="h-5 w-5" />}
@@ -228,7 +229,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
           />
         </DashboardMotionItem>
 
-        <DashboardMotionItem order={3}>
+        <DashboardMotionItem order={3} className="h-full">
           <InsightCard
             title={t('insights.peakWindow.title')}
             icon={<TrendingUp className="h-5 w-5" />}

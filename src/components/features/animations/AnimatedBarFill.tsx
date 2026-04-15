@@ -1,10 +1,7 @@
 import { motion, type MotionStyle } from 'framer-motion'
 import { useRef } from 'react'
 import type { CSSProperties } from 'react'
-import {
-  DASHBOARD_MOTION,
-  useDashboardElementMotion,
-} from '@/components/dashboard/dashboard-motion'
+import { DASHBOARD_MOTION, useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
 import { cn } from '@/lib/cn'
 import { useShouldReduceMotion } from '@/lib/motion'
 

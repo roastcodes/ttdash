@@ -96,7 +96,7 @@ describe('ProviderLimitsSection', () => {
     expect(screen.getByText('0% Limit')).toBeInTheDocument()
     expect(screen.getByText('240% Abo')).toBeInTheDocument()
     expect(screen.getByText('Offen')).toBeInTheDocument()
-  }, 15_000)
+  })
 
   it('does not force a visible minimum width or local timing overrides for subscription bars', () => {
     render(
@@ -121,5 +121,5 @@ describe('ProviderLimitsSection', () => {
     expect(fills.some((fill) => fill.getAttribute('data-width') === '0%')).toBe(true)
     expect(fills.every((fill) => fill.getAttribute('data-delay-ms') === '')).toBe(true)
     expect(fills.every((fill) => fill.getAttribute('data-duration-ms') === '')).toBe(true)
-  }, 15_000)
+  })
 })

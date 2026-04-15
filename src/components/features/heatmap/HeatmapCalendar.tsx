@@ -9,10 +9,7 @@ import {
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import {
-  DASHBOARD_MOTION,
-  useDashboardElementMotion,
-} from '@/components/dashboard/dashboard-motion'
+import { DASHBOARD_MOTION, useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_HELP } from '@/lib/help-content'
 import {
@@ -37,6 +34,9 @@ const CELL_GAP = 2
 const TOTAL = CELL_SIZE + CELL_GAP
 const LEFT_GUTTER = 30
 const TOP_GUTTER = 26
+const CELL_STAGGER_WEEK_OFFSET_MS = 12
+const CELL_STAGGER_DAY_OFFSET_MS = 6
+const TODAY_OUTLINE_EXTRA_DELAY_MS = 90
 
 function resolveHeatmapLightness(intensity: number, isDarkTheme: boolean) {
   if (intensity < 0.15) return isDarkTheme ? 28 : 88
@@ -391,8 +391,9 @@ export function HeatmapCalendar({
                             delay:
                               (animateCells
                                 ? cellAnimationDelayMs +
-                                  cell.week * (DASHBOARD_MOTION.itemStaggerMs + 12) +
-                                  cell.day * 6
+                                  cell.week *
+                                    (DASHBOARD_MOTION.itemStaggerMs + CELL_STAGGER_WEEK_OFFSET_MS) +
+                                  cell.day * CELL_STAGGER_DAY_OFFSET_MS
                                 : 0) / 1000,
                             ease: [0.22, 1, 0.36, 1] as const,
                           },
@@ -407,9 +408,10 @@ export function HeatmapCalendar({
                             delay:
                               (animateCells
                                 ? cellAnimationDelayMs +
-                                  cell.week * (DASHBOARD_MOTION.itemStaggerMs + 12) +
-                                  cell.day * 6 +
-                                  90
+                                  cell.week *
+                                    (DASHBOARD_MOTION.itemStaggerMs + CELL_STAGGER_WEEK_OFFSET_MS) +
+                                  cell.day * CELL_STAGGER_DAY_OFFSET_MS +
+                                  TODAY_OUTLINE_EXTRA_DELAY_MS
                                 : 0) / 1000,
                             ease: [0.22, 1, 0.36, 1] as const,
                           },

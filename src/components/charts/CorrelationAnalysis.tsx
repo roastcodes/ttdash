@@ -11,7 +11,7 @@ import {
   ZAxis,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useDashboardElementMotion } from '@/components/dashboard/dashboard-motion'
+import { useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_COLORS, CHART_MARGIN, getScatterAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
@@ -144,6 +144,7 @@ function CorrelationPanel({
   xTickFormatter,
   yAxisName,
   footer,
+  showPoints,
   animatePoints,
 }: {
   title: string
@@ -156,9 +157,10 @@ function CorrelationPanel({
   xTickFormatter?: (value: number) => string
   yAxisName: string
   footer: string
+  showPoints: boolean
   animatePoints: boolean
 }) {
-  const chartData = animatePoints ? data : []
+  const chartData = showPoints ? data : []
 
   return (
     <div>
@@ -216,6 +218,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
     kind: 'chart',
     amount: 0.28,
   })
+  const showPoints = chartMotion.shouldReduceMotion || chartMotion.active
   const animatePoints = !chartMotion.shouldReduceMotion && chartMotion.active
   const requestVsCost = useMemo<ScatterPoint[]>(
     () =>
@@ -293,6 +296,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
           mode="requestCost"
           data={requestVsCost}
           color={CHART_COLORS.cost}
+          showPoints={showPoints}
           animatePoints={animatePoints}
           xAxisName={t('charts.correlation.requestsAxis')}
           yAxisName={t('charts.correlation.cost')}
@@ -306,6 +310,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
           mode="cacheEfficiency"
           data={cacheVsCostPerRequest}
           color={CHART_COLORS.cumulative}
+          showPoints={showPoints}
           animatePoints={animatePoints}
           animationBegin={70}
           xAxisName={t('charts.correlation.cacheRate')}

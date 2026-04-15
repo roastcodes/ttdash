@@ -195,7 +195,8 @@ export function AnimatedDashboardSection({
       return preloadTask
     }
 
-    const preloadTask = Promise.resolve(onPreload())
+    const preloadTask = Promise.resolve()
+      .then(() => onPreload())
       .catch(() => undefined)
       .finally(() => {
         if (isMountedRef.current) {
@@ -260,6 +261,7 @@ export function AnimatedDashboardSection({
 
   const shouldRenderContent = eager || contentPrepared
   const showPlaceholder = !sectionVisible
+  const contentStyle = sectionVisible ? {} : { opacity: 0, pointerEvents: 'none' as const }
 
   const contextValue = useMemo<DashboardSectionMotionState>(
     () => ({
@@ -292,14 +294,15 @@ export function AnimatedDashboardSection({
           <div className="relative">
             {shouldReduceMotion ? (
               <div
+                {...(!sectionVisible ? { inert: true } : {})}
                 className={contentClassName}
-                style={sectionVisible ? undefined : { opacity: 0 }}
-                aria-hidden={sectionVisible ? undefined : true}
+                style={contentStyle}
               >
                 {children}
               </div>
             ) : (
               <motion.div
+                {...(!sectionVisible ? { inert: true } : {})}
                 initial={{
                   opacity: 0,
                   y: DASHBOARD_MOTION.sectionRevealOffset,
@@ -314,7 +317,7 @@ export function AnimatedDashboardSection({
                   ease: DASHBOARD_MOTION.sectionRevealEase,
                 }}
                 className={contentClassName}
-                aria-hidden={sectionVisible ? undefined : true}
+                style={contentStyle}
               >
                 {children}
               </motion.div>

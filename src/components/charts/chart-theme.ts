@@ -42,11 +42,7 @@ export function getLineAnimationProps(
   } = {},
 ) {
   const delayOffset =
-    role === 'secondary'
-      ? 140 + order * CHART_ANIMATION.stagger
-      : role === 'stacked'
-        ? order * CHART_ANIMATION.stagger
-        : order * CHART_ANIMATION.stagger
+    role === 'secondary' ? 140 + order * CHART_ANIMATION.stagger : order * CHART_ANIMATION.stagger
 
   return {
     isAnimationActive: active,

@@ -20,7 +20,7 @@ import { SectionHeader } from '../ui/section-header'
 import { ExpandableCard } from '../ui/expandable-card'
 import { ChartCardSkeleton } from '../ui/skeleton'
 import { ErrorBoundary } from '../ui/error-boundary'
-import { AnimatedDashboardSection } from './dashboard-motion'
+import { AnimatedDashboardSection } from './DashboardMotion'
 import { SECTION_HELP } from '@/lib/help-content'
 import { cn } from '@/lib/cn'
 import type { ModelCostChartPoint } from '@/lib/data-transforms'
@@ -37,6 +37,26 @@ import type {
   ViewMode,
   WeekdayData,
 } from '@/types'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PreloadableLazyComponent<T extends ComponentType<any>> = LazyExoticComponent<T> & {
+  preload: () => Promise<{ default: T }>
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lazyWithPreload<T extends ComponentType<any>>(
+  loader: () => Promise<{ default: T }>,
+): PreloadableLazyComponent<T> {
+  const Component = lazy(loader) as PreloadableLazyComponent<T>
+  Component.preload = loader
+  return Component
+}
+
+function preloadComponents(
+  ...components: Array<{ preload: () => Promise<unknown> }>
+): Promise<unknown[]> {
+  return Promise.all(components.map((component) => component.preload()))
+}
 
 const CostForecast = lazyWithPreload(() =>
   import('../features/forecast/CostForecast').then((module) => ({
@@ -138,26 +158,6 @@ const RecentDays = lazyWithPreload(() =>
     default: module.RecentDays,
   })),
 )
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type PreloadableLazyComponent<T extends ComponentType<any>> = LazyExoticComponent<T> & {
-  preload: () => Promise<{ default: T }>
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function lazyWithPreload<T extends ComponentType<any>>(
-  loader: () => Promise<{ default: T }>,
-): PreloadableLazyComponent<T> {
-  const Component = lazy(loader) as PreloadableLazyComponent<T>
-  Component.preload = loader
-  return Component
-}
-
-function preloadComponents(
-  ...components: Array<{ preload: () => Promise<unknown> }>
-): Promise<unknown[]> {
-  return Promise.all(components.map((component) => component.preload()))
-}
 
 interface DashboardSectionsProps {
   sectionOrder: DashboardSectionId[]
@@ -273,6 +273,13 @@ export function DashboardSections({
     comparisons: 'min-h-[420px]',
     tables: 'min-h-[900px]',
   }
+  const sectionAnchorMap: Partial<Record<DashboardSectionId, string>> = {
+    costAnalysis: 'charts',
+    currentMonth: 'current-month',
+    tokenAnalysis: 'token-analysis',
+    requestAnalysis: 'request-analysis',
+    advancedAnalysis: 'advanced-analysis',
+  }
 
   const renderAnimatedSection = (
     sectionId: DashboardSectionId,
@@ -282,18 +289,7 @@ export function DashboardSections({
       onPreload,
     }: { eager?: boolean; onPreload?: () => void | Promise<unknown> } = {},
   ) => {
-    const sectionAnchorId =
-      sectionId === 'costAnalysis'
-        ? 'charts'
-        : sectionId === 'currentMonth'
-          ? 'current-month'
-          : sectionId === 'tokenAnalysis'
-            ? 'token-analysis'
-            : sectionId === 'requestAnalysis'
-              ? 'request-analysis'
-              : sectionId === 'advancedAnalysis'
-                ? 'advanced-analysis'
-                : sectionId
+    const sectionAnchorId = sectionAnchorMap[sectionId] ?? sectionId
 
     return (
       <AnimatedDashboardSection

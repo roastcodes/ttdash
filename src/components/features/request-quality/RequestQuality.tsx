@@ -76,7 +76,7 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
               <div className="mt-1 text-xs text-muted-foreground">{item.hint}</div>
               <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted/40">
                 <AnimatedBarFill
-                  className="h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none"
+                  className="h-full rounded-full"
                   style={{
                     backgroundColor: `hsl(${item.accent})`,
                   }}

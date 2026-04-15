@@ -101,7 +101,7 @@ export function CostByModel({ data }: CostByModelProps) {
                             renderLabel={(entry: { value?: string | number }) => {
                               const value = String(entry.value ?? '')
                               const segment = data.find((item) => item.name === value)
-                              return `${value} (${segment ? formatCurrency(segment.value) : ''})`
+                              return segment ? `${value} (${formatCurrency(segment.value)})` : value
                             }}
                           />
                         }

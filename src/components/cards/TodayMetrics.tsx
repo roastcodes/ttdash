@@ -8,7 +8,7 @@ import {
   BrainCircuit,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { DashboardMotionItem } from '@/components/dashboard/dashboard-motion'
+import { DashboardMotionItem } from '@/components/dashboard/DashboardMotion'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
