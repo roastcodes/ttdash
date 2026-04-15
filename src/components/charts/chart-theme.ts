@@ -18,14 +18,14 @@ export const CHART_MARGIN = { top: 5, right: 10, left: 10, bottom: 5 }
 
 /** Defines the shared chart animation timings. */
 export const CHART_ANIMATION = {
-  duration: 860,
+  duration: 1290,
   easing: 'ease-out' as const,
-  stagger: 80,
-  slowDuration: 1040,
-  chartStartDelay: 190,
-  barDuration: 620,
-  radialDuration: 820,
-  revealDuration: 520,
+  stagger: 120,
+  slowDuration: 1560,
+  chartStartDelay: 285,
+  barDuration: 930,
+  radialDuration: 1230,
+  revealDuration: 780,
 }
 
 type SeriesRole = 'primary' | 'secondary' | 'stacked'

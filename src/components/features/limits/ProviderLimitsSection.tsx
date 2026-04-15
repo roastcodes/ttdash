@@ -373,8 +373,7 @@ export function ProviderLimitsSection({
                                   : 'h-full'
                             }
                             width={`${riskProgress}%`}
-                            delayMs={220 + index * 40}
-                            durationMs={680}
+                            order={index * 2}
                             {...(row.riskStatus === 'limit' || row.riskStatus === 'warning'
                               ? {}
                               : { style: { backgroundColor: providerStyle.color } })}
@@ -412,9 +411,8 @@ export function ProviderLimitsSection({
                                 ? 'h-full bg-emerald-400'
                                 : 'h-full bg-amber-300'
                             }
-                            width={`${Math.max(8, subscriptionProgressWidth)}%`}
-                            delayMs={260 + index * 40}
-                            durationMs={680}
+                            width={`${subscriptionProgressWidth}%`}
+                            order={index * 2 + 1}
                           />
                         ) : (
                           <div className="h-full w-full bg-muted/20" />
@@ -513,8 +511,7 @@ export function ProviderLimitsSection({
                                 : 'absolute top-5 left-0 h-4 rounded-full bg-sky-400'
                             }
                             width={withinLimitWidth}
-                            delayMs={220 + index * 40}
-                            durationMs={680}
+                            order={index * 2}
                           />
 
                           {row.overrun > 0 && (
@@ -522,8 +519,7 @@ export function ProviderLimitsSection({
                               className="absolute top-5 h-4 rounded-r-full bg-red-400"
                               style={{ left: limitPosition }}
                               width={overLimitWidth}
-                              delayMs={260 + index * 40}
-                              durationMs={680}
+                              order={index * 2 + 1}
                             />
                           )}
 
@@ -542,8 +538,7 @@ export function ProviderLimitsSection({
                         <AnimatedBarFill
                           className="absolute top-5 left-0 h-4 rounded-full bg-muted-foreground/40"
                           width={costWidth}
-                          delayMs={220 + index * 40}
-                          durationMs={680}
+                          order={index * 2}
                         />
                       )}
 
@@ -688,8 +683,7 @@ export function ProviderLimitsSection({
                           <AnimatedBarFill
                             className="absolute top-5 left-0 h-4 rounded-full bg-amber-300"
                             width={withinSubscriptionWidth}
-                            delayMs={220 + index * 40}
-                            durationMs={680}
+                            order={index * 2}
                           />
 
                           {row.subscriptionGain > 0 && (
@@ -697,8 +691,7 @@ export function ProviderLimitsSection({
                               className="absolute top-5 h-4 rounded-r-full bg-emerald-400"
                               style={{ left: subPosition }}
                               width={overSubscriptionWidth}
-                              delayMs={260 + index * 40}
-                              durationMs={680}
+                              order={index * 2 + 1}
                             />
                           )}
 
@@ -717,8 +710,7 @@ export function ProviderLimitsSection({
                         <AnimatedBarFill
                           className="absolute top-5 left-0 h-4 rounded-full bg-muted-foreground/40"
                           width={costWidth}
-                          delayMs={220 + index * 40}
-                          durationMs={680}
+                          order={index * 2}
                         />
                       )}
 

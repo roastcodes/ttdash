@@ -15,19 +15,19 @@ import { useShouldReduceMotion } from '@/lib/motion'
 
 /** Defines the shared dashboard motion timings for section reveal and child chart orchestration. */
 export const DASHBOARD_MOTION = {
-  sectionPreloadMargin: '0px 0px 30% 0px',
+  sectionPreloadMargin: '0px 0px 45% 0px',
   sectionRevealAmount: 0.14,
   sectionRevealOffset: 12,
-  sectionRevealDuration: 0.52,
+  sectionRevealDuration: 0.6,
   sectionRevealEase: [0.22, 1, 0.36, 1] as const,
-  placeholderFadeDuration: 0.28,
+  placeholderFadeDuration: 0.34,
   itemRevealAmount: 0.24,
   itemRevealOffset: 8,
   itemRevealDuration: 0.42,
-  itemStaggerMs: 70,
-  chartStartDelayMs: 190,
-  meterStartDelayMs: 250,
-  meterDurationMs: 640,
+  itemStaggerMs: 105,
+  chartStartDelayMs: 285,
+  meterStartDelayMs: 375,
+  meterDurationMs: 960,
 }
 
 interface DashboardSectionMotionState {
@@ -156,7 +156,7 @@ interface AnimatedDashboardSectionProps {
   contentClassName?: string
   placeholderClassName?: string
   eager?: boolean
-  onPreload?: (() => void) | undefined
+  onPreload?: (() => void | Promise<unknown>) | undefined
 }
 
 /** Gates one dashboard section by viewport visibility and exposes motion timing to descendants. */
@@ -171,27 +171,52 @@ export function AnimatedDashboardSection({
 }: AnimatedDashboardSectionProps) {
   const sectionRef = useRef<HTMLElement | null>(null)
   const hasTriggeredPreloadRef = useRef(false)
+  const preloadPromiseRef = useRef<Promise<unknown> | null>(null)
+  const isMountedRef = useRef(true)
   const shouldReduceMotion = useShouldReduceMotion()
   const [contentPrepared, setContentPrepared] = useState(eager)
   const [sectionVisible, setSectionVisible] = useState(eager)
 
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
   const triggerPreload = useCallback(() => {
-    if (hasTriggeredPreloadRef.current) return
+    if (hasTriggeredPreloadRef.current) return preloadPromiseRef.current
+
     hasTriggeredPreloadRef.current = true
-    setContentPrepared(true)
-    onPreload?.()
+
+    if (!onPreload) {
+      setContentPrepared(true)
+      const preloadTask = Promise.resolve()
+      preloadPromiseRef.current = preloadTask
+      return preloadTask
+    }
+
+    const preloadTask = Promise.resolve(onPreload())
+      .catch(() => undefined)
+      .finally(() => {
+        if (isMountedRef.current) {
+          setContentPrepared(true)
+        }
+      })
+
+    preloadPromiseRef.current = preloadTask
+    return preloadTask
   }, [onPreload])
 
   useEffect(() => {
     if (eager) {
-      triggerPreload()
+      void triggerPreload()
       setSectionVisible(true)
       return
     }
 
     const element = sectionRef.current
     if (!element || typeof IntersectionObserver === 'undefined') {
-      triggerPreload()
+      void triggerPreload()
       setSectionVisible(true)
       return
     }
@@ -200,7 +225,7 @@ export function AnimatedDashboardSection({
       (entries) => {
         const entry = entries[0]
         if (entry?.isIntersecting) {
-          triggerPreload()
+          void triggerPreload()
           preloadObserver.disconnect()
         }
       },
@@ -214,7 +239,7 @@ export function AnimatedDashboardSection({
       (entries) => {
         const entry = entries[0]
         if (entry?.isIntersecting) {
-          triggerPreload()
+          void triggerPreload()
           setSectionVisible(true)
           revealObserver.disconnect()
         }
@@ -275,7 +300,10 @@ export function AnimatedDashboardSection({
               </div>
             ) : (
               <motion.div
-                initial={false}
+                initial={{
+                  opacity: 0,
+                  y: DASHBOARD_MOTION.sectionRevealOffset,
+                }}
                 animate={
                   sectionVisible
                     ? { opacity: 1, y: 0 }

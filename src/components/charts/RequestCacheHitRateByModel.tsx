@@ -207,6 +207,252 @@ export function RequestCacheHitRateByModel({
     </div>
   )
 
+  const renderCharts = (expanded: boolean) => {
+    const snapshotBarSize = expanded ? 8 : 6
+
+    return (
+      <>
+        <div className="mb-3 grid grid-cols-2 gap-2 text-center md:grid-cols-4">
+          <div className="rounded-lg bg-muted/20 p-2">
+            <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
+              {t('charts.requestCacheHitRate.totalRate')}
+            </div>
+            <div className="text-sm font-semibold tabular-nums">
+              {formatRate(summary.total.totalRate)}
+            </div>
+          </div>
+          <div className="rounded-lg bg-muted/20 p-2">
+            <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
+              {t('charts.requestCacheHitRate.trailing7Rate')}
+            </div>
+            <div className="text-sm font-semibold tabular-nums">
+              {formatRate(summary.total.trailing7Rate)}
+            </div>
+          </div>
+          <div className="rounded-lg bg-muted/20 p-2">
+            <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
+              {t('charts.requestCacheHitRate.topModel')}
+            </div>
+            <div className="truncate text-sm font-semibold">{summary.topModel?.model ?? '–'}</div>
+          </div>
+          <div className="rounded-lg bg-muted/20 p-2">
+            <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
+              {t('charts.requestCacheHitRate.models')}
+            </div>
+            <div className="text-sm font-semibold tabular-nums">{summary.models}</div>
+          </div>
+        </div>
+
+        <div
+          className={`grid gap-4 ${expanded ? 'grid-cols-1 xl:grid-cols-[2fr_1fr]' : 'grid-cols-1 lg:grid-cols-[2fr_1fr]'}`}
+        >
+          <div>
+            <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
+              {t('charts.requestCacheHitRate.timelineHeading', { unit: periodUnit(viewMode) })}
+            </div>
+            <ChartAnimationAware>
+              {(animate) => (
+                <ChartReveal variant="line">
+                  <ResponsiveContainer
+                    width="100%"
+                    height={expanded ? expandedLineHeight : lineHeight}
+                  >
+                    <ComposedChart data={lineData} margin={CHART_MARGIN}>
+                      <defs>
+                        <linearGradient id={`${uid}-total-rate`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.24} />
+                          <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke={CHART_COLORS.grid}
+                        opacity={0.3}
+                      />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={formatDateAxis}
+                        stroke={CHART_COLORS.axis}
+                        fontSize={11}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        type="number"
+                        domain={[0, 100]}
+                        tickFormatter={formatRate}
+                        stroke={CHART_COLORS.axis}
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        content={
+                          <CustomTooltip
+                            formatter={(value) => formatRate(value)}
+                            pinnedEntryNames={[t('charts.requestCacheHitRate.totalRate')]}
+                            showComputedTotal={false}
+                            hideZeroValues
+                          />
+                        }
+                        cursor={{ fill: 'hsl(var(--muted))', opacity: 0.12 }}
+                      />
+                      <Legend content={<ChartLegend />} />
+                      <Area
+                        type="monotone"
+                        dataKey="totalRate"
+                        stroke={CHART_COLORS.cost}
+                        fill={`url(#${uid}-total-rate)`}
+                        name={t('charts.requestCacheHitRate.totalRate')}
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{
+                          r: 5,
+                          strokeWidth: 2,
+                          stroke: CHART_COLORS.cost,
+                          fill: 'hsl(var(--background))',
+                        }}
+                        {...getAreaAnimationProps(animate)}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="totalRate_ma7"
+                        stroke={CHART_COLORS.ma7}
+                        name={trendLabel}
+                        dot={false}
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        connectNulls
+                        {...getLineAnimationProps(animate, { role: 'secondary' })}
+                      />
+                      {lineSeries.map((series, index) => (
+                        <Line
+                          key={series}
+                          type="monotone"
+                          dataKey={series}
+                          stroke={getModelColor(series)}
+                          name={series}
+                          dot={false}
+                          strokeWidth={1.8}
+                          connectNulls
+                          {...getLineAnimationProps(animate, {
+                            order: index + 2,
+                            role: 'secondary',
+                          })}
+                        />
+                      ))}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </ChartReveal>
+              )}
+            </ChartAnimationAware>
+          </div>
+
+          <div>
+            <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
+              {t('charts.requestCacheHitRate.modelBreakdownHeading')}
+            </div>
+            <ChartAnimationAware>
+              {(animate) => (
+                <ChartReveal variant="line">
+                  <ResponsiveContainer
+                    width="100%"
+                    height={expanded ? expandedBarHeight : compactBarHeight}
+                  >
+                    <BarChart
+                      data={barData}
+                      layout="vertical"
+                      margin={{ ...CHART_MARGIN, left: expanded ? 30 : 20, right: 8 }}
+                      barCategoryGap={expanded ? 14 : 10}
+                      barSize={snapshotBarSize}
+                      maxBarSize={snapshotBarSize}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke={CHART_COLORS.grid}
+                        opacity={0.22}
+                        horizontal={false}
+                      />
+                      <XAxis
+                        type="number"
+                        domain={[0, 100]}
+                        tickFormatter={formatRate}
+                        stroke={CHART_COLORS.axis}
+                        fontSize={10}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="model"
+                        stroke={CHART_COLORS.axis}
+                        fontSize={10}
+                        tickLine={false}
+                        axisLine={false}
+                        width={expanded ? 126 : 108}
+                      />
+                      <Tooltip
+                        content={
+                          <CustomTooltip
+                            formatter={(value) => formatRate(value)}
+                            pinnedEntryNames={[
+                              t('charts.requestCacheHitRate.totalRate'),
+                              t('charts.requestCacheHitRate.trailing7Rate'),
+                            ]}
+                            showComputedTotal={false}
+                          />
+                        }
+                        cursor={{ fill: 'hsl(var(--muted))', opacity: 0.12 }}
+                      />
+                      <Legend content={<ChartLegend />} />
+                      <Bar
+                        dataKey="totalRate"
+                        name={t('charts.requestCacheHitRate.totalRate')}
+                        radius={[0, 4, 4, 0]}
+                        fill={CHART_COLORS.cacheRead}
+                        {...getBarAnimationProps(animate)}
+                      >
+                        {barData.map((entry) => (
+                          <Cell
+                            key={`${entry.model}-total`}
+                            fill={
+                              entry.model === totalLabel
+                                ? CHART_COLORS.cost
+                                : CHART_COLORS.cacheRead
+                            }
+                            fillOpacity={entry.model === totalLabel ? 0.95 : 0.82}
+                          />
+                        ))}
+                      </Bar>
+                      <Bar
+                        dataKey="trailing7Rate"
+                        name={t('charts.requestCacheHitRate.trailing7Rate')}
+                        radius={[0, 4, 4, 0]}
+                        fill={CHART_COLORS.ma7}
+                        {...getBarAnimationProps(animate, 1)}
+                      >
+                        {barData.map((entry) => (
+                          <Cell
+                            key={`${entry.model}-recent`}
+                            fill={
+                              entry.model === totalLabel
+                                ? CHART_COLORS.cumulative
+                                : CHART_COLORS.ma7
+                            }
+                            fillOpacity={entry.model === totalLabel ? 0.95 : 0.8}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartReveal>
+              )}
+            </ChartAnimationAware>
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <ChartCard
       title={t('charts.requestCacheHitRate.title')}
@@ -220,245 +466,7 @@ export function RequestCacheHitRateByModel({
       valueFormatter={formatRate}
       expandedExtra={expandedExtra}
     >
-      {(expanded) => (
-        <>
-          <div className="mb-3 grid grid-cols-2 gap-2 text-center md:grid-cols-4">
-            <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
-                {t('charts.requestCacheHitRate.totalRate')}
-              </div>
-              <div className="text-sm font-semibold tabular-nums">
-                {formatRate(summary.total.totalRate)}
-              </div>
-            </div>
-            <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
-                {t('charts.requestCacheHitRate.trailing7Rate')}
-              </div>
-              <div className="text-sm font-semibold tabular-nums">
-                {formatRate(summary.total.trailing7Rate)}
-              </div>
-            </div>
-            <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
-                {t('charts.requestCacheHitRate.topModel')}
-              </div>
-              <div className="truncate text-sm font-semibold">{summary.topModel?.model ?? '–'}</div>
-            </div>
-            <div className="rounded-lg bg-muted/20 p-2">
-              <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
-                {t('charts.requestCacheHitRate.models')}
-              </div>
-              <div className="text-sm font-semibold tabular-nums">{summary.models}</div>
-            </div>
-          </div>
-
-          <div
-            className={`grid gap-4 ${expanded ? 'grid-cols-1 xl:grid-cols-[2fr_1fr]' : 'grid-cols-1 lg:grid-cols-[2fr_1fr]'}`}
-          >
-            <div>
-              <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
-                {t('charts.requestCacheHitRate.timelineHeading', { unit: periodUnit(viewMode) })}
-              </div>
-              <ChartAnimationAware>
-                {(animate) => (
-                  <ChartReveal variant="line">
-                    <ResponsiveContainer
-                      width="100%"
-                      height={expanded ? expandedLineHeight : lineHeight}
-                    >
-                      <ComposedChart data={lineData} margin={CHART_MARGIN}>
-                        <defs>
-                          <linearGradient id={`${uid}-total-rate`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.24} />
-                            <stop offset="100%" stopColor={CHART_COLORS.cost} stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke={CHART_COLORS.grid}
-                          opacity={0.3}
-                        />
-                        <XAxis
-                          dataKey="date"
-                          tickFormatter={formatDateAxis}
-                          stroke={CHART_COLORS.axis}
-                          fontSize={11}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          type="number"
-                          domain={[0, 100]}
-                          tickFormatter={formatRate}
-                          stroke={CHART_COLORS.axis}
-                          fontSize={11}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <Tooltip
-                          content={
-                            <CustomTooltip
-                              formatter={(value) => formatRate(value)}
-                              pinnedEntryNames={[t('charts.requestCacheHitRate.totalRate')]}
-                              showComputedTotal={false}
-                              hideZeroValues
-                            />
-                          }
-                          cursor={{ fill: 'hsl(var(--muted))', opacity: 0.12 }}
-                        />
-                        <Legend content={<ChartLegend />} />
-                        <Area
-                          type="monotone"
-                          dataKey="totalRate"
-                          stroke={CHART_COLORS.cost}
-                          fill={`url(#${uid}-total-rate)`}
-                          name={t('charts.requestCacheHitRate.totalRate')}
-                          strokeWidth={2}
-                          dot={false}
-                          activeDot={{
-                            r: 5,
-                            strokeWidth: 2,
-                            stroke: CHART_COLORS.cost,
-                            fill: 'hsl(var(--background))',
-                          }}
-                          {...getAreaAnimationProps(animate)}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="totalRate_ma7"
-                          stroke={CHART_COLORS.ma7}
-                          name={trendLabel}
-                          dot={false}
-                          strokeWidth={2}
-                          strokeDasharray="5 5"
-                          connectNulls
-                          {...getLineAnimationProps(animate, { role: 'secondary' })}
-                        />
-                        {lineSeries.map((series, index) => (
-                          <Line
-                            key={series}
-                            type="monotone"
-                            dataKey={series}
-                            stroke={getModelColor(series)}
-                            name={series}
-                            dot={false}
-                            strokeWidth={1.8}
-                            connectNulls
-                            {...getLineAnimationProps(animate, {
-                              order: index + 2,
-                              role: 'secondary',
-                            })}
-                          />
-                        ))}
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </ChartReveal>
-                )}
-              </ChartAnimationAware>
-            </div>
-
-            <div>
-              <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
-                {t('charts.requestCacheHitRate.modelBreakdownHeading')}
-              </div>
-              <ChartAnimationAware>
-                {(animate) => (
-                  <ChartReveal variant="line">
-                    <ResponsiveContainer
-                      width="100%"
-                      height={expanded ? expandedBarHeight : compactBarHeight}
-                    >
-                      <BarChart
-                        data={barData}
-                        layout="vertical"
-                        margin={{ ...CHART_MARGIN, left: expanded ? 30 : 20, right: 8 }}
-                        barCategoryGap={expanded ? 14 : 10}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke={CHART_COLORS.grid}
-                          opacity={0.22}
-                          horizontal={false}
-                        />
-                        <XAxis
-                          type="number"
-                          domain={[0, 100]}
-                          tickFormatter={formatRate}
-                          stroke={CHART_COLORS.axis}
-                          fontSize={10}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <YAxis
-                          type="category"
-                          dataKey="model"
-                          stroke={CHART_COLORS.axis}
-                          fontSize={10}
-                          tickLine={false}
-                          axisLine={false}
-                          width={expanded ? 126 : 108}
-                        />
-                        <Tooltip
-                          content={
-                            <CustomTooltip
-                              formatter={(value) => formatRate(value)}
-                              pinnedEntryNames={[
-                                t('charts.requestCacheHitRate.totalRate'),
-                                t('charts.requestCacheHitRate.trailing7Rate'),
-                              ]}
-                              showComputedTotal={false}
-                            />
-                          }
-                          cursor={{ fill: 'hsl(var(--muted))', opacity: 0.12 }}
-                        />
-                        <Legend content={<ChartLegend />} />
-                        <Bar
-                          dataKey="totalRate"
-                          name={t('charts.requestCacheHitRate.totalRate')}
-                          radius={[0, 4, 4, 0]}
-                          fill={CHART_COLORS.cacheRead}
-                          {...getBarAnimationProps(animate)}
-                        >
-                          {barData.map((entry) => (
-                            <Cell
-                              key={`${entry.model}-total`}
-                              fill={
-                                entry.model === totalLabel
-                                  ? CHART_COLORS.cost
-                                  : CHART_COLORS.cacheRead
-                              }
-                              fillOpacity={entry.model === totalLabel ? 0.95 : 0.82}
-                            />
-                          ))}
-                        </Bar>
-                        <Bar
-                          dataKey="trailing7Rate"
-                          name={t('charts.requestCacheHitRate.trailing7Rate')}
-                          radius={[0, 4, 4, 0]}
-                          fill={CHART_COLORS.ma7}
-                          {...getBarAnimationProps(animate, 1)}
-                        >
-                          {barData.map((entry) => (
-                            <Cell
-                              key={`${entry.model}-recent`}
-                              fill={
-                                entry.model === totalLabel
-                                  ? CHART_COLORS.cumulative
-                                  : CHART_COLORS.ma7
-                              }
-                              fillOpacity={entry.model === totalLabel ? 0.95 : 0.8}
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartReveal>
-                )}
-              </ChartAnimationAware>
-            </div>
-          </div>
-        </>
-      )}
+      {renderCharts}
     </ChartCard>
   )
 }

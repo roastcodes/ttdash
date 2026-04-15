@@ -7,6 +7,34 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
 
+vi.mock('@/components/features/animations/AnimatedBarFill', () => ({
+  AnimatedBarFill: ({
+    width,
+    className,
+    order,
+    delayMs,
+    durationMs,
+    style,
+  }: {
+    width: string
+    className?: string
+    order?: number
+    delayMs?: number
+    durationMs?: number
+    style?: React.CSSProperties
+  }) => (
+    <div
+      data-testid="animated-bar-fill"
+      data-width={width}
+      data-order={order === undefined ? '' : String(order)}
+      data-delay-ms={delayMs === undefined ? '' : String(delayMs)}
+      data-duration-ms={durationMs === undefined ? '' : String(durationMs)}
+      className={className}
+      style={style}
+    />
+  ),
+}))
+
 describe('CacheROI', () => {
   beforeEach(async () => {
     vi.stubGlobal(
@@ -66,5 +94,52 @@ describe('CacheROI', () => {
     expect(withCacheBar).not.toBeNull()
     expect(withCacheBar?.className).toContain('bg-rose-500/60')
     expect(container.querySelector('[style*="width: 120%"]')).toBeNull()
+  })
+
+  it('animates both the paid and saved comparison segments through AnimatedBarFill', () => {
+    const data: DailyUsage[] = [
+      {
+        date: '2026-04-07',
+        inputTokens: 100,
+        outputTokens: 0,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 1_000_000,
+        thinkingTokens: 0,
+        totalTokens: 1_000_100,
+        totalCost: 2,
+        requestCount: 2,
+        modelsUsed: ['mystery-model'],
+        modelBreakdowns: [
+          {
+            modelName: 'mystery-model',
+            inputTokens: 100,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 1_000_000,
+            thinkingTokens: 0,
+            cost: 2,
+            requestCount: 2,
+          },
+        ],
+      },
+    ]
+
+    render(
+      <TooltipProvider>
+        <CacheROI data={data} />
+      </TooltipProvider>,
+    )
+
+    const fills = screen.getAllByTestId('animated-bar-fill')
+    expect(fills).toHaveLength(3)
+    expect(fills[0]).toHaveAttribute('data-width', '100%')
+    expect(fills[0]).toHaveAttribute('data-order', '0')
+    const paidWidth = Number.parseFloat(fills[1].getAttribute('data-width') ?? '0')
+    const savedWidth = Number.parseFloat(fills[2].getAttribute('data-width') ?? '0')
+    expect(paidWidth).toBeGreaterThan(0)
+    expect(fills[1]).toHaveAttribute('data-order', '0')
+    expect(savedWidth).toBeGreaterThan(0)
+    expect(fills[2]).toHaveAttribute('data-order', '1')
+    expect(paidWidth + savedWidth).toBeCloseTo(100, 5)
   })
 })

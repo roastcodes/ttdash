@@ -58,8 +58,12 @@ describe('AnimatedDashboardSection', () => {
     await initI18n('en')
   })
 
-  it('preloads before reveal and only activates chart animation once visible', () => {
-    const handlePreload = vi.fn()
+  it('preloads before reveal and only activates chart animation once visible', async () => {
+    let resolvePreload: (() => void) | null = null
+    const preloadPromise = new Promise<void>((resolve) => {
+      resolvePreload = resolve
+    })
+    const handlePreload = vi.fn(() => preloadPromise)
 
     render(
       <AnimatedDashboardSection
@@ -80,11 +84,17 @@ describe('AnimatedDashboardSection', () => {
     })
 
     expect(handlePreload).toHaveBeenCalledTimes(1)
-    expect(screen.getByTestId('section-visible')).toHaveTextContent('false')
-    expect(screen.getByTestId('chart-active')).toHaveTextContent('false')
+    expect(screen.queryByTestId('section-visible')).not.toBeInTheDocument()
 
     act(() => {
       MockIntersectionObserver.instances[1]?.trigger(true)
+    })
+
+    expect(screen.queryByTestId('section-visible')).not.toBeInTheDocument()
+
+    await act(async () => {
+      resolvePreload?.()
+      await preloadPromise
     })
 
     expect(screen.getByTestId('section-visible')).toHaveTextContent('true')
@@ -94,7 +104,8 @@ describe('AnimatedDashboardSection', () => {
       MockIntersectionObserver.instances.slice(2).forEach((observer) => observer.trigger(true))
     })
 
+    expect(screen.getByTestId('section-visible')).toHaveTextContent('true')
     expect(screen.getByTestId('chart-active')).toHaveTextContent('true')
-    expect(screen.getByTestId('chart-delay')).toHaveTextContent('190')
+    expect(screen.getByTestId('chart-delay')).toHaveTextContent('285')
   })
 })

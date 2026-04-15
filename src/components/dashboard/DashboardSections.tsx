@@ -153,6 +153,12 @@ function lazyWithPreload<T extends ComponentType<any>>(
   return Component
 }
 
+function preloadComponents(
+  ...components: Array<{ preload: () => Promise<unknown> }>
+): Promise<unknown[]> {
+  return Promise.all(components.map((component) => component.preload()))
+}
+
 interface DashboardSectionsProps {
   sectionOrder: DashboardSectionId[]
   sectionVisibility: Record<DashboardSectionId, boolean>
@@ -271,7 +277,10 @@ export function DashboardSections({
   const renderAnimatedSection = (
     sectionId: DashboardSectionId,
     children: ReactNode,
-    { eager = false, onPreload }: { eager?: boolean; onPreload?: () => void } = {},
+    {
+      eager = false,
+      onPreload,
+    }: { eager?: boolean; onPreload?: () => void | Promise<unknown> } = {},
   ) => {
     const sectionAnchorId =
       sectionId === 'costAnalysis'
@@ -437,8 +446,7 @@ export function DashboardSections({
               </>,
               {
                 onPreload: () => {
-                  void CostForecast.preload()
-                  void CacheROI.preload()
+                  return preloadComponents(CostForecast, CacheROI)
                 },
               },
             )
@@ -458,7 +466,7 @@ export function DashboardSections({
               ),
               {
                 onPreload: () => {
-                  void ProviderLimitsSection.preload()
+                  return preloadComponents(ProviderLimitsSection)
                 },
               },
             )
@@ -500,11 +508,13 @@ export function DashboardSections({
               </>,
               {
                 onPreload: () => {
-                  void CostByModelOverTime.preload()
-                  void CumulativeCost.preload()
-                  void CostByWeekday.preload()
-                  void TokenEfficiency.preload()
-                  void ModelMix.preload()
+                  return preloadComponents(
+                    CostByModelOverTime,
+                    CumulativeCost,
+                    CostByWeekday,
+                    TokenEfficiency,
+                    ModelMix,
+                  )
                 },
               },
             )
@@ -529,8 +539,7 @@ export function DashboardSections({
               </>,
               {
                 onPreload: () => {
-                  void TokensOverTime.preload()
-                  void TokenTypes.preload()
+                  return preloadComponents(TokensOverTime, TokenTypes)
                 },
               },
             )
@@ -572,9 +581,11 @@ export function DashboardSections({
               </>,
               {
                 onPreload: () => {
-                  void RequestsOverTime.preload()
-                  void RequestCacheHitRateByModel.preload()
-                  void RequestQuality.preload()
+                  return preloadComponents(
+                    RequestsOverTime,
+                    RequestCacheHitRateByModel,
+                    RequestQuality,
+                  )
                 },
               },
             )
@@ -607,8 +618,7 @@ export function DashboardSections({
               </>,
               {
                 onPreload: () => {
-                  void DistributionAnalysis.preload()
-                  void CorrelationAnalysis.preload()
+                  return preloadComponents(DistributionAnalysis, CorrelationAnalysis)
                 },
               },
             )
@@ -670,8 +680,7 @@ export function DashboardSections({
               </>,
               {
                 onPreload: () => {
-                  void PeriodComparison.preload()
-                  void AnomalyDetection.preload()
+                  return preloadComponents(PeriodComparison, AnomalyDetection)
                 },
               },
             )
@@ -717,9 +726,7 @@ export function DashboardSections({
               </>,
               {
                 onPreload: () => {
-                  void ModelEfficiency.preload()
-                  void ProviderEfficiency.preload()
-                  void RecentDays.preload()
+                  return preloadComponents(ModelEfficiency, ProviderEfficiency, RecentDays)
                 },
               },
             )

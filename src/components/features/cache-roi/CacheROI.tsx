@@ -81,6 +81,7 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
     0,
     Math.min(100, hypotheticalCost > 0 ? (actualCost / hypotheticalCost) * 100 : 100),
   )
+  const savedWidth = Math.max(0, 100 - barWidth)
   const withoutCacheTextClass = 'text-rose-700 dark:text-rose-300'
   const withCacheTextClass =
     savingsSign < 0 ? 'text-rose-700 dark:text-rose-300' : 'text-emerald-700 dark:text-emerald-300'
@@ -149,19 +150,31 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
           <div className="flex items-center gap-2 text-xs">
             <span className="w-24 text-muted-foreground">{t('cacheRoi.withoutCache')}</span>
             <div className={`h-6 flex-1 overflow-hidden rounded-md ${barTrackDangerClass}`}>
-              <AnimatedBarFill className={`h-full rounded-md ${barFillDangerClass}`} width="100%" />
+              <AnimatedBarFill
+                className={`h-full rounded-md ${barFillDangerClass}`}
+                width="100%"
+                order={0}
+              />
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-24 text-muted-foreground">{t('cacheRoi.withCache')}</span>
-            <div className="flex h-6 flex-1 overflow-hidden rounded-md bg-muted/20">
+            <div className="relative h-6 flex-1 overflow-hidden rounded-md bg-muted/20">
               <AnimatedBarFill
-                className={`h-full rounded-l-md ${hasPositiveSavings ? barFillSuccessClass : barFillDangerClass} transition-all duration-1000 motion-reduce:transition-none`}
+                className={`absolute inset-y-0 left-0 rounded-l-md ${hasPositiveSavings ? barFillSuccessClass : barFillDangerClass}`}
                 width={`${barWidth}%`}
+                order={0}
               />
-              <div
-                className={`h-full flex-1 rounded-r-md ${hasPositiveSavings ? barSavedSegmentClass : 'bg-muted/10'}`}
-              />
+              {hasPositiveSavings && savedWidth > 0 ? (
+                <AnimatedBarFill
+                  className={`absolute inset-y-0 rounded-r-md ${barSavedSegmentClass}`}
+                  style={{ left: `${barWidth}%` }}
+                  width={`${savedWidth}%`}
+                  order={1}
+                />
+              ) : (
+                <div className="absolute inset-y-0 right-0 left-0 bg-muted/10" />
+              )}
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground">

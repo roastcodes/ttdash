@@ -38,16 +38,31 @@ describe('CostOverTime', () => {
   })
 
   it('renders legend entries in a horizontally readable list', () => {
-    render(
+    const { container } = render(
       <ChartLegend
         payload={[
           { value: 'Cost', color: '#3b82f6' },
-          { value: '7-day avg', color: '#8b5cf6' },
+          { value: '7-day average with a much longer label', color: '#8b5cf6' },
         ]}
       />,
     )
 
     expect(screen.getByText('Cost')).toBeInTheDocument()
-    expect(screen.getByText('7-day avg')).toBeInTheDocument()
+    expect(screen.getByText('7-day average with a much longer label')).toBeInTheDocument()
+    expect(container.querySelector('.overflow-x-auto')).toBeNull()
+    expect(container.querySelector('.flex-wrap')).not.toBeNull()
+  })
+
+  it('supports custom legend labels while keeping the wrap layout', () => {
+    const { container } = render(
+      <ChartLegend
+        payload={[{ value: 'GPT-5.4', color: '#3b82f6' }]}
+        renderLabel={(entry) => `${entry.value} ($42.00)`}
+      />,
+    )
+
+    expect(screen.getByText('GPT-5.4 ($42.00)')).toBeInTheDocument()
+    expect(container.querySelector('.overflow-x-auto')).toBeNull()
+    expect(container.querySelector('.flex-wrap')).not.toBeNull()
   })
 })

@@ -431,18 +431,16 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                             content={<CustomTooltip formatter={(v) => formatRequests(v)} />}
                           />
                           <Legend
-                            wrapperStyle={{
-                              fontSize: '12px',
-                              paddingTop: expanded ? '18px' : '8px',
-                            }}
-                            formatter={(value: string) => {
-                              const entry = donutData.find((d) => d.name === value)
-                              return (
-                                <span className="text-xs text-foreground">
-                                  {value} ({entry ? formatRequests(entry.value) : ''})
-                                </span>
-                              )
-                            }}
+                            content={
+                              <ChartLegend
+                                className={expanded ? 'pt-[18px]' : 'pt-2'}
+                                renderLabel={(entry: { value?: string | number }) => {
+                                  const value = String(entry.value ?? '')
+                                  const segment = donutData.find((item) => item.name === value)
+                                  return `${value} (${segment ? formatRequests(segment.value) : ''})`
+                                }}
+                              />
+                            }
                           />
                         </PieChart>
                       </ResponsiveContainer>

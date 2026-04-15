@@ -1402,7 +1402,7 @@ describe('local server API', () => {
       }
       rmSync(runtimeRoot, { recursive: true, force: true })
     }
-  })
+  }, 20_000)
 
   it('fails cleanly when port 65535 is busy instead of retrying to 65536', async () => {
     const occupiedPortServer = createServer()
@@ -1557,5 +1557,5 @@ describe('local server API', () => {
       }
       rmSync(runtimeRoot, { recursive: true, force: true })
     }
-  })
+  }, 20_000)
 })

@@ -1,6 +1,7 @@
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import { getRadialAnimationProps } from './chart-theme'
 import { getModelColor } from '@/lib/model-utils'
@@ -94,15 +95,16 @@ export function CostByModel({ data }: CostByModelProps) {
                       </Pie>
                       <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
                       <Legend
-                        wrapperStyle={{ fontSize: '12px', paddingTop: expanded ? '22px' : '8px' }}
-                        formatter={(value: string) => {
-                          const entry = data.find((d) => d.name === value)
-                          return (
-                            <span className="text-xs text-foreground">
-                              {value} ({entry ? formatCurrency(entry.value) : ''})
-                            </span>
-                          )
-                        }}
+                        content={
+                          <ChartLegend
+                            className={expanded ? 'pt-[22px]' : 'pt-2'}
+                            renderLabel={(entry: { value?: string | number }) => {
+                              const value = String(entry.value ?? '')
+                              const segment = data.find((item) => item.name === value)
+                              return `${value} (${segment ? formatCurrency(segment.value) : ''})`
+                            }}
+                          />
+                        }
                       />
                     </PieChart>
                   </ResponsiveContainer>
