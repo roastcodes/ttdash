@@ -59,8 +59,14 @@ describe('AnimatedDashboardSection', () => {
   })
 
   it('preloads before reveal and only activates chart animation once visible', () => {
+    const handlePreload = vi.fn()
+
     render(
-      <AnimatedDashboardSection id="demo" placeholderClassName="min-h-[120px]">
+      <AnimatedDashboardSection
+        id="demo"
+        placeholderClassName="min-h-[120px]"
+        onPreload={handlePreload}
+      >
         <ChartCard title="Demo chart">
           <MotionProbe />
         </ChartCard>
@@ -73,15 +79,22 @@ describe('AnimatedDashboardSection', () => {
       MockIntersectionObserver.instances[0]?.trigger(true)
     })
 
+    expect(handlePreload).toHaveBeenCalledTimes(1)
     expect(screen.getByTestId('section-visible')).toHaveTextContent('false')
     expect(screen.getByTestId('chart-active')).toHaveTextContent('false')
-    expect(screen.getByTestId('chart-delay')).toHaveTextContent('120')
 
     act(() => {
       MockIntersectionObserver.instances[1]?.trigger(true)
     })
 
     expect(screen.getByTestId('section-visible')).toHaveTextContent('true')
+    expect(screen.getByTestId('chart-active')).toHaveTextContent('false')
+
+    act(() => {
+      MockIntersectionObserver.instances.slice(2).forEach((observer) => observer.trigger(true))
+    })
+
     expect(screen.getByTestId('chart-active')).toHaveTextContent('true')
+    expect(screen.getByTestId('chart-delay')).toHaveTextContent('190')
   })
 })

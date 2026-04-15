@@ -1,6 +1,5 @@
-import { useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, useInView } from 'framer-motion'
 import {
   Area,
   CartesianGrid,
@@ -17,7 +16,7 @@ import {
 import { AlertTriangle, CreditCard, ShieldCheck, TrendingUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { SectionHeader } from '@/components/ui/section-header'
-import { useDashboardSectionMotion } from '@/components/dashboard/dashboard-motion'
+import { DashboardMotionItem } from '@/components/dashboard/dashboard-motion'
 import { AnimatedBarFill } from '@/components/features/animations/AnimatedBarFill'
 import { ChartAnimationAware, ChartCard, ChartReveal } from '@/components/charts/ChartCard'
 import { ChartLegend } from '@/components/charts/ChartLegend'
@@ -103,10 +102,6 @@ export function ProviderLimitsSection({
   selectedMonth,
 }: ProviderLimitsSectionProps) {
   const { t } = useTranslation()
-  const sectionMotion = useDashboardSectionMotion()
-  const sectionRef = useRef<HTMLDivElement | null>(null)
-  const localInView = useInView(sectionRef, { once: true, amount: 0.2 })
-  const inView = sectionMotion?.sectionVisible ?? localInView
 
   const {
     rows,
@@ -229,7 +224,7 @@ export function ProviderLimitsSection({
   if (providers.length === 0) return null
 
   return (
-    <div ref={sectionRef}>
+    <div>
       <SectionHeader
         title={t('limits.sectionTitle')}
         badge={t('limits.providersBadge', { count: providers.length })}
@@ -238,17 +233,12 @@ export function ProviderLimitsSection({
       />
 
       {atLimitCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-          transition={{ duration: 0.35 }}
-          className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100"
-        >
+        <DashboardMotionItem className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
           <div className="flex items-center gap-2 font-medium">
             <AlertTriangle className="h-4 w-4" />
             {t('limits.warningBanner', { count: atLimitCount })}
           </div>
-        </motion.div>
+        </DashboardMotionItem>
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
@@ -278,12 +268,7 @@ export function ProviderLimitsSection({
             icon: <TrendingUp className="h-4 w-4" />,
           },
         ].map((item, index) => (
-          <motion.div
-            key={item.label}
-            initial={{ opacity: 0, y: 12 }}
-            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-            transition={{ duration: 0.35, delay: 0.04 * index }}
-          >
+          <DashboardMotionItem key={item.label} order={index}>
             <Card className="h-full">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -300,7 +285,7 @@ export function ProviderLimitsSection({
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </DashboardMotionItem>
         ))}
       </div>
 
@@ -316,12 +301,7 @@ export function ProviderLimitsSection({
           const subscriptionProgressWidth = Math.min(subscriptionProgress, 100)
 
           return (
-            <motion.div
-              key={row.provider}
-              initial={{ opacity: 0, y: 12 }}
-              animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-              transition={{ duration: 0.35, delay: 0.05 + index * 0.03 }}
-            >
+            <DashboardMotionItem key={row.provider} delayMs={80 + index * 35}>
               <Card
                 className={
                   row.riskStatus === 'limit'
@@ -393,7 +373,6 @@ export function ProviderLimitsSection({
                                   : 'h-full'
                             }
                             width={`${riskProgress}%`}
-                            active={inView}
                             delayMs={220 + index * 40}
                             durationMs={680}
                             {...(row.riskStatus === 'limit' || row.riskStatus === 'warning'
@@ -434,7 +413,6 @@ export function ProviderLimitsSection({
                                 : 'h-full bg-amber-300'
                             }
                             width={`${Math.max(8, subscriptionProgressWidth)}%`}
-                            active={inView}
                             delayMs={260 + index * 40}
                             durationMs={680}
                           />
@@ -446,7 +424,7 @@ export function ProviderLimitsSection({
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </DashboardMotionItem>
           )
         })}
       </div>
@@ -482,11 +460,9 @@ export function ProviderLimitsSection({
                   : '0%'
 
               return (
-                <motion.div
+                <DashboardMotionItem
                   key={row.provider}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-                  transition={{ duration: 0.35, delay: 0.04 + index * 0.04 }}
+                  delayMs={90 + index * 40}
                   className="rounded-xl border border-border/50 bg-muted/10 p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -537,7 +513,6 @@ export function ProviderLimitsSection({
                                 : 'absolute top-5 left-0 h-4 rounded-full bg-sky-400'
                             }
                             width={withinLimitWidth}
-                            active={inView}
                             delayMs={220 + index * 40}
                             durationMs={680}
                           />
@@ -547,7 +522,6 @@ export function ProviderLimitsSection({
                               className="absolute top-5 h-4 rounded-r-full bg-red-400"
                               style={{ left: limitPosition }}
                               width={overLimitWidth}
-                              active={inView}
                               delayMs={260 + index * 40}
                               durationMs={680}
                             />
@@ -568,7 +542,6 @@ export function ProviderLimitsSection({
                         <AnimatedBarFill
                           className="absolute top-5 left-0 h-4 rounded-full bg-muted-foreground/40"
                           width={costWidth}
-                          active={inView}
                           delayMs={220 + index * 40}
                           durationMs={680}
                         />
@@ -629,7 +602,7 @@ export function ProviderLimitsSection({
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </DashboardMotionItem>
               )
             })}
           </div>
@@ -666,11 +639,9 @@ export function ProviderLimitsSection({
                   : '0%'
 
               return (
-                <motion.div
+                <DashboardMotionItem
                   key={row.provider}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-                  transition={{ duration: 0.35, delay: 0.04 + index * 0.04 }}
+                  delayMs={90 + index * 40}
                   className="rounded-xl border border-border/50 bg-muted/10 p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -717,7 +688,6 @@ export function ProviderLimitsSection({
                           <AnimatedBarFill
                             className="absolute top-5 left-0 h-4 rounded-full bg-amber-300"
                             width={withinSubscriptionWidth}
-                            active={inView}
                             delayMs={220 + index * 40}
                             durationMs={680}
                           />
@@ -727,7 +697,6 @@ export function ProviderLimitsSection({
                               className="absolute top-5 h-4 rounded-r-full bg-emerald-400"
                               style={{ left: subPosition }}
                               width={overSubscriptionWidth}
-                              active={inView}
                               delayMs={260 + index * 40}
                               durationMs={680}
                             />
@@ -748,7 +717,6 @@ export function ProviderLimitsSection({
                         <AnimatedBarFill
                           className="absolute top-5 left-0 h-4 rounded-full bg-muted-foreground/40"
                           width={costWidth}
-                          active={inView}
                           delayMs={220 + index * 40}
                           durationMs={680}
                         />
@@ -809,7 +777,7 @@ export function ProviderLimitsSection({
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </DashboardMotionItem>
               )
             })}
           </div>

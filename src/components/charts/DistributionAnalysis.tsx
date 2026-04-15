@@ -1,4 +1,4 @@
-import { useId, useMemo } from 'react'
+import { useId, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   ResponsiveContainer,
@@ -11,11 +11,11 @@ import {
   Cell,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useDashboardElementMotion } from '@/components/dashboard/dashboard-motion'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { CHART_COLORS, CHART_MARGIN, getBarAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatTokens, periodLabel } from '@/lib/formatters'
-import { useShouldReduceMotion } from '@/lib/motion'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface DistributionAnalysisProps {
@@ -94,7 +94,12 @@ function DistributionTooltip({
 export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionAnalysisProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
-  const shouldReduceMotion = useShouldReduceMotion()
+  const cardRef = useRef<HTMLDivElement | null>(null)
+  const chartMotion = useDashboardElementMotion(cardRef, {
+    kind: 'chart',
+    amount: 0.28,
+  })
+  const animate = !chartMotion.shouldReduceMotion && chartMotion.active
 
   const distributions = useMemo(() => {
     if (data.length < 2) return []
@@ -123,7 +128,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
 
   if (data.length < 2) {
     return (
-      <Card>
+      <Card ref={cardRef}>
         <CardHeader>
           <InfoHeading info={CHART_HELP.distributionAnalysis}>
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -141,7 +146,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
   }
 
   return (
-    <Card>
+    <Card ref={cardRef}>
       <CardHeader>
         <InfoHeading info={CHART_HELP.distributionAnalysis}>
           <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -161,7 +166,11 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
                   {distribution.data.length} {t('charts.distribution.buckets')}
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={160}>
+              <ResponsiveContainer
+                key={`distribution-${chartMotion.runKey}-${index}`}
+                width="100%"
+                height={160}
+              >
                 <BarChart data={distribution.data} margin={CHART_MARGIN}>
                   <defs>
                     <linearGradient id={`${uid}-distribution-${index}`} x1="0" y1="0" x2="0" y2="1">
@@ -195,7 +204,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
                     dataKey="count"
                     radius={[6, 6, 0, 0]}
                     fill={`url(#${uid}-distribution-${index})`}
-                    {...getBarAnimationProps(!shouldReduceMotion, index)}
+                    {...getBarAnimationProps(animate, index)}
                   >
                     {distribution.data.map((_, binIndex) => {
                       const intensity =

@@ -62,7 +62,7 @@ describe('CacheROI', () => {
     expect(savingsValue).toHaveClass('text-rose-700')
 
     const withCacheRow = screen.getByText('With cache').parentElement
-    const withCacheBar = withCacheRow?.querySelector('[style*="width: 100%"]') as HTMLElement | null
+    const withCacheBar = withCacheRow?.querySelector('.bg-rose-500\\/60') as HTMLElement | null
     expect(withCacheBar).not.toBeNull()
     expect(withCacheBar?.className).toContain('bg-rose-500/60')
     expect(container.querySelector('[style*="width: 120%"]')).toBeNull()

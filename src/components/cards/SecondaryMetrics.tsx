@@ -1,5 +1,6 @@
 import { TrendingUp, ChartBar, Sigma, Building2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { DashboardMotionItem } from '@/components/dashboard/dashboard-motion'
 import { MetricCard } from './MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import {
@@ -74,52 +75,60 @@ export function SecondaryMetrics({
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <MetricCard
-        label={
-          viewMode === 'yearly'
-            ? t('metricCards.secondary.mostExpensiveYear')
-            : viewMode === 'monthly'
-              ? t('metricCards.secondary.mostExpensiveMonth')
-              : t('metricCards.secondary.mostExpensiveDay')
-        }
-        value={
-          metrics.topDay ? <FormattedValue value={metrics.topDay.cost} type="currency" /> : '–'
-        }
-        icon={<TrendingUp className="h-4 w-4" />}
-        info={METRIC_HELP.mostExpensiveDay}
-        {...(topDaySubtitle ? { subtitle: topDaySubtitle } : {})}
-      />
-      <MetricCard
-        label={t('metricCards.secondary.dominantProvider')}
-        value={metrics.topProvider?.name ?? '–'}
-        icon={<Building2 className="h-4 w-4" />}
-        info={t('metricCards.secondary.medianInfo')}
-        {...(topProviderSubtitle ? { subtitle: topProviderSubtitle } : {})}
-      />
-      <MetricCard
-        label={
-          viewMode === 'daily'
-            ? t('metricCards.secondary.peak7Days')
-            : t('metricCards.secondary.avgCostPerUnit', { unit: periodUnit(viewMode) })
-        }
-        value={
-          viewMode === 'daily' && metrics.busiestWeek ? (
-            <FormattedValue value={metrics.busiestWeek.cost} type="currency" />
-          ) : (
-            <FormattedValue value={metrics.avgDailyCost} type="currency" />
-          )
-        }
-        icon={<ChartBar className="h-4 w-4" />}
-        info={METRIC_HELP.avgCostPerDay}
-        {...(peakSubtitle ? { subtitle: peakSubtitle } : {})}
-      />
-      <MetricCard
-        label={t('metricCards.secondary.medianPerUnit', { unit: periodUnit(viewMode) })}
-        value={median !== null ? <FormattedValue value={median} type="currency" /> : '–'}
-        icon={<Sigma className="h-4 w-4" />}
-        info={t('metricCards.secondary.medianInfo')}
-        {...(medianSubtitle ? { subtitle: medianSubtitle } : {})}
-      />
+      <DashboardMotionItem order={0}>
+        <MetricCard
+          label={
+            viewMode === 'yearly'
+              ? t('metricCards.secondary.mostExpensiveYear')
+              : viewMode === 'monthly'
+                ? t('metricCards.secondary.mostExpensiveMonth')
+                : t('metricCards.secondary.mostExpensiveDay')
+          }
+          value={
+            metrics.topDay ? <FormattedValue value={metrics.topDay.cost} type="currency" /> : '–'
+          }
+          icon={<TrendingUp className="h-4 w-4" />}
+          info={METRIC_HELP.mostExpensiveDay}
+          {...(topDaySubtitle ? { subtitle: topDaySubtitle } : {})}
+        />
+      </DashboardMotionItem>
+      <DashboardMotionItem order={1}>
+        <MetricCard
+          label={t('metricCards.secondary.dominantProvider')}
+          value={metrics.topProvider?.name ?? '–'}
+          icon={<Building2 className="h-4 w-4" />}
+          info={t('metricCards.secondary.medianInfo')}
+          {...(topProviderSubtitle ? { subtitle: topProviderSubtitle } : {})}
+        />
+      </DashboardMotionItem>
+      <DashboardMotionItem order={2}>
+        <MetricCard
+          label={
+            viewMode === 'daily'
+              ? t('metricCards.secondary.peak7Days')
+              : t('metricCards.secondary.avgCostPerUnit', { unit: periodUnit(viewMode) })
+          }
+          value={
+            viewMode === 'daily' && metrics.busiestWeek ? (
+              <FormattedValue value={metrics.busiestWeek.cost} type="currency" />
+            ) : (
+              <FormattedValue value={metrics.avgDailyCost} type="currency" />
+            )
+          }
+          icon={<ChartBar className="h-4 w-4" />}
+          info={METRIC_HELP.avgCostPerDay}
+          {...(peakSubtitle ? { subtitle: peakSubtitle } : {})}
+        />
+      </DashboardMotionItem>
+      <DashboardMotionItem order={3}>
+        <MetricCard
+          label={t('metricCards.secondary.medianPerUnit', { unit: periodUnit(viewMode) })}
+          value={median !== null ? <FormattedValue value={median} type="currency" /> : '–'}
+          icon={<Sigma className="h-4 w-4" />}
+          info={t('metricCards.secondary.medianInfo')}
+          {...(medianSubtitle ? { subtitle: medianSubtitle } : {})}
+        />
+      </DashboardMotionItem>
     </div>
   )
 }

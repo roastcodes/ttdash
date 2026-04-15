@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { motion } from 'framer-motion'
+import { useDashboardSectionMotion } from '@/components/dashboard/dashboard-motion'
 import { cn } from '@/lib/cn'
 import { useShouldReduceMotion } from '@/lib/motion'
 
@@ -7,18 +8,25 @@ type CardProps = React.ComponentPropsWithoutRef<typeof motion.div>
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, ...props }, ref) => {
   const shouldReduceMotion = useShouldReduceMotion()
+  const dashboardSectionMotion = useDashboardSectionMotion()
   const motionProps = shouldReduceMotion
     ? {
         initial: false as const,
         animate: { opacity: 1, y: 0 },
         transition: { duration: 0 },
       }
-    : {
-        initial: { opacity: 0, y: 14 },
-        whileInView: { opacity: 1, y: 0 },
-        viewport: { once: true, amount: 0.15 },
-        transition: { duration: 0.35, ease: 'easeOut' as const },
-      }
+    : dashboardSectionMotion
+      ? {
+          initial: false as const,
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0 },
+        }
+      : {
+          initial: { opacity: 0, y: 14 },
+          whileInView: { opacity: 1, y: 0 },
+          viewport: { once: true, amount: 0.15 },
+          transition: { duration: 0.35, ease: 'easeOut' as const },
+        }
 
   return (
     <motion.div

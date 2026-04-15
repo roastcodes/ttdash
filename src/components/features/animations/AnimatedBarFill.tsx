@@ -1,6 +1,7 @@
 import { motion, type MotionStyle } from 'framer-motion'
+import { useRef } from 'react'
 import type { CSSProperties } from 'react'
-import { useDashboardSectionMotion } from '@/components/dashboard/dashboard-motion'
+import { useDashboardElementMotion } from '@/components/dashboard/dashboard-motion'
 import { cn } from '@/lib/cn'
 import { useShouldReduceMotion } from '@/lib/motion'
 
@@ -22,15 +23,21 @@ export function AnimatedBarFill({
   delayMs,
   durationMs,
 }: AnimatedBarFillProps) {
-  const sectionMotion = useDashboardSectionMotion()
+  const fillRef = useRef<HTMLDivElement | null>(null)
+  const elementMotion = useDashboardElementMotion(fillRef, {
+    kind: 'meter',
+    amount: 0.2,
+    ...(delayMs !== undefined ? { delayMs } : {}),
+  })
   const shouldReduceMotion = useShouldReduceMotion()
-  const isActive = active ?? sectionMotion?.sectionVisible ?? true
-  const resolvedDelayMs = delayMs ?? sectionMotion?.meterStartDelayMs ?? 180
+  const isActive = active ?? elementMotion.active
+  const resolvedDelayMs = delayMs ?? elementMotion.delayMs
   const resolvedDurationMs = durationMs ?? 560
 
   if (shouldReduceMotion) {
     return (
       <div
+        ref={fillRef}
         className={cn(className)}
         style={{
           ...style,
@@ -42,6 +49,7 @@ export function AnimatedBarFill({
 
   return (
     <motion.div
+      ref={fillRef}
       className={cn(className)}
       {...(style ? { style: style as unknown as MotionStyle } : {})}
       initial={false}

@@ -149,10 +149,7 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
           <div className="flex items-center gap-2 text-xs">
             <span className="w-24 text-muted-foreground">{t('cacheRoi.withoutCache')}</span>
             <div className={`h-6 flex-1 overflow-hidden rounded-md ${barTrackDangerClass}`}>
-              <div
-                className={`h-full rounded-md ${barFillDangerClass}`}
-                style={{ width: '100%' }}
-              />
+              <AnimatedBarFill className={`h-full rounded-md ${barFillDangerClass}`} width="100%" />
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs">

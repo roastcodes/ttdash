@@ -1,4 +1,11 @@
-import { Fragment, Suspense, lazy, type ReactNode } from 'react'
+import {
+  Fragment,
+  Suspense,
+  lazy,
+  type ComponentType,
+  type LazyExoticComponent,
+  type ReactNode,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { PrimaryMetrics } from '../cards/PrimaryMetrics'
 import { SecondaryMetrics } from '../cards/SecondaryMetrics'
@@ -31,106 +38,120 @@ import type {
   WeekdayData,
 } from '@/types'
 
-const CostForecast = lazy(() =>
+const CostForecast = lazyWithPreload(() =>
   import('../features/forecast/CostForecast').then((module) => ({
     default: module.CostForecast,
   })),
 )
-const CostByModelOverTime = lazy(() =>
+const CostByModelOverTime = lazyWithPreload(() =>
   import('../charts/CostByModelOverTime').then((module) => ({
     default: module.CostByModelOverTime,
   })),
 )
-const CumulativeCost = lazy(() =>
+const CumulativeCost = lazyWithPreload(() =>
   import('../charts/CumulativeCost').then((module) => ({
     default: module.CumulativeCost,
   })),
 )
-const CostByWeekday = lazy(() =>
+const CostByWeekday = lazyWithPreload(() =>
   import('../charts/CostByWeekday').then((module) => ({
     default: module.CostByWeekday,
   })),
 )
-const TokenEfficiency = lazy(() =>
+const TokenEfficiency = lazyWithPreload(() =>
   import('../charts/TokenEfficiency').then((module) => ({
     default: module.TokenEfficiency,
   })),
 )
-const ModelMix = lazy(() =>
+const ModelMix = lazyWithPreload(() =>
   import('../charts/ModelMix').then((module) => ({
     default: module.ModelMix,
   })),
 )
-const TokensOverTime = lazy(() =>
+const TokensOverTime = lazyWithPreload(() =>
   import('../charts/TokensOverTime').then((module) => ({
     default: module.TokensOverTime,
   })),
 )
-const TokenTypes = lazy(() =>
+const TokenTypes = lazyWithPreload(() =>
   import('../charts/TokenTypes').then((module) => ({
     default: module.TokenTypes,
   })),
 )
-const RequestsOverTime = lazy(() =>
+const RequestsOverTime = lazyWithPreload(() =>
   import('../charts/RequestsOverTime').then((module) => ({
     default: module.RequestsOverTime,
   })),
 )
-const RequestCacheHitRateByModel = lazy(() =>
+const RequestCacheHitRateByModel = lazyWithPreload(() =>
   import('../charts/RequestCacheHitRateByModel').then((module) => ({
     default: module.RequestCacheHitRateByModel,
   })),
 )
-const CacheROI = lazy(() =>
+const CacheROI = lazyWithPreload(() =>
   import('../features/cache-roi/CacheROI').then((module) => ({
     default: module.CacheROI,
   })),
 )
-const ProviderLimitsSection = lazy(() =>
+const ProviderLimitsSection = lazyWithPreload(() =>
   import('../features/limits/ProviderLimitsSection').then((module) => ({
     default: module.ProviderLimitsSection,
   })),
 )
-const RequestQuality = lazy(() =>
+const RequestQuality = lazyWithPreload(() =>
   import('../features/request-quality/RequestQuality').then((module) => ({
     default: module.RequestQuality,
   })),
 )
-const DistributionAnalysis = lazy(() =>
+const DistributionAnalysis = lazyWithPreload(() =>
   import('../charts/DistributionAnalysis').then((module) => ({
     default: module.DistributionAnalysis,
   })),
 )
-const CorrelationAnalysis = lazy(() =>
+const CorrelationAnalysis = lazyWithPreload(() =>
   import('../charts/CorrelationAnalysis').then((module) => ({
     default: module.CorrelationAnalysis,
   })),
 )
-const PeriodComparison = lazy(() =>
+const PeriodComparison = lazyWithPreload(() =>
   import('../features/comparison/PeriodComparison').then((module) => ({
     default: module.PeriodComparison,
   })),
 )
-const AnomalyDetection = lazy(() =>
+const AnomalyDetection = lazyWithPreload(() =>
   import('../features/anomaly/AnomalyDetection').then((module) => ({
     default: module.AnomalyDetection,
   })),
 )
-const ModelEfficiency = lazy(() =>
+const ModelEfficiency = lazyWithPreload(() =>
   import('../tables/ModelEfficiency').then((module) => ({
     default: module.ModelEfficiency,
   })),
 )
-const ProviderEfficiency = lazy(() =>
+const ProviderEfficiency = lazyWithPreload(() =>
   import('../tables/ProviderEfficiency').then((module) => ({
     default: module.ProviderEfficiency,
   })),
 )
-const RecentDays = lazy(() =>
+const RecentDays = lazyWithPreload(() =>
   import('../tables/RecentDays').then((module) => ({
     default: module.RecentDays,
   })),
 )
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PreloadableLazyComponent<T extends ComponentType<any>> = LazyExoticComponent<T> & {
+  preload: () => Promise<{ default: T }>
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lazyWithPreload<T extends ComponentType<any>>(
+  loader: () => Promise<{ default: T }>,
+): PreloadableLazyComponent<T> {
+  const Component = lazy(loader) as PreloadableLazyComponent<T>
+  Component.preload = loader
+  return Component
+}
 
 interface DashboardSectionsProps {
   sectionOrder: DashboardSectionId[]
@@ -250,7 +271,7 @@ export function DashboardSections({
   const renderAnimatedSection = (
     sectionId: DashboardSectionId,
     children: ReactNode,
-    { eager = false }: { eager?: boolean } = {},
+    { eager = false, onPreload }: { eager?: boolean; onPreload?: () => void } = {},
   ) => {
     const sectionAnchorId =
       sectionId === 'costAnalysis'
@@ -270,6 +291,7 @@ export function DashboardSections({
         id={sectionAnchorId}
         eager={eager}
         placeholderClassName={sectionPlaceholderClassName[sectionId]}
+        onPreload={onPreload}
       >
         {children}
       </AnimatedDashboardSection>
@@ -413,6 +435,12 @@ export function DashboardSections({
                   )}
                 </div>
               </>,
+              {
+                onPreload: () => {
+                  void CostForecast.preload()
+                  void CacheROI.preload()
+                },
+              },
             )
           : null
       case 'limits':
@@ -428,6 +456,11 @@ export function DashboardSections({
                 />,
                 'h-[420px]',
               ),
+              {
+                onPreload: () => {
+                  void ProviderLimitsSection.preload()
+                },
+              },
             )
           : null
       case 'costAnalysis':
@@ -465,6 +498,15 @@ export function DashboardSections({
                   {renderLazySection(<ModelMix data={filteredData} />, 'h-[320px]')}
                 </div>
               </>,
+              {
+                onPreload: () => {
+                  void CostByModelOverTime.preload()
+                  void CumulativeCost.preload()
+                  void CostByWeekday.preload()
+                  void TokenEfficiency.preload()
+                  void ModelMix.preload()
+                },
+              },
             )
           : null
       case 'tokenAnalysis':
@@ -485,6 +527,12 @@ export function DashboardSections({
                   {renderLazySection(<TokenTypes data={tokenPieData} />, 'h-[320px]')}
                 </div>
               </>,
+              {
+                onPreload: () => {
+                  void TokensOverTime.preload()
+                  void TokenTypes.preload()
+                },
+              },
             )
           : null
       case 'requestAnalysis':
@@ -522,6 +570,13 @@ export function DashboardSections({
                   )}
                 </div>
               </>,
+              {
+                onPreload: () => {
+                  void RequestsOverTime.preload()
+                  void RequestCacheHitRateByModel.preload()
+                  void RequestQuality.preload()
+                },
+              },
             )
           : null
       case 'advancedAnalysis':
@@ -550,6 +605,12 @@ export function DashboardSections({
                   {renderLazySection(<CorrelationAnalysis data={filteredData} />, 'h-[320px]')}
                 </div>
               </>,
+              {
+                onPreload: () => {
+                  void DistributionAnalysis.preload()
+                  void CorrelationAnalysis.preload()
+                },
+              },
             )
           : null
       case 'comparisons':
@@ -607,6 +668,12 @@ export function DashboardSections({
                   )}
                 </div>
               </>,
+              {
+                onPreload: () => {
+                  void PeriodComparison.preload()
+                  void AnomalyDetection.preload()
+                },
+              },
             )
           : null
       case 'tables':
@@ -648,6 +715,13 @@ export function DashboardSections({
                   )}
                 </div>
               </>,
+              {
+                onPreload: () => {
+                  void ModelEfficiency.preload()
+                  void ProviderEfficiency.preload()
+                  void RecentDays.preload()
+                },
+              },
             )
           : null
       default:

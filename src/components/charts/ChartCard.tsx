@@ -15,6 +15,7 @@ import { Maximize2 } from 'lucide-react'
 import { InfoButton } from '@/components/features/help/InfoButton'
 import {
   DASHBOARD_MOTION,
+  useDashboardElementMotion,
   useDashboardSectionMotion,
 } from '@/components/dashboard/dashboard-motion'
 import { CHART_ANIMATION } from './chart-theme'
@@ -56,9 +57,14 @@ export function buildChartCsv(chartData: Record<string, unknown>[]): string {
 interface ChartAnimationState {
   active: boolean
   delayMs: number
+  runKey: number
 }
 
-const ChartAnimationContext = createContext<ChartAnimationState>({ active: false, delayMs: 0 })
+const ChartAnimationContext = createContext<ChartAnimationState>({
+  active: false,
+  delayMs: 0,
+  runKey: 0,
+})
 
 /** Returns whether chart-specific animation should currently run. */
 export function useChartAnimationActive() {
@@ -73,6 +79,11 @@ export function useChartAnimationState() {
 /** Returns the current chart animation delay in milliseconds. */
 export function useChartAnimationDelay() {
   return useContext(ChartAnimationContext).delayMs
+}
+
+/** Returns the current chart animation run key. */
+export function useChartAnimationRunKey() {
+  return useContext(ChartAnimationContext).runKey
 }
 
 /** Exposes the current chart animation state to a render prop. */
@@ -91,7 +102,7 @@ interface ChartRevealProps {
 export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
   const shouldReduceMotion = useShouldReduceMotion()
   const active = useChartAnimationActive()
-  const delayMs = useChartAnimationDelay()
+  const runKey = useChartAnimationRunKey()
   const wrapperStyle = {
     width: '100%',
     height: '100%',
@@ -113,11 +124,11 @@ export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
       animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
       transition={{
         duration: CHART_ANIMATION.revealDuration / 1000,
-        delay: active ? delayMs / 1000 : 0,
+        delay: 0,
         ease: DASHBOARD_MOTION.sectionRevealEase,
       }}
     >
-      {children}
+      <div key={shouldReduceMotion ? 'reduced-motion' : `chart-run-${runKey}`}>{children}</div>
     </motion.div>
   )
 }
@@ -141,23 +152,36 @@ export function ChartCard({
   const [expanded, setExpanded] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
   const isInView = useInView(cardRef, { once: true, amount: 0.25 })
+  const elementMotion = useDashboardElementMotion(cardRef, {
+    kind: 'chart',
+    amount: 0.3,
+  })
   const animationState = useMemo<ChartAnimationState>(() => {
     if (expanded) {
-      return { active: true, delayMs: 0 }
+      return { active: true, delayMs: 0, runKey: 1 }
     }
 
     if (sectionMotion) {
       return {
-        active: sectionMotion.sectionVisible,
-        delayMs: sectionMotion.chartStartDelayMs,
+        active: elementMotion.active,
+        delayMs: elementMotion.delayMs,
+        runKey: elementMotion.runKey,
       }
     }
 
     return {
       active: isInView,
       delayMs: DASHBOARD_MOTION.chartStartDelayMs,
+      runKey: isInView ? 1 : 0,
     }
-  }, [expanded, isInView, sectionMotion])
+  }, [
+    elementMotion.active,
+    elementMotion.delayMs,
+    elementMotion.runKey,
+    expanded,
+    isInView,
+    sectionMotion,
+  ])
 
   const stats = useMemo(() => {
     if (!chartData || !valueKey) return null
@@ -234,7 +258,7 @@ export function ChartCard({
             <DialogDescription className="sr-only">
               {t('chartCard.expandedDescription')}
             </DialogDescription>
-            <ChartAnimationContext.Provider value={{ active: expanded, delayMs: 0 }}>
+            <ChartAnimationContext.Provider value={{ active: expanded, delayMs: 0, runKey: 1 }}>
               <div className="relative flex h-full flex-col">
                 <div className="p-4 pb-2 sm:p-6">
                   <div className="flex items-center justify-between">
