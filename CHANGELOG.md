@@ -1,5 +1,26 @@
 # Changelog
 
+## [6.2.2] - 2026-04-15
+
+### Added
+
+- **Zentrales Motion-System für Dashboard-Sektionen und Einzel-Visualisierungen** — ein gemeinsamer Section-/Element-Lifecycle steuert jetzt Preload, Reveal und sichtbarkeitsgebundene Aufbauanimationen für Karten, Diagramme und Wertbalken konsistent aus einer Quelle
+- **Gezielte Motion-Regressionstests für Dashboard und Diagramme** — neue Frontend-Tests decken Section-Preloading, sichtbarkeitsgebundene Chart-Starts, Histogramm-/Snapshot-Verhalten, responsives Legend-Layout sowie ROI-/Limits-Bar-Aufbau gezielt ab
+
+### Improved
+
+- **Dashboard-Animationen und Ladeverhalten** — Sektionen werden vor dem Eintritt robuster vorbereitet, blenden ruhiger ein und starten Diagramm- sowie Meter-Aufbauten zeitlich harmonischer und deutlich konsistenter als zuvor
+- **Diagramm-Aufbau über das gesamte Dashboard** — Linien-, Flächen-, Balken-, Donut-, Scatter- und Heatmap-Visualisierungen nutzen jetzt abgestimmtere Timings, sichtbarkeitsgebundene Starts und ein ruhigeres Motion-Tuning statt gemischter Einzelpfade
+- **Heatmap-, KPI- und Meter-Reveals** — Heatmaps bauen sich wochenweise auf, KPI-/Insight-Gruppen folgen einem gleichmäßigeren Reveal, und Dashboard-Bars verwenden denselben orchestrierten Startpfad wie die übrigen Visualisierungen
+- **Legendendarstellung in Diagrammen mit vielen Labels** — Chart-Legenden umbrechen jetzt responsiv auf mehrere Zeilen statt horizontal zu scrollen, einschließlich der betreffenden Linien- und Donut-Diagramme
+- **Verifizierbarkeit der Motion- und Chart-Änderungen** — zusätzliche gezielte Tests für Anfragequalität, Verteilungen, Cache-Hit-Rate, Legend-Integrationen und Motion-Zeitverhalten sichern die neue Dashboard-Politur gegen Regressionen ab
+
+### Fixed
+
+- **Vorzeitig fertig geladene oder flackernde Diagrammanimationen** — Chart-Aufbauten laufen nicht mehr verdeckt vor dem sichtbaren Reveal ab, sondern starten erst dann, wenn Section und konkretes Diagramm tatsächlich sichtbar sind
+- **Inkonsistente Bar- und Vergleichsanimationen in Sekundärflächen** — Anfragequalität, Cache-Ersparnis (ROI), Limits & Abonnements sowie weitere Dashboard-Bars verwenden jetzt keine widersprüchlichen lokalen Sonderpfade oder künstlichen Mindestbreiten mehr
+- **Chart-spezifische Darstellungsprobleme in Analyseflächen** — das Verteilungs-Histogramm folgt jetzt dem gemeinsamen Chart-Lifecycle, der Modell-Snapshot der Cache-Hit-Rate ist visuell sauberer gewichtet, und mehrere Legend-/Label-Pfade reagieren auf engem Platz stabiler
+
 ## [6.2.1] - 2026-04-15
 
 ### Added
