@@ -149,6 +149,7 @@ export function Header({
                 variant="ghost"
                 size="icon"
                 onClick={() => onHelpOpenChange(true)}
+                aria-label={t('header.help')}
                 title={t('header.help')}
               >
                 <CircleHelp className="h-4 w-4" />
@@ -157,6 +158,7 @@ export function Header({
                 variant="ghost"
                 size="icon"
                 onClick={onToggleTheme}
+                aria-label={t('commandPalette.commands.themeDark.description')}
                 title={t('commandPalette.commands.themeDark.description')}
               >
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -188,6 +190,7 @@ export function Header({
                 key={language}
                 type="button"
                 onClick={() => onLanguageChange(language)}
+                aria-pressed={currentLanguage === language}
                 className={`rounded px-2 py-1 text-[10px] font-medium transition-colors ${currentLanguage === language ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                 title={t(`app.languages.${language}`)}
               >
@@ -199,6 +202,7 @@ export function Header({
             variant="ghost"
             size="icon"
             onClick={() => onHelpOpenChange(true)}
+            aria-label={t('header.help')}
             title={t('header.help')}
           >
             <CircleHelp className="h-4 w-4" />
@@ -210,6 +214,7 @@ export function Header({
             variant="ghost"
             size="icon"
             onClick={onToggleTheme}
+            aria-label={t('commandPalette.commands.themeDark.description')}
             title={t('commandPalette.commands.themeDark.description')}
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

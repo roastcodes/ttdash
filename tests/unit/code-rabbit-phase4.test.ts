@@ -93,21 +93,24 @@ describe('phase 4 correctness helpers', () => {
   })
 
   it('keeps weekday labels aligned with Monday-first buckets', () => {
-    const weekdayData = toWeekdayData([
-      {
-        date: '2026-04-06',
-        inputTokens: 10,
-        outputTokens: 5,
-        cacheCreationTokens: 0,
-        cacheReadTokens: 0,
-        thinkingTokens: 0,
-        totalTokens: 15,
-        totalCost: 9,
-        requestCount: 1,
-        modelsUsed: ['gpt-5.4'],
-        modelBreakdowns: [],
-      },
-    ])
+    const weekdayData = toWeekdayData(
+      [
+        {
+          date: '2026-04-06',
+          inputTokens: 10,
+          outputTokens: 5,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          thinkingTokens: 0,
+          totalTokens: 15,
+          totalCost: 9,
+          requestCount: 1,
+          modelsUsed: ['gpt-5.4'],
+          modelBreakdowns: [],
+        },
+      ],
+      'de-CH',
+    )
 
     expect(weekdayData[0]?.day).toBe('Mo')
     expect(weekdayData[0]?.cost).toBe(9)

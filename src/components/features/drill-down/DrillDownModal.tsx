@@ -838,17 +838,23 @@ export function DrillDownModal({
           <div className="rounded-xl border border-border/50 bg-muted/10 p-3">
             <div className="flex h-3 overflow-hidden rounded-full">
               {hasTokens &&
-                tokenSegments.map((segment) => (
-                  <div
-                    key={segment.id}
-                    className="h-full transition-all duration-500"
-                    style={{
-                      width: `${(segment.value / tokensTotal) * 100}%`,
-                      backgroundColor: segment.color,
-                    }}
-                    title={`${segment.label}: ${formatTokens(segment.value)} (${((segment.value / tokensTotal) * 100).toFixed(1)}%)`}
-                  />
-                ))}
+                tokenSegments.map((segment) => {
+                  const share = ((segment.value / tokensTotal) * 100).toFixed(1)
+                  const segmentLabel = `${segment.label}: ${formatTokens(segment.value)} (${share}%)`
+
+                  return (
+                    <div
+                      key={segment.id}
+                      className="h-full transition-all duration-500"
+                      style={{
+                        width: `${(segment.value / tokensTotal) * 100}%`,
+                        backgroundColor: segment.color,
+                      }}
+                      title={segmentLabel}
+                      aria-label={segmentLabel}
+                    />
+                  )
+                })}
             </div>
             <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2 lg:grid-cols-5">
               {tokenSegments.map((segment) => (

@@ -186,6 +186,10 @@ export function HeatmapCalendar({
     setTimeout(callback, 0)
   }, [])
   const availableDates = useMemo(() => cells.map((cell) => cell.date), [cells])
+  const cellRows = useMemo(
+    () => Array.from({ length: 7 }, (_, day) => cells.filter((cell) => cell.day === day)),
+    [cells],
+  )
   const defaultFocusedDate = useMemo(
     () =>
       (availableDates.includes(todayStr) ? todayStr : null) ??
@@ -298,7 +302,15 @@ export function HeatmapCalendar({
       <CardContent className="overflow-visible">
         <div ref={overlayRef} className="relative z-10 overflow-visible">
           <div className="overflow-x-auto overflow-y-hidden">
-            <svg width={svgWidth} height={svgHeight} className="block">
+            <svg
+              width={svgWidth}
+              height={svgHeight}
+              className="block"
+              role="grid"
+              aria-label={config.title}
+              aria-rowcount={7}
+              aria-colcount={weeks}
+            >
               {/* Day labels */}
               {dayLabels.map(
                 (label, i) =>
@@ -331,76 +343,83 @@ export function HeatmapCalendar({
               ))}
 
               {/* Cells */}
-              {cells.map((cell, i) => {
-                const isToday = cell.date === todayStr
-                const formattedDate = fullDateFormatter.format(new Date(`${cell.date}T00:00:00`))
-                const accessibleLabel = t('charts.heatmap.cellLabel', {
-                  date: formattedDate,
-                  value: config.formatter(cell.value),
-                })
-                return (
-                  <g key={i}>
-                    <rect
-                      ref={(node) => {
-                        if (node) dayButtonRefs.current.set(cell.date, node)
-                        else dayButtonRefs.current.delete(cell.date)
-                      }}
-                      x={LEFT_GUTTER + cell.week * TOTAL}
-                      y={TOP_GUTTER + cell.day * TOTAL}
-                      width={CELL_SIZE}
-                      height={CELL_SIZE}
-                      rx={2}
-                      fill={getColor(cell.value, maxValue, config.hue, isDarkTheme)}
-                      stroke="transparent"
-                      strokeWidth={1.5}
-                      className="transition-all duration-150 focus-visible:stroke-primary"
-                      tabIndex={focusedDate === cell.date ? 0 : -1}
-                      role="gridcell"
-                      aria-label={accessibleLabel}
-                      aria-current={isToday ? 'date' : undefined}
-                      onKeyDown={(event) => handleCellKeyDown(event, cell.date)}
-                      onMouseEnter={(event) => {
-                        const bounds = overlayRef.current?.getBoundingClientRect()
-                        if (!bounds) return
-                        setTooltip({
-                          x: event.clientX - bounds.left,
-                          y: event.clientY - bounds.top - 12,
-                          date: formattedDate,
-                          value: cell.value,
-                        })
-                      }}
-                      onFocus={(event) => {
-                        setFocusedDate(cell.date)
-                        const bounds = overlayRef.current?.getBoundingClientRect()
-                        if (!bounds) return
-                        const rect = event.currentTarget.getBoundingClientRect()
-                        setTooltip({
-                          x: rect.left - bounds.left + rect.width / 2,
-                          y: rect.top - bounds.top - 8,
-                          date: formattedDate,
-                          value: cell.value,
-                        })
-                      }}
-                      onBlur={() => setTooltip(null)}
-                      onMouseLeave={() => setTooltip(null)}
-                    >
-                      <title>{accessibleLabel}</title>
-                    </rect>
-                    {isToday && (
-                      <rect
-                        x={LEFT_GUTTER + cell.week * TOTAL - 1}
-                        y={TOP_GUTTER + cell.day * TOTAL - 1}
-                        width={CELL_SIZE + 2}
-                        height={CELL_SIZE + 2}
-                        rx={3}
-                        fill="none"
-                        stroke={todayOutlineColor}
-                        strokeWidth={1.5}
-                      />
-                    )}
-                  </g>
-                )
-              })}
+              {cellRows.map((row, rowIndex) => (
+                <g key={rowIndex} role="row">
+                  {row.map((cell) => {
+                    const isToday = cell.date === todayStr
+                    const formattedDate = fullDateFormatter.format(
+                      new Date(`${cell.date}T00:00:00`),
+                    )
+                    const accessibleLabel = t('charts.heatmap.cellLabel', {
+                      date: formattedDate,
+                      value: config.formatter(cell.value),
+                    })
+
+                    return (
+                      <g key={cell.date}>
+                        <rect
+                          ref={(node) => {
+                            if (node) dayButtonRefs.current.set(cell.date, node)
+                            else dayButtonRefs.current.delete(cell.date)
+                          }}
+                          x={LEFT_GUTTER + cell.week * TOTAL}
+                          y={TOP_GUTTER + cell.day * TOTAL}
+                          width={CELL_SIZE}
+                          height={CELL_SIZE}
+                          rx={2}
+                          fill={getColor(cell.value, maxValue, config.hue, isDarkTheme)}
+                          stroke="transparent"
+                          strokeWidth={1.5}
+                          className="transition-all duration-150 focus-visible:stroke-primary"
+                          tabIndex={focusedDate === cell.date ? 0 : -1}
+                          role="gridcell"
+                          aria-label={accessibleLabel}
+                          aria-current={isToday ? 'date' : undefined}
+                          onKeyDown={(event) => handleCellKeyDown(event, cell.date)}
+                          onMouseEnter={(event) => {
+                            const bounds = overlayRef.current?.getBoundingClientRect()
+                            if (!bounds) return
+                            setTooltip({
+                              x: event.clientX - bounds.left,
+                              y: event.clientY - bounds.top - 12,
+                              date: formattedDate,
+                              value: cell.value,
+                            })
+                          }}
+                          onFocus={(event) => {
+                            setFocusedDate(cell.date)
+                            const bounds = overlayRef.current?.getBoundingClientRect()
+                            if (!bounds) return
+                            const rect = event.currentTarget.getBoundingClientRect()
+                            setTooltip({
+                              x: rect.left - bounds.left + rect.width / 2,
+                              y: rect.top - bounds.top - 8,
+                              date: formattedDate,
+                              value: cell.value,
+                            })
+                          }}
+                          onBlur={() => setTooltip(null)}
+                          onMouseLeave={() => setTooltip(null)}
+                        >
+                          <title>{accessibleLabel}</title>
+                        </rect>
+                        {isToday && (
+                          <rect
+                            x={LEFT_GUTTER + cell.week * TOTAL - 1}
+                            y={TOP_GUTTER + cell.day * TOTAL - 1}
+                            width={CELL_SIZE + 2}
+                            height={CELL_SIZE + 2}
+                            rx={3}
+                            fill="none"
+                            stroke={todayOutlineColor}
+                            strokeWidth={1.5}
+                          />
+                        )}
+                      </g>
+                    )
+                  })}
+                </g>
+              ))}
             </svg>
           </div>
 

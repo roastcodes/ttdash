@@ -317,15 +317,33 @@ function writeJsonAtomic(filePath, data) {
 }
 
 async function writeJsonAtomicAsync(filePath, data) {
-  await fsPromises.mkdir(path.dirname(filePath), { recursive: true, mode: SECURE_DIR_MODE });
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), {
-    mode: SECURE_FILE_MODE,
-  });
-  if (!IS_WINDOWS) {
-    await fsPromises.chmod(tempPath, SECURE_FILE_MODE);
+  let tempPathCreated = false;
+
+  try {
+    await fsPromises.mkdir(path.dirname(filePath), { recursive: true, mode: SECURE_DIR_MODE });
+    await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), {
+      mode: SECURE_FILE_MODE,
+    });
+    tempPathCreated = true;
+
+    if (!IS_WINDOWS) {
+      await fsPromises.chmod(tempPath, SECURE_FILE_MODE);
+    }
+
+    await fsPromises.rename(tempPath, filePath);
+  } catch (error) {
+    if (tempPathCreated) {
+      try {
+        await fsPromises.unlink(tempPath);
+      } catch (unlinkError) {
+        if (unlinkError?.code !== 'ENOENT') {
+          // Ignore temp-file cleanup failures so the original error wins.
+        }
+      }
+    }
+    throw error;
   }
-  await fsPromises.rename(tempPath, filePath);
 }
 
 async function withFileMutationLock(filePath, operation) {
@@ -347,6 +365,25 @@ async function withFileMutationLock(filePath, operation) {
       fileMutationLocks.delete(filePath);
     }
   }
+}
+
+async function withOrderedFileMutationLocks(filePaths, operation) {
+  const uniquePaths = Array.from(new Set(filePaths)).sort();
+
+  const runWithLock = async (index) => {
+    if (index >= uniquePaths.length) {
+      return operation();
+    }
+
+    const filePath = uniquePaths[index];
+    return withFileMutationLock(filePath, () => runWithLock(index + 1));
+  };
+
+  return runWithLock(0);
+}
+
+async function withSettingsAndDataMutationLock(operation) {
+  return withOrderedFileMutationLocks([SETTINGS_FILE, DATA_FILE], operation);
 }
 
 function sleep(ms) {
@@ -1459,6 +1496,17 @@ async function writeSettings(settings) {
   await writeJsonAtomicAsync(SETTINGS_FILE, normalizeSettings(settings));
 }
 
+async function updateDataLoadState(patch) {
+  const current = readSettingsForWrite();
+  const next = {
+    ...current,
+    ...patch,
+  };
+
+  await writeSettings(next);
+  return toSettingsResponse(next);
+}
+
 async function updateSettings(patch) {
   return withFileMutationLock(SETTINGS_FILE, async () => {
     const current = readSettingsForWrite();
@@ -1481,33 +1529,6 @@ async function updateSettings(patch) {
   });
 }
 
-async function recordDataLoad(source) {
-  return withFileMutationLock(SETTINGS_FILE, async () => {
-    const current = readSettingsForWrite();
-    const next = {
-      ...current,
-      lastLoadedAt: new Date().toISOString(),
-      lastLoadSource: source,
-    };
-
-    await writeSettings(next);
-    return toSettingsResponse(next);
-  });
-}
-
-async function clearDataLoadState() {
-  return withFileMutationLock(SETTINGS_FILE, async () => {
-    const current = readSettingsForWrite();
-    const next = {
-      ...current,
-      lastLoadedAt: null,
-      lastLoadSource: null,
-    };
-
-    await writeSettings(next);
-    return toSettingsResponse(next);
-  });
-}
 const { json, readBody, resolveApiPath, sendBuffer, validateMutationRequest } = createHttpUtils({
   apiPrefix: API_PREFIX,
   maxBodySize: MAX_BODY_SIZE,
@@ -1688,10 +1709,13 @@ async function performAutoImport({
     });
 
     const normalized = normalizeIncomingData(JSON.parse(rawJson));
-    await withFileMutationLock(DATA_FILE, async () => {
+    await withSettingsAndDataMutationLock(async () => {
       await writeData(normalized);
+      await updateDataLoadState({
+        lastLoadedAt: new Date().toISOString(),
+        lastLoadSource: source,
+      });
     });
-    await recordDataLoad(source);
 
     return {
       days: normalized.daily.length,
@@ -1786,14 +1810,17 @@ const server = http.createServer(async (req, res) => {
       if (validationError) {
         return json(res, validationError.status, { message: validationError.message });
       }
-      await withFileMutationLock(DATA_FILE, async () => {
+      await withSettingsAndDataMutationLock(async () => {
         try {
           await fsPromises.unlink(DATA_FILE);
         } catch {
           // Ignore missing data files during reset.
         }
+        await updateDataLoadState({
+          lastLoadedAt: null,
+          lastLoadSource: null,
+        });
       });
-      await clearDataLoadState();
       return json(res, 200, { success: true });
     }
     return json(res, 405, { message: 'Method Not Allowed' });
@@ -1895,10 +1922,13 @@ const server = http.createServer(async (req, res) => {
       try {
         const body = await readBody(req);
         const normalized = normalizeIncomingData(body);
-        await withFileMutationLock(DATA_FILE, async () => {
+        await withSettingsAndDataMutationLock(async () => {
           await writeData(normalized);
+          await updateDataLoadState({
+            lastLoadedAt: new Date().toISOString(),
+            lastLoadSource: 'file',
+          });
         });
-        await recordDataLoad('file');
         const days = normalized.daily.length;
         const totalCost = normalized.totals.totalCost;
         return json(res, 200, { days, totalCost });
@@ -1926,13 +1956,16 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await readBody(req);
       const importedData = normalizeIncomingData(extractUsageImportPayload(body));
-      const result = await withFileMutationLock(DATA_FILE, async () => {
+      const result = await withSettingsAndDataMutationLock(async () => {
         const currentData = readData();
         const merged = mergeUsageData(currentData, importedData);
         await writeData(merged.data);
+        await updateDataLoadState({
+          lastLoadedAt: new Date().toISOString(),
+          lastLoadSource: 'file',
+        });
         return merged;
       });
-      await recordDataLoad('file');
       return json(res, 200, result.summary);
     } catch (e) {
       if (isPayloadTooLargeError(e)) {
@@ -2150,7 +2183,9 @@ module.exports = {
     commandExists,
     getExecutableName,
     listenOnAvailablePort,
+    writeJsonAtomicAsync,
     withFileMutationLock,
+    withOrderedFileMutationLocks,
     getPendingFileMutationLockCount: () => fileMutationLocks.size,
   },
 };

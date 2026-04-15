@@ -43,6 +43,7 @@ beforeAll(async () => {
 afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 
   if (typeof document !== 'undefined') {
     cleanup()

@@ -49,6 +49,7 @@ describe('HeatmapCalendar', () => {
       </TooltipProvider>,
     )
 
+    expect(screen.getByRole('grid', { name: 'Cost heatmap' })).toHaveAttribute('aria-rowcount', '7')
     const cell = screen.getByRole('gridcell', { name: `${dateLabel}: ${formatCurrency(5)}` })
 
     expect(cell).toHaveAttribute('tabindex', '0')
@@ -129,6 +130,7 @@ describe('HeatmapCalendar', () => {
       </TooltipProvider>,
     )
 
+    expect(screen.getAllByRole('row')).toHaveLength(7)
     const tabbableCells = document.querySelectorAll('[role="gridcell"][tabindex="0"]')
     expect(tabbableCells).toHaveLength(1)
 

@@ -292,8 +292,8 @@ export function toRequestChartData(data: DailyUsage[]): RequestChartDataPoint[] 
 }
 
 /** Returns chart-ready weekday average cost data. */
-export function toWeekdayData(data: DailyUsage[]): WeekdayData[] {
-  return buildDashboardChartTransforms(data).weekdayData
+export function toWeekdayData(data: DailyUsage[], locale = getCurrentLocale()): WeekdayData[] {
+  return buildDashboardChartTransforms(data, locale).weekdayData
 }
 
 /** Aggregates usage rows to the requested dashboard view mode. */

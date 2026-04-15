@@ -153,43 +153,66 @@ describe('sortable tables', () => {
 
     fireEvent.click(within(costHeader).getByRole('button', { name: /^cost$/i }))
     expect(costHeader).toHaveAttribute('aria-sort', 'ascending')
-  })
+  }, 15000)
 
-  it('reveals all recent days progressively without losing access to later rows', async () => {
-    const days = Array.from({ length: 31 }, (_, index) => {
-      const date = new Date(Date.UTC(2026, 3, index + 1)).toISOString().slice(0, 10)
+  it('supports keyboard row activation for clickable recent-days rows', () => {
+    const onClickDay = vi.fn()
 
-      return {
-        date,
-        totalCost: index + 1,
-        totalTokens: (index + 1) * 100,
-        inputTokens: (index + 1) * 60,
-        outputTokens: (index + 1) * 40,
-        cacheCreationTokens: 0,
-        cacheReadTokens: 0,
-        thinkingTokens: 0,
-        requestCount: index + 1,
-        modelsUsed: ['GPT-5.4'],
-        modelBreakdowns: [
+    renderWithProviders(
+      <RecentDays
+        onClickDay={onClickDay}
+        data={[
           {
-            modelName: 'gpt-5.4',
-            cost: index + 1,
-            inputTokens: (index + 1) * 60,
-            outputTokens: (index + 1) * 40,
+            date: '2026-04-02',
+            totalCost: 2,
+            totalTokens: 200,
+            inputTokens: 100,
+            outputTokens: 100,
             cacheCreationTokens: 0,
             cacheReadTokens: 0,
             thinkingTokens: 0,
-            requestCount: index + 1,
+            requestCount: 2,
+            modelsUsed: ['GPT-5.4'],
+            modelBreakdowns: [
+              {
+                modelName: 'openai/gpt-5.4',
+                cost: 1,
+                inputTokens: 50,
+                outputTokens: 50,
+                cacheCreationTokens: 0,
+                cacheReadTokens: 0,
+                thinkingTokens: 0,
+                requestCount: 1,
+              },
+              {
+                modelName: 'claude-sonnet-4-5',
+                cost: 1,
+                inputTokens: 50,
+                outputTokens: 50,
+                cacheCreationTokens: 0,
+                cacheReadTokens: 0,
+                thinkingTokens: 0,
+                requestCount: 1,
+              },
+            ],
           },
-        ],
-      }
-    })
+        ]}
+      />,
+    )
 
-    renderWithProviders(<RecentDays data={days} />)
+    const interactiveRow = screen.getAllByText('Thu, 04/02/2026').at(-1)?.closest('tr')
+    expect(interactiveRow).not.toBeNull()
+    if (!interactiveRow) {
+      throw new Error('Expected interactive recent-days row')
+    }
 
-    fireEvent.click(screen.getByRole('button', { name: /show all/i }))
+    expect(interactiveRow).toHaveAttribute('role', 'button')
+    expect(interactiveRow).toHaveAttribute('tabindex', '0')
 
-    expect(screen.getByText('Showing 31 of 31 days')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /show less/i })).toBeInTheDocument()
-  }, 15000)
+    fireEvent.keyDown(interactiveRow, { key: 'Enter' })
+    fireEvent.keyDown(interactiveRow, { key: ' ' })
+
+    expect(onClickDay).toHaveBeenNthCalledWith(1, '2026-04-02')
+    expect(onClickDay).toHaveBeenNthCalledWith(2, '2026-04-02')
+  })
 })

@@ -456,6 +456,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
                 const iso = toLocalDateStr(day)
                 const isSelected = value === iso
                 const isToday = iso === today
+                const dayLabel = formatDate(iso, 'long')
 
                 return (
                   <button
@@ -466,6 +467,8 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
                     }}
                     type="button"
                     tabIndex={focusedDate === iso ? 0 : -1}
+                    aria-label={dayLabel}
+                    aria-current={isToday ? 'date' : undefined}
                     aria-pressed={isSelected}
                     onFocus={() => setFocusedDate(iso)}
                     onKeyDown={(event) => handleDayKeyDown(event, iso)}

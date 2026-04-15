@@ -1,4 +1,14 @@
-import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react'
+import {
+  type Dispatch,
+  useCallback,
+  useEffect,
+  useMemo,
+  type SetStateAction,
+  useState,
+  useTransition,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,6 +43,38 @@ type SortKey = 'date' | 'cost' | 'tokens' | 'costPerM'
 const DEFAULT_VISIBLE_ROWS = 30
 const SHOW_ALL_BATCH_SIZE = 120
 
+/** Returns the first visible row count after enabling the show-all mode. */
+export function getShowAllInitialVisibleCount(totalRows: number): number {
+  return Math.min(DEFAULT_VISIBLE_ROWS + SHOW_ALL_BATCH_SIZE, totalRows)
+}
+
+/** Schedules progressive row reveal batches until all rows are visible. */
+export function scheduleProgressiveRowReveal(
+  totalRows: number,
+  setVisibleCount: Dispatch<SetStateAction<number>>,
+  scheduleFrame: (callback: FrameRequestCallback) => number,
+): number | null {
+  const initialVisibleCount = getShowAllInitialVisibleCount(totalRows)
+  setVisibleCount(initialVisibleCount)
+
+  if (initialVisibleCount >= totalRows) {
+    return null
+  }
+
+  const revealMore = () => {
+    setVisibleCount((previous) => {
+      if (previous >= totalRows) return previous
+      const next = Math.min(previous + SHOW_ALL_BATCH_SIZE, totalRows)
+      if (next < totalRows) {
+        scheduleFrame(revealMore)
+      }
+      return next
+    })
+  }
+
+  return scheduleFrame(revealMore)
+}
+
 function getUniqueModelsForDay(day: DailyUsage) {
   return day.modelBreakdowns
     .map((mb) => ({
@@ -40,7 +82,9 @@ function getUniqueModelsForDay(day: DailyUsage) {
       provider: getModelProvider(mb.modelName),
     }))
     .filter(
-      (entry, index, values) => values.findIndex((item) => item.name === entry.name) === index,
+      (entry, index, values) =>
+        values.findIndex((item) => item.name === entry.name && item.provider === entry.provider) ===
+        index,
     )
 }
 
@@ -133,27 +177,22 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
       return
     }
 
-    const initialVisibleCount = Math.min(DEFAULT_VISIBLE_ROWS + SHOW_ALL_BATCH_SIZE, sorted.length)
-    setVisibleCount(initialVisibleCount)
-
-    if (initialVisibleCount >= sorted.length) {
+    if (typeof window === 'undefined') {
+      setVisibleCount(sorted.length)
       return
     }
 
-    let frameId = 0
-    const revealMore = () => {
-      setVisibleCount((previous) => {
-        if (previous >= sorted.length) return previous
-        const next = Math.min(previous + SHOW_ALL_BATCH_SIZE, sorted.length)
-        if (next < sorted.length) {
-          frameId = window.requestAnimationFrame(revealMore)
-        }
-        return next
-      })
-    }
+    const frameId = scheduleProgressiveRowReveal(
+      sorted.length,
+      setVisibleCount,
+      window.requestAnimationFrame,
+    )
 
-    frameId = window.requestAnimationFrame(revealMore)
-    return () => window.cancelAnimationFrame(frameId)
+    return () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId)
+      }
+    }
   }, [showAll, sorted.length])
 
   const displayed = useMemo(
@@ -213,6 +252,17 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
 
   const getAriaSort = (field: SortKey): 'ascending' | 'descending' | 'none' =>
     sortKey === field ? (sortAsc ? 'ascending' : 'descending') : 'none'
+
+  const handleRowKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLTableRowElement>, date: string) => {
+      if (!onClickDay) return
+      if (event.key !== 'Enter' && event.key !== ' ') return
+
+      event.preventDefault()
+      onClickDay(date)
+    },
+    [onClickDay],
+  )
 
   return (
     <Card>
@@ -359,7 +409,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {uniqueModels.slice(0, 4).map(({ name, provider }) => (
                     <span
-                      key={name}
+                      key={`${name}-${provider}`}
                       className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] leading-tight font-medium"
                       style={{
                         backgroundColor: getModelColorAlpha(name, 0.16),
@@ -503,12 +553,15 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                 return (
                   <tr
                     key={day.date}
-                    className="cursor-pointer border-b border-l-[3px] border-border/50 transition-colors hover:bg-muted/10 active:bg-muted/20"
+                    className="cursor-pointer border-b border-l-[3px] border-border/50 transition-colors hover:bg-muted/10 focus-visible:bg-muted/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset active:bg-muted/20"
                     style={{
                       borderLeftColor: `hsla(215, 70%, 55%, ${0.2 + intensity * 0.8})`,
                       ...getDeferredRowStyle(showAll, '52px'),
                     }}
                     onClick={() => onClickDay?.(day.date)}
+                    onKeyDown={(event) => handleRowKeyDown(event, day.date)}
+                    role={onClickDay ? 'button' : undefined}
+                    tabIndex={onClickDay ? 0 : undefined}
                   >
                     <td className="px-2 py-2.5 whitespace-nowrap">
                       {formatDate(day.date, 'long')}
@@ -550,7 +603,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
                       <div className="flex flex-wrap gap-1.5">
                         {uniqueModels.map(({ name, provider }) => (
                           <span
-                            key={name}
+                            key={`${name}-${provider}`}
                             className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] leading-tight font-medium"
                             style={{
                               backgroundColor: getModelColorAlpha(name, 0.16),

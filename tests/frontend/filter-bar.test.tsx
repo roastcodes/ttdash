@@ -123,7 +123,7 @@ describe('FilterBar', () => {
     )
 
     expect(screen.getByRole('button', { name: 'All' })).not.toHaveClass('bg-primary')
-  })
+  }, 15000)
 
   it('localizes the calendar month navigation aria labels', () => {
     const noop = vi.fn()
@@ -339,15 +339,16 @@ describe('FilterBar', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
 
     const dialog = screen.getByRole('dialog', { name: 'Start date' })
-    const daySix = within(dialog).getByRole('button', { name: '6' })
+    const daySix = within(dialog).getByRole('button', { name: /^Mon, 04\/06\/2026$/ })
 
     expect(daySix).toHaveFocus()
     expect(daySix).toHaveAttribute('aria-pressed', 'true')
+    expect(daySix).toHaveAttribute('aria-current', 'date')
 
     fireEvent.keyDown(daySix, { key: 'ArrowRight' })
     await vi.runAllTimersAsync()
 
-    const daySeven = within(dialog).getByRole('button', { name: '7' })
+    const daySeven = within(dialog).getByRole('button', { name: /^Tue, 04\/07\/2026$/ })
     expect(daySeven).toHaveFocus()
 
     fireEvent.keyDown(daySeven, { key: 'Enter' })

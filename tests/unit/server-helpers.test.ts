@@ -1,5 +1,8 @@
 import { EventEmitter } from 'node:events'
+import { existsSync, promises as fsPromises } from 'node:fs'
 import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
@@ -8,7 +11,9 @@ const {
     commandExists,
     getExecutableName,
     listenOnAvailablePort,
+    writeJsonAtomicAsync,
     withFileMutationLock,
+    withOrderedFileMutationLocks,
     getPendingFileMutationLockCount,
   },
 } = require('../../server.js') as {
@@ -27,7 +32,12 @@ const {
       log?: (message: string) => void,
       rangeStartPort?: number,
     ) => Promise<number>
+    writeJsonAtomicAsync: (filePath: string, data: unknown) => Promise<void>
     withFileMutationLock: <T>(filePath: string, operation: () => Promise<T>) => Promise<T>
+    withOrderedFileMutationLocks: <T>(
+      filePaths: string[],
+      operation: () => Promise<T>,
+    ) => Promise<T>
     getPendingFileMutationLockCount: () => number
   }
 }
@@ -204,5 +214,72 @@ describe('server helper utilities', () => {
     await expect(withFileMutationLock('/tmp/data.json', async () => 'ok')).resolves.toBe('ok')
     await Promise.resolve()
     expect(getPendingFileMutationLockCount()).toBe(0)
+  })
+
+  it('serializes overlapping multi-file operations in a stable order', async () => {
+    const events: string[] = []
+    let releaseFirst: (() => void) | null = null
+    let signalFirstStarted: (() => void) | null = null
+    const firstStarted = new Promise<void>((resolve) => {
+      signalFirstStarted = resolve
+    })
+
+    const first = withOrderedFileMutationLocks(
+      ['/tmp/settings.json', '/tmp/data.json'],
+      async () => {
+        events.push('first:start')
+        signalFirstStarted?.()
+        await new Promise<void>((resolve) => {
+          releaseFirst = () => {
+            events.push('first:end')
+            resolve()
+          }
+        })
+      },
+    )
+
+    await firstStarted
+    expect(events).toEqual(['first:start'])
+
+    const second = withOrderedFileMutationLocks(
+      ['/tmp/data.json', '/tmp/settings.json'],
+      async () => {
+        events.push('second:start')
+        events.push('second:end')
+      },
+    )
+
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(events).toEqual(['first:start'])
+
+    releaseFirst?.()
+    await Promise.all([first, second])
+
+    expect(events).toEqual(['first:start', 'first:end', 'second:start', 'second:end'])
+    expect(getPendingFileMutationLockCount()).toBe(0)
+  })
+
+  it('removes temporary files when atomic async writes fail after creating the temp file', async () => {
+    const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-write-json-'))
+    const targetFile = path.join(targetDir, 'settings.json')
+    const expectedTempPath = `${targetFile}.${process.pid}.1700000000000.tmp`
+    const renameError = Object.assign(new Error('rename failed'), { code: 'EXDEV' })
+
+    const renameSpy = vi.spyOn(fsPromises, 'rename').mockRejectedValue(renameError)
+    const unlinkSpy = vi.spyOn(fsPromises, 'unlink')
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1700000000000)
+
+    await expect(writeJsonAtomicAsync(targetFile, { ok: true })).rejects.toBe(renameError)
+
+    expect(renameSpy).toHaveBeenCalled()
+    expect(unlinkSpy).toHaveBeenCalledWith(expectedTempPath)
+    expect(existsSync(expectedTempPath)).toBe(false)
+
+    renameSpy.mockRestore()
+    unlinkSpy.mockRestore()
+    nowSpy.mockRestore()
+    await fsPromises.rm(targetDir, { recursive: true, force: true })
   })
 })

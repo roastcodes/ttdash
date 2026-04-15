@@ -139,6 +139,8 @@ describe('DrillDownModal', () => {
     expect(within(openAiProviderCard).getByText('1 active model')).toBeInTheDocument()
     expect(within(openAiProviderCard).getByLabelText('$18.00')).toBeInTheDocument()
     expect(within(openAiProviderCard).getAllByText('6').length).toBeGreaterThan(0)
+
+    expect(screen.getByLabelText(/^Input: /)).toBeInTheDocument()
   })
 
   it('labels aggregated entries as periods and shows raw-day coverage', async () => {

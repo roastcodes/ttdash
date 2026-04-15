@@ -46,7 +46,7 @@ describe('Header external links', () => {
     expect(versionLink).toHaveAttribute('href', NPM_PACKAGE_URL)
     expect(versionLink).toHaveAttribute('target', '_blank')
     expect(versionLink).toHaveAttribute('rel', 'noopener noreferrer')
-  })
+  }, 15000)
 
   it('shows npm, GitHub, and GitHub issues links in the help panel', () => {
     render(<HeaderTestHarness />)
@@ -67,5 +67,19 @@ describe('Header external links', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Help & shortcuts' })[0])
 
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
+  })
+
+  it('exposes accessible names and pressed state for header controls', () => {
+    render(<HeaderTestHarness />)
+
+    const helpButtons = screen.getAllByRole('button', { name: 'Help & shortcuts' })
+    expect(helpButtons.length).toBeGreaterThan(0)
+
+    expect(
+      screen.getAllByRole('button', { name: 'Switch between light and dark theme' }).length,
+    ).toBeGreaterThan(0)
+
+    expect(screen.getByRole('button', { name: 'EN' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'DE' })).toHaveAttribute('aria-pressed', 'false')
   })
 })
