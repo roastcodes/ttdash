@@ -6,6 +6,7 @@ import type {
   DashboardSectionOrder,
   DashboardSectionVisibility,
   ProviderLimits,
+  ReducedMotionPreference,
   UsageData,
   UsageImportSummary,
   ViewMode,
@@ -86,6 +87,7 @@ export async function importUsageData(data: unknown): Promise<UsageImportSummary
 export interface UpdateSettingsRequest {
   language?: AppLanguage
   theme?: AppTheme
+  reducedMotionPreference?: ReducedMotionPreference
   providerLimits?: ProviderLimits
   defaultFilters?: DashboardDefaultFilters
   sectionVisibility?: DashboardSectionVisibility

@@ -1,4 +1,11 @@
-import type { AppLanguage, AppSettings, AppTheme, DataLoadSource, ProviderLimits } from '@/types'
+import type {
+  AppLanguage,
+  AppSettings,
+  AppTheme,
+  DataLoadSource,
+  ProviderLimits,
+  ReducedMotionPreference,
+} from '@/types'
 import {
   DEFAULT_DASHBOARD_FILTERS,
   getDefaultDashboardSectionOrder,
@@ -13,6 +20,7 @@ import { normalizeProviderLimitConfig } from '@/lib/provider-limits'
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'de',
   theme: 'dark',
+  reducedMotionPreference: 'system',
   providerLimits: {},
   defaultFilters: DEFAULT_DASHBOARD_FILTERS,
   sectionVisibility: getDefaultDashboardSectionVisibility(),
@@ -30,6 +38,11 @@ export function normalizeAppLanguage(value: unknown): AppLanguage {
 /** Normalizes an unknown theme value to a supported app theme. */
 export function normalizeAppTheme(value: unknown): AppTheme {
   return value === 'light' ? 'light' : 'dark'
+}
+
+/** Normalizes an unknown reduced-motion preference to a supported app setting. */
+export function normalizeReducedMotionPreference(value: unknown): ReducedMotionPreference {
+  return value === 'always' || value === 'never' ? value : 'system'
 }
 
 /** Normalizes persisted provider limit records to the runtime shape. */
@@ -66,6 +79,7 @@ export function normalizeAppSettings(value: unknown): AppSettings {
   return {
     language: normalizeAppLanguage(source.language),
     theme: normalizeAppTheme(source.theme),
+    reducedMotionPreference: normalizeReducedMotionPreference(source.reducedMotionPreference),
     providerLimits: normalizeStoredProviderLimits(source.providerLimits),
     defaultFilters: normalizeDashboardDefaultFilters(source.defaultFilters),
     sectionVisibility: normalizeDashboardSectionVisibility(source.sectionVisibility),

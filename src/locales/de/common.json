@@ -910,6 +910,15 @@
       "noModels": "Keine Modelle im geladenen Report gefunden.",
       "sectionVisibilityTitle": "Sichtbare Dashboard-Sektionen",
       "sectionVisibilityDescription": "Steuere, welche Sektionen im Dashboard gerendert werden und in welcher Reihenfolge sie erscheinen.",
+      "dashboardSettingsTitle": "Dashboard-Einstellungen",
+      "dashboardSettingsDescription": "Steuere dashboardweite Verhaltensweisen, die über alle Animationen und bewegungssensitiven UI-Elemente konsistent bleiben sollen.",
+      "reducedMotionTitle": "prefers-reduced-motion",
+      "reducedMotionDescription": "Überschreibt die Browsereinstellung für die gesamte App, inklusive Dashboard-Diagrammen, Heatmaps, Dialogen, Tooltips und Toast-Benachrichtigungen.",
+      "reducedMotionOptions": {
+        "system": "Browser Einstellung",
+        "always": "Immer",
+        "never": "Nein"
+      },
       "sectionOrderHint": "Ziehe die Sektionen per Drag and Drop in die gewünschte Reihenfolge. Die aktuelle Reihenfolge ist das Standardlayout.",
       "positionLabel": "Position {{position}} von {{total}}",
       "moveSectionUp": "{{section}} nach oben verschieben",

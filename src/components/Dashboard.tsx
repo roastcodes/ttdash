@@ -222,6 +222,7 @@ export function Dashboard({
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
           language={settings.language}
+          reducedMotionPreference={settings.reducedMotionPreference}
           limitProviders={allProviders}
           filterProviders={settingsProviderOptions}
           models={settingsModelOptions}

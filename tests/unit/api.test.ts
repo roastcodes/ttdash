@@ -55,6 +55,30 @@ describe('api error handling', () => {
     await expect(fetchSettings()).rejects.toThrow('Settings file is unreadable or corrupted.')
   })
 
+  it('falls back to the system motion preference for invalid settings API values', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            language: 'en',
+            reducedMotionPreference: 'invalid',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    )
+
+    await expect(fetchSettings()).resolves.toMatchObject({
+      language: 'en',
+      reducedMotionPreference: 'system',
+      theme: 'dark',
+    })
+  })
+
   it('returns bootstrap defaults together with the localized error message', async () => {
     vi.stubGlobal(
       'fetch',
@@ -71,6 +95,34 @@ describe('api error handling', () => {
       errorMessage: 'Failed to load settings',
       loadedFromServer: false,
       fetchedAt: null,
+    })
+  })
+
+  it('fills in the system motion preference when bootstrap settings omit the field', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            language: 'en',
+            theme: 'light',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    )
+
+    await expect(loadBootstrapSettings()).resolves.toMatchObject({
+      settings: {
+        language: 'en',
+        theme: 'light',
+        reducedMotionPreference: 'system',
+      },
+      errorMessage: null,
+      loadedFromServer: true,
     })
   })
 })

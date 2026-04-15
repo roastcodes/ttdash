@@ -56,6 +56,8 @@ export type AppLanguage = 'de' | 'en'
 
 /** Lists the available visual themes. */
 export type AppTheme = 'dark' | 'light'
+/** Controls whether the app follows, forces, or disables reduced motion. */
+export type ReducedMotionPreference = 'system' | 'always' | 'never'
 
 /** Lists the supported dashboard aggregation modes. */
 export type ViewMode = 'daily' | 'monthly' | 'yearly'
@@ -242,6 +244,7 @@ export type DataLoadSource = 'file' | 'auto-import' | 'cli-auto-load' | null
 export interface AppSettings {
   language: AppLanguage
   theme: AppTheme
+  reducedMotionPreference: ReducedMotionPreference
   providerLimits: ProviderLimits
   defaultFilters: DashboardDefaultFilters
   sectionVisibility: DashboardSectionVisibility

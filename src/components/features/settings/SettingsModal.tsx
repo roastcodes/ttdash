@@ -43,6 +43,7 @@ import type {
   DashboardSectionVisibility,
   DataLoadSource,
   ProviderLimits,
+  ReducedMotionPreference,
 } from '@/types'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 
@@ -50,6 +51,7 @@ interface SettingsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   language: AppLanguage
+  reducedMotionPreference: ReducedMotionPreference
   limitProviders: string[]
   filterProviders: string[]
   models: string[]
@@ -63,6 +65,7 @@ interface SettingsModalProps {
   hasData: boolean
   onSaveSettings: (settings: {
     language: AppLanguage
+    reducedMotionPreference: ReducedMotionPreference
     providerLimits: ProviderLimits
     defaultFilters: DashboardDefaultFilters
     sectionVisibility: DashboardSectionVisibility
@@ -155,6 +158,7 @@ export function SettingsModal({
   open,
   onOpenChange,
   language,
+  reducedMotionPreference,
   limitProviders,
   filterProviders,
   models,
@@ -176,6 +180,8 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const { t } = useTranslation()
   const [languageDraft, setLanguageDraft] = useState<AppLanguage>(language)
+  const [reducedMotionPreferenceDraft, setReducedMotionPreferenceDraft] =
+    useState<ReducedMotionPreference>(reducedMotionPreference)
   const [limitDraft, setLimitDraft] = useState<ProviderLimits>(() =>
     syncProviderLimits(limitProviders, limits),
   )
@@ -196,13 +202,23 @@ export function SettingsModal({
     if (!open) return
 
     setLanguageDraft(language)
+    setReducedMotionPreferenceDraft(reducedMotionPreference)
     setLimitDraft(syncProviderLimits(limitProviders, limits))
     setDefaultFilterDraft(defaultFilters)
     setSectionVisibilityDraft(sectionVisibility)
     setSectionOrderDraft(sectionOrder)
     setDraggedSectionId(null)
     setDragOverSectionId(null)
-  }, [open, language, limitProviders, limits, defaultFilters, sectionVisibility, sectionOrder])
+  }, [
+    open,
+    language,
+    reducedMotionPreference,
+    limitProviders,
+    limits,
+    defaultFilters,
+    sectionVisibility,
+    sectionOrder,
+  ])
 
   const providerOptions = useMemo(
     () => normalizeSelection([...filterProviders, ...defaultFilterDraft.providers]),
@@ -226,6 +242,7 @@ export function SettingsModal({
   const handleSave = async () => {
     await onSaveSettings({
       language: languageDraft,
+      reducedMotionPreference: reducedMotionPreferenceDraft,
       providerLimits: buildProviderLimitsState(limitProviders, limitDraft),
       defaultFilters: {
         ...defaultFilterDraft,
@@ -240,6 +257,7 @@ export function SettingsModal({
 
   const handleResetDrafts = () => {
     setLanguageDraft(DEFAULT_APP_SETTINGS.language)
+    setReducedMotionPreferenceDraft(DEFAULT_APP_SETTINGS.reducedMotionPreference)
     setLimitDraft(syncProviderLimits(limitProviders, {}))
     setDefaultFilterDraft(DEFAULT_DASHBOARD_FILTERS)
     setSectionVisibilityDraft(getDefaultDashboardSectionVisibility())
@@ -646,6 +664,51 @@ export function SettingsModal({
                   </div>
                 )
               })}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
+                <Settings2 className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 space-y-1">
+                <div className="text-sm font-medium text-foreground">
+                  {t('settings.modal.dashboardSettingsTitle')}
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t('settings.modal.dashboardSettingsDescription')}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                {t('settings.modal.reducedMotionTitle')}
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {t('settings.modal.reducedMotionDescription')}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    ['system', 'settings.modal.reducedMotionOptions.system'],
+                    ['always', 'settings.modal.reducedMotionOptions.always'],
+                    ['never', 'settings.modal.reducedMotionOptions.never'],
+                  ] as const
+                ).map(([value, labelKey]) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    data-testid={`settings-reduced-motion-${value}`}
+                    aria-pressed={reducedMotionPreferenceDraft === value}
+                    variant={reducedMotionPreferenceDraft === value ? 'default' : 'outline'}
+                    onClick={() => setReducedMotionPreferenceDraft(value)}
+                  >
+                    {t(labelKey)}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

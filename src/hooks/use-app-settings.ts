@@ -8,6 +8,7 @@ import type {
   DashboardSectionOrder,
   DashboardSectionVisibility,
   ProviderLimits,
+  ReducedMotionPreference,
 } from '@/types'
 import { fetchSettings, updateSettings, type UpdateSettingsRequest } from '@/lib/api'
 import { DEFAULT_APP_SETTINGS, normalizeAppSettings } from '@/lib/app-settings'
@@ -74,6 +75,11 @@ export function useAppSettings(
     (limits: ProviderLimits) => mutation.mutateAsync({ providerLimits: limits }),
     [mutation],
   )
+  const setReducedMotionPreference = useCallback(
+    (reducedMotionPreference: ReducedMotionPreference) =>
+      mutation.mutateAsync({ reducedMotionPreference }),
+    [mutation],
+  )
   const setDefaultFilters = useCallback(
     (defaultFilters: DashboardDefaultFilters) => mutation.mutateAsync({ defaultFilters }),
     [mutation],
@@ -97,6 +103,7 @@ export function useAppSettings(
     setTheme,
     setLanguage,
     setProviderLimits,
+    setReducedMotionPreference,
     setDefaultFilters,
     setSectionVisibility,
     setSectionOrder,
