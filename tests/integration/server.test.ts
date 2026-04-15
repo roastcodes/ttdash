@@ -453,6 +453,7 @@ describe('local server API', () => {
     expect(await initialSettingsResponse.json()).toMatchObject({
       language: 'de',
       theme: 'dark',
+      reducedMotionPreference: 'system',
       providerLimits: {},
       defaultFilters: DEFAULT_DASHBOARD_FILTERS,
       sectionVisibility: {
@@ -504,6 +505,7 @@ describe('local server API', () => {
       body: JSON.stringify({
         language: 'en',
         theme: 'light',
+        reducedMotionPreference: 'always',
         providerLimits: {
           OpenAI: {
             hasSubscription: true,
@@ -529,6 +531,7 @@ describe('local server API', () => {
     expect(await patchResponse.json()).toMatchObject({
       language: 'en',
       theme: 'light',
+      reducedMotionPreference: 'always',
       providerLimits: {
         OpenAI: {
           hasSubscription: true,
@@ -581,6 +584,7 @@ describe('local server API', () => {
     expect(finalSettings).toMatchObject({
       language: 'en',
       theme: 'light',
+      reducedMotionPreference: 'always',
       defaultFilters: {
         viewMode: 'monthly',
         datePreset: '30d',
@@ -828,6 +832,7 @@ describe('local server API', () => {
         settings: {
           language: 'de',
           theme: 'light',
+          reducedMotionPreference: 'never',
           providerLimits: {
             Anthropic: {
               hasSubscription: true,
@@ -856,6 +861,7 @@ describe('local server API', () => {
     expect(await settingsImportResponse.json()).toMatchObject({
       language: 'de',
       theme: 'light',
+      reducedMotionPreference: 'never',
       providerLimits: {
         Anthropic: {
           hasSubscription: true,
@@ -945,6 +951,7 @@ describe('local server API', () => {
     expect(mergedSettings).toMatchObject({
       theme: 'light',
       language: 'de',
+      reducedMotionPreference: 'never',
       defaultFilters: {
         viewMode: 'yearly',
         datePreset: 'year',
@@ -1029,6 +1036,7 @@ describe('local server API', () => {
       body: JSON.stringify({
         language: 'en',
         theme: 'light',
+        reducedMotionPreference: 'always',
         sectionVisibility: {
           tokenAnalysis: false,
         },
@@ -1048,6 +1056,7 @@ describe('local server API', () => {
       settings: {
         language: 'de',
         theme: 'dark',
+        reducedMotionPreference: 'system',
         providerLimits: {},
         defaultFilters: DEFAULT_DASHBOARD_FILTERS,
         sectionOrder: getDefaultDashboardSectionOrder(),
@@ -1062,6 +1071,7 @@ describe('local server API', () => {
     expect(await settingsResponse.json()).toMatchObject({
       language: 'de',
       theme: 'dark',
+      reducedMotionPreference: 'system',
       providerLimits: {},
       defaultFilters: DEFAULT_DASHBOARD_FILTERS,
       sectionOrder: getDefaultDashboardSectionOrder(),

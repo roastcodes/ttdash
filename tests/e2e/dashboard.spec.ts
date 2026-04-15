@@ -230,6 +230,7 @@ test('manages settings and backup imports through the settings dialog using isol
   )
   await dialog.getByRole('button', { name: monthlySettingsPattern }).click()
   await dialog.getByRole('button', { name: last30DaysPattern }).click()
+  await dialog.getByTestId('settings-reduced-motion-always').click()
   await dialog.getByTestId('reset-section-visibility').click()
   await expect(dialog.locator('[data-section-id="tokenAnalysis"]')).toContainText(
     /Sichtbar|Visible/,
@@ -294,6 +295,7 @@ test('manages settings and backup imports through the settings dialog using isol
   )
   const exportedSettings = JSON.parse(exportedSettingsRecord.text)
   expect(exportedSettings.kind).toBe('ttdash-settings-backup')
+  expect(exportedSettings.settings.reducedMotionPreference).toBe('always')
   expect(exportedSettings.settings.defaultFilters.viewMode).toBe('monthly')
   expect(exportedSettings.settings.defaultFilters.datePreset).toBe('30d')
   expect(exportedSettings.settings.sectionVisibility.tokenAnalysis).toBe(false)
@@ -383,6 +385,7 @@ test('manages settings and backup imports through the settings dialog using isol
         settings: {
           language: 'en',
           theme: 'light',
+          reducedMotionPreference: 'never',
           providerLimits: {
             OpenAI: {
               hasSubscription: true,
@@ -418,6 +421,7 @@ test('manages settings and backup imports through the settings dialog using isol
   const importedSettings = await importedSettingsResponse.json()
   expect(importedSettings.language).toBe('en')
   expect(importedSettings.theme).toBe('light')
+  expect(importedSettings.reducedMotionPreference).toBe('never')
   expect(importedSettings.providerLimits.OpenAI.monthlyLimit).toBe(400)
   expect(importedSettings.defaultFilters).toEqual({
     viewMode: 'monthly',
@@ -446,6 +450,7 @@ test('loads persisted settings on a fresh browser start and applies them immedia
     data: {
       language: 'en',
       theme: 'light',
+      reducedMotionPreference: 'always',
       providerLimits: {
         OpenAI: {
           hasSubscription: true,
@@ -557,6 +562,10 @@ test('loads persisted settings on a fresh browser start and applies them immedia
     await expect(dialog).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Export settings' })).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'OpenAI', exact: true })).toBeVisible()
+    await expect(dialog.getByTestId('settings-reduced-motion-always')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
     await expect(dialog.getByRole('button', { name: 'Monthly' })).toHaveAttribute(
       'aria-pressed',
       'true',

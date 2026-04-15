@@ -63,6 +63,7 @@ const DASHBOARD_SECTION_IDS = dashboardPreferences.sectionDefinitions.map((secti
 const DEFAULT_SETTINGS = {
   language: 'de',
   theme: 'dark',
+  reducedMotionPreference: 'system',
   providerLimits: {},
   defaultFilters: {
     viewMode: 'daily',
@@ -1044,6 +1045,10 @@ function normalizeTheme(value) {
   return value === 'light' ? 'light' : 'dark';
 }
 
+function normalizeReducedMotionPreference(value) {
+  return value === 'always' || value === 'never' ? value : 'system';
+}
+
 function normalizeViewMode(value) {
   return value === 'monthly' || value === 'yearly' ? value : 'daily';
 }
@@ -1415,6 +1420,7 @@ function normalizeSettings(value) {
   return {
     language: normalizeLanguage(source.language),
     theme: normalizeTheme(source.theme),
+    reducedMotionPreference: normalizeReducedMotionPreference(source.reducedMotionPreference),
     providerLimits: normalizeProviderLimits(source.providerLimits),
     defaultFilters: normalizeDefaultFilters(source.defaultFilters),
     sectionVisibility: normalizeSectionVisibility(source.sectionVisibility),
@@ -1663,6 +1669,7 @@ async function updateSettings(patch) {
 
     next.language = normalizeLanguage(next.language);
     next.theme = normalizeTheme(next.theme);
+    next.reducedMotionPreference = normalizeReducedMotionPreference(next.reducedMotionPreference);
 
     await writeSettings(next);
     return toSettingsResponse(next);

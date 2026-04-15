@@ -31,6 +31,7 @@ import type {
   DashboardSectionOrder,
   DashboardSectionVisibility,
   ProviderLimits,
+  ReducedMotionPreference,
 } from '@/types'
 
 const SETTINGS_BACKUP_KIND = 'ttdash-settings-backup'
@@ -355,6 +356,8 @@ export function useDashboardControllerWithBootstrap(
 
   const handleSaveSettings = useCallback(
     async (nextSettings: {
+      language: AppLanguage
+      reducedMotionPreference: ReducedMotionPreference
       providerLimits: ProviderLimits
       defaultFilters: DashboardDefaultFilters
       sectionVisibility: DashboardSectionVisibility
@@ -540,6 +543,7 @@ export function useDashboardControllerWithBootstrap(
       settings: {
         language: settings.language,
         theme: settings.theme,
+        reducedMotionPreference: settings.reducedMotionPreference,
         providerLimits: settings.providerLimits,
         defaultFilters: settings.defaultFilters,
         sectionVisibility: settings.sectionVisibility,

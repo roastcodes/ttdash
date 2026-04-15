@@ -1,5 +1,23 @@
 # Changelog
 
+## [6.2.3] - 2026-04-16
+
+### Added
+
+- **App-weite `prefers-reduced-motion`-Einstellung in den Settings** — im neuen Bereich `Dashboard Settings` kann Bewegungsreduktion jetzt explizit auf Browser-Einstellung, `Ja` oder `Nein` gesetzt werden, statt ausschließlich dem Browser-/OS-Signal zu folgen
+- **Gezielte Override- und Persistenztests für Motion-Settings** — neue Frontend-, API-, Integrations- und E2E-Tests sichern die zentrale Motion-Policy, Settings-Resets sowie Import-/Export-Roundtrips der neuen Einstellung gegen Regressionen ab
+
+### Improved
+
+- **Zentrale Motion-Steuerung für die gesamte App** — Dialoge, Tooltips, Toasts, Karten, Dashboard-Reveals, Charts, Heatmaps und animierte Balken folgen jetzt derselben app-weiten Motion-Policy statt nur isoliert der Browser-Präferenz
+- **Settings-Persistenz und Backup-Verhalten** — die Reduced-Motion-Option wird jetzt konsistent über Bootstrap, lokale Settings-Datei, `/api/settings`, Settings-Reset sowie Settings-Import/-Export geführt und nach einem Reload sofort wieder angewendet
+- **Bezeichnung der System-Option im deutschen Settings-Dialog** — die Browser-basierte Motion-Option ist in der UI jetzt klarer als `Browser Einstellung` benannt
+
+### Fixed
+
+- **Fehlende app-spezifische Übersteuerung von `prefers-reduced-motion`** — Animationen konnten bisher nur über die Browser-/OS-Präferenz beeinflusst werden; jetzt lässt sich dieses Verhalten bewusst app-weit überschreiben
+- **Unvollständiger Settings-Roundtrip für Motion-Präferenzen** — die neue Motion-Einstellung geht bei Backup-Export, Import, Reset oder frischem Start nicht mehr verloren
+
 ## [6.2.2] - 2026-04-15
 
 ### Added
