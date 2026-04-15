@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ModelEfficiency } from '@/components/tables/ModelEfficiency'
 import { ProviderEfficiency } from '@/components/tables/ProviderEfficiency'
 import { RecentDays } from '@/components/tables/RecentDays'
@@ -23,6 +23,11 @@ describe('sortable tables', () => {
       },
     )
     await initI18n('en')
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
   it('exposes accessible sort state for provider efficiency headers', () => {
@@ -148,5 +153,66 @@ describe('sortable tables', () => {
 
     fireEvent.click(within(costHeader).getByRole('button', { name: /^cost$/i }))
     expect(costHeader).toHaveAttribute('aria-sort', 'ascending')
+  }, 15000)
+
+  it('supports keyboard row activation for clickable recent-days rows', () => {
+    const onClickDay = vi.fn()
+
+    renderWithProviders(
+      <RecentDays
+        onClickDay={onClickDay}
+        data={[
+          {
+            date: '2026-04-02',
+            totalCost: 2,
+            totalTokens: 200,
+            inputTokens: 100,
+            outputTokens: 100,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            requestCount: 2,
+            modelsUsed: ['GPT-5.4'],
+            modelBreakdowns: [
+              {
+                modelName: 'openai/gpt-5.4',
+                cost: 1,
+                inputTokens: 50,
+                outputTokens: 50,
+                cacheCreationTokens: 0,
+                cacheReadTokens: 0,
+                thinkingTokens: 0,
+                requestCount: 1,
+              },
+              {
+                modelName: 'claude-sonnet-4-5',
+                cost: 1,
+                inputTokens: 50,
+                outputTokens: 50,
+                cacheCreationTokens: 0,
+                cacheReadTokens: 0,
+                thinkingTokens: 0,
+                requestCount: 1,
+              },
+            ],
+          },
+        ]}
+      />,
+    )
+
+    const interactiveRow = screen.getAllByText('Thu, 04/02/2026').at(-1)?.closest('tr')
+    expect(interactiveRow).not.toBeNull()
+    if (!interactiveRow) {
+      throw new Error('Expected interactive recent-days row')
+    }
+
+    expect(interactiveRow).toHaveAttribute('role', 'button')
+    expect(interactiveRow).toHaveAttribute('tabindex', '0')
+
+    fireEvent.keyDown(interactiveRow, { key: 'Enter' })
+    fireEvent.keyDown(interactiveRow, { key: ' ' })
+
+    expect(onClickDay).toHaveBeenNthCalledWith(1, '2026-04-02')
+    expect(onClickDay).toHaveBeenNthCalledWith(2, '2026-04-02')
   })
 })

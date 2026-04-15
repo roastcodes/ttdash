@@ -6,7 +6,7 @@ import { useAppSettings } from '@/hooks/use-app-settings'
 import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
 import { useComputedMetrics } from '@/hooks/use-computed-metrics'
 import { useToast } from '@/components/ui/toast'
-import { applyTheme } from '@/lib/app-settings'
+import { applyTheme, DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { downloadCSV } from '@/lib/csv-export'
 import { VERSION } from '@/lib/constants'
 import {
@@ -39,6 +39,7 @@ const BACKUP_FORMAT_VERSION = 1
 const CORRUPT_SETTINGS_MESSAGE = 'Settings file is unreadable or corrupted.'
 const CORRUPT_USAGE_MESSAGE = 'Usage data file is unreadable or corrupted.'
 
+/** Captures one JSON download emitted by the dashboard controller. */
 export type JsonDownloadRecord = {
   filename: string
   mimeType: string
@@ -46,6 +47,7 @@ export type JsonDownloadRecord = {
   text: string
 }
 
+/** Exposes optional browser hooks used by frontend tests. */
 export type DashboardTestHooks = {
   onJsonDownload?: (record: JsonDownloadRecord) => void
   openSettings?: () => void
@@ -83,7 +85,23 @@ function downloadJsonFile(filename: string, data: unknown) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
+/** Creates the dashboard controller with default bootstrap settings. */
 export function useDashboardController(initialSettingsError: string | null = null) {
+  return useDashboardControllerWithBootstrap(
+    DEFAULT_APP_SETTINGS,
+    false,
+    null,
+    initialSettingsError,
+  )
+}
+
+/** Creates the full dashboard controller from bootstrap settings and live data. */
+export function useDashboardControllerWithBootstrap(
+  initialSettings: AppSettings,
+  initialSettingsLoadedFromServer = false,
+  initialSettingsFetchedAt: number | null = null,
+  initialSettingsError: string | null = null,
+) {
   const { t, i18n } = useTranslation()
   const { data: usageData, isLoading, error: usageError } = useUsageData()
   const uploadMutation = useUploadData()
@@ -129,7 +147,12 @@ export function useDashboardController(initialSettingsError: string | null = nul
     isLoading: settingsLoading,
     error: settingsError,
     hasFetchedAfterMount,
-  } = useAppSettings(allProviders)
+  } = useAppSettings(
+    allProviders,
+    initialSettings,
+    initialSettingsLoadedFromServer,
+    initialSettingsFetchedAt,
+  )
   const isDark = settings.theme === 'dark'
 
   useEffect(() => {
@@ -230,7 +253,7 @@ export function useDashboardController(initialSettingsError: string | null = nul
     dateRange,
   } = filters
 
-  const computed = useComputedMetrics(filteredData)
+  const computed = useComputedMetrics(filteredData, i18n.resolvedLanguage ?? i18n.language)
   const {
     metrics,
     modelCosts,

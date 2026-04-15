@@ -22,6 +22,7 @@ interface PrimaryMetricsProps {
   viewMode?: ViewMode
 }
 
+/** Renders the primary dashboard KPI cards. */
 export function PrimaryMetrics({
   metrics,
   totalCalendarDays,
@@ -66,7 +67,7 @@ export function PrimaryMetrics({
       : null
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-8">
       <MetricCard
         label={t('metricCards.primary.totalCost')}
         value={

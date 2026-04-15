@@ -1,6 +1,10 @@
+// @vitest-environment jsdom
+
+import { renderHook } from '@testing-library/react'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { filterByModels, getDateRange, toWeekdayData } from '@/lib/data-transforms'
 import { coerceNumber, formatMonthYear } from '@/lib/formatters'
+import { useComputedMetrics } from '@/hooks/use-computed-metrics'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
 
@@ -88,7 +92,31 @@ describe('phase 4 correctness helpers', () => {
   })
 
   it('keeps weekday labels aligned with Monday-first buckets', () => {
-    const weekdayData = toWeekdayData([
+    const weekdayData = toWeekdayData(
+      [
+        {
+          date: '2026-04-06',
+          inputTokens: 10,
+          outputTokens: 5,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          thinkingTokens: 0,
+          totalTokens: 15,
+          totalCost: 9,
+          requestCount: 1,
+          modelsUsed: ['gpt-5.4'],
+          modelBreakdowns: [],
+        },
+      ],
+      'de-CH',
+    )
+
+    expect(weekdayData[0]?.day).toBe('Mo')
+    expect(weekdayData[0]?.cost).toBe(9)
+  })
+
+  it('rebuilds weekday labels in the memoized metrics hook when the locale changes', () => {
+    const data: DailyUsage[] = [
       {
         date: '2026-04-06',
         inputTokens: 10,
@@ -102,9 +130,18 @@ describe('phase 4 correctness helpers', () => {
         modelsUsed: ['gpt-5.4'],
         modelBreakdowns: [],
       },
-    ])
+    ]
 
-    expect(weekdayData[0]?.day).toBe('Mo')
-    expect(weekdayData[0]?.cost).toBe(9)
+    const { result, rerender } = renderHook(({ locale }) => useComputedMetrics(data, locale), {
+      initialProps: { locale: 'en-US' },
+    })
+
+    expect(result.current.weekdayData[2]?.day).toBe('We')
+    expect(result.current.weekdayData[0]?.cost).toBe(9)
+
+    rerender({ locale: 'de-CH' })
+
+    expect(result.current.weekdayData[2]?.day).toBe('Mi')
+    expect(result.current.weekdayData[0]?.cost).toBe(9)
   })
 })

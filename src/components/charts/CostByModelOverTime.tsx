@@ -10,18 +10,20 @@ import {
 } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { getModelColor } from '@/lib/model-utils'
+import type { ModelCostChartPoint } from '@/lib/data-transforms'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
-import type { ChartDataPoint } from '@/types'
 
 interface CostByModelOverTimeProps {
-  data: (ChartDataPoint & Record<string, number>)[]
+  data: ModelCostChartPoint[]
   models: string[]
 }
 
+/** Renders the per-model cost trend over time. */
 export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) {
   const { t } = useTranslation()
   const topModel =
@@ -40,10 +42,10 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
     <ChartAnimationAware>
       {(animate) => (
         <div className="mt-6">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+          <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
             {t('charts.costByModelOverTime.movingAverageHeading')}
           </div>
-          <ChartReveal variant="line" delay={0.08}>
+          <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={350}>
               <LineChart data={data} margin={CHART_MARGIN}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
@@ -68,7 +70,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                   content={<CustomTooltip formatter={(v) => formatCurrency(v)} />}
                   cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
                 />
-                <Legend />
+                <Legend content={<ChartLegend />} />
                 {models.map((model, index) => (
                   <Line
                     key={`${model}_ma7`}
@@ -138,7 +140,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                   content={<CustomTooltip formatter={(v) => formatCurrency(v)} />}
                   cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
                 />
-                <Legend />
+                <Legend content={<ChartLegend />} />
                 {models.map((model, index) => (
                   <Line
                     key={model}

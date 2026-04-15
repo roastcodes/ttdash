@@ -18,6 +18,7 @@ interface CustomTooltipProps {
   hideZeroValues?: boolean
 }
 
+/** Renders the shared chart tooltip surface. */
 export function CustomTooltip({
   active,
   payload,
@@ -70,23 +71,23 @@ export function CustomTooltip({
   const deltaLabel = t('customTooltip.delta')
 
   return (
-    <div className="max-w-[280px] bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">
-      <p className="font-medium text-muted-foreground mb-1.5">{label}</p>
+    <div className="max-w-[280px] rounded-lg border border-border/50 bg-popover/90 p-3 text-xs shadow-lg backdrop-blur-xl">
+      <p className="mb-1.5 font-medium text-muted-foreground">{label}</p>
       <div className="space-y-1.5">
         {actualEntries.map((entry, i) => {
           const pct = showTotal && total > 0 ? (entry.value / total) * 100 : null
           return (
             <div key={i} className="flex items-center gap-2">
               <span
-                className="w-2 h-2 rounded-full shrink-0"
+                className="h-2 w-2 shrink-0 rounded-full"
                 style={{ backgroundColor: entry.color }}
               />
               <span className="text-muted-foreground">{entry.name}:</span>
-              <span className="font-mono font-medium text-foreground ml-auto">
+              <span className="ml-auto font-mono font-medium text-foreground">
                 {formatter ? formatter(entry.value, entry.name) : entry.value}
               </span>
               {pct !== null && (
-                <span className="text-muted-foreground/60 font-mono w-10 text-right">
+                <span className="w-10 text-right font-mono text-muted-foreground/60">
                   {pct.toFixed(0)}%
                 </span>
               )}
@@ -95,28 +96,28 @@ export function CustomTooltip({
         })}
         {showTotal && (
           <>
-            <div className="border-t border-border/40 my-1" />
+            <div className="my-1 border-t border-border/40" />
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 shrink-0" />
-              <span className="text-muted-foreground font-medium">{totalLabel}:</span>
-              <span className="font-mono font-medium text-foreground ml-auto">
+              <span className="h-2 w-2 shrink-0" />
+              <span className="font-medium text-muted-foreground">{totalLabel}:</span>
+              <span className="ml-auto font-mono font-medium text-foreground">
                 {formatter ? formatter(total, totalLabel) : total}
               </span>
-              <span className="text-muted-foreground/60 font-mono w-10 text-right">100%</span>
+              <span className="w-10 text-right font-mono text-muted-foreground/60">100%</span>
             </div>
           </>
         )}
         {maEntries.length > 0 && (
           <>
-            <div className="border-t border-border/40 my-1" />
+            <div className="my-1 border-t border-border/40" />
             {maEntries.map((entry, i) => (
               <div key={`ma-${i}`} className="flex items-center gap-2 opacity-70">
                 <span
-                  className="w-2 h-0.5 shrink-0 border-t border-dashed"
+                  className="h-0.5 w-2 shrink-0 border-t border-dashed"
                   style={{ borderColor: entry.color }}
                 />
                 <span className="text-muted-foreground">{entry.name}:</span>
-                <span className="font-mono font-medium text-foreground ml-auto">
+                <span className="ml-auto font-mono font-medium text-foreground">
                   {formatter ? formatter(entry.value, entry.name) : entry.value}
                 </span>
               </div>
@@ -125,15 +126,15 @@ export function CustomTooltip({
         )}
         {pinnedEntries.length > 0 && (
           <>
-            <div className="border-t border-border/40 my-1" />
+            <div className="my-1 border-t border-border/40" />
             {pinnedEntries.map((entry, i) => (
               <div key={`pinned-${i}`} className="flex items-center gap-2">
                 <span
-                  className="w-2 h-2 rounded-full shrink-0"
+                  className="h-2 w-2 shrink-0 rounded-full"
                   style={{ backgroundColor: entry.color }}
                 />
                 <span className="text-muted-foreground">{entry.name}:</span>
-                <span className="font-mono font-medium text-foreground ml-auto">
+                <span className="ml-auto font-mono font-medium text-foreground">
                   {formatter ? formatter(entry.value, entry.name) : entry.value}
                 </span>
               </div>
@@ -142,12 +143,12 @@ export function CustomTooltip({
         )}
         {(deltaVsPrevious !== null || deltaVsAverage !== null) && (
           <>
-            <div className="border-t border-border/40 my-1" />
+            <div className="my-1 border-t border-border/40" />
             {deltaVsPrevious !== null && (
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 shrink-0" />
+                <span className="h-2 w-2 shrink-0" />
                 <span className="text-muted-foreground">{t('customTooltip.vsPrevious')}:</span>
-                <span className="font-mono font-medium text-foreground ml-auto">
+                <span className="ml-auto font-mono font-medium text-foreground">
                   {deltaVsPrevious >= 0 ? '+' : ''}
                   {formatter ? formatter(deltaVsPrevious, deltaLabel) : deltaVsPrevious}
                 </span>
@@ -155,9 +156,9 @@ export function CustomTooltip({
             )}
             {deltaVsAverage !== null && (
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 shrink-0" />
+                <span className="h-2 w-2 shrink-0" />
                 <span className="text-muted-foreground">{t('customTooltip.vsAverage')}:</span>
-                <span className="font-mono font-medium text-foreground ml-auto">
+                <span className="ml-auto font-mono font-medium text-foreground">
                   {deltaVsAverage >= 0 ? '+' : ''}
                   {formatter ? formatter(deltaVsAverage, deltaLabel) : deltaVsAverage}
                 </span>

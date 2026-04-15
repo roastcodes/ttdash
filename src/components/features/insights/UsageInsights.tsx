@@ -36,7 +36,7 @@ function InsightCard({ title, icon, value, summary, details }: InsightCardProps)
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
             {title}
           </div>
           <div className="mt-2 text-3xl font-semibold tracking-tight">{value}</div>
@@ -52,7 +52,7 @@ function InsightCard({ title, icon, value, summary, details }: InsightCardProps)
             key={detail.label}
             className="rounded-xl border border-border/50 bg-muted/20 px-3 py-2"
           >
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
               {detail.label}
             </div>
             <div className="mt-1 text-sm font-medium text-foreground">{detail.value}</div>
@@ -63,6 +63,7 @@ function InsightCard({ title, icon, value, summary, details }: InsightCardProps)
   )
 }
 
+/** Renders the high-level narrative insight cards for the current slice. */
 export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageInsightsProps) {
   const { t } = useTranslation()
   const coverageRate =
@@ -91,7 +92,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
         description={t('dashboard.insights.description')}
         info={SECTION_HELP.insights}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
         <FadeIn delay={0.03}>
           <InsightCard
             title={t('insights.concentration.title')}
@@ -267,7 +268,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
 
       <FadeIn delay={0.22}>
         <div className="mt-4 rounded-2xl border border-border/60 bg-gradient-to-r from-primary/[0.08] via-transparent to-chart-3/[0.08] px-4 py-3 text-sm text-muted-foreground">
-          <span className="inline-flex items-center gap-2 text-foreground font-medium">
+          <span className="inline-flex items-center gap-2 font-medium text-foreground">
             <Sparkles className="h-4 w-4 text-primary" />
             {t('dashboard.insights.quickRead')}
           </span>

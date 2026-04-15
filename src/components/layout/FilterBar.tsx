@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import {
@@ -120,10 +128,14 @@ interface DatePickerFieldProps {
 
 function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   const { t } = useTranslation()
+  const dialogId = useId()
+  const dialogLabelId = useId()
+  const dialogDescriptionId = useId()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const overlayRef = useRef<HTMLDivElement | null>(null)
+  const dayButtonRefs = useRef(new Map<string, HTMLButtonElement>())
   const [overlayStyle, setOverlayStyle] = useState<{ top: number; left: number; width: number }>({
     top: 0,
     left: 0,
@@ -151,7 +163,80 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   )
 
   const calendarDays = useMemo(() => buildCalendarDays(displayMonth), [displayMonth])
+  const selectableDates = useMemo(
+    () => calendarDays.filter((day): day is Date => day !== null).map((day) => toLocalDateStr(day)),
+    [calendarDays],
+  )
   const today = localToday()
+  const [focusedDate, setFocusedDate] = useState<string | null>(value ?? today)
+  const scheduleFocus = useCallback((callback: () => void) => {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(callback)
+      return
+    }
+    setTimeout(callback, 0)
+  }, [])
+
+  const clampToMonth = useCallback((date: Date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const day = date.getDate()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    return new Date(year, month, Math.min(day, daysInMonth))
+  }, [])
+
+  const closePicker = useCallback(
+    (restoreFocus = true) => {
+      setOpen(false)
+      if (restoreFocus) {
+        scheduleFocus(() => {
+          triggerRef.current?.focus()
+        })
+      }
+    },
+    [scheduleFocus],
+  )
+
+  const resolveFocusableDate = useCallback(
+    (preferred?: string | null) => {
+      if (preferred && selectableDates.includes(preferred)) return preferred
+      if (value && selectableDates.includes(value)) return value
+      if (selectableDates.includes(today)) return today
+      return selectableDates[0] ?? null
+    },
+    [selectableDates, today, value],
+  )
+
+  const focusDate = useCallback(
+    (nextDate: string | null) => {
+      if (!nextDate) return
+      setFocusedDate(nextDate)
+      scheduleFocus(() => {
+        dayButtonRefs.current.get(nextDate)?.focus()
+      })
+    },
+    [scheduleFocus],
+  )
+
+  const shiftDisplayMonth = useCallback(
+    (offset: number) => {
+      const baseDate = parseLocalDate(focusedDate ?? value ?? today) ?? new Date()
+      const targetDate = clampToMonth(
+        new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, baseDate.getDate()),
+      )
+      setDisplayMonth(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1))
+      setFocusedDate(toLocalDateStr(targetDate))
+    },
+    [clampToMonth, focusedDate, today, value],
+  )
+
+  const selectDate = useCallback(
+    (nextDate: string) => {
+      onChange(nextDate)
+      closePicker()
+    },
+    [closePicker, onChange],
+  )
 
   useEffect(() => {
     if (selectedDate) {
@@ -161,6 +246,8 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
 
   useEffect(() => {
     if (!open) return
+
+    setFocusedDate((prev) => resolveFocusableDate(prev))
 
     const updateOverlayPosition = () => {
       const rect = triggerRef.current?.getBoundingClientRect()
@@ -183,12 +270,12 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node
       if (!containerRef.current?.contains(target) && !overlayRef.current?.contains(target)) {
-        setOpen(false)
+        closePicker(false)
       }
     }
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') closePicker()
     }
 
     window.addEventListener('resize', updateOverlayPosition)
@@ -201,14 +288,98 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [open])
+  }, [closePicker, open, resolveFocusableDate])
+
+  useEffect(() => {
+    if (!open) return
+    const nextFocusedDate = resolveFocusableDate(focusedDate)
+    if (nextFocusedDate !== focusedDate) {
+      setFocusedDate(nextFocusedDate)
+      return
+    }
+    if (nextFocusedDate) {
+      scheduleFocus(() => {
+        dayButtonRefs.current.get(nextFocusedDate)?.focus()
+      })
+    }
+  }, [focusedDate, open, resolveFocusableDate, scheduleFocus])
+
+  const handleDayKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>, currentDate: string) => {
+      const currentIndex = selectableDates.indexOf(currentDate)
+      if (currentIndex < 0) return
+
+      const currentCell = calendarDays.find((day) => day && toLocalDateStr(day) === currentDate)
+      const moveToIndex = (nextIndex: number) => {
+        const nextDate =
+          selectableDates[Math.max(0, Math.min(nextIndex, selectableDates.length - 1))]
+        focusDate(nextDate ?? null)
+      }
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault()
+          moveToIndex(currentIndex - 1)
+          break
+        case 'ArrowRight':
+          event.preventDefault()
+          moveToIndex(currentIndex + 1)
+          break
+        case 'ArrowUp':
+          event.preventDefault()
+          moveToIndex(currentIndex - 7)
+          break
+        case 'ArrowDown':
+          event.preventDefault()
+          moveToIndex(currentIndex + 7)
+          break
+        case 'Home':
+          if (!currentCell) return
+          event.preventDefault()
+          moveToIndex(currentIndex - ((currentCell.getDay() + 6) % 7))
+          break
+        case 'End':
+          if (!currentCell) return
+          event.preventDefault()
+          moveToIndex(currentIndex + (6 - ((currentCell.getDay() + 6) % 7)))
+          break
+        case 'PageUp':
+          event.preventDefault()
+          shiftDisplayMonth(-1)
+          break
+        case 'PageDown':
+          event.preventDefault()
+          shiftDisplayMonth(1)
+          break
+        case 'Enter':
+        case ' ':
+          event.preventDefault()
+          selectDate(currentDate)
+          break
+        default:
+          break
+      }
+    },
+    [calendarDays, focusDate, selectDate, selectableDates, shiftDisplayMonth],
+  )
 
   return (
     <div ref={containerRef} className="relative">
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={open ? dialogId : undefined}
+        onClick={() => {
+          setOpen((prev) => {
+            const nextOpen = !prev
+            if (nextOpen) {
+              setFocusedDate(resolveFocusableDate(value))
+            }
+            return nextOpen
+          })
+        }}
         className="flex h-10 w-full items-center justify-between gap-3 rounded-md border border-border bg-background px-3 pr-14 text-left text-sm transition-colors hover:bg-accent/40"
       >
         <span className={cn('truncate', value ? 'text-foreground' : 'text-muted-foreground')}>
@@ -220,38 +391,44 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
           type="button"
           aria-label={t('filterBar.clearDate', { label })}
           onClick={() => onChange(undefined)}
-          className="absolute right-8 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute top-1/2 right-8 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           <X className="h-3.5 w-3.5" />
         </button>
       )}
-      <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <CalendarDays className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
       {open &&
         typeof document !== 'undefined' &&
         createPortal(
           <div
+            id={dialogId}
             ref={overlayRef}
+            role="dialog"
+            aria-modal="false"
+            aria-labelledby={dialogLabelId}
+            aria-describedby={dialogDescriptionId}
             className="fixed z-[999] rounded-xl border border-border/80 bg-card/98 p-3 shadow-2xl backdrop-blur-xl"
             style={{ top: overlayStyle.top, left: overlayStyle.left, width: overlayStyle.width }}
           >
+            <div id={dialogLabelId} className="sr-only">
+              {label}
+            </div>
             <div className="mb-3 flex items-center justify-between gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  setDisplayMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
-                }
+                onClick={() => shiftDisplayMonth(-1)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 aria-label={t('common.previousMonth')}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <div className="text-sm font-medium capitalize">{monthLabel}</div>
+              <div id={dialogDescriptionId} className="text-sm font-medium capitalize">
+                {monthLabel}
+              </div>
               <button
                 type="button"
-                onClick={() =>
-                  setDisplayMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
-                }
+                onClick={() => shiftDisplayMonth(1)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 aria-label={t('common.nextMonth')}
               >
@@ -263,7 +440,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
               {weekdayLabels.map((day) => (
                 <div
                   key={day}
-                  className="px-1 py-1 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+                  className="px-1 py-1 text-center text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
                 >
                   {day}
                 </div>
@@ -279,15 +456,23 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
                 const iso = toLocalDateStr(day)
                 const isSelected = value === iso
                 const isToday = iso === today
+                const dayLabel = formatDate(iso, 'long')
 
                 return (
                   <button
                     key={iso}
-                    type="button"
-                    onClick={() => {
-                      onChange(iso)
-                      setOpen(false)
+                    ref={(node) => {
+                      if (node) dayButtonRefs.current.set(iso, node)
+                      else dayButtonRefs.current.delete(iso)
                     }}
+                    type="button"
+                    tabIndex={focusedDate === iso ? 0 : -1}
+                    aria-label={dayLabel}
+                    aria-current={isToday ? 'date' : undefined}
+                    aria-pressed={isSelected}
+                    onFocus={() => setFocusedDate(iso)}
+                    onKeyDown={(event) => handleDayKeyDown(event, iso)}
+                    onClick={() => selectDate(iso)}
                     className={cn(
                       'h-9 rounded-md text-sm font-medium transition-colors',
                       isSelected
@@ -306,7 +491,10 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
             <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-3">
               <button
                 type="button"
-                onClick={() => onChange(undefined)}
+                onClick={() => {
+                  onChange(undefined)
+                  closePicker()
+                }}
                 className="rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 {t('common.reset')}
@@ -316,8 +504,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
                 onClick={() => {
                   const current = today
                   setDisplayMonth(parseLocalDate(current) ?? new Date())
-                  onChange(current)
-                  setOpen(false)
+                  selectDate(current)
                 }}
                 className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
@@ -331,6 +518,15 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   )
 }
 
+type FilterVisualState = 'selected' | 'included' | 'inactive'
+
+function getFilterVisualState(isSelected: boolean, hasSelection: boolean): FilterVisualState {
+  if (isSelected) return 'selected'
+  if (!hasSelection) return 'included'
+  return 'inactive'
+}
+
+/** Renders the dashboard filter controls and custom date picker. */
 export function FilterBar({
   viewMode,
   onViewModeChange,
@@ -369,7 +565,7 @@ export function FilterBar({
     <div className="rounded-2xl border border-border/50 bg-card/40 px-3 py-3 backdrop-blur-xl">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-          <span className="font-semibold uppercase tracking-[0.14em]">{t('filterBar.status')}</span>
+          <span className="font-semibold tracking-[0.14em] uppercase">{t('filterBar.status')}</span>
           <span className="rounded-full bg-muted/30 px-2 py-0.5">
             {selectedProviders.length > 0
               ? t('filterBar.providersActive', { count: selectedProviders.length })
@@ -388,7 +584,7 @@ export function FilterBar({
           <button
             type="button"
             onClick={() => onResetAll()}
-            className="ml-auto inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[11px] font-medium text-foreground transition-all duration-200 hover:bg-accent hover:border-accent disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-border"
+            className="ml-auto inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[11px] font-medium text-foreground transition-all duration-200 hover:border-accent hover:bg-accent disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-transparent"
             disabled={!hasCustomFilters}
           >
             {t('filterBar.resetAll')}
@@ -436,12 +632,14 @@ export function FilterBar({
             ].map((p) => (
               <button
                 key={p.key}
+                type="button"
+                aria-pressed={activePreset === p.key}
                 onClick={() => onApplyPreset(p.key)}
                 className={cn(
-                  'rounded-full px-3 py-1.5 text-xs font-medium border transition-all duration-200 min-w-[48px]',
+                  'min-w-[48px] rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200',
                   activePreset === p.key
-                    ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_0_1px_rgba(255,255,255,0.06)]'
-                    : 'border-border hover:bg-accent hover:border-accent',
+                    ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.06)]'
+                    : 'border-border hover:border-accent hover:bg-accent',
                 )}
               >
                 {p.label}
@@ -456,7 +654,7 @@ export function FilterBar({
             onChange={onStartDateChange}
             {...(startDate ? { value: startDate } : {})}
           />
-          <span className="hidden md:inline text-xs text-muted-foreground">
+          <span className="hidden text-xs text-muted-foreground md:inline">
             {t('filterBar.until')}
           </span>
           <DatePickerField
@@ -465,11 +663,12 @@ export function FilterBar({
             {...(endDate ? { value: endDate } : {})}
           />
           <button
+            type="button"
             onClick={() => {
               onStartDateChange(undefined)
               onEndDateChange(undefined)
             }}
-            className="rounded-full px-3 py-2 text-xs font-medium border border-border transition-all duration-200 hover:bg-accent hover:border-accent"
+            className="rounded-full border border-border px-3 py-2 text-xs font-medium transition-all duration-200 hover:border-accent hover:bg-accent"
           >
             {t('filterBar.resetDateRange')}
           </button>
@@ -477,26 +676,42 @@ export function FilterBar({
 
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
               {t('filterBar.providers')}
             </span>
             <div className="flex flex-wrap gap-1.5">
               {availableProviders.map((provider) => {
                 const isSelected = selectedProviders.includes(provider)
+                const visualState = getFilterVisualState(isSelected, selectedProviders.length > 0)
+                const badgeStyle = getProviderBadgeStyle(provider)
                 return (
                   <button
                     key={provider}
+                    type="button"
+                    data-filter-state={visualState}
+                    aria-pressed={isSelected}
                     onClick={() => onToggleProvider(provider)}
                     className={cn(
-                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold cursor-pointer border transition-all duration-200',
-                      isSelected || selectedProviders.length === 0
+                      'inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition-all duration-200',
+                      visualState === 'selected'
                         ? getProviderBadgeClasses(provider)
-                        : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
+                        : visualState === 'included'
+                          ? 'border-border/70 bg-background/70 hover:bg-accent'
+                          : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
                     )}
                     style={
-                      isSelected || selectedProviders.length === 0
-                        ? getProviderBadgeStyle(provider)
-                        : undefined
+                      visualState === 'selected'
+                        ? badgeStyle
+                        : visualState === 'included'
+                          ? {
+                              color: badgeStyle.color,
+                              backgroundColor: badgeStyle.backgroundColor.replace(
+                                /0\.10\)$/,
+                                '0.05)',
+                              ),
+                              borderColor: badgeStyle.borderColor.replace(/0\.20\)$/, '0.14)'),
+                            }
+                          : undefined
                     }
                   >
                     {provider}
@@ -505,8 +720,9 @@ export function FilterBar({
               })}
               {selectedProviders.length > 0 && (
                 <button
+                  type="button"
                   onClick={onClearProviders}
-                  className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-border transition-all duration-200 hover:bg-accent"
+                  className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:bg-accent"
                 >
                   {t('common.reset')}
                 </button>
@@ -516,13 +732,14 @@ export function FilterBar({
 
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
                 {t('filterBar.models')}
               </span>
               {selectedModels.length > 0 && (
                 <button
+                  type="button"
                   onClick={onClearModels}
-                  className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-border transition-all duration-200 hover:bg-accent"
+                  className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:bg-accent"
                 >
                   {t('filterBar.resetModels')}
                 </button>
@@ -532,28 +749,36 @@ export function FilterBar({
               {allModels.map((model) => {
                 const isSelected = selectedModels.includes(model)
                 const color = getModelColor(model)
+                const visualState = getFilterVisualState(isSelected, selectedModels.length > 0)
                 return (
                   <button
                     key={model}
+                    type="button"
+                    data-filter-state={visualState}
+                    aria-pressed={isSelected}
                     onClick={() => onToggleModel(model)}
                     className={cn(
-                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium cursor-pointer',
+                      'inline-flex cursor-pointer items-center rounded-full px-2.5 py-1 text-xs font-medium',
                       'border transition-all duration-200 hover:scale-[1.03]',
-                      isSelected || selectedModels.length === 0
+                      visualState === 'selected'
                         ? 'opacity-100'
-                        : 'opacity-40 hover:opacity-70',
+                        : visualState === 'included'
+                          ? 'opacity-85'
+                          : 'opacity-40 hover:opacity-70',
                     )}
                     style={{
                       borderColor: color,
                       backgroundColor:
-                        isSelected || selectedModels.length === 0
+                        visualState === 'selected'
                           ? getModelColorAlpha(model, 0.16)
-                          : 'transparent',
+                          : visualState === 'included'
+                            ? getModelColorAlpha(model, 0.08)
+                            : 'transparent',
                       color: color,
                     }}
                   >
                     <span
-                      className="w-2 h-2 rounded-full mr-1.5"
+                      className="mr-1.5 h-2 w-2 rounded-full"
                       style={{ backgroundColor: color }}
                     />
                     {model}

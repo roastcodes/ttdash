@@ -1,3 +1,4 @@
+/** Describes one tool availability check emitted by auto import. */
 export interface CheckEvent {
   tool: string
   status: string
@@ -18,24 +19,30 @@ type AutoImportMessageEvent = {
   vars?: Record<string, string | number>
 }
 
+/** Describes one translated progress event emitted by auto import. */
 export interface ProgressEvent {
   key: AutoImportMessageKey
   vars?: Record<string, string | number>
 }
+/** Describes one progress message after translation. */
 export interface ProgressMessage extends ProgressEvent {
   message: string
 }
+/** Describes one stderr line emitted by the import process. */
 export interface StderrEvent {
   line: string
 }
+/** Describes a successful auto-import result. */
 export interface SuccessEvent {
   days: number
   totalCost: number
 }
+/** Describes a structured auto-import error event. */
 export interface ErrorEvent {
   key: AutoImportMessageKey
   vars?: Record<string, string | number>
 }
+/** Describes a user-facing auto-import error message. */
 export interface ErrorMessage {
   message: string
 }
@@ -57,6 +64,7 @@ function parseJsonRecord<T>(value: string): T | null {
   }
 }
 
+/** Parses structured event data from a message event. */
 export function parseEventData<T>(event: Event): T | null {
   if (!(event instanceof MessageEvent) || typeof event.data !== 'string') {
     return null
@@ -65,6 +73,7 @@ export function parseEventData<T>(event: Event): T | null {
   return parseJsonRecord<T>(event.data)
 }
 
+/** Translates a structured auto-import event to localized UI text. */
 export function translateAutoImportEvent(event: AutoImportMessageEvent, t: AutoImportTranslator) {
   switch (event.key) {
     case 'startingLocalImport':
@@ -92,6 +101,7 @@ export function translateAutoImportEvent(event: AutoImportMessageEvent, t: AutoI
   }
 }
 
+/** Starts the auto-import event stream and dispatches parsed callbacks. */
 export function startAutoImport(
   callbacks: {
     onCheck: (data: CheckEvent) => void

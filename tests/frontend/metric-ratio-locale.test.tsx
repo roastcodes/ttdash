@@ -97,7 +97,7 @@ describe('metric ratio localization', () => {
       </TooltipProvider>,
     )
 
-    expect(document.body.textContent).toContain(`${ratio}:1`)
+    expect(document.body).toHaveTextContent(`${ratio}:1`)
   })
 
   it('formats the month metrics I/O ratio with the active locale', () => {
@@ -112,7 +112,7 @@ describe('metric ratio localization', () => {
       </TooltipProvider>,
     )
 
-    expect(document.body.textContent).toContain(`${ratio}:1`)
+    expect(document.body).toHaveTextContent(`${ratio}:1`)
   })
 
   it('formats month percentage subtitles with the active locale', () => {
@@ -133,7 +133,7 @@ describe('metric ratio localization', () => {
       </TooltipProvider>,
     )
 
-    expect(document.body.textContent).toContain(thinkingShare)
-    expect(document.body.textContent).toContain(coverage)
+    expect(document.body).toHaveTextContent(thinkingShare)
+    expect(document.body).toHaveTextContent(coverage)
   })
 })

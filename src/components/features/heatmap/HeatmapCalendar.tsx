@@ -1,4 +1,11 @@
-import { useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
@@ -17,6 +24,7 @@ interface HeatmapCalendarProps {
   data: DailyUsage[]
   viewMode?: ViewMode
   metric?: 'cost' | 'requests' | 'tokens'
+  isDark?: boolean
 }
 
 const CELL_SIZE = 14
@@ -25,25 +33,34 @@ const TOTAL = CELL_SIZE + CELL_GAP
 const LEFT_GUTTER = 30
 const TOP_GUTTER = 26
 
-function getColor(value: number, maxValue: number, hue: number): string {
-  if (value === 0) return 'hsl(224, 12%, 14%)'
-  const intensity = Math.min(value / maxValue, 1)
-  if (intensity < 0.15) return `hsl(${hue}, 70%, 18%)`
-  if (intensity < 0.3) return `hsl(${hue}, 70%, 26%)`
-  if (intensity < 0.45) return `hsl(${hue}, 70%, 34%)`
-  if (intensity < 0.6) return `hsl(${hue}, 70%, 42%)`
-  if (intensity < 0.75) return `hsl(${hue}, 70%, 52%)`
-  if (intensity < 0.9) return `hsl(${hue}, 70%, 60%)`
-  return `hsl(${hue}, 70%, 70%)`
+function resolveHeatmapLightness(intensity: number, isDarkTheme: boolean) {
+  if (intensity < 0.15) return isDarkTheme ? 28 : 88
+  if (intensity < 0.3) return isDarkTheme ? 36 : 80
+  if (intensity < 0.45) return isDarkTheme ? 44 : 72
+  if (intensity < 0.6) return isDarkTheme ? 52 : 64
+  if (intensity < 0.75) return isDarkTheme ? 60 : 56
+  if (intensity < 0.9) return isDarkTheme ? 68 : 48
+  return isDarkTheme ? 76 : 40
 }
 
+function getColor(value: number, maxValue: number, hue: number, isDarkTheme: boolean): string {
+  if (value === 0 || maxValue <= 0) return 'hsl(var(--muted))'
+  const intensity = Math.min(value / maxValue, 1)
+  const saturation = isDarkTheme ? 68 : 78
+  const lightness = resolveHeatmapLightness(intensity, isDarkTheme)
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`
+}
+
+/** Renders a calendar heatmap for daily cost, request, or token activity. */
 export function HeatmapCalendar({
   data,
   viewMode = 'daily',
   metric = 'cost',
+  isDark = false,
 }: HeatmapCalendarProps) {
   const { t } = useTranslation()
   const locale = getCurrentLocale()
+  const dayButtonRefs = useRef(new Map<string, SVGRectElement>())
   const [tooltip, setTooltip] = useState<{
     x: number
     y: number
@@ -158,6 +175,102 @@ export function HeatmapCalendar({
   }, [config, data, locale])
 
   const todayStr = localToday()
+  const axisColor = 'hsl(var(--muted-foreground))'
+  const todayOutlineColor = 'hsl(var(--primary))'
+  const [focusedDate, setFocusedDate] = useState<string | null>(null)
+  const scheduleFocus = useCallback((callback: () => void) => {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(callback)
+      return
+    }
+    setTimeout(callback, 0)
+  }, [])
+  const availableDates = useMemo(() => cells.map((cell) => cell.date), [cells])
+  const cellRows = useMemo(
+    () => Array.from({ length: 7 }, (_, day) => cells.filter((cell) => cell.day === day)),
+    [cells],
+  )
+  const defaultFocusedDate = useMemo(
+    () =>
+      (availableDates.includes(todayStr) ? todayStr : undefined) ??
+      cells.find((cell) => cell.value > 0)?.date ??
+      availableDates[0] ??
+      null,
+    [availableDates, cells, todayStr],
+  )
+
+  const focusDate = useCallback(
+    (nextDate: string | null) => {
+      if (!nextDate) return
+      setFocusedDate(nextDate)
+      scheduleFocus(() => {
+        dayButtonRefs.current.get(nextDate)?.focus()
+      })
+    },
+    [scheduleFocus],
+  )
+
+  useEffect(() => {
+    if (!defaultFocusedDate) return
+    if (!focusedDate || !availableDates.includes(focusedDate)) {
+      setFocusedDate(defaultFocusedDate)
+    }
+  }, [availableDates, defaultFocusedDate, focusedDate])
+
+  const handleCellKeyDown = useCallback(
+    (event: ReactKeyboardEvent<SVGRectElement>, currentDate: string) => {
+      const currentCell = cells.find((cell) => cell.date === currentDate)
+      if (!currentCell) return
+
+      const currentRow = currentCell.day
+      const currentColumn = currentCell.week
+
+      const moveToCell = (rowIndex: number, columnIndex: number) => {
+        const targetRow = cellRows[Math.max(0, Math.min(rowIndex, cellRows.length - 1))]
+        if (!targetRow || targetRow.length === 0) return
+
+        const nextCell = targetRow[Math.max(0, Math.min(columnIndex, targetRow.length - 1))]
+        focusDate(nextCell?.date ?? null)
+      }
+
+      const moveToRowBoundary = (targetColumn: 0 | 'end') => {
+        const row = cellRows[currentRow]
+        if (!row || row.length === 0) return
+        const nextCell = targetColumn === 0 ? row[0] : row[row.length - 1]
+        focusDate(nextCell?.date ?? null)
+      }
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault()
+          moveToCell(currentRow, currentColumn - 1)
+          break
+        case 'ArrowRight':
+          event.preventDefault()
+          moveToCell(currentRow, currentColumn + 1)
+          break
+        case 'ArrowUp':
+          event.preventDefault()
+          moveToCell(currentRow - 1, currentColumn)
+          break
+        case 'ArrowDown':
+          event.preventDefault()
+          moveToCell(currentRow + 1, currentColumn)
+          break
+        case 'Home':
+          event.preventDefault()
+          moveToRowBoundary(0)
+          break
+        case 'End':
+          event.preventDefault()
+          moveToRowBoundary('end')
+          break
+        default:
+          break
+      }
+    },
+    [cellRows, cells, focusDate],
+  )
 
   // Heatmap only makes sense for daily view
   if (viewMode !== 'daily') {
@@ -173,7 +286,7 @@ export function HeatmapCalendar({
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-sm text-muted-foreground">{config.empty}</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">
+            <p className="mt-1 text-xs text-muted-foreground/60">
               {t('charts.heatmap.switchToDaily')}
             </p>
           </div>
@@ -197,9 +310,17 @@ export function HeatmapCalendar({
         </InfoHeading>
       </CardHeader>
       <CardContent className="overflow-visible">
-        <div ref={overlayRef} className="relative overflow-visible z-10">
+        <div ref={overlayRef} className="relative z-10 overflow-visible">
           <div className="overflow-x-auto overflow-y-hidden">
-            <svg width={svgWidth} height={svgHeight} className="block">
+            <svg
+              width={svgWidth}
+              height={svgHeight}
+              className="block"
+              role="grid"
+              aria-label={config.title}
+              aria-rowcount={7}
+              aria-colcount={weeks}
+            >
               {/* Day labels */}
               {dayLabels.map(
                 (label, i) =>
@@ -209,7 +330,7 @@ export function HeatmapCalendar({
                       x={0}
                       y={TOP_GUTTER + i * TOTAL + CELL_SIZE - 2}
                       fontSize={9}
-                      fill="hsl(220, 8%, 46%)"
+                      fill={axisColor}
                       className="font-mono"
                     >
                       {label}
@@ -224,7 +345,7 @@ export function HeatmapCalendar({
                   x={LEFT_GUTTER + m.week * TOTAL}
                   y={12}
                   fontSize={9}
-                  fill="hsl(220, 8%, 46%)"
+                  fill={axisColor}
                   className="font-mono"
                 >
                   {m.label}
@@ -232,91 +353,106 @@ export function HeatmapCalendar({
               ))}
 
               {/* Cells */}
-              {cells.map((cell, i) => {
-                const isToday = cell.date === todayStr
-                const formattedDate = fullDateFormatter.format(new Date(`${cell.date}T00:00:00`))
-                const accessibleLabel = t('charts.heatmap.cellLabel', {
-                  date: formattedDate,
-                  value: config.formatter(cell.value),
-                })
-                return (
-                  <g key={i}>
-                    <rect
-                      x={LEFT_GUTTER + cell.week * TOTAL}
-                      y={TOP_GUTTER + cell.day * TOTAL}
-                      width={CELL_SIZE}
-                      height={CELL_SIZE}
-                      rx={2}
-                      fill={getColor(cell.value, maxValue, config.hue)}
-                      stroke="transparent"
-                      strokeWidth={1.5}
-                      className="transition-all duration-150 cursor-pointer focus-visible:stroke-primary"
-                      tabIndex={0}
-                      role="img"
-                      aria-label={accessibleLabel}
-                      aria-current={isToday ? 'date' : undefined}
-                      onMouseEnter={(event) => {
-                        const bounds = overlayRef.current?.getBoundingClientRect()
-                        if (!bounds) return
-                        setTooltip({
-                          x: event.clientX - bounds.left,
-                          y: event.clientY - bounds.top - 12,
-                          date: cell.date,
-                          value: cell.value,
-                        })
-                      }}
-                      onFocus={(event) => {
-                        const bounds = overlayRef.current?.getBoundingClientRect()
-                        if (!bounds) return
-                        const rect = event.currentTarget.getBoundingClientRect()
-                        setTooltip({
-                          x: rect.left - bounds.left + rect.width / 2,
-                          y: rect.top - bounds.top - 8,
-                          date: cell.date,
-                          value: cell.value,
-                        })
-                      }}
-                      onBlur={() => setTooltip(null)}
-                      onMouseLeave={() => setTooltip(null)}
-                    >
-                      <title>{accessibleLabel}</title>
-                    </rect>
-                    {isToday && (
-                      <rect
-                        x={LEFT_GUTTER + cell.week * TOTAL - 1}
-                        y={TOP_GUTTER + cell.day * TOTAL - 1}
-                        width={CELL_SIZE + 2}
-                        height={CELL_SIZE + 2}
-                        rx={3}
-                        fill="none"
-                        stroke="hsl(215, 70%, 55%)"
-                        strokeWidth={1.5}
-                      />
-                    )}
-                  </g>
-                )
-              })}
+              {cellRows.map((row, rowIndex) => (
+                <g key={rowIndex} role="row">
+                  {row.map((cell) => {
+                    const isToday = cell.date === todayStr
+                    const formattedDate = fullDateFormatter.format(
+                      new Date(`${cell.date}T00:00:00`),
+                    )
+                    const accessibleLabel = t('charts.heatmap.cellLabel', {
+                      date: formattedDate,
+                      value: config.formatter(cell.value),
+                    })
+
+                    return (
+                      <g key={cell.date}>
+                        <rect
+                          ref={(node) => {
+                            if (node) dayButtonRefs.current.set(cell.date, node)
+                            else dayButtonRefs.current.delete(cell.date)
+                          }}
+                          x={LEFT_GUTTER + cell.week * TOTAL}
+                          y={TOP_GUTTER + cell.day * TOTAL}
+                          width={CELL_SIZE}
+                          height={CELL_SIZE}
+                          rx={2}
+                          fill={getColor(cell.value, maxValue, config.hue, isDark)}
+                          stroke="transparent"
+                          strokeWidth={1.5}
+                          className="transition-all duration-150 focus-visible:stroke-primary"
+                          tabIndex={focusedDate === cell.date ? 0 : -1}
+                          role="gridcell"
+                          aria-label={accessibleLabel}
+                          aria-current={isToday ? 'date' : undefined}
+                          onKeyDown={(event) => handleCellKeyDown(event, cell.date)}
+                          onMouseEnter={(event) => {
+                            const bounds = overlayRef.current?.getBoundingClientRect()
+                            if (!bounds) return
+                            setTooltip({
+                              x: event.clientX - bounds.left,
+                              y: event.clientY - bounds.top - 12,
+                              date: formattedDate,
+                              value: cell.value,
+                            })
+                          }}
+                          onFocus={(event) => {
+                            setFocusedDate(cell.date)
+                            const bounds = overlayRef.current?.getBoundingClientRect()
+                            if (!bounds) return
+                            const rect = event.currentTarget.getBoundingClientRect()
+                            setTooltip({
+                              x: rect.left - bounds.left + rect.width / 2,
+                              y: rect.top - bounds.top - 8,
+                              date: formattedDate,
+                              value: cell.value,
+                            })
+                          }}
+                          onBlur={() => setTooltip(null)}
+                          onMouseLeave={() => setTooltip(null)}
+                        >
+                          <title>{accessibleLabel}</title>
+                        </rect>
+                        {isToday && (
+                          <rect
+                            x={LEFT_GUTTER + cell.week * TOTAL - 1}
+                            y={TOP_GUTTER + cell.day * TOTAL - 1}
+                            width={CELL_SIZE + 2}
+                            height={CELL_SIZE + 2}
+                            rx={3}
+                            fill="none"
+                            stroke={todayOutlineColor}
+                            strokeWidth={1.5}
+                          />
+                        )}
+                      </g>
+                    )
+                  })}
+                </g>
+              ))}
             </svg>
           </div>
 
           {tooltip && (
             <div
-              className="absolute z-30 -translate-x-1/2 -translate-y-full rounded-md border border-border bg-popover px-2 py-1 text-xs shadow-lg pointer-events-none whitespace-nowrap"
+              className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-md border border-border bg-popover px-2 py-1 text-xs whitespace-nowrap shadow-lg"
               style={{ left: tooltip.x, top: tooltip.y }}
             >
               <span className="font-medium">{config.formatter(tooltip.value)}</span>
-              <span className="text-muted-foreground ml-1">{tooltip.date}</span>
+              <span className="ml-1 text-muted-foreground">{tooltip.date}</span>
             </div>
           )}
 
           {/* Legend */}
-          <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground">
+          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <span>{t('charts.heatmap.less')}</span>
             {[0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1].map((level, i) => (
               <div
                 key={i}
-                className="w-3 h-3 rounded-sm"
-                style={{ backgroundColor: getColor(level * maxValue, maxValue, config.hue) }}
+                className="h-3 w-3 rounded-sm"
+                style={{
+                  backgroundColor: getColor(level * maxValue, maxValue, config.hue, isDark),
+                }}
               />
             ))}
             <span>{t('charts.heatmap.more')}</span>

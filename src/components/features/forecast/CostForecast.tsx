@@ -12,6 +12,7 @@ import {
   Legend,
 } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from '@/components/charts/ChartCard'
+import { ChartLegend } from '@/components/charts/ChartLegend'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from '@/components/charts/chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
@@ -27,6 +28,7 @@ interface CostForecastProps {
   viewMode?: ViewMode
 }
 
+/** Renders the current-month cost forecast card. */
 export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
   const { t } = useTranslation()
   const {
@@ -132,9 +134,9 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
     if (data.length === 0) {
       return (
         <div className="space-y-4">
-          <div className="rounded-xl border border-border/50 bg-card/80 p-6 flex flex-col items-center justify-center text-center">
-            <TrendingUp className="h-8 w-8 text-muted-foreground/20 mb-3" />
-            <p className="text-sm text-muted-foreground font-medium">{t('forecast.noData')}</p>
+          <div className="flex flex-col items-center justify-center rounded-xl border border-border/50 bg-card/80 p-6 text-center">
+            <TrendingUp className="mb-3 h-8 w-8 text-muted-foreground/20" />
+            <p className="text-sm font-medium text-muted-foreground">{t('forecast.noData')}</p>
           </div>
         </div>
       )
@@ -161,10 +163,10 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
   if (chartData.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="rounded-xl border border-border/50 bg-card/80 p-6 flex flex-col items-center justify-center text-center">
-          <TrendingUp className="h-8 w-8 text-muted-foreground/20 mb-3" />
-          <p className="text-sm text-muted-foreground font-medium">{t('forecast.noForecast')}</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">{t('forecast.requiresTwoDays')}</p>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-border/50 bg-card/80 p-6 text-center">
+          <TrendingUp className="mb-3 h-8 w-8 text-muted-foreground/20" />
+          <p className="text-sm font-medium text-muted-foreground">{t('forecast.noForecast')}</p>
+          <p className="mt-1 text-xs text-muted-foreground/60">{t('forecast.requiresTwoDays')}</p>
         </div>
       </div>
     )
@@ -177,7 +179,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
           <span className="flex items-center gap-2">
             {t('forecast.monthEndForecast')}{' '}
             <span
-              className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${confidenceColor}`}
+              className={`rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase ${confidenceColor}`}
             >
               {t(`forecast.${confidence}`)}
             </span>
@@ -203,7 +205,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
       >
         <ChartAnimationAware>
           {(animate) => (
-            <ChartReveal variant="line" delay={0.05}>
+            <ChartReveal variant="line">
               <ResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData} margin={CHART_MARGIN}>
                   <defs>
@@ -231,7 +233,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
                     axisLine={false}
                   />
                   <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
-                  <Legend />
+                  <Legend content={<ChartLegend />} />
                   <Area
                     type="monotone"
                     dataKey="lower"

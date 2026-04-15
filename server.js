@@ -2,6 +2,7 @@
 
 const http = require('http');
 const fs = require('fs');
+const fsPromises = require('fs/promises');
 const os = require('os');
 const path = require('path');
 const readline = require('readline/promises');
@@ -271,6 +272,9 @@ const BACKGROUND_LOG_DIR = path.join(APP_PATHS.cacheDir, 'background');
 const BACKGROUND_INSTANCES_LOCK_DIR = path.join(APP_PATHS.configDir, 'background-instances.lock');
 const BACKGROUND_INSTANCES_LOCK_TIMEOUT_MS = 5000;
 const BACKGROUND_INSTANCES_LOCK_STALE_MS = 10000;
+const FILE_MUTATION_LOCK_TIMEOUT_MS = 10000;
+const FILE_MUTATION_LOCK_STALE_MS = 30000;
+const fileMutationLocks = new Map();
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -312,6 +316,214 @@ function writeJsonAtomic(filePath, data) {
     fs.chmodSync(tempPath, SECURE_FILE_MODE);
   }
   fs.renameSync(tempPath, filePath);
+}
+
+async function writeJsonAtomicAsync(filePath, data) {
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  let tempPathCreated = false;
+
+  try {
+    await fsPromises.mkdir(path.dirname(filePath), { recursive: true, mode: SECURE_DIR_MODE });
+    tempPathCreated = true;
+    await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), {
+      mode: SECURE_FILE_MODE,
+    });
+
+    if (!IS_WINDOWS) {
+      await fsPromises.chmod(tempPath, SECURE_FILE_MODE);
+    }
+
+    await fsPromises.rename(tempPath, filePath);
+  } catch (error) {
+    if (tempPathCreated) {
+      try {
+        await fsPromises.unlink(tempPath);
+      } catch (unlinkError) {
+        if (unlinkError?.code !== 'ENOENT') {
+          // Ignore temp-file cleanup failures so the original error wins.
+        }
+      }
+    }
+    throw error;
+  }
+}
+
+async function unlinkIfExists(filePath) {
+  try {
+    await fsPromises.unlink(filePath);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
+function getFileMutationLockDir(filePath) {
+  return `${filePath}.lock`;
+}
+
+function getFileMutationLockOwnerPath(lockDir) {
+  return path.join(lockDir, 'owner.json');
+}
+
+async function removeFileMutationLockDir(lockDir) {
+  try {
+    await fsPromises.rm(lockDir, { recursive: true, force: true });
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
+async function writeFileMutationLockOwner(lockDir) {
+  const ownerPath = getFileMutationLockOwnerPath(lockDir);
+  const owner = {
+    pid: process.pid,
+    createdAt: new Date().toISOString(),
+    instanceId: RUNTIME_INSTANCE.id,
+  };
+  await fsPromises.writeFile(ownerPath, JSON.stringify(owner, null, 2), {
+    mode: SECURE_FILE_MODE,
+  });
+  if (!IS_WINDOWS) {
+    await fsPromises.chmod(ownerPath, SECURE_FILE_MODE);
+  }
+}
+
+async function shouldReapFileMutationLock(lockDir) {
+  const ownerPath = getFileMutationLockOwnerPath(lockDir);
+  let owner = null;
+
+  try {
+    const rawOwner = await fsPromises.readFile(ownerPath, 'utf-8');
+    owner = JSON.parse(rawOwner);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      // Fall back to age-based cleanup if the owner metadata is missing or malformed.
+    }
+  }
+
+  try {
+    const ownerCreatedAt = owner?.createdAt ? Date.parse(owner.createdAt) : Number.NaN;
+    const stats = await fsPromises.stat(lockDir);
+    const lockAgeMs = Number.isFinite(ownerCreatedAt)
+      ? Date.now() - ownerCreatedAt
+      : Date.now() - stats.mtimeMs;
+
+    if (lockAgeMs > FILE_MUTATION_LOCK_STALE_MS) {
+      return true;
+    }
+
+    if (Number.isInteger(owner?.pid)) {
+      return !isProcessRunning(owner.pid);
+    }
+
+    return false;
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function withCrossProcessFileMutationLock(
+  filePath,
+  operation,
+  timeoutMs = FILE_MUTATION_LOCK_TIMEOUT_MS,
+) {
+  const lockDir = getFileMutationLockDir(filePath);
+  const startedAt = Date.now();
+
+  while (true) {
+    try {
+      await fsPromises.mkdir(path.dirname(lockDir), {
+        recursive: true,
+        mode: SECURE_DIR_MODE,
+      });
+      await fsPromises.mkdir(lockDir, { mode: SECURE_DIR_MODE });
+      if (!IS_WINDOWS) {
+        await fsPromises.chmod(lockDir, SECURE_DIR_MODE);
+      }
+
+      try {
+        await writeFileMutationLockOwner(lockDir);
+      } catch (error) {
+        await removeFileMutationLockDir(lockDir).catch(() => undefined);
+        throw error;
+      }
+
+      break;
+    } catch (error) {
+      if (!error || error.code !== 'EEXIST') {
+        throw error;
+      }
+
+      if (await shouldReapFileMutationLock(lockDir)) {
+        await removeFileMutationLockDir(lockDir).catch(() => undefined);
+        continue;
+      }
+
+      if (Date.now() - startedAt >= timeoutMs) {
+        throw new Error(`Could not acquire file mutation lock for ${path.basename(filePath)}.`, {
+          cause: error,
+        });
+      }
+
+      await sleep(50);
+    }
+  }
+
+  try {
+    return await operation();
+  } finally {
+    try {
+      await removeFileMutationLockDir(lockDir);
+    } catch {
+      // Ignore cleanup races so the original operation result wins.
+    }
+  }
+}
+
+async function withFileMutationLock(filePath, operation) {
+  const previous = fileMutationLocks.get(filePath) || Promise.resolve();
+  let releaseCurrent;
+  const current = new Promise((resolve) => {
+    releaseCurrent = resolve;
+  });
+
+  fileMutationLocks.set(filePath, current);
+
+  await previous.catch(() => undefined);
+
+  try {
+    return await withCrossProcessFileMutationLock(filePath, operation);
+  } finally {
+    releaseCurrent();
+    if (fileMutationLocks.get(filePath) === current) {
+      fileMutationLocks.delete(filePath);
+    }
+  }
+}
+
+async function withOrderedFileMutationLocks(filePaths, operation) {
+  const uniquePaths = Array.from(new Set(filePaths)).sort();
+
+  const runWithLock = async (index) => {
+    if (index >= uniquePaths.length) {
+      return operation();
+    }
+
+    const filePath = uniquePaths[index];
+    return withFileMutationLock(filePath, () => runWithLock(index + 1));
+  };
+
+  return runWithLock(0);
+}
+
+async function withSettingsAndDataMutationLock(operation) {
+  return withOrderedFileMutationLocks([SETTINGS_FILE, DATA_FILE], operation);
 }
 
 function sleep(ms) {
@@ -1389,8 +1601,8 @@ function readData() {
   }
 }
 
-function writeData(data) {
-  writeJsonAtomic(DATA_FILE, data);
+async function writeData(data) {
+  await writeJsonAtomicAsync(DATA_FILE, data);
 }
 
 function readSettings() {
@@ -1420,53 +1632,43 @@ function readSettingsForWrite() {
   }
 }
 
-function writeSettings(settings) {
-  writeJsonAtomic(SETTINGS_FILE, normalizeSettings(settings));
+async function writeSettings(settings) {
+  await writeJsonAtomicAsync(SETTINGS_FILE, normalizeSettings(settings));
 }
 
-function updateSettings(patch) {
+async function updateDataLoadState(patch) {
   const current = readSettingsForWrite();
   const next = {
     ...current,
-    ...(patch && typeof patch === 'object' ? patch : {}),
+    ...patch,
   };
 
-  if (patch && Object.prototype.hasOwnProperty.call(patch, 'providerLimits')) {
-    next.providerLimits = normalizeProviderLimits(patch.providerLimits);
-  } else {
-    next.providerLimits = current.providerLimits;
-  }
-
-  next.language = normalizeLanguage(next.language);
-  next.theme = normalizeTheme(next.theme);
-
-  writeSettings(next);
+  await writeSettings(next);
   return toSettingsResponse(next);
 }
 
-function recordDataLoad(source) {
-  const current = readSettingsForWrite();
-  const next = {
-    ...current,
-    lastLoadedAt: new Date().toISOString(),
-    lastLoadSource: source,
-  };
+async function updateSettings(patch) {
+  return withFileMutationLock(SETTINGS_FILE, async () => {
+    const current = readSettingsForWrite();
+    const next = {
+      ...current,
+      ...(patch && typeof patch === 'object' ? patch : {}),
+    };
 
-  writeSettings(next);
-  return toSettingsResponse(next);
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'providerLimits')) {
+      next.providerLimits = normalizeProviderLimits(patch.providerLimits);
+    } else {
+      next.providerLimits = current.providerLimits;
+    }
+
+    next.language = normalizeLanguage(next.language);
+    next.theme = normalizeTheme(next.theme);
+
+    await writeSettings(next);
+    return toSettingsResponse(next);
+  });
 }
 
-function clearDataLoadState() {
-  const current = readSettingsForWrite();
-  const next = {
-    ...current,
-    lastLoadedAt: null,
-    lastLoadSource: null,
-  };
-
-  writeSettings(next);
-  return toSettingsResponse(next);
-}
 const { json, readBody, resolveApiPath, sendBuffer, validateMutationRequest } = createHttpUtils({
   apiPrefix: API_PREFIX,
   maxBodySize: MAX_BODY_SIZE,
@@ -1647,8 +1849,13 @@ async function performAutoImport({
     });
 
     const normalized = normalizeIncomingData(JSON.parse(rawJson));
-    writeData(normalized);
-    recordDataLoad(source);
+    await withSettingsAndDataMutationLock(async () => {
+      await writeData(normalized);
+      await updateDataLoadState({
+        lastLoadedAt: new Date().toISOString(),
+        lastLoadSource: source,
+      });
+    });
 
     return {
       days: normalized.daily.length,
@@ -1743,12 +1950,13 @@ const server = http.createServer(async (req, res) => {
       if (validationError) {
         return json(res, validationError.status, { message: validationError.message });
       }
-      try {
-        fs.unlinkSync(DATA_FILE);
-      } catch {
-        // Ignore missing data files during reset.
-      }
-      clearDataLoadState();
+      await withSettingsAndDataMutationLock(async () => {
+        await unlinkIfExists(DATA_FILE);
+        await updateDataLoadState({
+          lastLoadedAt: null,
+          lastLoadSource: null,
+        });
+      });
       return json(res, 200, { success: true });
     }
     return json(res, 405, { message: 'Method Not Allowed' });
@@ -1786,11 +1994,9 @@ const server = http.createServer(async (req, res) => {
       if (validationError) {
         return json(res, validationError.status, { message: validationError.message });
       }
-      try {
-        fs.unlinkSync(SETTINGS_FILE);
-      } catch {
-        // Ignore missing settings files during reset.
-      }
+      await withFileMutationLock(SETTINGS_FILE, async () => {
+        await unlinkIfExists(SETTINGS_FILE);
+      });
       return json(res, 200, { success: true, settings: readSettings() });
     }
 
@@ -1801,7 +2007,7 @@ const server = http.createServer(async (req, res) => {
       }
       try {
         const body = await readBody(req);
-        return json(res, 200, updateSettings(body));
+        return json(res, 200, await updateSettings(body));
       } catch (e) {
         if (isPayloadTooLargeError(e)) {
           return json(res, 413, { message: 'Settings request too large' });
@@ -1826,7 +2032,9 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await readBody(req);
       const importedSettings = normalizeSettings(extractSettingsImportPayload(body));
-      writeSettings(importedSettings);
+      await withFileMutationLock(SETTINGS_FILE, async () => {
+        await writeSettings(importedSettings);
+      });
       return json(res, 200, toSettingsResponse(importedSettings));
     } catch (e) {
       if (isPayloadTooLargeError(e)) {
@@ -1846,8 +2054,13 @@ const server = http.createServer(async (req, res) => {
       try {
         const body = await readBody(req);
         const normalized = normalizeIncomingData(body);
-        writeData(normalized);
-        recordDataLoad('file');
+        await withSettingsAndDataMutationLock(async () => {
+          await writeData(normalized);
+          await updateDataLoadState({
+            lastLoadedAt: new Date().toISOString(),
+            lastLoadSource: 'file',
+          });
+        });
         const days = normalized.daily.length;
         const totalCost = normalized.totals.totalCost;
         return json(res, 200, { days, totalCost });
@@ -1875,10 +2088,16 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await readBody(req);
       const importedData = normalizeIncomingData(extractUsageImportPayload(body));
-      const currentData = readData();
-      const result = mergeUsageData(currentData, importedData);
-      writeData(result.data);
-      recordDataLoad('file');
+      const result = await withSettingsAndDataMutationLock(async () => {
+        const currentData = readData();
+        const merged = mergeUsageData(currentData, importedData);
+        await writeData(merged.data);
+        await updateDataLoadState({
+          lastLoadedAt: new Date().toISOString(),
+          lastLoadSource: 'file',
+        });
+        return merged;
+      });
       return json(res, 200, result.summary);
     } catch (e) {
       if (isPayloadTooLargeError(e)) {
@@ -2096,6 +2315,12 @@ module.exports = {
     commandExists,
     getExecutableName,
     listenOnAvailablePort,
+    getFileMutationLockDir,
+    unlinkIfExists,
+    writeJsonAtomicAsync,
+    withFileMutationLock,
+    withOrderedFileMutationLocks,
+    getPendingFileMutationLockCount: () => fileMutationLocks.size,
   },
 };
 

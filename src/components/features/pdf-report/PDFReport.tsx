@@ -7,6 +7,7 @@ interface PDFReportProps {
   onGenerate: () => void
 }
 
+/** Renders the PDF report generation action. */
 export function PDFReportButton({ generating, onGenerate }: PDFReportProps) {
   const { t } = useTranslation()
 
@@ -17,7 +18,7 @@ export function PDFReportButton({ generating, onGenerate }: PDFReportProps) {
       onClick={onGenerate}
       disabled={generating}
       title={t('commandPalette.commands.generateReport.label')}
-      className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
+      className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
     >
       {generating ? (
         <LoaderCircle className="h-4 w-4 animate-spin" />

@@ -23,6 +23,7 @@ interface TokensOverTimeProps {
   onClickDay?: (date: string) => void
 }
 
+/** Renders token volume over time with drilldown support. */
 export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
   const { t } = useTranslation()
   const uid = useId()
@@ -83,10 +84,10 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
     <ChartAnimationAware>
       {(animate) => (
         <div className="mt-4">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+          <div className="mb-1 text-[10px] tracking-wider text-muted-foreground uppercase">
             {t('charts.tokensOverTime.allTypes')}
           </div>
-          <ChartReveal variant="line" delay={0.06}>
+          <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={180}>
               <ComposedChart data={totalPerDay} margin={CHART_MARGIN}>
                 <defs>
@@ -159,7 +160,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
       expandedExtra={totalChart}
     >
       {/* Summary row with totals per type */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3 text-center">
+      <div className="mb-3 grid grid-cols-2 gap-2 text-center md:grid-cols-5">
         {(
           [
             { label: 'Cache Read', value: totals.cacheRead, color: CHART_COLORS.cacheRead },
@@ -170,13 +171,13 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
           ] as const
         ).map((item) => (
           <div key={item.label} className="rounded-lg bg-muted/20 p-1.5">
-            <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+            <div className="text-[9px] tracking-wider text-muted-foreground uppercase">
               {item.label}
             </div>
-            <div className="text-xs font-mono font-semibold" style={{ color: item.color }}>
+            <div className="font-mono text-xs font-semibold" style={{ color: item.color }}>
               {formatTokens(item.value)}
             </div>
-            <div className="text-[9px] text-muted-foreground/60 font-mono">
+            <div className="font-mono text-[9px] text-muted-foreground/60">
               {totals.total > 0 ? `${((item.value / totals.total) * 100).toFixed(1)}%` : '–'}
             </div>
           </div>
@@ -185,7 +186,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
 
       {/* Chart 1: Cache Tokens (large scale) with per-type MA7 */}
       <div className="mb-2">
-        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+        <div className="mb-1 text-[10px] tracking-wider text-muted-foreground uppercase">
           {t('charts.tokensOverTime.cacheTokens')}
         </div>
         <ChartAnimationAware>
@@ -283,12 +284,12 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
 
       {/* Chart 2: I/O Tokens (small scale) with per-type MA7 */}
       <div>
-        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+        <div className="mb-1 text-[10px] tracking-wider text-muted-foreground uppercase">
           {t('charts.tokensOverTime.inputOutputTokens')}
         </div>
         <ChartAnimationAware>
           {(animate) => (
-            <ChartReveal variant="line" delay={0.04}>
+            <ChartReveal variant="line">
               <ResponsiveContainer width="100%" height={150}>
                 <ComposedChart data={data} margin={CHART_MARGIN} onClick={handleClick}>
                   <defs>
@@ -375,12 +376,12 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
       </div>
 
       <div className="mt-3">
-        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+        <div className="mb-1 text-[10px] tracking-wider text-muted-foreground uppercase">
           {t('charts.tokensOverTime.thinkingTokens')}
         </div>
         <ChartAnimationAware>
           {(animate) => (
-            <ChartReveal variant="line" delay={0.08}>
+            <ChartReveal variant="line">
               <ResponsiveContainer width="100%" height={110}>
                 <ComposedChart data={data} margin={CHART_MARGIN} onClick={handleClick}>
                   <defs>

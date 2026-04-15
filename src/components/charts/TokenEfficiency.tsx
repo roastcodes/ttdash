@@ -23,6 +23,7 @@ interface TokenEfficiencyProps {
   data: DailyUsage[]
 }
 
+/** Renders cost-per-million-token efficiency over time. */
 export function TokenEfficiency({ data }: TokenEfficiencyProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
@@ -58,7 +59,7 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
     >
       <ChartAnimationAware>
         {(animate) => (
-          <ChartReveal variant="line" delay={0.04}>
+          <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={250}>
               <ComposedChart data={chartData} margin={CHART_MARGIN}>
                 <defs>

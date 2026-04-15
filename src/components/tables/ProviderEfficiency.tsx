@@ -39,6 +39,7 @@ type SortKey =
   | 'costPerMillion'
   | 'cacheShare'
 
+/** Renders the sortable provider efficiency table. */
 export function ProviderEfficiency({
   providerMetrics,
   totalCost,
@@ -102,7 +103,7 @@ export function ProviderEfficiency({
       <button
         type="button"
         onClick={() => handleSort(field)}
-        className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         {label}
         <ArrowUpDown
@@ -126,9 +127,9 @@ export function ProviderEfficiency({
             {t('tables.providerEfficiency.count', { count: rows.length })}
           </span>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
           <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
               {t('tables.providerEfficiency.leadProvider')}
             </div>
             <div className="mt-1 text-sm font-medium">{lead?.name ?? '–'}</div>
@@ -139,7 +140,7 @@ export function ProviderEfficiency({
             </div>
           </div>
           <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
               {t('tables.providerEfficiency.mostEfficient')}
             </div>
             <div className="mt-1 text-sm font-medium">{efficient?.name ?? '–'}</div>
@@ -148,7 +149,7 @@ export function ProviderEfficiency({
             </div>
           </div>
           <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
               {t('tables.providerEfficiency.totalRequests')}
             </div>
             <div className="mt-1 text-sm font-medium">{formatNumber(totalRequests)}</div>
@@ -161,7 +162,7 @@ export function ProviderEfficiency({
             </div>
           </div>
           <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
               {t('tables.providerEfficiency.avgPerUnit', { unit: periodUnit(viewMode) })}
             </div>
             <div className="mt-1 text-sm font-medium">
@@ -178,14 +179,14 @@ export function ProviderEfficiency({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-2 md:hidden mb-4">
+        <div className="mb-4 grid gap-2 md:hidden">
           {sorted.map((row) => (
             <div key={row.name} className="rounded-xl border border-border/50 bg-muted/10 p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <span
                     className={cn(
-                      'inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium leading-none',
+                      'inline-flex items-center rounded-full border px-2 py-1 text-xs leading-none font-medium',
                       getProviderBadgeClasses(row.name),
                     )}
                   >
@@ -238,7 +239,7 @@ export function ProviderEfficiency({
           ))}
         </div>
 
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border">
@@ -264,12 +265,12 @@ export function ProviderEfficiency({
               {sorted.map((row) => (
                 <tr
                   key={row.name}
-                  className="border-b border-border/50 even:bg-muted/5 hover:bg-muted/10 transition-colors"
+                  className="border-b border-border/50 transition-colors even:bg-muted/5 hover:bg-muted/10"
                 >
                   <td className="px-3 py-2.5">
                     <span
                       className={cn(
-                        'inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium leading-none',
+                        'inline-flex items-center rounded-full border px-2 py-1 text-xs leading-none font-medium',
                         getProviderBadgeClasses(row.name),
                       )}
                     >

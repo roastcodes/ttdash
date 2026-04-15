@@ -1,6 +1,7 @@
 import type { DailyUsage, ProviderLimitConfig, ProviderLimits } from '@/types'
 import { getModelProvider } from '@/lib/model-utils'
 
+/** Defines the default provider limit configuration. */
 export const DEFAULT_PROVIDER_LIMIT_CONFIG: ProviderLimitConfig = {
   hasSubscription: false,
   subscriptionPrice: 0,
@@ -12,6 +13,7 @@ function sanitizeCurrency(value: unknown): number {
   return Math.max(0, Number(value.toFixed(2)))
 }
 
+/** Normalizes an unknown provider limit object to the app shape. */
 export function normalizeProviderLimitConfig(value: unknown): ProviderLimitConfig {
   if (!value || typeof value !== 'object') return { ...DEFAULT_PROVIDER_LIMIT_CONFIG }
 
@@ -23,6 +25,7 @@ export function normalizeProviderLimitConfig(value: unknown): ProviderLimitConfi
   }
 }
 
+/** Synchronizes provider limits with the currently available providers. */
 export function syncProviderLimits(providers: string[], source: unknown): ProviderLimits {
   const input = source && typeof source === 'object' ? (source as Record<string, unknown>) : {}
   const next: ProviderLimits = {}
@@ -34,6 +37,7 @@ export function syncProviderLimits(providers: string[], source: unknown): Provid
   return next
 }
 
+/** Returns the latest month present in the usage dataset. */
 export function getLatestMonth(data: DailyUsage[]): string | null {
   const months = data
     .map((entry) => entry.date.slice(0, 7))
@@ -43,6 +47,7 @@ export function getLatestMonth(data: DailyUsage[]): string | null {
   return months.length > 0 ? (months[months.length - 1] ?? null) : null
 }
 
+/** Aggregates monthly provider costs for limit and subscription analysis. */
 export function buildProviderMonthlyCosts(data: DailyUsage[]) {
   const monthMap = new Map<string, Map<string, number>>()
   const providerTotals = new Map<string, number>()

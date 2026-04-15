@@ -7,6 +7,7 @@ interface CountUpProps {
   className?: string
 }
 
+/** Animates a numeric value from zero to its final display value. */
 export function CountUp({ end, duration = 800, formatter, className }: CountUpProps) {
   const [current, setCurrent] = useState(0)
   const startTime = useRef<number | null>(null)

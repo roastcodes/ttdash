@@ -21,6 +21,9 @@ const last30DaysPattern = /^(Letzte 30 Tage|Last 30 days)$/
 const defaultDailyPattern = /^(Täglich|Daily)$/
 const allDataPattern = /^(Alle Daten|All data)$/
 const viewModeComboboxPattern = /^(Ansichtsmodus|View mode)$/
+const providersActivePattern = /^(1 providers active|1 Anbieter aktiv)$/
+const modelsActivePattern = /^(1 models active|1 Modelle aktiv)$/
+const dateFilterActivePattern = /^(Date filter active|Datumsfilter aktiv)$/
 
 async function uploadSampleUsage(page: Page) {
   await page.locator('[data-testid="usage-upload-input"]').setInputFiles(sampleUsagePath)
@@ -59,6 +62,60 @@ test('uploads sample usage data and renders the dashboard without browser errors
   await expect(page.locator('#token-analysis')).toBeVisible()
 
   expect(pageErrors, pageErrors.join('\n')).toEqual([])
+})
+
+test('exposes pressed filter state and supports keyboard date selection in the dashboard filters', async ({
+  page,
+}) => {
+  await page.request.delete('/api/usage')
+  await page.request.delete('/api/settings')
+
+  await page.goto('/')
+  await uploadSampleUsage(page)
+
+  const filters = page.locator('#filters')
+  const openAiFilter = filters.getByRole('button', { name: 'OpenAI', exact: true })
+  const anthropicFilter = filters.getByRole('button', { name: 'Anthropic', exact: true })
+  const modelFilter = filters.getByRole('button', { name: 'GPT-5.4', exact: true })
+  const startDateTrigger = filters.locator('button[aria-haspopup="dialog"]').first()
+
+  await openAiFilter.click()
+  await modelFilter.click()
+
+  await expect(openAiFilter).toHaveAttribute('aria-pressed', 'true')
+  await expect(anthropicFilter).toHaveAttribute('aria-pressed', 'false')
+  await expect(modelFilter).toHaveAttribute('aria-pressed', 'true')
+  await expect(filters.getByText(providersActivePattern)).toBeVisible()
+  await expect(filters.getByText(modelsActivePattern)).toBeVisible()
+
+  await startDateTrigger.focus()
+  await page.keyboard.press('Enter')
+
+  await expect(startDateTrigger).toHaveAttribute('aria-expanded', 'true')
+  const dateDialog = page.getByRole('dialog')
+  await expect(dateDialog).toBeVisible()
+
+  const focusedDayBefore = await page.evaluate(
+    () => document.activeElement?.textContent?.trim() ?? '',
+  )
+
+  await page.keyboard.press('ArrowRight')
+  await page.waitForFunction(
+    (previous) => (document.activeElement?.textContent?.trim() ?? '') !== previous,
+    focusedDayBefore,
+  )
+
+  const focusedDayAfter = await page.evaluate(
+    () => document.activeElement?.textContent?.trim() ?? '',
+  )
+  expect(focusedDayAfter).not.toBe(focusedDayBefore)
+  expect(focusedDayAfter).toMatch(/^\d+$/)
+
+  await page.keyboard.press('Enter')
+
+  await expect(dateDialog).toBeHidden()
+  await expect(startDateTrigger).toBeFocused()
+  await expect(filters.getByText(dateFilterActivePattern)).toBeVisible()
 })
 
 test('manages settings and backup imports through the settings dialog using isolated test storage', async ({
@@ -105,6 +162,7 @@ test('manages settings and backup imports through the settings dialog using isol
   })
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
   await expect(dialog.locator('[data-section-id="insights"]')).toContainText(/Insights|Einblicke/)
 
   await dialog.getByRole('button', { name: monthlySettingsPattern }).click()

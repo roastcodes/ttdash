@@ -30,17 +30,17 @@ function MixTooltip({ active, payload, label }: MixTooltipProps) {
   if (!active || !payload?.length) return null
   const sorted = [...payload].sort((a, b) => b.value - a.value)
   return (
-    <div className="bg-popover/90 backdrop-blur-xl border border-border/50 rounded-lg shadow-lg p-3 text-xs">
-      <p className="font-medium text-muted-foreground mb-1.5">{label}</p>
+    <div className="rounded-lg border border-border/50 bg-popover/90 p-3 text-xs shadow-lg backdrop-blur-xl">
+      <p className="mb-1.5 font-medium text-muted-foreground">{label}</p>
       <div className="space-y-1">
         {sorted.map((entry, i) => (
           <div key={i} className="flex items-center gap-2">
             <span
-              className="w-2 h-2 rounded-full shrink-0"
+              className="h-2 w-2 shrink-0 rounded-full"
               style={{ backgroundColor: entry.color }}
             />
             <span className="text-muted-foreground">{entry.name}:</span>
-            <span className="font-mono font-medium text-foreground ml-auto">
+            <span className="ml-auto font-mono font-medium text-foreground">
               {formatPercent(entry.value)}
             </span>
           </div>
@@ -50,6 +50,7 @@ function MixTooltip({ active, payload, label }: MixTooltipProps) {
   )
 }
 
+/** Renders the stacked model-mix chart for cost share over time. */
 export function ModelMix({ data }: ModelMixProps) {
   const { t } = useTranslation()
   const { chartData, models } = useMemo(() => {
@@ -87,7 +88,7 @@ export function ModelMix({ data }: ModelMixProps) {
     >
       <ChartAnimationAware>
         {(animate) => (
-          <ChartReveal variant="line" delay={0.05}>
+          <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={250}>
               <AreaChart data={chartData} margin={CHART_MARGIN} stackOffset="none">
                 <defs>

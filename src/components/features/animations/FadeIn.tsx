@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
+import { useShouldReduceMotion } from '@/lib/motion'
 
 interface FadeInProps {
   children: ReactNode
@@ -9,6 +10,7 @@ interface FadeInProps {
   direction?: 'up' | 'down' | 'left' | 'right' | 'none'
 }
 
+/** Reveals content when it enters the viewport. */
 export function FadeIn({
   children,
   delay = 0,
@@ -16,12 +18,17 @@ export function FadeIn({
   className,
   direction = 'up',
 }: FadeInProps) {
+  const shouldReduceMotion = useShouldReduceMotion()
   const offsets = {
     up: { y: 20 },
     down: { y: -20 },
     left: { x: 20 },
     right: { x: -20 },
     none: {},
+  }
+
+  if (shouldReduceMotion) {
+    return <div className={className}>{children}</div>
   }
 
   return (

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 
+/** Tracks and toggles the document dark-mode class. */
 export function useTheme() {
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === 'undefined') return true

@@ -117,8 +117,8 @@ describe('phase 4 UI correctness', () => {
       </TooltipProvider>,
     )
 
-    expect(document.body.textContent).not.toContain('Infinity')
-    expect(document.body.textContent).not.toContain('NaN')
+    expect(document.body).not.toHaveTextContent('Infinity')
+    expect(document.body).not.toHaveTextContent('NaN')
     expect(screen.getAllByText('–').length).toBeGreaterThan(0)
   })
 
@@ -155,8 +155,9 @@ describe('phase 4 UI correctness', () => {
     )
 
     expect(screen.getAllByText('100').length).toBeGreaterThan(0)
-    expect(screen.getByText(/\$50\.0k/)).toBeInTheDocument()
-    expect(screen.getByText('Cache Read 10.0%')).toBeInTheDocument()
+    expect(screen.getAllByText(/\$50\.0k/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Cache Read').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('10.0%').length).toBeGreaterThan(0)
   })
 
   it('localizes drill-down labels in English', async () => {
@@ -193,9 +194,11 @@ describe('phase 4 UI correctness', () => {
 
     expect(
       screen.getByText(
-        'Detailed daily view with token distribution, model shares, requests, and thinking tokens.',
+        'Detailed day view with benchmarks, model breakdown, provider summary, and token distribution.',
       ),
     ).toBeInTheDocument()
+    expect(screen.getByText('Overview')).toBeInTheDocument()
+    expect(screen.getByText('Model breakdown')).toBeInTheDocument()
     expect(screen.getByText('Token distribution')).toBeInTheDocument()
     expect(screen.getByText('Cost rank')).toBeInTheDocument()
   })
@@ -230,7 +233,6 @@ describe('phase 4 UI correctness', () => {
             dateRange={{ start: '2026-04-01', end: '2026-04-13' }}
             isDark={false}
             currentLanguage="de"
-            helpOpen={false}
             streak={22}
             dataSource={null}
             startupAutoLoad={null}
@@ -303,10 +305,10 @@ describe('phase 4 UI correctness', () => {
     expect(screen.getByText('22 Tage in Folge')).toBeInTheDocument()
     expect(screen.getByText('Einblicke')).toBeInTheDocument()
     expect(screen.getByText('Kurzfazit')).toBeInTheDocument()
-    expect(document.body.textContent).toContain('Input/Output-Verhältnis')
-    expect(document.body.textContent).toContain('pro Anfrage')
-    expect(document.body.textContent).not.toContain('Req-Lead')
-    expect(document.body.textContent).not.toContain('Quick Read')
-    expect(document.body.textContent).not.toContain('Streak')
+    expect(document.body).toHaveTextContent('Input/Output-Verhältnis')
+    expect(document.body).toHaveTextContent('pro Anfrage')
+    expect(document.body).not.toHaveTextContent('Req-Lead')
+    expect(document.body).not.toHaveTextContent('Quick Read')
+    expect(document.body).not.toHaveTextContent('Streak')
   })
 })

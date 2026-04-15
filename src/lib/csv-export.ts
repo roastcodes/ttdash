@@ -3,6 +3,7 @@ import { normalizeModelName } from './model-utils'
 import { localToday } from './formatters'
 import { buildCsvLine } from './csv'
 
+/** Serializes dashboard usage rows to a CSV export payload. */
 export function generateCSV(data: DailyUsage[]): string {
   const header = buildCsvLine([
     'date',
@@ -37,6 +38,7 @@ export function generateCSV(data: DailyUsage[]): string {
   return [header, ...rows].join('\n')
 }
 
+/** Downloads the current usage dataset as a CSV file. */
 export function downloadCSV(data: DailyUsage[]) {
   const csv = generateCSV(data)
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })

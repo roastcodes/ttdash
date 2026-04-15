@@ -12,6 +12,7 @@ import {
   Legend,
 } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, CHART_ANIMATION } from './chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
@@ -23,6 +24,7 @@ interface CostOverTimeProps {
   onClickDay?: (date: string) => void
 }
 
+/** Renders the cost-over-time chart with drilldown support. */
 export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
@@ -109,7 +111,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
                   content={<CustomTooltip formatter={(v) => formatCurrency(v)} />}
                   cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }}
                 />
-                <Legend />
+                <Legend content={<ChartLegend />} />
                 <Area
                   type="monotone"
                   dataKey="cost"

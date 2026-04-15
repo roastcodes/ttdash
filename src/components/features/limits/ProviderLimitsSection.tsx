@@ -18,6 +18,7 @@ import { AlertTriangle, CreditCard, ShieldCheck, TrendingUp } from 'lucide-react
 import { Card, CardContent } from '@/components/ui/card'
 import { SectionHeader } from '@/components/ui/section-header'
 import { ChartAnimationAware, ChartCard, ChartReveal } from '@/components/charts/ChartCard'
+import { ChartLegend } from '@/components/charts/ChartLegend'
 import { CHART_ANIMATION, CHART_COLORS, CHART_MARGIN } from '@/components/charts/chart-theme'
 import { buildProviderMonthlyCosts, getLatestMonth } from '@/lib/provider-limits'
 import i18n from '@/lib/i18n'
@@ -87,6 +88,7 @@ function toTooltipNumber(value: TooltipValueType | undefined) {
   return Number.isFinite(numericValue) ? numericValue : 0
 }
 
+/** Renders provider limit progress, subscriptions, and timeline analysis. */
 export function ProviderLimitsSection({
   data,
   providers,
@@ -277,7 +279,7 @@ export function ProviderLimitsSection({
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                       {item.label}
                     </div>
                     <div className="mt-1 text-2xl font-semibold tabular-nums">{item.value}</div>
@@ -339,7 +341,7 @@ export function ProviderLimitsSection({
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <div>
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                         {t('limits.tracks.usageFocusMonth')}
                       </div>
                       <div className="mt-1 text-xl font-semibold tabular-nums">
@@ -347,7 +349,7 @@ export function ProviderLimitsSection({
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                         {t('limits.tracks.limitSubscription')}
                       </div>
                       <div className="mt-1 text-sm font-medium tabular-nums">
@@ -521,7 +523,7 @@ export function ProviderLimitsSection({
                       {row.monthlyLimit > 0 ? (
                         <>
                           <div
-                            className="absolute left-0 top-5 h-4 rounded-l-full bg-sky-400/12"
+                            className="absolute top-5 left-0 h-4 rounded-l-full bg-sky-400/12"
                             style={{ width: limitPosition }}
                           />
                           <div
@@ -532,8 +534,8 @@ export function ProviderLimitsSection({
                           <motion.div
                             className={
                               row.riskStatus === 'warning'
-                                ? 'absolute left-0 top-5 h-4 rounded-full bg-amber-400'
-                                : 'absolute left-0 top-5 h-4 rounded-full bg-sky-400'
+                                ? 'absolute top-5 left-0 h-4 rounded-full bg-amber-400'
+                                : 'absolute top-5 left-0 h-4 rounded-full bg-sky-400'
                             }
                             initial={{ width: 0 }}
                             animate={inView ? { width: withinLimitWidth } : { width: 0 }}
@@ -571,7 +573,7 @@ export function ProviderLimitsSection({
                         </>
                       ) : (
                         <motion.div
-                          className="absolute left-0 top-5 h-4 rounded-full bg-muted-foreground/40"
+                          className="absolute top-5 left-0 h-4 rounded-full bg-muted-foreground/40"
                           initial={{ width: 0 }}
                           animate={inView ? { width: costWidth } : { width: 0 }}
                           transition={{
@@ -714,7 +716,7 @@ export function ProviderLimitsSection({
                       {row.hasSubscription ? (
                         <>
                           <div
-                            className="absolute left-0 top-5 h-4 rounded-l-full bg-amber-300/18"
+                            className="absolute top-5 left-0 h-4 rounded-l-full bg-amber-300/18"
                             style={{ width: subPosition }}
                           />
                           <div
@@ -723,7 +725,7 @@ export function ProviderLimitsSection({
                           />
 
                           <motion.div
-                            className="absolute left-0 top-5 h-4 rounded-full bg-amber-300"
+                            className="absolute top-5 left-0 h-4 rounded-full bg-amber-300"
                             initial={{ width: 0 }}
                             animate={inView ? { width: withinSubscriptionWidth } : { width: 0 }}
                             transition={{
@@ -760,7 +762,7 @@ export function ProviderLimitsSection({
                         </>
                       ) : (
                         <motion.div
-                          className="absolute left-0 top-5 h-4 rounded-full bg-muted-foreground/40"
+                          className="absolute top-5 left-0 h-4 rounded-full bg-muted-foreground/40"
                           initial={{ width: 0 }}
                           animate={inView ? { width: costWidth } : { width: 0 }}
                           transition={{
@@ -844,7 +846,7 @@ export function ProviderLimitsSection({
         >
           <ChartAnimationAware>
             {(animate) => (
-              <ChartReveal variant="line" delay={0.06}>
+              <ChartReveal variant="line">
                 <ResponsiveContainer width="100%" height={320}>
                   <ComposedChart data={timelineData} margin={CHART_MARGIN}>
                     <defs>
@@ -891,7 +893,7 @@ export function ProviderLimitsSection({
                         background: 'color-mix(in srgb, hsl(var(--popover)) 90%, transparent)',
                       }}
                     />
-                    <Legend />
+                    <Legend content={<ChartLegend />} />
                     <ReferenceLine y={0} stroke="hsl(var(--border))" strokeDasharray="4 4" />
                     <Area
                       type="monotone"

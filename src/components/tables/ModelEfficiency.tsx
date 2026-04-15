@@ -71,6 +71,7 @@ type SortKey =
   | 'requests'
   | 'costPerDay'
 
+/** Renders the sortable model efficiency table. */
 export function ModelEfficiency({
   modelCosts,
   totalCost,
@@ -154,7 +155,7 @@ export function ModelEfficiency({
       <button
         type="button"
         onClick={() => handleSort(field)}
-        className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         {label}
         <ArrowUpDown
@@ -179,9 +180,9 @@ export function ModelEfficiency({
               {t('tables.modelEfficiency.count', { count: models.length })}
             </span>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                 {t('tables.modelEfficiency.topModel')}
               </div>
               <div className="mt-1 text-sm font-medium">{topModel?.name ?? '–'}</div>
@@ -192,7 +193,7 @@ export function ModelEfficiency({
               </div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                 {t('tables.modelEfficiency.mostEfficient')}
               </div>
               <div className="mt-1 text-sm font-medium">{mostEfficient?.name ?? '–'}</div>
@@ -205,7 +206,7 @@ export function ModelEfficiency({
               </div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                 {t('tables.modelEfficiency.totalRequests')}
               </div>
               <div className="mt-1 text-sm font-medium">{formatNumber(totalRequests)}</div>
@@ -218,7 +219,7 @@ export function ModelEfficiency({
               </div>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
                 {t('tables.modelEfficiency.topModelTokens')}
               </div>
               <div className="mt-1 text-sm font-medium">
@@ -239,12 +240,12 @@ export function ModelEfficiency({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: getModelColor(model.name) }}
                     />
-                    <span className="font-medium truncate">{model.name}</span>
+                    <span className="truncate font-medium">{model.name}</span>
                   </div>
-                  <div className="mt-1 inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+                  <div className="mt-1 inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] leading-none font-medium text-muted-foreground">
                     {getModelProvider(model.name)}
                   </div>
                 </div>
@@ -297,7 +298,7 @@ export function ModelEfficiency({
           ))}
         </div>
 
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border">
@@ -331,18 +332,18 @@ export function ModelEfficiency({
               {sorted.map((model) => (
                 <tr
                   key={model.name}
-                  className="border-b border-border/50 even:bg-muted/5 hover:bg-muted/10 transition-colors"
+                  className="border-b border-border/50 transition-colors even:bg-muted/5 hover:bg-muted/10"
                 >
                   <td className="px-3 py-2.5">
-                    <span className="inline-flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex flex-wrap items-center gap-2">
                       <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
                         style={{ backgroundColor: getModelColor(model.name) }}
                       />
                       <span className="font-medium">{model.name}</span>
                       <span
                         className={cn(
-                          'inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none',
+                          'inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] leading-none font-medium',
                           getProviderBadgeClasses(getModelProvider(model.name)),
                         )}
                       >
@@ -359,7 +360,7 @@ export function ModelEfficiency({
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums">
                     <FormattedValue value={model.costPerMillion} type="currency" />
                   </td>
-                  <td className="px-3 py-2.5 text-right font-mono tabular-nums relative">
+                  <td className="relative px-3 py-2.5 text-right font-mono tabular-nums">
                     <div
                       className="absolute inset-y-1 left-0 rounded-sm transition-all duration-500"
                       style={{

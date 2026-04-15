@@ -23,6 +23,7 @@ interface CumulativeCostProps {
   rawData: DailyUsage[]
 }
 
+/** Renders cumulative cost with the optional month-end projection. */
 export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
@@ -66,7 +67,7 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
     >
       <ChartAnimationAware>
         {(animate) => (
-          <ChartReveal variant="line" delay={0.05}>
+          <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={300}>
               <ComposedChart data={chartData as Record<string, unknown>[]} margin={CHART_MARGIN}>
                 <defs>

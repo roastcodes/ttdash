@@ -130,7 +130,7 @@ describe('Dashboard fatal load state', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reset settings' }))
 
     await waitFor(() => expect(apiMocks.deleteSettings).toHaveBeenCalledTimes(1))
-    await waitFor(() => expect(screen.getByText('Settings reset')).toBeInTheDocument())
+    expect(await screen.findByText('Settings reset')).toBeInTheDocument()
   })
 
   it('renders a fatal usage error state with a delete action for corrupted stored data', async () => {
@@ -184,7 +184,7 @@ describe('Dashboard fatal load state', () => {
     fireEvent.change(input, { target: { files: [file] } })
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
-    await waitFor(() => expect(screen.getByText('Usage payload is invalid')).toBeInTheDocument())
+    expect(await screen.findByText('Usage payload is invalid')).toBeInTheDocument()
     expect(screen.queryByText('Could not read file')).not.toBeInTheDocument()
   })
 
@@ -211,7 +211,7 @@ describe('Dashboard fatal load state', () => {
 
     fireEvent.change(input, { target: { files: [file] } })
 
-    await waitFor(() => expect(screen.getByText('Could not read file')).toBeInTheDocument())
+    expect(await screen.findByText('Could not read file')).toBeInTheDocument()
     expect(mutateAsync).not.toHaveBeenCalled()
   })
 
@@ -234,6 +234,6 @@ describe('Dashboard fatal load state', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete stored data' }))
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
-    await waitFor(() => expect(screen.getByText('Delete request failed')).toBeInTheDocument())
+    expect(await screen.findByText('Delete request failed')).toBeInTheDocument()
   })
 })

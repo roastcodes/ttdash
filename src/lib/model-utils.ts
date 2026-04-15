@@ -13,14 +13,17 @@ function resolveModelTheme(theme?: ModelColorTheme): ModelColorTheme {
   return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
 }
 
+/** Normalizes raw model names to their dashboard label. */
 export function normalizeModelName(raw: string): string {
   return normalizeSharedModelName(raw)
 }
 
+/** Resolves a normalized provider name for a model identifier. */
 export function getModelProvider(raw: string): string {
   return getSharedModelProvider(raw)
 }
 
+/** Returns badge classes for a provider pill in the current theme. */
 export function getProviderBadgeClasses(provider: string): string {
   switch (provider) {
     case 'OpenAI':
@@ -48,6 +51,7 @@ export function getProviderBadgeClasses(provider: string): string {
   }
 }
 
+/** Returns inline badge styles for provider swatches and tooltips. */
 export function getProviderBadgeStyle(provider: string): {
   color: string
   backgroundColor: string
@@ -123,10 +127,12 @@ export function getProviderBadgeStyle(provider: string): {
   }
 }
 
+/** Returns the canonical chart color for a model. */
 export function getModelColor(name: string, theme?: ModelColorTheme): string {
   return getSharedModelColor(name, { theme: resolveModelTheme(theme) })
 }
 
+/** Returns the canonical chart color for a model with a custom alpha value. */
 export function getModelColorAlpha(name: string, alpha: number, theme?: ModelColorTheme): string {
   return getSharedModelColor(name, {
     theme: resolveModelTheme(theme),
@@ -134,6 +140,7 @@ export function getModelColorAlpha(name: string, alpha: number, theme?: ModelCol
   })
 }
 
+/** Collects unique normalized model names from nested model lists. */
 export function getUniqueModels(modelsUsed: string[][]): string[] {
   const set = new Set<string>()
   for (const models of modelsUsed) {
@@ -144,6 +151,7 @@ export function getUniqueModels(modelsUsed: string[][]): string[] {
   return Array.from(set).sort()
 }
 
+/** Collects unique providers from nested model lists. */
 export function getUniqueProviders(modelsUsed: string[][]): string[] {
   const set = new Set<string>()
   for (const models of modelsUsed) {

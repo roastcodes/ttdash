@@ -4,8 +4,10 @@ import de from '@/locales/de/common.json'
 import en from '@/locales/en/common.json'
 import type { AppLanguage } from '@/types'
 
+/** Lists the languages supported by the app. */
 export const SUPPORTED_LANGUAGES = ['de', 'en'] as const
 
+/** Maps app languages to locale identifiers used for formatting. */
 export const LANGUAGE_LOCALES: Record<AppLanguage, string> = {
   de: 'de-CH',
   en: 'en-US',
@@ -15,6 +17,7 @@ function normalizeLanguage(value: unknown): AppLanguage {
   return value === 'en' ? 'en' : 'de'
 }
 
+/** Initializes i18next and switches to the requested app language. */
 export async function initI18n(language: AppLanguage = 'de') {
   const nextLanguage = normalizeLanguage(language)
 
@@ -47,10 +50,12 @@ i18n.on('languageChanged', (language) => {
   }
 })
 
+/** Returns the currently active app language. */
 export function getCurrentLanguage(): AppLanguage {
   return normalizeLanguage(i18n.language)
 }
 
+/** Returns the locale used for number and date formatting. */
 export function getCurrentLocale(): string {
   return LANGUAGE_LOCALES[getCurrentLanguage()]
 }

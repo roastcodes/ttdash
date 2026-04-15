@@ -1,3 +1,4 @@
+/** Describes per-model usage totals for one period. */
 export interface ModelBreakdown {
   modelName: string
   inputTokens: number
@@ -9,6 +10,7 @@ export interface ModelBreakdown {
   requestCount: number
 }
 
+/** Describes aggregated usage for one daily, monthly, or yearly period. */
 export interface DailyUsage {
   date: string
   inputTokens: number
@@ -21,10 +23,11 @@ export interface DailyUsage {
   requestCount: number
   modelsUsed: string[]
   modelBreakdowns: ModelBreakdown[]
-  /** Number of original days merged into this entry (1 for daily, N for monthly/yearly) */
+  /** Number of original days merged into this entry (1 for daily, N for monthly/yearly). */
   _aggregatedDays?: number
 }
 
+/** Describes the persisted usage payload returned by the API. */
 export interface UsageData {
   daily: DailyUsage[]
   totals?: {
@@ -39,6 +42,7 @@ export interface UsageData {
   }
 }
 
+/** Summarizes the result of a usage import operation. */
 export interface UsageImportSummary {
   importedDays: number
   addedDays: number
@@ -47,12 +51,17 @@ export interface UsageImportSummary {
   totalDays: number
 }
 
+/** Lists the languages supported by the app. */
 export type AppLanguage = 'de' | 'en'
 
+/** Lists the available visual themes. */
 export type AppTheme = 'dark' | 'light'
 
+/** Lists the supported dashboard aggregation modes. */
 export type ViewMode = 'daily' | 'monthly' | 'yearly'
+/** Lists the supported dashboard date presets. */
 export type DashboardDatePreset = 'all' | '7d' | '30d' | 'month' | 'year'
+/** Identifies one configurable dashboard section. */
 export type DashboardSectionId =
   | 'insights'
   | 'metrics'
@@ -68,6 +77,7 @@ export type DashboardSectionId =
   | 'comparisons'
   | 'tables'
 
+/** Stores the persisted default dashboard filters. */
 export interface DashboardDefaultFilters {
   viewMode: ViewMode
   datePreset: DashboardDatePreset
@@ -75,14 +85,18 @@ export interface DashboardDefaultFilters {
   models: string[]
 }
 
+/** Stores per-section visibility state for the dashboard. */
 export type DashboardSectionVisibility = Record<DashboardSectionId, boolean>
+/** Stores the persisted section order for the dashboard. */
 export type DashboardSectionOrder = DashboardSectionId[]
 
+/** Describes an inclusive dashboard date range. */
 export interface DateRange {
   start: string
   end: string
 }
 
+/** Collects high-level metrics derived from the current dataset. */
 export interface DashboardMetrics {
   totalCost: number
   totalTokens: number
@@ -118,6 +132,7 @@ export interface DashboardMetrics {
   providerConcentrationIndex: number
 }
 
+/** Describes one aggregated period built from multiple daily rows. */
 export interface AggregatedPeriod {
   period: string
   label: string
@@ -145,6 +160,7 @@ export interface AggregatedPeriod {
   >
 }
 
+/** Describes one point in a cost-oriented chart series. */
 export interface ChartDataPoint {
   date: string
   cost: number
@@ -154,6 +170,7 @@ export interface ChartDataPoint {
   [key: string]: unknown
 }
 
+/** Describes one point in the token composition chart series. */
 export interface TokenChartDataPoint {
   date: string
   Input: number
@@ -171,6 +188,7 @@ export interface TokenChartDataPoint {
   thinkingMA7?: number
 }
 
+/** Describes one point in the request volume chart series. */
 export interface RequestChartDataPoint {
   date: string
   totalRequests: number
@@ -179,6 +197,7 @@ export interface RequestChartDataPoint {
   [key: string]: unknown
 }
 
+/** Describes cache hit-rate metrics grouped by model. */
 export interface CacheHitRateByModelChartDataPoint {
   model: string
   totalRate: number
@@ -187,11 +206,13 @@ export interface CacheHitRateByModelChartDataPoint {
   trailing7BaseTokens: number
 }
 
+/** Describes one cost bucket in the weekday chart. */
 export interface WeekdayData {
   day: string
   cost: number
 }
 
+/** Collects aggregate metrics for one model or provider. */
 export interface AggregateMetrics {
   cost: number
   tokens: number
@@ -204,16 +225,20 @@ export interface AggregateMetrics {
   days: number
 }
 
+/** Describes subscription and limit settings for one provider. */
 export interface ProviderLimitConfig {
   hasSubscription: boolean
   subscriptionPrice: number
   monthlyLimit: number
 }
 
+/** Maps provider ids to their limit configuration. */
 export type ProviderLimits = Record<string, ProviderLimitConfig>
 
+/** Identifies where the current dataset was loaded from. */
 export type DataLoadSource = 'file' | 'auto-import' | 'cli-auto-load' | null
 
+/** Stores the persisted application settings. */
 export interface AppSettings {
   language: AppLanguage
   theme: AppTheme

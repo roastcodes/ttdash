@@ -8,6 +8,7 @@ import type {
 } from '@/types'
 import dashboardPreferences from '../../shared/dashboard-preferences.json'
 
+/** Describes one configurable dashboard section. */
 export interface DashboardSectionDefinition {
   id: DashboardSectionId
   domId: string
@@ -93,6 +94,7 @@ function validateSectionDefinitions(value: unknown): DashboardSectionDefinition[
   })
 }
 
+/** Parses and validates the static dashboard preferences config. */
 export function parseDashboardPreferencesConfig(value: unknown): DashboardPreferencesConfig {
   if (!isPlainObject(value)) {
     throw new Error('Invalid dashboard preferences: expected an object.')
@@ -108,13 +110,18 @@ export function parseDashboardPreferencesConfig(value: unknown): DashboardPrefer
 const rawDashboardPreferences: unknown = dashboardPreferences
 const parsedDashboardPreferences = parseDashboardPreferencesConfig(rawDashboardPreferences)
 
+/** Lists the supported dashboard date presets. */
 export const DASHBOARD_DATE_PRESETS = parsedDashboardPreferences.datePresets
+/** Lists the supported dashboard view modes. */
 export const DASHBOARD_VIEW_MODES = parsedDashboardPreferences.viewModes
+/** Lists the dashboard sections available to the UI. */
 export const DASHBOARD_SECTION_DEFINITIONS = parsedDashboardPreferences.sectionDefinitions
+/** Maps section ids to their static dashboard definitions. */
 export const DASHBOARD_SECTION_DEFINITION_MAP = Object.fromEntries(
   DASHBOARD_SECTION_DEFINITIONS.map((section) => [section.id, section]),
 ) as Record<DashboardSectionId, DashboardSectionDefinition>
 
+/** Defines the default dashboard filter state. */
 export const DEFAULT_DASHBOARD_FILTERS: DashboardDefaultFilters = {
   viewMode: 'daily',
   datePreset: 'all',
@@ -122,6 +129,7 @@ export const DEFAULT_DASHBOARD_FILTERS: DashboardDefaultFilters = {
   models: [],
 }
 
+/** Returns the default visibility state for all dashboard sections. */
 export function getDefaultDashboardSectionVisibility(): DashboardSectionVisibility {
   return DASHBOARD_SECTION_DEFINITIONS.reduce(
     (visibility, section) => ({
@@ -132,6 +140,7 @@ export function getDefaultDashboardSectionVisibility(): DashboardSectionVisibili
   )
 }
 
+/** Returns the default dashboard section order. */
 export function getDefaultDashboardSectionOrder(): DashboardSectionOrder {
   return DASHBOARD_SECTION_DEFINITIONS.map((section) => section.id)
 }
@@ -149,16 +158,19 @@ function normalizeStringList(value: unknown): string[] {
   ]
 }
 
+/** Normalizes an unknown value to a supported dashboard date preset. */
 export function normalizeDashboardDatePreset(value: unknown): DashboardDatePreset {
   return DASHBOARD_DATE_PRESETS.includes(value as DashboardDatePreset)
     ? (value as DashboardDatePreset)
     : 'all'
 }
 
+/** Normalizes an unknown value to a supported dashboard view mode. */
 export function normalizeDashboardViewMode(value: unknown): ViewMode {
   return DASHBOARD_VIEW_MODES.includes(value as ViewMode) ? (value as ViewMode) : 'daily'
 }
 
+/** Normalizes persisted dashboard default filters. */
 export function normalizeDashboardDefaultFilters(value: unknown): DashboardDefaultFilters {
   const source =
     value && typeof value === 'object' ? (value as Partial<DashboardDefaultFilters>) : {}
@@ -171,6 +183,7 @@ export function normalizeDashboardDefaultFilters(value: unknown): DashboardDefau
   }
 }
 
+/** Normalizes persisted dashboard section visibility settings. */
 export function normalizeDashboardSectionVisibility(value: unknown): DashboardSectionVisibility {
   const source =
     value && typeof value === 'object' ? (value as Partial<DashboardSectionVisibility>) : {}
@@ -188,6 +201,7 @@ export function normalizeDashboardSectionVisibility(value: unknown): DashboardSe
   )
 }
 
+/** Normalizes persisted dashboard section ordering. */
 export function normalizeDashboardSectionOrder(value: unknown): DashboardSectionOrder {
   const defaults = getDefaultDashboardSectionOrder()
 

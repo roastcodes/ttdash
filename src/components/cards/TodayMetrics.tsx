@@ -22,6 +22,7 @@ interface TodayMetricsProps {
   metrics: DashboardMetrics
 }
 
+/** Renders KPI cards for the latest day in the dataset. */
 export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
   const { t } = useTranslation()
   const modelsCount = today.modelsUsed?.length ?? 0
@@ -83,7 +84,7 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
         info={SECTION_HELP.today}
       />
       <FadeIn delay={0.05}>
-        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6">
           <MetricCard
             label={t('metricCards.today.costToday')}
             value={<FormattedValue value={today.totalCost} type="currency" />}

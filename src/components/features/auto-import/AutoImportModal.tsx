@@ -34,6 +34,7 @@ const lineColors: Record<LineType, string> = {
   error: 'text-destructive',
 }
 
+/** Renders the guided auto-import modal and progress UI. */
 export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportModalProps) {
   const { t } = useTranslation()
   const [status, setStatus] = useState<Status>('idle')
@@ -143,7 +144,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
         {/* Terminal output */}
         <div
           ref={scrollRef}
-          className="bg-muted/30 rounded-lg p-3 font-mono text-xs max-h-[300px] min-h-[120px] overflow-y-auto border border-border"
+          className="max-h-[300px] min-h-[120px] overflow-y-auto rounded-lg border border-border bg-muted/30 p-3 font-mono text-xs"
         >
           {lines.length === 0 && (
             <span className="text-muted-foreground">{t('autoImportModal.connecting')}</span>

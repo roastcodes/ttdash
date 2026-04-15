@@ -1,24 +1,15 @@
 import { useMemo } from 'react'
 import type { DailyUsage } from '@/types'
 import { computeMetrics, computeModelCosts, computeProviderMetrics } from '@/lib/calculations'
-import {
-  toCostChartData,
-  toModelCostChartData,
-  toTokenChartData,
-  toRequestChartData,
-  toWeekdayData,
-} from '@/lib/data-transforms'
+import { buildDashboardChartTransforms } from '@/lib/data-transforms'
 import { getUniqueModels } from '@/lib/model-utils'
 
-export function useComputedMetrics(data: DailyUsage[]) {
+/** Builds memoized dashboard metrics, chart data, and model summaries. */
+export function useComputedMetrics(data: DailyUsage[], locale: string) {
   const metrics = useMemo(() => computeMetrics(data), [data])
   const modelCosts = useMemo(() => computeModelCosts(data), [data])
   const providerMetrics = useMemo(() => computeProviderMetrics(data), [data])
-  const costChartData = useMemo(() => toCostChartData(data), [data])
-  const modelCostChartData = useMemo(() => toModelCostChartData(data), [data])
-  const tokenChartData = useMemo(() => toTokenChartData(data), [data])
-  const requestChartData = useMemo(() => toRequestChartData(data), [data])
-  const weekdayData = useMemo(() => toWeekdayData(data), [data])
+  const chartTransforms = useMemo(() => buildDashboardChartTransforms(data, locale), [data, locale])
   const allModels = useMemo(() => getUniqueModels(data.map((d) => d.modelsUsed)), [data])
 
   const modelPieData = useMemo(() => {
@@ -42,11 +33,11 @@ export function useComputedMetrics(data: DailyUsage[]) {
     metrics,
     modelCosts,
     providerMetrics,
-    costChartData,
-    modelCostChartData,
-    tokenChartData,
-    requestChartData,
-    weekdayData,
+    costChartData: chartTransforms.costChartData,
+    modelCostChartData: chartTransforms.modelCostChartData,
+    tokenChartData: chartTransforms.tokenChartData,
+    requestChartData: chartTransforms.requestChartData,
+    weekdayData: chartTransforms.weekdayData,
     allModels,
     modelPieData,
     tokenPieData,

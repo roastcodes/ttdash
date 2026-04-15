@@ -13,7 +13,6 @@ import {
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { NPM_PACKAGE_URL, VERSION } from '@/lib/constants'
-import { HelpPanel } from '@/components/features/help/HelpPanel'
 import type { AppLanguage } from '@/types'
 
 interface DataSource {
@@ -33,7 +32,6 @@ interface HeaderProps {
   dateRange: { start: string; end: string } | null
   isDark: boolean
   currentLanguage: AppLanguage
-  helpOpen: boolean
   streak?: number
   dataSource?: DataSource | null
   startupAutoLoad?: StartupAutoLoad | null
@@ -54,7 +52,7 @@ function DataSourceBadge({ source }: { source: DataSource }) {
   if (source.type === 'auto-import') {
     return (
       <span
-        className="text-[10px] font-medium inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-500/10 text-green-400 border border-green-500/20"
+        className="inline-flex items-center gap-1 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-400"
         title={source.title ?? t('emptyState.autoImport')}
       >
         <Zap className="h-2.5 w-2.5" />
@@ -66,20 +64,20 @@ function DataSourceBadge({ source }: { source: DataSource }) {
   if (source.type === 'file') {
     return (
       <span
-        className="text-[10px] font-medium inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20"
+        className="inline-flex max-w-full items-center gap-1 rounded-md border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-400"
         title={source.title ?? source.label ?? t('emptyState.uploadFile')}
       >
         <FileUp className="h-2.5 w-2.5 shrink-0" />
-        <span className="truncate max-w-28 sm:max-w-40">
+        <span className="max-w-28 truncate sm:max-w-40">
           {source.label ?? t('emptyState.uploadFile')}
         </span>
-        {source.time && <span className="text-blue-400/60 shrink-0">· {source.time}</span>}
+        {source.time && <span className="shrink-0 text-blue-400/60">· {source.time}</span>}
       </span>
     )
   }
   return (
     <span
-      className="text-[10px] font-medium inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/50 text-muted-foreground border border-border/50"
+      className="inline-flex items-center gap-1 rounded-md border border-border/50 bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
       title={source.title ?? t('header.loaded')}
     >
       <HardDrive className="h-2.5 w-2.5" />
@@ -96,7 +94,7 @@ function StartupAutoLoadBadge({ badge }: { badge: StartupAutoLoad }) {
 
   return (
     <span
-      className="text-[10px] font-medium inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20"
+      className="inline-flex items-center gap-1 rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400"
       title={badge.title ?? t('header.autoLoadActive')}
     >
       <Zap className="h-2.5 w-2.5" />
@@ -106,11 +104,11 @@ function StartupAutoLoadBadge({ badge }: { badge: StartupAutoLoad }) {
   )
 }
 
+/** Renders the global dashboard header and primary actions. */
 export function Header({
   dateRange,
   isDark,
   currentLanguage,
-  helpOpen,
   streak,
   dataSource,
   startupAutoLoad,
@@ -125,32 +123,36 @@ export function Header({
   pdfButton,
 }: HeaderProps) {
   const { t } = useTranslation()
+  const themeToggleLabel = isDark
+    ? t('commandPalette.commands.themeLight.label')
+    : t('commandPalette.commands.themeDark.label')
 
   return (
-    <header className="py-4 px-1 space-y-3">
+    <header className="space-y-3 px-1 py-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight shrink-0">
+              <h1 className="shrink-0 text-2xl font-bold tracking-tight">
                 <span className="text-primary">TT</span>Dash
               </h1>
               <a
                 href={NPM_PACKAGE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-muted-foreground font-mono shrink-0 rounded-sm underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="shrink-0 rounded-sm font-mono text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                 title={t('header.versionLinkTitle', { version: VERSION })}
                 aria-label={t('header.versionLinkTitle', { version: VERSION })}
               >
                 v{VERSION}
               </a>
             </div>
-            <div className="flex items-center gap-1 shrink-0 md:hidden">
+            <div className="flex shrink-0 items-center gap-1 md:hidden">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => onHelpOpenChange(true)}
+                aria-label={t('header.help')}
                 title={t('header.help')}
               >
                 <CircleHelp className="h-4 w-4" />
@@ -159,7 +161,8 @@ export function Header({
                 variant="ghost"
                 size="icon"
                 onClick={onToggleTheme}
-                title={t('commandPalette.commands.themeDark.description')}
+                aria-label={themeToggleLabel}
+                title={themeToggleLabel}
               >
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
@@ -168,14 +171,14 @@ export function Header({
 
           <div className="flex flex-wrap items-center gap-2">
             {dateRange && (
-              <span className="text-xs text-muted-foreground font-mono px-2 py-0.5 rounded-md bg-muted/50 border border-border/50">
+              <span className="rounded-md border border-border/50 bg-muted/50 px-2 py-0.5 font-mono text-xs text-muted-foreground">
                 {dateRange.start} — {dateRange.end}
               </span>
             )}
             {dataSource && <DataSourceBadge source={dataSource} />}
             {startupAutoLoad && <StartupAutoLoadBadge badge={startupAutoLoad} />}
             {streak != null && streak > 1 && (
-              <span className="text-xs font-medium inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-400 border border-orange-500/20 shrink-0">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-xs font-medium text-orange-400">
                 <Flame className="h-3 w-3" />
                 {t('header.streak', { count: streak })}
               </span>
@@ -183,13 +186,14 @@ export function Header({
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-1 shrink-0">
+        <div className="hidden shrink-0 items-center gap-1 md:flex">
           <div className="inline-flex items-center rounded-md border border-border/50 bg-muted/20 p-0.5">
             {(['de', 'en'] as const).map((language) => (
               <button
                 key={language}
                 type="button"
                 onClick={() => onLanguageChange(language)}
+                aria-pressed={currentLanguage === language}
                 className={`rounded px-2 py-1 text-[10px] font-medium transition-colors ${currentLanguage === language ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                 title={t(`app.languages.${language}`)}
               >
@@ -201,31 +205,33 @@ export function Header({
             variant="ghost"
             size="icon"
             onClick={() => onHelpOpenChange(true)}
+            aria-label={t('header.help')}
             title={t('header.help')}
           >
             <CircleHelp className="h-4 w-4" />
           </Button>
-          <kbd className="hidden lg:inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/50 font-mono px-1.5 py-0.5 rounded border border-border/30 bg-muted/20">
+          <kbd className="hidden items-center gap-0.5 rounded border border-border/30 bg-muted/20 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/50 lg:inline-flex">
             ⌘K
           </kbd>
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggleTheme}
-            title={t('commandPalette.commands.themeDark.description')}
+            aria-label={themeToggleLabel}
+            title={themeToggleLabel}
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-6 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+      <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
         <Button
           variant="outline"
           size="sm"
           onClick={onAutoImport}
           title={t('emptyState.autoImport')}
-          className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
+          className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
         >
           <Zap className="h-4 w-4" />
           <span>{t('header.import')}</span>
@@ -235,12 +241,12 @@ export function Header({
           size="sm"
           onClick={onUpload}
           title={t('emptyState.uploadFile')}
-          className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
+          className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
         >
           <Upload className="h-4 w-4" />
           <span>{t('header.upload')}</span>
         </Button>
-        <div className="contents sm:block sm:w-px sm:h-5 sm:bg-border/50" />
+        <div className="contents sm:block sm:h-5 sm:w-px sm:bg-border/50" />
         <div className="contents sm:block">{settingsButton}</div>
         <div className="contents sm:block">{pdfButton}</div>
         <Button
@@ -248,25 +254,23 @@ export function Header({
           size="sm"
           onClick={onExportCSV}
           title={t('commandPalette.commands.exportCsv.label')}
-          className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
+          className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
         >
           <Download className="h-4 w-4" />
           <span>{t('header.csv')}</span>
         </Button>
-        <div className="contents sm:block sm:w-px sm:h-5 sm:bg-border/50" />
+        <div className="contents sm:block sm:h-5 sm:w-px sm:bg-border/50" />
         <Button
           variant="ghost"
           size="sm"
           onClick={onDelete}
           title={t('commandPalette.commands.delete.label')}
-          className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          className="h-11 justify-start gap-2 px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:h-9 sm:text-sm"
         >
           <Trash2 className="h-4 w-4" />
-          <span className="sm:sr-only">{t('header.delete')}</span>
+          <span>{t('header.delete')}</span>
         </Button>
       </div>
-
-      <HelpPanel open={helpOpen} onOpenChange={onHelpOpenChange} />
     </header>
   )
 }

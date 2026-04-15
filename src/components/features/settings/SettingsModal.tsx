@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
@@ -94,6 +94,7 @@ function normalizeSelection(values: string[]) {
   )
 }
 
+/** Builds the editable provider-limit state used by the settings dialog. */
 export function buildProviderLimitsState(
   providers: string[],
   draft: ProviderLimits,
@@ -126,6 +127,7 @@ function moveSection(
   return next
 }
 
+/** Reorders dashboard sections by moving one item to a target index. */
 export function reorderSections(
   order: DashboardSectionOrder,
   sourceId: DashboardSectionOrder[number],
@@ -148,6 +150,7 @@ export function reorderSections(
   return next
 }
 
+/** Renders the settings dialog for dashboard preferences and imports. */
 export function SettingsModal({
   open,
   onOpenChange,
@@ -187,6 +190,7 @@ export function SettingsModal({
   const [dragOverSectionId, setDragOverSectionId] = useState<DashboardSectionOrder[number] | null>(
     null,
   )
+  const titleRef = useRef<HTMLHeadingElement | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -270,21 +274,29 @@ export function SettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto overflow-x-visible">
+      <DialogContent
+        className="max-h-[88vh] max-w-5xl overflow-x-visible overflow-y-auto"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          titleRef.current?.focus()
+        }}
+      >
         <DialogHeader className="overflow-visible">
           <InfoHeading info={FEATURE_HELP.providerLimits}>
-            <DialogTitle>{t('settings.modal.title')}</DialogTitle>
+            <DialogTitle ref={titleRef} tabIndex={-1} className="focus:outline-none">
+              {t('settings.modal.title')}
+            </DialogTitle>
           </InfoHeading>
           <DialogDescription>{t('settings.modal.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-3">
-          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
             {t('settings.modal.dataStatus')}
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div className="space-y-1">
-              <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+              <div className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
                 {t('settings.modal.lastLoaded')}
               </div>
               <div className="text-sm font-medium text-foreground">
@@ -292,13 +304,13 @@ export function SettingsModal({
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+              <div className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
                 {t('settings.modal.loadedVia')}
               </div>
               <div className="text-sm font-medium text-foreground">{loadSourceLabel}</div>
             </div>
             <div className="space-y-1">
-              <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+              <div className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
                 {t('settings.modal.cliAutoLoad')}
               </div>
               <div className="text-sm font-medium text-foreground">
@@ -369,7 +381,7 @@ export function SettingsModal({
 
             <div className="mt-4 space-y-4">
               <div className="space-y-2">
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                   {t('settings.modal.defaultViewMode')}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -388,7 +400,7 @@ export function SettingsModal({
               </div>
 
               <div className="space-y-2">
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                   {t('settings.modal.defaultDateRange')}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -409,7 +421,7 @@ export function SettingsModal({
               </div>
 
               <div className="space-y-2">
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                   {t('settings.modal.filterProviders')}
                 </div>
                 {providerOptions.length === 0 ? (
@@ -447,7 +459,7 @@ export function SettingsModal({
               </div>
 
               <div className="space-y-2">
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                   {t('settings.modal.filterModels')}
                 </div>
                 {modelOptions.length === 0 ? (
@@ -622,7 +634,7 @@ export function SettingsModal({
                           }))
                         }
                         className={cn(
-                          'inline-flex min-w-[88px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-[0.12em] transition-colors',
+                          'inline-flex min-w-[88px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase transition-colors',
                           visible
                             ? 'border-emerald-500/30 bg-emerald-500/10 text-foreground'
                             : 'border-border bg-muted/20 text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -747,7 +759,7 @@ export function SettingsModal({
 
           <div className="mt-4">
             {limitProviders.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-8 text-sm text-muted-foreground text-center">
+              <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-8 text-center text-sm text-muted-foreground">
                 {t('settings.modal.noProviders')}
               </div>
             ) : (
@@ -795,7 +807,7 @@ export function SettingsModal({
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:w-[420px]">
                           <label className="space-y-1.5">
-                            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                            <span className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                               {t('limits.modal.subscriptionPerMonth')}
                             </span>
                             <input
@@ -814,7 +826,7 @@ export function SettingsModal({
                           </label>
 
                           <label className="space-y-1.5">
-                            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                            <span className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                               {t('limits.modal.monthlyLimit')}
                             </span>
                             <input

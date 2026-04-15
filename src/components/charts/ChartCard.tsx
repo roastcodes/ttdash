@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, useInView } from 'framer-motion'
+import { useInView } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Maximize2 } from 'lucide-react'
@@ -16,6 +16,7 @@ import { InfoButton } from '@/components/features/help/InfoButton'
 import { cn } from '@/lib/cn'
 import { buildCsvLine } from '@/lib/csv'
 import { formatCurrency } from '@/lib/formatters'
+import { useShouldReduceMotion } from '@/lib/motion'
 
 export { stringifyCsvCell } from '@/lib/csv'
 
@@ -33,6 +34,7 @@ interface ChartCardProps {
   expandedExtra?: ReactNode
 }
 
+/** Serializes chart rows to a downloadable CSV string. */
 export function buildChartCsv(chartData: Record<string, unknown>[]): string {
   if (chartData.length === 0) return ''
 
@@ -48,49 +50,27 @@ export function buildChartCsv(chartData: Record<string, unknown>[]): string {
 
 const ChartAnimationContext = createContext(false)
 
+/** Returns whether chart-specific animation should currently run. */
 export function useChartAnimationActive() {
   return useContext(ChartAnimationContext)
 }
 
+/** Exposes the current chart animation state to a render prop. */
 export function ChartAnimationAware({ children }: { children: (active: boolean) => ReactNode }) {
-  return <>{children(useChartAnimationActive())}</>
+  const shouldReduceMotion = useShouldReduceMotion()
+  const animationActive = useChartAnimationActive()
+  return <>{children(shouldReduceMotion ? false : animationActive)}</>
 }
 
 interface ChartRevealProps {
   children: ReactNode
   variant?: 'line' | 'bar' | 'radial'
-  delay?: number
-  duration?: number
 }
 
-export function ChartReveal({
-  children,
-  variant = 'line',
-  delay = 0,
-  duration = 0.7,
-}: ChartRevealProps) {
-  const active = useChartAnimationActive()
-  const resolvedDuration = variant === 'radial' ? Math.max(duration, 0.95) : Math.max(duration, 0.9)
-
-  const hidden =
-    variant === 'bar'
-      ? { opacity: 0, clipPath: 'inset(100% 0 0 0 round 16px)', y: 10 }
-      : variant === 'radial'
-        ? { opacity: 0, scale: 0.82, rotate: -18 }
-        : { opacity: 0, clipPath: 'inset(0 100% 0 0 round 16px)', x: -8 }
-
-  const visible =
-    variant === 'bar'
-      ? { opacity: 1, clipPath: 'inset(0 0 0 0 round 16px)', y: 0 }
-      : variant === 'radial'
-        ? { opacity: 1, scale: 1, rotate: 0 }
-        : { opacity: 1, clipPath: 'inset(0 0 0 0 round 16px)', x: 0 }
-
+/** Wraps chart content in the shared reveal policy for its chart variant. */
+export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
   return (
-    <motion.div
-      initial={hidden}
-      animate={active ? visible : hidden}
-      transition={{ duration: resolvedDuration, delay, ease: 'easeOut' }}
+    <div
       style={{
         width: '100%',
         height: '100%',
@@ -102,10 +82,11 @@ export function ChartReveal({
       }}
     >
       {children}
-    </motion.div>
+    </div>
   )
 }
 
+/** Renders a chart card with export, expand, and stats affordances. */
 export function ChartCard({
   title,
   subtitle,
@@ -161,11 +142,11 @@ export function ChartCard({
   const header = (
     <CardHeader className="pb-2">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
           {info && <InfoButton text={info} />}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
           {summary && <span className="text-sm font-semibold text-foreground">{summary}</span>}
         </div>
       </div>
@@ -183,7 +164,7 @@ export function ChartCard({
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              className="absolute top-3 right-3 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity duration-200 p-1.5 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-accent text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="absolute top-3 right-3 z-10 rounded-lg border border-border/50 bg-background/80 p-1.5 text-muted-foreground opacity-100 backdrop-blur-sm transition-opacity duration-200 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
               title={t('common.expand')}
               aria-label={t('common.expandWithTitle', { title })}
             >
@@ -195,67 +176,67 @@ export function ChartCard({
 
       {expandable && (
         <Dialog open={expanded} onOpenChange={setExpanded}>
-          <DialogContent className="max-w-[96vw] w-[96vw] sm:max-w-[95vw] sm:w-[95vw] max-h-[92vh] h-[92vh] sm:max-h-[90vh] sm:h-[90vh] overflow-auto p-0">
+          <DialogContent className="h-[92vh] max-h-[92vh] w-[96vw] max-w-[96vw] overflow-auto p-0 sm:h-[90vh] sm:max-h-[90vh] sm:w-[95vw] sm:max-w-[95vw]">
             <DialogTitle className="sr-only">{title}</DialogTitle>
             <DialogDescription className="sr-only">
               {t('chartCard.expandedDescription')}
             </DialogDescription>
             <ChartAnimationContext.Provider value={expanded}>
-              <div className="relative h-full flex flex-col">
-                <div className="p-4 sm:p-6 pb-2">
+              <div className="relative flex h-full flex-col">
+                <div className="p-4 pb-2 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-lg font-semibold">{title}</h2>
-                      {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+                      {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
                     </div>
                     {chartData && chartData.length > 0 && (
                       <button
                         type="button"
                         onClick={handleExport}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-muted-foreground hover:text-foreground"
+                        className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground"
                       >
                         {t('chartCard.exportCsv')}
                       </button>
                     )}
                   </div>
                   {stats && (
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
-                      <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                      <div className="rounded-lg bg-muted/20 p-2.5 text-center">
+                        <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
                           {t('dashboard.stats.min')}
                         </div>
-                        <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.min)}</div>
+                        <div className="mt-0.5 font-mono text-sm font-medium">{fmt(stats.min)}</div>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      <div className="rounded-lg bg-muted/20 p-2.5 text-center">
+                        <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
                           {t('dashboard.stats.max')}
                         </div>
-                        <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.max)}</div>
+                        <div className="mt-0.5 font-mono text-sm font-medium">{fmt(stats.max)}</div>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      <div className="rounded-lg bg-muted/20 p-2.5 text-center">
+                        <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
                           {t('dashboard.stats.avg')}
                         </div>
-                        <div className="font-mono font-medium text-sm mt-0.5">{fmt(stats.avg)}</div>
+                        <div className="mt-0.5 font-mono text-sm font-medium">{fmt(stats.avg)}</div>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      <div className="rounded-lg bg-muted/20 p-2.5 text-center">
+                        <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
                           {t('dashboard.stats.total')}
                         </div>
-                        <div className="font-mono font-medium text-sm mt-0.5">
+                        <div className="mt-0.5 font-mono text-sm font-medium">
                           {fmt(stats.total)}
                         </div>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-muted/20 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      <div className="rounded-lg bg-muted/20 p-2.5 text-center">
+                        <div className="text-[10px] tracking-wider text-muted-foreground uppercase">
                           {t('dashboard.stats.dataPoints')}
                         </div>
-                        <div className="font-mono font-medium text-sm mt-0.5">{stats.count}</div>
+                        <div className="mt-0.5 font-mono text-sm font-medium">{stats.count}</div>
                       </div>
                     </div>
                   )}
                 </div>
-                <div className="flex-1 p-4 sm:p-6 pt-2 overflow-auto">
+                <div className="flex-1 overflow-auto p-4 pt-2 sm:p-6">
                   {renderChildren(true)}
                   {expandedExtra}
                 </div>

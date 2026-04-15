@@ -106,4 +106,33 @@ describe('react-query hook integrations', () => {
     await waitFor(() => expect(result.current.settings.theme).toBe('dark'))
     expect(result.current.isSaving).toBe(false)
   })
+
+  it('reuses fresh bootstrap settings without refetching on mount', async () => {
+    const bootstrapSettings = {
+      ...DEFAULT_APP_SETTINGS,
+      theme: 'light' as const,
+    }
+    const fetchedAt = Date.now()
+
+    const { result } = renderHook(() => useAppSettings([], bootstrapSettings, true, fetchedAt), {
+      wrapper: createWrapper(),
+    })
+
+    expect(result.current.settings.theme).toBe('light')
+    expect(result.current.isLoading).toBe(false)
+    await waitFor(() => expect(apiMocks.fetchSettings).not.toHaveBeenCalled())
+  })
+
+  it('treats bootstrap settings as stale when the fetch timestamp is missing', async () => {
+    const bootstrapSettings = {
+      ...DEFAULT_APP_SETTINGS,
+      theme: 'light' as const,
+    }
+
+    renderHook(() => useAppSettings([], bootstrapSettings, true, null), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(apiMocks.fetchSettings).toHaveBeenCalledTimes(1))
+  })
 })

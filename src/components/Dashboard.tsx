@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SlidersHorizontal } from 'lucide-react'
 import { Header } from './layout/Header'
@@ -6,12 +6,12 @@ import { FilterBar } from './layout/FilterBar'
 import { EmptyState } from './EmptyState'
 import { LoadErrorState } from './LoadErrorState'
 import { CommandPalette } from './features/command-palette/CommandPalette'
-import { SettingsModal } from './features/settings/SettingsModal'
 import { PDFReportButton } from './features/pdf-report/PDFReport'
 import { DashboardSections } from './dashboard/DashboardSections'
 import { DashboardSkeleton } from './ui/skeleton'
 import { Button } from './ui/button'
-import { useDashboardController } from '@/hooks/use-dashboard-controller'
+import { useDashboardControllerWithBootstrap } from '@/hooks/use-dashboard-controller'
+import type { AppSettings } from '@/types'
 
 const DrillDownModal = lazy(() =>
   import('./features/drill-down/DrillDownModal').then((module) => ({
@@ -23,14 +23,38 @@ const AutoImportModal = lazy(() =>
     default: module.AutoImportModal,
   })),
 )
+const SettingsModal = lazy(() =>
+  import('./features/settings/SettingsModal').then((module) => ({
+    default: module.SettingsModal,
+  })),
+)
+const HelpPanel = lazy(() =>
+  import('./features/help/HelpPanel').then((module) => ({
+    default: module.HelpPanel,
+  })),
+)
 
 interface DashboardProps {
+  initialSettings: AppSettings
   initialSettingsError?: string | null
+  initialSettingsLoadedFromServer?: boolean
+  initialSettingsFetchedAt?: number | null
 }
 
-export function Dashboard({ initialSettingsError = null }: DashboardProps) {
+/** Renders the full dashboard experience around the shared controller state. */
+export function Dashboard({
+  initialSettings,
+  initialSettingsError = null,
+  initialSettingsLoadedFromServer = false,
+  initialSettingsFetchedAt = null,
+}: DashboardProps) {
   const { t } = useTranslation()
-  const controller = useDashboardController(initialSettingsError)
+  const controller = useDashboardControllerWithBootstrap(
+    initialSettings,
+    initialSettingsLoadedFromServer,
+    initialSettingsFetchedAt,
+    initialSettingsError,
+  )
   const {
     fileInputRef,
     settingsImportInputRef,
@@ -57,7 +81,6 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
     headerDataSource,
     startupAutoLoadBadge,
     animationSeed,
-    daily,
     allProviders,
     settingsProviderOptions,
     settingsModelOptions,
@@ -154,6 +177,32 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
     </>
   )
 
+  const drillDownSequence = useMemo(
+    () => [...filteredData].sort((a, b) => a.date.localeCompare(b.date)),
+    [filteredData],
+  )
+
+  const drillDownIndex = useMemo(
+    () =>
+      drillDownDate !== null
+        ? drillDownSequence.findIndex((entry) => entry.date === drillDownDate)
+        : -1,
+    [drillDownDate, drillDownSequence],
+  )
+
+  const hasPreviousDrillDown = drillDownIndex > 0
+  const hasNextDrillDown = drillDownIndex >= 0 && drillDownIndex < drillDownSequence.length - 1
+
+  const handleDrillDownPrevious = useCallback(() => {
+    if (!hasPreviousDrillDown) return
+    setDrillDownDate(drillDownSequence[drillDownIndex - 1]?.date ?? null)
+  }, [drillDownIndex, drillDownSequence, hasPreviousDrillDown, setDrillDownDate])
+
+  const handleDrillDownNext = useCallback(() => {
+    if (!hasNextDrillDown) return
+    setDrillDownDate(drillDownSequence[drillDownIndex + 1]?.date ?? null)
+  }, [drillDownIndex, drillDownSequence, hasNextDrillDown, setDrillDownDate])
+
   const autoImportDialog = (
     <Suspense fallback={null}>
       {autoImportOpen && (
@@ -167,29 +216,39 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
   )
 
   const settingsDialog = (
-    <SettingsModal
-      open={settingsOpen}
-      onOpenChange={setSettingsOpen}
-      language={settings.language}
-      limitProviders={allProviders}
-      filterProviders={settingsProviderOptions}
-      models={settingsModelOptions}
-      limits={settings.providerLimits}
-      defaultFilters={settings.defaultFilters}
-      sectionVisibility={settings.sectionVisibility}
-      sectionOrder={settings.sectionOrder}
-      lastLoadedAt={settings.lastLoadedAt}
-      lastLoadSource={settings.lastLoadSource}
-      cliAutoLoadActive={settings.cliAutoLoadActive}
-      hasData={hasData}
-      onSaveSettings={handleSaveSettings}
-      onExportSettings={handleExportSettings}
-      onImportSettings={handleImportSettings}
-      onExportData={handleExportData}
-      onImportData={handleImportData}
-      settingsBusy={settingsTransferBusy || isSaving}
-      dataBusy={dataTransferBusy}
-    />
+    <Suspense fallback={null}>
+      {settingsOpen && (
+        <SettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          language={settings.language}
+          limitProviders={allProviders}
+          filterProviders={settingsProviderOptions}
+          models={settingsModelOptions}
+          limits={settings.providerLimits}
+          defaultFilters={settings.defaultFilters}
+          sectionVisibility={settings.sectionVisibility}
+          sectionOrder={settings.sectionOrder}
+          lastLoadedAt={settings.lastLoadedAt}
+          lastLoadSource={settings.lastLoadSource}
+          cliAutoLoadActive={settings.cliAutoLoadActive}
+          hasData={hasData}
+          onSaveSettings={handleSaveSettings}
+          onExportSettings={handleExportSettings}
+          onImportSettings={handleImportSettings}
+          onExportData={handleExportData}
+          onImportData={handleImportData}
+          settingsBusy={settingsTransferBusy || isSaving}
+          dataBusy={dataTransferBusy}
+        />
+      )}
+    </Suspense>
+  )
+
+  const helpDialog = (
+    <Suspense fallback={null}>
+      {helpOpen && <HelpPanel open={helpOpen} onOpenChange={setHelpOpen} />}
+    </Suspense>
   )
 
   if (!fatalLoadState && (isLoading || settingsLoading)) {
@@ -221,6 +280,7 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
           actions={actions}
         />
         {fileInputs}
+        {helpDialog}
       </>
     )
   }
@@ -236,19 +296,22 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
         {fileInputs}
         {autoImportDialog}
         {settingsDialog}
+        {helpDialog}
       </>
     )
   }
 
   return (
-    <div className="min-h-screen max-w-7xl mx-auto px-4 pb-8">
+    <div className="mx-auto min-h-screen max-w-7xl px-4 pb-8">
       {fileInputs}
+      {autoImportDialog}
+      {settingsDialog}
+      {helpDialog}
 
       <Header
         dateRange={dateRange}
         isDark={isDark}
         currentLanguage={settings.language}
-        helpOpen={helpOpen}
         streak={streak}
         dataSource={headerDataSource}
         startupAutoLoad={startupAutoLoadBadge}
@@ -265,7 +328,7 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
             size="sm"
             onClick={handleOpenSettings}
             title={t('header.settings')}
-            className="h-11 flex-col gap-1 px-0 text-[10px] sm:h-9 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm"
+            className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
           >
             <SlidersHorizontal className="h-4 w-4" />
             <span>{t('header.settings')}</span>
@@ -300,10 +363,7 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
         />
       </div>
 
-      <div
-        key={`${animationSeed}-${daily.length}-${daily[daily.length - 1]?.date ?? 'empty'}-${Math.round(metrics.totalCost)}`}
-        className="mt-4 space-y-4"
-      >
+      <div key={animationSeed} className="mt-4 space-y-4">
         <DashboardSections
           sectionOrder={sectionOrder}
           sectionVisibility={sectionVisibility}
@@ -328,6 +388,7 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
           comparisonData={comparisonData}
           modelCosts={modelCosts}
           providerMetrics={providerMetrics}
+          isDark={isDark}
           onDrillDownDateChange={setDrillDownDate}
         />
       </div>
@@ -338,11 +399,16 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
             day={drillDownDay}
             contextData={filteredData}
             open={true}
+            hasPrevious={hasPreviousDrillDown}
+            hasNext={hasNextDrillDown}
+            currentIndex={drillDownIndex >= 0 ? drillDownIndex + 1 : 0}
+            totalCount={drillDownSequence.length}
+            onPrevious={handleDrillDownPrevious}
+            onNext={handleDrillDownNext}
             onClose={() => setDrillDownDate(null)}
           />
         )}
       </Suspense>
-
       <CommandPalette
         isDark={isDark}
         availableProviders={availableProviders}
@@ -377,9 +443,6 @@ export function Dashboard({ initialSettingsError = null }: DashboardProps) {
         onHelp={() => setHelpOpen(true)}
         onLanguageChange={handleLanguageChange}
       />
-
-      {autoImportDialog}
-      {settingsDialog}
     </div>
   )
 }

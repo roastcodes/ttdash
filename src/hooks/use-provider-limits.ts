@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { syncProviderLimits } from '@/lib/provider-limits'
 import type { ProviderLimits } from '@/types'
 
+/** Keeps provider limits aligned with the currently available providers. */
 export function useProviderLimits(availableProviders: string[]) {
   const [limits, setLimits] = useState<ProviderLimits>({})
 

@@ -10,20 +10,21 @@ interface SectionHeaderProps {
   className?: string
 }
 
+/** Renders a section heading with optional badge and inline help. */
 export function SectionHeader({ title, description, badge, info, className }: SectionHeaderProps) {
   return (
-    <div className={cn('mb-3 pl-3 border-l-2 border-primary/40', className)}>
+    <div className={cn('mb-3 border-l-2 border-primary/40 pl-3', className)}>
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <InfoHeading info={info}>
-          <h2 className="text-sm font-semibold text-foreground tracking-tight">{title}</h2>
+          <h2 className="text-sm font-semibold tracking-tight text-foreground">{title}</h2>
         </InfoHeading>
         {badge && (
-          <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 rounded-full bg-muted/50">
+          <span className="rounded-full bg-muted/50 px-2 py-0.5 text-xs font-medium text-muted-foreground">
             {badge}
           </span>
         )}
         {description && (
-          <span className="hidden sm:inline text-xs text-muted-foreground">{description}</span>
+          <span className="hidden text-xs text-muted-foreground sm:inline">{description}</span>
         )}
       </div>
       {description && (
