@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchSettings, loadBootstrapSettings, updateSettings } from '@/lib/api'
+import {
+  fetchSettings,
+  fetchToktrackVersionStatus,
+  loadBootstrapSettings,
+  updateSettings,
+} from '@/lib/api'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { initI18n } from '@/lib/i18n'
 
@@ -123,6 +128,33 @@ describe('api error handling', () => {
       },
       errorMessage: null,
       loadedFromServer: true,
+    })
+  })
+
+  it('loads the toktrack version status payload unchanged', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            configuredVersion: '2.4.0',
+            latestVersion: '2.4.1',
+            isLatest: false,
+            lookupStatus: 'ok',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    )
+
+    await expect(fetchToktrackVersionStatus()).resolves.toEqual({
+      configuredVersion: '2.4.0',
+      latestVersion: '2.4.1',
+      isLatest: false,
+      lookupStatus: 'ok',
     })
   })
 })

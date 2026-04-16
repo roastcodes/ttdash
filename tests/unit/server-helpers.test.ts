@@ -5,13 +5,21 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 
 const require = createRequire(import.meta.url)
+const packageJson = require('../../package.json') as {
+  dependencies?: Record<string, string>
+}
 const {
   __test__: {
     commandExists,
     getExecutableName,
+    lookupLatestToktrackVersion,
     getFileMutationLockDir,
+    parseToktrackVersionOutput,
+    resolveToktrackRunner,
+    runToktrack,
     listenOnAvailablePort,
     unlinkIfExists,
     writeJsonAtomicAsync,
@@ -23,7 +31,31 @@ const {
   __test__: {
     commandExists: (command: string, args?: string[]) => Promise<boolean>
     getExecutableName: (baseName: string, isWindows?: boolean) => string
+    lookupLatestToktrackVersion: () => Promise<{
+      configuredVersion: string
+      latestVersion: string | null
+      isLatest: boolean | null
+      lookupStatus: 'ok' | 'failed'
+      message?: string
+    }>
     getFileMutationLockDir: (filePath: string) => string
+    parseToktrackVersionOutput: (output: string) => string
+    resolveToktrackRunner: () => Promise<{
+      command: string
+      prefixArgs: string[]
+      env: NodeJS.ProcessEnv
+      method: string
+      label: string
+      displayCommand: string
+    } | null>
+    runToktrack: (
+      runner: {
+        command: string
+        prefixArgs: string[]
+        env: NodeJS.ProcessEnv
+      },
+      args: string[],
+    ) => Promise<string>
     listenOnAvailablePort: (
       serverInstance: {
         once: (event: string, handler: (...args: unknown[]) => void) => unknown
@@ -75,14 +107,52 @@ function createFakeServer(
 }
 
 describe('server helper utilities', () => {
+  it('pins toktrack as an exact runtime dependency', () => {
+    expect(packageJson.dependencies?.toktrack).toBe(TOKTRACK_VERSION)
+  })
+
   it('maps executable names correctly across platforms', () => {
+    expect(getExecutableName('npm', true)).toBe('npm.cmd')
     expect(getExecutableName('bun', true)).toBe('bun.exe')
     expect(getExecutableName('bunx', true)).toBe('bun.exe')
     expect(getExecutableName('npx', true)).toBe('npx.cmd')
     expect(getExecutableName('toktrack', true)).toBe('toktrack')
+    expect(getExecutableName('npm', false)).toBe('npm')
     expect(getExecutableName('bun', false)).toBe('bun')
     expect(getExecutableName('bunx', false)).toBe('bunx')
     expect(getExecutableName('npx', false)).toBe('npx')
+  })
+
+  it('parses toktrack version banners down to the raw version', () => {
+    expect(parseToktrackVersionOutput(`toktrack ${TOKTRACK_VERSION}`)).toBe(TOKTRACK_VERSION)
+    expect(parseToktrackVersionOutput(`${TOKTRACK_VERSION}\n`)).toBe(TOKTRACK_VERSION)
+  })
+
+  it('prefers the pinned local toktrack installation when available', async () => {
+    const runner = await resolveToktrackRunner()
+
+    expect(runner).not.toBeNull()
+    expect(runner?.method).toBe('local')
+
+    const versionOutput = await runToktrack(runner!, ['--version'])
+    expect(parseToktrackVersionOutput(versionOutput)).toBe(TOKTRACK_VERSION)
+  })
+
+  it('returns a structured warning when the latest toktrack version lookup fails', async () => {
+    const originalPath = process.env.PATH
+    process.env.PATH = ''
+
+    try {
+      const status = await lookupLatestToktrackVersion()
+      expect(status).toMatchObject({
+        configuredVersion: TOKTRACK_VERSION,
+        latestVersion: null,
+        isLatest: null,
+        lookupStatus: 'failed',
+      })
+    } finally {
+      process.env.PATH = originalPath
+    }
   })
 
   it('accepts common loopback host variants', () => {

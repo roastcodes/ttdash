@@ -253,3 +253,12 @@ export interface AppSettings {
   lastLoadSource: DataLoadSource
   cliAutoLoadActive: boolean
 }
+
+/** Describes the fixed toktrack version and latest-version lookup state. */
+export interface ToktrackVersionStatus {
+  configuredVersion: string
+  latestVersion: string | null
+  isLatest: boolean | null
+  lookupStatus: 'ok' | 'failed'
+  message?: string
+}

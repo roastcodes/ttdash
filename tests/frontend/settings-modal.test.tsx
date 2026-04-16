@@ -7,16 +7,18 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 
 function renderSettingsModal({
+  open = true,
   reducedMotionPreference = 'system',
   onSaveSettings = vi.fn().mockResolvedValue(undefined),
 }: {
+  open?: boolean
   reducedMotionPreference?: 'system' | 'always' | 'never'
   onSaveSettings?: ReturnType<typeof vi.fn>
 } = {}) {
   render(
     <TooltipProvider>
       <SettingsModal
-        open={true}
+        open={open}
         onOpenChange={vi.fn()}
         language="de"
         reducedMotionPreference={reducedMotionPreference}
@@ -74,6 +76,23 @@ function renderSettingsModal({
 describe('SettingsModal', () => {
   beforeEach(async () => {
     await initI18n('en')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            configuredVersion: '2.4.0',
+            latestVersion: '2.4.0',
+            isLatest: true,
+            lookupStatus: 'ok',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    )
   })
 
   it('exposes language controls and saves the selected language', async () => {
@@ -136,5 +155,181 @@ describe('SettingsModal', () => {
     expect(screen.getByText(/Browsereinstellung/)).toBeInTheDocument()
     expect(screen.getByText(/Toast-Benachrichtigungen/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Immer' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('loads and displays the pinned toktrack version state when the dialog opens', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          configuredVersion: '2.4.0',
+          latestVersion: '2.4.1',
+          isLatest: false,
+          lookupStatus: 'ok',
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderSettingsModal()
+
+    expect(screen.getByTestId('settings-toktrack-version')).toHaveTextContent('2.4.0')
+
+    await vi.waitFor(() => {
+      expect(screen.getByTestId('settings-toktrack-status')).toHaveTextContent(
+        'Update available: 2.4.1',
+      )
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/toktrack/version-status')
+  })
+
+  it('only checks the latest toktrack version after the dialog becomes visible', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          configuredVersion: '2.4.0',
+          latestVersion: '2.4.0',
+          isLatest: true,
+          lookupStatus: 'ok',
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { rerender } = render(
+      <TooltipProvider>
+        <SettingsModal
+          open={false}
+          onOpenChange={vi.fn()}
+          language="de"
+          reducedMotionPreference="system"
+          limitProviders={[]}
+          filterProviders={[]}
+          models={[]}
+          limits={{}}
+          defaultFilters={{ viewMode: 'daily', datePreset: 'all', providers: [], models: [] }}
+          sectionVisibility={{
+            insights: true,
+            metrics: true,
+            today: true,
+            currentMonth: true,
+            activity: true,
+            forecastCache: true,
+            limits: true,
+            costAnalysis: true,
+            tokenAnalysis: true,
+            requestAnalysis: true,
+            advancedAnalysis: true,
+            comparisons: true,
+            tables: true,
+          }}
+          sectionOrder={[
+            'insights',
+            'metrics',
+            'today',
+            'currentMonth',
+            'activity',
+            'forecastCache',
+            'limits',
+            'costAnalysis',
+            'tokenAnalysis',
+            'requestAnalysis',
+            'advancedAnalysis',
+            'comparisons',
+            'tables',
+          ]}
+          lastLoadedAt={null}
+          lastLoadSource={null}
+          cliAutoLoadActive={false}
+          hasData={false}
+          onSaveSettings={vi.fn()}
+          onExportSettings={vi.fn()}
+          onImportSettings={vi.fn()}
+          onExportData={vi.fn()}
+          onImportData={vi.fn()}
+        />
+      </TooltipProvider>,
+    )
+
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    rerender(
+      <TooltipProvider>
+        <SettingsModal
+          open={true}
+          onOpenChange={vi.fn()}
+          language="de"
+          reducedMotionPreference="system"
+          limitProviders={[]}
+          filterProviders={[]}
+          models={[]}
+          limits={{}}
+          defaultFilters={{ viewMode: 'daily', datePreset: 'all', providers: [], models: [] }}
+          sectionVisibility={{
+            insights: true,
+            metrics: true,
+            today: true,
+            currentMonth: true,
+            activity: true,
+            forecastCache: true,
+            limits: true,
+            costAnalysis: true,
+            tokenAnalysis: true,
+            requestAnalysis: true,
+            advancedAnalysis: true,
+            comparisons: true,
+            tables: true,
+          }}
+          sectionOrder={[
+            'insights',
+            'metrics',
+            'today',
+            'currentMonth',
+            'activity',
+            'forecastCache',
+            'limits',
+            'costAnalysis',
+            'tokenAnalysis',
+            'requestAnalysis',
+            'advancedAnalysis',
+            'comparisons',
+            'tables',
+          ]}
+          lastLoadedAt={null}
+          lastLoadSource={null}
+          cliAutoLoadActive={false}
+          hasData={false}
+          onSaveSettings={vi.fn()}
+          onExportSettings={vi.fn()}
+          onImportSettings={vi.fn()}
+          onExportData={vi.fn()}
+          onImportData={vi.fn()}
+        />
+      </TooltipProvider>,
+    )
+
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('shows a warning when the latest toktrack version check fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')))
+
+    renderSettingsModal()
+
+    await vi.waitFor(() => {
+      expect(screen.getByTestId('settings-toktrack-status')).toHaveTextContent(
+        'Latest version could not be checked',
+      )
+    })
   })
 })
