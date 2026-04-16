@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { InfoHeading } from '@/components/features/help/InfoHeading'
 import { FEATURE_HELP } from '@/lib/help-content'
+import { useModelColorHelpers } from '@/lib/model-color-context'
 import {
   formatPercent,
   formatTokens,
@@ -11,12 +12,7 @@ import {
   periodLabel,
   formatNumber,
 } from '@/lib/formatters'
-import {
-  getModelColor,
-  getModelColorAlpha,
-  getModelProvider,
-  getProviderBadgeClasses,
-} from '@/lib/model-utils'
+import { getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
 import type { ViewMode } from '@/types'
@@ -78,6 +74,7 @@ export function ModelEfficiency({
   viewMode = 'daily',
 }: ModelEfficiencyProps) {
   const { t } = useTranslation()
+  const { getModelColor, getModelColorAlpha } = useModelColorHelpers()
   const [sortKey, setSortKey] = useState<SortKey>('cost')
   const [sortAsc, setSortAsc] = useState(false)
 

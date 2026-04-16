@@ -19,12 +19,8 @@ import {
   formatTokens,
 } from '@/lib/formatters'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import {
-  normalizeModelName,
-  getModelColor,
-  getModelProvider,
-  getProviderBadgeClasses,
-} from '@/lib/model-utils'
+import { normalizeModelName, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
+import { useModelColorHelpers } from '@/lib/model-color-context'
 import { cn } from '@/lib/cn'
 import type { DailyUsage } from '@/types'
 
@@ -125,6 +121,7 @@ export function DrillDownModal({
   onClose,
 }: DrillDownModalProps) {
   const { t } = useTranslation()
+  const { getModelColor } = useModelColorHelpers()
 
   const periodKind = day ? getPeriodKind(day.date) : 'day'
 

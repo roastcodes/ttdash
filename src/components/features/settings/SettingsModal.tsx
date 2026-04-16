@@ -23,6 +23,7 @@ import {
   getDefaultDashboardSectionVisibility,
 } from '@/lib/dashboard-preferences'
 import { cn } from '@/lib/cn'
+import { fetchToktrackVersionStatus } from '@/lib/api'
 import {
   ArrowDown,
   ArrowUp,
@@ -44,8 +45,10 @@ import type {
   DataLoadSource,
   ProviderLimits,
   ReducedMotionPreference,
+  ToktrackVersionStatus,
 } from '@/types'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
+import { TOKTRACK_VERSION } from '@/lib/toktrack-version'
 
 interface SettingsModalProps {
   open: boolean
@@ -77,6 +80,18 @@ interface SettingsModalProps {
   onImportData: () => void
   settingsBusy?: boolean
   dataBusy?: boolean
+}
+
+type ToktrackVersionState = ToktrackVersionStatus & {
+  isLoading: boolean
+}
+
+const DEFAULT_TOKTRACK_VERSION_STATE: ToktrackVersionState = {
+  configuredVersion: TOKTRACK_VERSION,
+  latestVersion: null,
+  isLatest: null,
+  lookupStatus: 'ok',
+  isLoading: true,
 }
 
 function parseNumberInput(value: string): number {
@@ -196,6 +211,9 @@ export function SettingsModal({
   const [dragOverSectionId, setDragOverSectionId] = useState<DashboardSectionOrder[number] | null>(
     null,
   )
+  const [toktrackVersionState, setToktrackVersionState] = useState<ToktrackVersionState>(
+    DEFAULT_TOKTRACK_VERSION_STATE,
+  )
   const titleRef = useRef<HTMLHeadingElement | null>(null)
 
   useEffect(() => {
@@ -219,6 +237,38 @@ export function SettingsModal({
     sectionVisibility,
     sectionOrder,
   ])
+
+  useEffect(() => {
+    if (!open) return
+
+    let cancelled = false
+    setToktrackVersionState(DEFAULT_TOKTRACK_VERSION_STATE)
+
+    void fetchToktrackVersionStatus()
+      .then((status) => {
+        if (cancelled) return
+        setToktrackVersionState({
+          ...status,
+          configuredVersion: status.configuredVersion || TOKTRACK_VERSION,
+          isLoading: false,
+        })
+      })
+      .catch(() => {
+        if (cancelled) return
+        setToktrackVersionState({
+          configuredVersion: TOKTRACK_VERSION,
+          latestVersion: null,
+          isLatest: null,
+          lookupStatus: 'failed',
+          message: t('settings.modal.toktrackLatestCheckFailed'),
+          isLoading: false,
+        })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [open, t])
 
   const providerOptions = useMemo(
     () => normalizeSelection([...filterProviders, ...defaultFilterDraft.providers]),
@@ -289,6 +339,20 @@ export function SettingsModal({
         .filter((section) => section !== undefined),
     [sectionOrderDraft],
   )
+  const toktrackStatusToneClass = toktrackVersionState.isLoading
+    ? 'text-muted-foreground'
+    : toktrackVersionState.lookupStatus === 'failed' || toktrackVersionState.isLatest === false
+      ? 'text-amber-500'
+      : 'text-green-500'
+  const toktrackStatusLabel = toktrackVersionState.isLoading
+    ? t('settings.modal.toktrackCheckingLatest')
+    : toktrackVersionState.lookupStatus === 'failed'
+      ? t('settings.modal.toktrackLatestCheckFailed')
+      : toktrackVersionState.isLatest
+        ? t('settings.modal.toktrackLatest')
+        : t('settings.modal.toktrackUpdateAvailable', {
+            version: toktrackVersionState.latestVersion ?? t('common.notAvailable'),
+          })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -709,6 +773,29 @@ export function SettingsModal({
                   </Button>
                 ))}
               </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-border/50 bg-muted/20 px-3 py-3">
+              <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                {t('settings.modal.toktrackVersionTitle')}
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <span
+                  className="font-mono text-sm font-medium text-foreground"
+                  data-testid="settings-toktrack-version"
+                >
+                  {toktrackVersionState.configuredVersion}
+                </span>
+                <span
+                  className={cn('text-xs font-medium', toktrackStatusToneClass)}
+                  data-testid="settings-toktrack-status"
+                >
+                  {toktrackStatusLabel}
+                </span>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {t('settings.modal.toktrackVersionDescription')}
+              </p>
             </div>
           </div>
         </div>

@@ -5,13 +5,19 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 
 const require = createRequire(import.meta.url)
 const {
   __test__: {
     commandExists,
     getExecutableName,
+    lookupLatestToktrackVersion,
+    resetLatestToktrackVersionCache,
     getFileMutationLockDir,
+    parseToktrackVersionOutput,
+    resolveToktrackRunner,
+    runToktrack,
     listenOnAvailablePort,
     unlinkIfExists,
     writeJsonAtomicAsync,
@@ -23,7 +29,32 @@ const {
   __test__: {
     commandExists: (command: string, args?: string[]) => Promise<boolean>
     getExecutableName: (baseName: string, isWindows?: boolean) => string
+    lookupLatestToktrackVersion: (timeoutMs?: number) => Promise<{
+      configuredVersion: string
+      latestVersion: string | null
+      isLatest: boolean | null
+      lookupStatus: 'ok' | 'failed'
+      message?: string
+    }>
+    resetLatestToktrackVersionCache: () => void
     getFileMutationLockDir: (filePath: string) => string
+    parseToktrackVersionOutput: (output: string) => string
+    resolveToktrackRunner: () => Promise<{
+      command: string
+      prefixArgs: string[]
+      env: NodeJS.ProcessEnv
+      method: string
+      label: string
+      displayCommand: string
+    } | null>
+    runToktrack: (
+      runner: {
+        command: string
+        prefixArgs: string[]
+        env: NodeJS.ProcessEnv
+      },
+      args: string[],
+    ) => Promise<string>
     listenOnAvailablePort: (
       serverInstance: {
         once: (event: string, handler: (...args: unknown[]) => void) => unknown
@@ -52,6 +83,7 @@ const { isLoopbackHost } = require('../../server/runtime.js') as {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  resetLatestToktrackVersionCache()
 })
 
 function createFakeServer(
@@ -74,16 +106,207 @@ function createFakeServer(
   }
 }
 
+async function writeExecutableScript(dir: string, name: string, contents: string): Promise<string> {
+  const filePath = path.join(dir, name)
+  await fsPromises.writeFile(filePath, `#!/bin/sh\n${contents}\n`, {
+    mode: 0o755,
+  })
+  await fsPromises.chmod(filePath, 0o755)
+  return filePath
+}
+
 describe('server helper utilities', () => {
   it('maps executable names correctly across platforms', () => {
+    expect(getExecutableName('npm', true)).toBe('npm.cmd')
     expect(getExecutableName('bun', true)).toBe('bun.exe')
     expect(getExecutableName('bunx', true)).toBe('bun.exe')
     expect(getExecutableName('npx', true)).toBe('npx.cmd')
     expect(getExecutableName('toktrack', true)).toBe('toktrack')
+    expect(getExecutableName('npm', false)).toBe('npm')
     expect(getExecutableName('bun', false)).toBe('bun')
     expect(getExecutableName('bunx', false)).toBe('bunx')
     expect(getExecutableName('npx', false)).toBe('npx')
   })
+
+  it('parses toktrack version banners down to the raw version', () => {
+    expect(parseToktrackVersionOutput(`toktrack ${TOKTRACK_VERSION}`)).toBe(TOKTRACK_VERSION)
+    expect(parseToktrackVersionOutput(`${TOKTRACK_VERSION}\n`)).toBe(TOKTRACK_VERSION)
+  })
+
+  it('prefers the pinned local toktrack installation when available', async () => {
+    const runner = await resolveToktrackRunner()
+
+    expect(runner).not.toBeNull()
+    expect(runner?.method).toBe('local')
+
+    const versionOutput = await runToktrack(runner!, ['--version'])
+    expect(parseToktrackVersionOutput(versionOutput)).toBe(TOKTRACK_VERSION)
+  })
+
+  it('returns a structured warning when the latest toktrack version lookup fails', async () => {
+    const originalPath = process.env.PATH
+    process.env.PATH = ''
+
+    try {
+      const status = await lookupLatestToktrackVersion()
+      expect(status).toMatchObject({
+        configuredVersion: TOKTRACK_VERSION,
+        latestVersion: null,
+        isLatest: null,
+        lookupStatus: 'failed',
+      })
+    } finally {
+      process.env.PATH = originalPath
+    }
+  })
+
+  it.runIf(process.platform !== 'win32')(
+    'returns a structured warning when the latest toktrack version lookup times out',
+    async () => {
+      const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-toktrack-timeout-'))
+      const originalPath = process.env.PATH
+      const nodePath = JSON.stringify(process.execPath)
+      process.env.PATH = tempDir
+
+      try {
+        await writeExecutableScript(
+          tempDir,
+          'npm',
+          `exec ${nodePath} -e "setTimeout(() => {}, 1000)"`,
+        )
+
+        const status = await lookupLatestToktrackVersion(50)
+        expect(status).toMatchObject({
+          configuredVersion: TOKTRACK_VERSION,
+          latestVersion: null,
+          isLatest: null,
+          lookupStatus: 'failed',
+        })
+        expect(status.message).toContain('Command timed out')
+      } finally {
+        process.env.PATH = originalPath
+        await fsPromises.rm(tempDir, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it.runIf(process.platform !== 'win32')(
+    'falls back to npx when bunx exists but cannot execute toktrack',
+    async () => {
+      const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-runner-fallback-'))
+      const originalPath = process.env.PATH
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+      process.env.PATH = tempDir
+
+      try {
+        await writeExecutableScript(tempDir, 'bun', 'exit 0')
+        await writeExecutableScript(tempDir, 'bunx', 'echo "bunx failed" >&2\nexit 1')
+        await writeExecutableScript(tempDir, 'npx', `echo "toktrack ${TOKTRACK_VERSION}"\nexit 0`)
+
+        const runner = await resolveToktrackRunner()
+
+        expect(runner).not.toBeNull()
+        expect(runner?.method).toBe('npm')
+        expect(runner?.command).toBe('npx')
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to probe bunx'))
+      } finally {
+        warnSpy.mockRestore()
+        process.env.PATH = originalPath
+        await fsPromises.rm(tempDir, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it.runIf(process.platform !== 'win32')(
+    'reuses a cached successful latest-version lookup until the TTL expires',
+    async () => {
+      const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-latest-cache-success-'))
+      const countFile = path.join(tempDir, 'count.txt')
+      const originalPath = process.env.PATH
+      const nowSpy = vi.spyOn(Date, 'now')
+      process.env.PATH = tempDir
+
+      try {
+        await writeExecutableScript(
+          tempDir,
+          'npm',
+          `echo hit >> ${JSON.stringify(countFile)}\necho "${TOKTRACK_VERSION}"`,
+        )
+
+        nowSpy.mockReturnValue(1_000_000)
+        const firstStatus = await lookupLatestToktrackVersion()
+        nowSpy.mockReturnValue(1_000_000)
+        const secondStatus = await lookupLatestToktrackVersion()
+        nowSpy.mockReturnValue(1_000_000 + 5 * 60 * 1000 + 1)
+        const thirdStatus = await lookupLatestToktrackVersion()
+
+        expect(firstStatus).toMatchObject({
+          configuredVersion: TOKTRACK_VERSION,
+          latestVersion: TOKTRACK_VERSION,
+          isLatest: true,
+          lookupStatus: 'ok',
+        })
+        expect(secondStatus).toEqual(firstStatus)
+        expect(thirdStatus).toEqual(firstStatus)
+
+        const invocations = (await fsPromises.readFile(countFile, 'utf8'))
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+        expect(invocations).toHaveLength(2)
+      } finally {
+        nowSpy.mockRestore()
+        process.env.PATH = originalPath
+        await fsPromises.rm(tempDir, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it.runIf(process.platform !== 'win32')(
+    'reuses a cached failed latest-version lookup until the failure TTL expires',
+    async () => {
+      const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-latest-cache-failure-'))
+      const countFile = path.join(tempDir, 'count.txt')
+      const originalPath = process.env.PATH
+      const nowSpy = vi.spyOn(Date, 'now')
+      process.env.PATH = tempDir
+
+      try {
+        await writeExecutableScript(
+          tempDir,
+          'npm',
+          `echo hit >> ${JSON.stringify(countFile)}\necho "lookup failed" >&2\nexit 1`,
+        )
+
+        nowSpy.mockReturnValue(2_000_000)
+        const firstStatus = await lookupLatestToktrackVersion()
+        nowSpy.mockReturnValue(2_000_000)
+        const secondStatus = await lookupLatestToktrackVersion()
+        nowSpy.mockReturnValue(2_000_000 + 60 * 1000 + 1)
+        const thirdStatus = await lookupLatestToktrackVersion()
+
+        expect(firstStatus).toMatchObject({
+          configuredVersion: TOKTRACK_VERSION,
+          latestVersion: null,
+          isLatest: null,
+          lookupStatus: 'failed',
+          message: 'lookup failed',
+        })
+        expect(secondStatus).toEqual(firstStatus)
+        expect(thirdStatus).toEqual(firstStatus)
+
+        const invocations = (await fsPromises.readFile(countFile, 'utf8'))
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+        expect(invocations).toHaveLength(2)
+      } finally {
+        nowSpy.mockRestore()
+        process.env.PATH = originalPath
+        await fsPromises.rm(tempDir, { recursive: true, force: true })
+      }
+    },
+  )
 
   it('accepts common loopback host variants', () => {
     expect(isLoopbackHost('127.0.0.1')).toBe(true)

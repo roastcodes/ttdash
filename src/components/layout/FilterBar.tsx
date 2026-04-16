@@ -17,12 +17,8 @@ import {
   SelectItem,
 } from '@/components/ui/select'
 import { cn } from '@/lib/cn'
-import {
-  getModelColor,
-  getModelColorAlpha,
-  getProviderBadgeClasses,
-  getProviderBadgeStyle,
-} from '@/lib/model-utils'
+import { getProviderBadgeClasses, getProviderBadgeStyle } from '@/lib/model-utils'
+import { useModelColorHelpers } from '@/lib/model-color-context'
 import { formatDate, formatMonthYear, localToday, toLocalDateStr } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
 import { CalendarDays, ChevronLeft, ChevronRight, X } from 'lucide-react'
@@ -549,6 +545,7 @@ export function FilterBar({
   onResetAll,
 }: FilterBarProps) {
   const { t } = useTranslation()
+  const { getModelColor, getModelColorAlpha } = useModelColorHelpers()
   const activePreset = useMemo(
     () => resolveActivePreset(selectedMonth, startDate, endDate),
     [selectedMonth, startDate, endDate],

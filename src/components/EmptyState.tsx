@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { FadeIn } from '@/components/features/animations/FadeIn'
 import { VERSION } from '@/lib/constants'
+import { TOKTRACK_PACKAGE_SPEC } from '@/lib/toktrack-version'
 
 interface EmptyStateProps {
   onUpload: () => void
@@ -29,7 +30,7 @@ export function EmptyState({ onUpload, onAutoImport, onOpenSettings }: EmptyStat
             <p className="font-mono text-xs text-muted-foreground">v{VERSION}</p>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {t('emptyState.description')}
+            {t('emptyState.description', { toktrackSpec: TOKTRACK_PACKAGE_SPEC })}
           </p>
           <Button onClick={onAutoImport} size="lg" className="w-full gap-2">
             <Zap className="h-4 w-4" />

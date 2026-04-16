@@ -1,5 +1,23 @@
 # Changelog
 
+## [6.2.4] - 2026-04-16
+
+### Added
+
+- **Toktrack-Versionstransparenz in den Dashboard-Einstellungen** — der Settings-Dialog zeigt jetzt die in TTDash verwendete `toktrack`-Version an und prüft beim Öffnen lazy per npm-Registry, ob bereits eine neuere `latest`-Version verfügbar ist
+- **Dataset-aware Modellpaletten für bekannte Modellfamilien** — bekannte Familien wie Claude, GPT, Gemini, Codex und OpenCode werden jetzt zentral gruppiert, nach Versionen geordnet und innerhalb derselben Familie konsistent mit abgestuften Farben versehen
+
+### Improved
+
+- **Zentrales Toktrack-Version-Handling für Auto-Import und Startup-Autoload** — `toktrack` ist jetzt repo-weit exakt auf `2.4.0` fixiert, inklusive gemeinsamer Runner-Auflösung für lokale Installation, `bunx` und `npx`, damit unbeabsichtigte Versionswechsel nicht mehr stillschweigend passieren
+- **Modellfarb-Konsistenz zwischen Dashboard und Report** — die Farbpalette wird jetzt aus dem gesamten geladenen Modellbestand aufgebaut, sodass UI-Filter die Familienfarben nicht mehr verschieben und serverseitige Reports dieselbe Logik wie das Dashboard verwenden
+- **Erweiterbarkeit und Absicherung der Modellfarblogik** — eine zentrale Family-Registry und gezielte Unit-/Report-Tests machen spätere Ergänzungen für neue Modelllinien deutlich einfacher und robuster
+
+### Fixed
+
+- **Unkontrollierte Toktrack-Auflösung über lokal verfügbare Runner** — TTDash verwendet eine lokale `toktrack`-Binary nur noch dann direkt, wenn sie exakt der gepinnten Version entspricht; andernfalls wird gezielt auf die konfigurierte Paketversion zurückgefallen
+- **Starre versionsspezifische Modellfarbregeln** — bekannte Modellfamilien sind nicht mehr auf einzeln gepflegte Farbzuweisungen pro bekannter Version angewiesen, sondern können neuere Versionen innerhalb derselben Familie automatisch auf die Basisfarbe legen
+
 ## [6.2.3] - 2026-04-16
 
 ### Added

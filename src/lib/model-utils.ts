@@ -7,7 +7,8 @@ import {
   type ModelColorTheme,
 } from '../../shared/model-colors.js'
 
-function resolveModelTheme(theme?: ModelColorTheme): ModelColorTheme {
+/** Resolves the effective model-color theme, defaulting to the current document theme. */
+export function resolveModelTheme(theme?: ModelColorTheme): ModelColorTheme {
   if (theme === 'light' || theme === 'dark') return theme
   if (typeof document === 'undefined') return 'dark'
   return document.documentElement.classList.contains('dark') ? 'dark' : 'light'

@@ -25,9 +25,9 @@ import {
   getRadialAnimationProps,
 } from './chart-theme'
 import { FormattedValue } from '@/components/ui/formatted-value'
+import { useModelColorHelpers } from '@/lib/model-color-context'
 import { formatDateAxis, periodUnit } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
-import { getModelColor } from '@/lib/model-utils'
 import { CHART_HELP } from '@/lib/help-content'
 import type { RequestChartDataPoint, ViewMode } from '@/types'
 
@@ -77,6 +77,7 @@ function RequestCenterLabel({
 /** Renders request volume over time with optional drilldown. */
 export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: RequestsOverTimeProps) {
   const { t } = useTranslation()
+  const { getModelColor } = useModelColorHelpers()
   const uid = useId().replace(/:/g, '')
   const averageLabel = t('charts.requestsOverTime.averagePerUnit', { unit: periodUnit(viewMode) })
   const trendLabel =

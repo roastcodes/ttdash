@@ -138,6 +138,7 @@ export function useDashboardControllerWithBootstrap(
     () => getUniqueModels(daily.map((entry) => entry.modelsUsed)),
     [daily],
   )
+
   const {
     settings,
     providerLimits,

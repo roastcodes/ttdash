@@ -7,6 +7,7 @@ import type {
   DashboardSectionVisibility,
   ProviderLimits,
   ReducedMotionPreference,
+  ToktrackVersionStatus,
   UsageData,
   UsageImportSummary,
   ViewMode,
@@ -169,6 +170,15 @@ export async function importSettings(data: unknown): Promise<AppSettings> {
     throw new Error(await readErrorMessage(res, i18n.t('api.importSettingsFailed')))
   }
   return normalizeAppSettings(await parseResponseJson<unknown>(res))
+}
+
+/** Loads the pinned toktrack version and current latest-version status. */
+export async function fetchToktrackVersionStatus(): Promise<ToktrackVersionStatus> {
+  const res = await fetch('/api/toktrack/version-status')
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, i18n.t('api.fetchToktrackVersionFailed')))
+  }
+  return parseResponseJson<ToktrackVersionStatus>(res)
 }
 
 /** Describes the dashboard state required to build a PDF report. */

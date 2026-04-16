@@ -27,7 +27,8 @@ import { CustomTooltip } from './CustomTooltip'
 import { CHART_HELP } from '@/lib/help-content'
 import { computeCacheHitRateByModel, computeMovingAverage } from '@/lib/calculations'
 import { formatDateAxis, formatPercent, periodUnit } from '@/lib/formatters'
-import { getModelColor, normalizeModelName } from '@/lib/model-utils'
+import { useModelColorHelpers } from '@/lib/model-color-context'
+import { normalizeModelName } from '@/lib/model-utils'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface RequestCacheHitRateByModelProps {
@@ -58,6 +59,7 @@ export function RequestCacheHitRateByModel({
   viewMode,
 }: RequestCacheHitRateByModelProps) {
   const { t } = useTranslation()
+  const { getModelColor } = useModelColorHelpers()
   const uid = useId().replace(/:/g, '')
   const totalLabel = t('charts.requestCacheHitRate.total')
   const trendRate = 'trailing7Rate' as const

@@ -24,7 +24,7 @@
     "streak": "{{count}}D streak"
   },
   "emptyState": {
-    "description": "Upload a `toktrack` or legacy JSON file, or start local auto-import with local `toktrack`, `bunx toktrack daily --json`, or `npx --yes toktrack daily --json`.",
+    "description": "Upload a `toktrack` or legacy JSON file, or start local auto-import with local `toktrack`, `bunx {{toktrackSpec}} daily --json`, or `npx --yes {{toktrackSpec}} daily --json`.",
     "autoImport": "Auto import",
     "uploadFile": "Upload file",
     "openSettings": "Settings & backups",
@@ -912,6 +912,12 @@
       "sectionVisibilityDescription": "Control which sections are rendered in the dashboard and adjust their order.",
       "dashboardSettingsTitle": "Dashboard Settings",
       "dashboardSettingsDescription": "Control dashboard-wide behavior that should stay consistent across all app animations and motion-aware UI.",
+      "toktrackVersionTitle": "Toktrack version",
+      "toktrackVersionDescription": "TTDash pins toktrack to a tested version. Local toktrack is only used when it matches the pinned version exactly.",
+      "toktrackCheckingLatest": "Checking latest…",
+      "toktrackLatest": "Latest",
+      "toktrackUpdateAvailable": "Update available: {{version}}",
+      "toktrackLatestCheckFailed": "Latest version could not be checked",
       "reducedMotionTitle": "prefers-reduced-motion",
       "reducedMotionDescription": "Override the browser motion preference for the entire app, including dashboard charts, heatmaps, dialogs, tooltips, and toast feedback.",
       "reducedMotionOptions": {
@@ -1185,6 +1191,7 @@
   "api": {
     "fetchUsageFailed": "Failed to load data",
     "fetchSettingsFailed": "Failed to load settings",
+    "fetchToktrackVersionFailed": "Failed to load toktrack version status",
     "uploadFailed": "Upload failed",
     "deleteFailed": "Delete failed",
     "deleteSettingsFailed": "Failed to reset settings",

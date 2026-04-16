@@ -13,6 +13,11 @@ const { normalizeIncomingData } = require('./usage-normalizer');
 const { generatePdfReport } = require('./server/report');
 const { version: APP_VERSION } = require('./package.json');
 const dashboardPreferences = require('./shared/dashboard-preferences.json');
+const {
+  TOKTRACK_PACKAGE_NAME,
+  TOKTRACK_PACKAGE_SPEC,
+  TOKTRACK_VERSION,
+} = require('./shared/toktrack-version.js');
 const { createHttpUtils } = require('./server/http-utils');
 const {
   ensureBindHostAllowed,
@@ -58,6 +63,10 @@ const USAGE_BACKUP_KIND = 'ttdash-usage-backup';
 const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
 const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
+const TOKTRACK_RUNNER_PROBE_TIMEOUT_MS = 7000;
+const TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS = 7000;
+const TOKTRACK_LATEST_CACHE_SUCCESS_TTL_MS = 5 * 60 * 1000;
+const TOKTRACK_LATEST_CACHE_FAILURE_TTL_MS = 60 * 1000;
 const DASHBOARD_DATE_PRESETS = dashboardPreferences.datePresets;
 const DASHBOARD_SECTION_IDS = dashboardPreferences.sectionDefinitions.map((section) => section.id);
 const DEFAULT_SETTINGS = {
@@ -1689,6 +1698,8 @@ function sendSSE(res, event, data) {
 }
 
 let autoImportRunning = false;
+let latestToktrackVersionCache = null;
+let latestToktrackVersionLookupPromise = null;
 
 function getExecutableName(baseName, isWindows = IS_WINDOWS) {
   if (!isWindows) {
@@ -1696,6 +1707,8 @@ function getExecutableName(baseName, isWindows = IS_WINDOWS) {
   }
 
   switch (baseName) {
+    case 'npm':
+      return 'npm.cmd';
     case 'bun':
     case 'bunx':
       return 'bun.exe';
@@ -1723,58 +1736,84 @@ function commandExists(command, args = ['--version']) {
   });
 }
 
-async function resolveToktrackRunner() {
-  if (fs.existsSync(TOKTRACK_LOCAL_BIN)) {
-    return {
-      command: TOKTRACK_LOCAL_BIN,
-      prefixArgs: [],
-      env: process.env,
-      method: 'local',
-      label: 'local toktrack',
-      displayCommand: 'node_modules/.bin/toktrack daily --json',
-    };
-  }
-
-  if (await commandExists(getExecutableName('bun'))) {
-    return {
-      command: getExecutableName('bunx'),
-      prefixArgs: IS_WINDOWS ? ['x', 'toktrack'] : ['toktrack'],
-      env: process.env,
-      method: 'bunx',
-      label: 'bunx',
-      displayCommand: 'bunx toktrack daily --json',
-    };
-  }
-
-  if (await commandExists(getExecutableName('npx'))) {
-    return {
-      command: getExecutableName('npx'),
-      prefixArgs: ['--yes', 'toktrack'],
-      env: {
-        ...process.env,
-        npm_config_cache: NPX_CACHE_DIR,
-      },
-      method: 'npm',
-      label: 'npm exec',
-      displayCommand: 'npx --yes toktrack daily --json',
-    };
-  }
-
-  return null;
+function parseToktrackVersionOutput(output) {
+  return String(output)
+    .trim()
+    .replace(/^toktrack\s+/, '');
 }
 
-function runToktrack(runner, args, { streamStderr = false, onStderr, signalOnClose } = {}) {
+function createLocalToktrackRunner() {
+  return {
+    command: TOKTRACK_LOCAL_BIN,
+    prefixArgs: [],
+    env: process.env,
+    method: 'local',
+    label: 'local toktrack',
+    displayCommand: 'node_modules/.bin/toktrack daily --json',
+  };
+}
+
+function createBunxToktrackRunner() {
+  return {
+    command: getExecutableName('bunx'),
+    prefixArgs: IS_WINDOWS ? ['x', TOKTRACK_PACKAGE_SPEC] : [TOKTRACK_PACKAGE_SPEC],
+    env: process.env,
+    method: 'bunx',
+    label: 'bunx',
+    displayCommand: `bunx ${TOKTRACK_PACKAGE_SPEC} daily --json`,
+  };
+}
+
+function createNpxToktrackRunner() {
+  return {
+    command: getExecutableName('npx'),
+    prefixArgs: ['--yes', TOKTRACK_PACKAGE_SPEC],
+    env: {
+      ...process.env,
+      npm_config_cache: NPX_CACHE_DIR,
+    },
+    method: 'npm',
+    label: 'npm exec',
+    displayCommand: `npx --yes ${TOKTRACK_PACKAGE_SPEC} daily --json`,
+  };
+}
+
+function runCommand(
+  command,
+  args,
+  { env = process.env, streamStderr = false, onStderr, signalOnClose, timeoutMs = null } = {},
+) {
   return new Promise((resolve, reject) => {
-    const child = spawnCommand(runner.command, [...runner.prefixArgs, ...args], {
+    const child = spawnCommand(command, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: runner.env,
+      env,
     });
 
     let stdout = '';
     let stderr = '';
+    let finished = false;
+    let timeoutId = null;
+
+    const settle = (handler, value) => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      handler(value);
+    };
 
     if (signalOnClose) {
       signalOnClose(() => child.kill('SIGTERM'));
+    }
+
+    if (typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs > 0) {
+      timeoutId = setTimeout(() => {
+        child.kill('SIGTERM');
+        settle(reject, new Error(`Command timed out after ${timeoutMs}ms: ${command}`));
+      }, timeoutMs);
     }
 
     child.stdout.on('data', (chunk) => {
@@ -1789,15 +1828,140 @@ function runToktrack(runner, args, { streamStderr = false, onStderr, signalOnClo
       }
     });
 
-    child.on('error', reject);
+    child.on('error', (error) => settle(reject, error));
     child.on('close', (code) => {
-      if (code === 0) {
-        resolve(stdout.trimEnd());
+      if (finished) {
         return;
       }
-      reject(new Error(stderr.trim() || `Could not start ${runner.label}.`));
+      if (code === 0) {
+        settle(resolve, stdout.trimEnd());
+        return;
+      }
+      settle(reject, new Error(stderr.trim() || `Could not start ${command}.`));
     });
   });
+}
+
+async function probeToktrackRunner(runner, timeoutMs = TOKTRACK_RUNNER_PROBE_TIMEOUT_MS) {
+  try {
+    await runToktrack(runner, ['--version'], { timeoutMs });
+    return true;
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message.trim()
+        ? error.message.trim()
+        : `Could not start ${runner.label}.`;
+    console.warn(`Failed to probe ${runner.label}: ${message}`);
+    return false;
+  }
+}
+
+async function resolveToktrackRunner() {
+  if (fs.existsSync(TOKTRACK_LOCAL_BIN)) {
+    const localRunner = createLocalToktrackRunner();
+
+    try {
+      const localVersion = parseToktrackVersionOutput(
+        await runToktrack(localRunner, ['--version'], {
+          timeoutMs: TOKTRACK_RUNNER_PROBE_TIMEOUT_MS,
+        }),
+      );
+      if (localVersion === TOKTRACK_VERSION) {
+        return localRunner;
+      }
+    } catch {
+      // Fall back to pinned package runners when the local binary is missing or invalid.
+    }
+  }
+
+  const bunxRunner = createBunxToktrackRunner();
+  if (await probeToktrackRunner(bunxRunner)) {
+    return bunxRunner;
+  }
+
+  const npxRunner = createNpxToktrackRunner();
+  if (await probeToktrackRunner(npxRunner)) {
+    return npxRunner;
+  }
+
+  return null;
+}
+
+function runToktrack(
+  runner,
+  args,
+  { streamStderr = false, onStderr, signalOnClose, timeoutMs = null } = {},
+) {
+  return runCommand(runner.command, [...runner.prefixArgs, ...args], {
+    env: runner.env,
+    streamStderr,
+    onStderr,
+    signalOnClose,
+    timeoutMs,
+  });
+}
+
+async function lookupLatestToktrackVersion(timeoutMs = TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS) {
+  const now = Date.now();
+  if (latestToktrackVersionCache && now < latestToktrackVersionCache.expiresAt) {
+    return latestToktrackVersionCache.value;
+  }
+
+  if (latestToktrackVersionLookupPromise) {
+    return latestToktrackVersionLookupPromise;
+  }
+
+  latestToktrackVersionLookupPromise = (async () => {
+    try {
+      const latestVersion = String(
+        await runCommand(
+          getExecutableName('npm'),
+          ['view', `${TOKTRACK_PACKAGE_NAME}@latest`, 'version'],
+          {
+            env: {
+              ...process.env,
+              npm_config_cache: NPX_CACHE_DIR,
+            },
+            timeoutMs,
+          },
+        ),
+      ).trim();
+
+      const result = {
+        configuredVersion: TOKTRACK_VERSION,
+        latestVersion,
+        isLatest: latestVersion === TOKTRACK_VERSION,
+        lookupStatus: 'ok',
+      };
+
+      latestToktrackVersionCache = {
+        value: result,
+        expiresAt: Date.now() + TOKTRACK_LATEST_CACHE_SUCCESS_TTL_MS,
+      };
+      return result;
+    } catch (error) {
+      const result = {
+        configuredVersion: TOKTRACK_VERSION,
+        latestVersion: null,
+        isLatest: null,
+        lookupStatus: 'failed',
+        message:
+          error instanceof Error && error.message.trim()
+            ? error.message.trim()
+            : 'Could not determine the latest toktrack version.',
+      };
+
+      latestToktrackVersionCache = {
+        value: result,
+        expiresAt: Date.now() + TOKTRACK_LATEST_CACHE_FAILURE_TTL_MS,
+      };
+      return result;
+    } finally {
+      latestToktrackVersionLookupPromise = null;
+    }
+  })();
+
+  return latestToktrackVersionLookupPromise;
 }
 
 async function performAutoImport({
@@ -1839,7 +2003,7 @@ async function performAutoImport({
       tool: 'toktrack',
       status: 'found',
       method: runner.label,
-      version: String(versionResult).replace(/^toktrack\s+/, ''),
+      version: parseToktrackVersionOutput(versionResult),
     });
     onProgress(
       createAutoImportMessageEvent('loadingUsageData', {
@@ -2181,6 +2345,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (apiPath === '/toktrack/version-status') {
+    if (req.method !== 'GET') {
+      return json(res, 405, { message: 'Method Not Allowed' });
+    }
+
+    return json(res, 200, await lookupLatestToktrackVersion());
+  }
+
   if (apiPath === '/report/pdf') {
     if (req.method !== 'POST') {
       return json(res, 405, { message: 'Method Not Allowed' });
@@ -2321,6 +2493,14 @@ module.exports = {
   __test__: {
     commandExists,
     getExecutableName,
+    parseToktrackVersionOutput,
+    resolveToktrackRunner,
+    runToktrack,
+    lookupLatestToktrackVersion,
+    resetLatestToktrackVersionCache: () => {
+      latestToktrackVersionCache = null;
+      latestToktrackVersionLookupPromise = null;
+    },
     listenOnAvailablePort,
     getFileMutationLockDir,
     unlinkIfExists,

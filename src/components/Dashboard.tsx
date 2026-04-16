@@ -11,6 +11,7 @@ import { DashboardSections } from './dashboard/DashboardSections'
 import { DashboardSkeleton } from './ui/skeleton'
 import { Button } from './ui/button'
 import { useDashboardControllerWithBootstrap } from '@/hooks/use-dashboard-controller'
+import { ModelColorPaletteProvider } from '@/lib/model-color-context'
 import type { AppSettings } from '@/types'
 
 const DrillDownModal = lazy(() =>
@@ -82,6 +83,7 @@ export function Dashboard({
     startupAutoLoadBadge,
     animationSeed,
     allProviders,
+    allModelsFromData,
     settingsProviderOptions,
     settingsModelOptions,
     viewMode,
@@ -203,6 +205,16 @@ export function Dashboard({
     setDrillDownDate(drillDownSequence[drillDownIndex + 1]?.date ?? null)
   }, [drillDownIndex, drillDownSequence, hasNextDrillDown, setDrillDownDate])
 
+  const handleClearDateRange = useCallback(() => {
+    setStartDate(undefined)
+    setEndDate(undefined)
+  }, [setStartDate, setEndDate])
+
+  const filterBarModels = useMemo(
+    () => Array.from(new Set([...availableModels, ...selectedModels])),
+    [availableModels, selectedModels],
+  )
+
   const autoImportDialog = (
     <Suspense fallback={null}>
       {autoImportOpen && (
@@ -303,147 +315,146 @@ export function Dashboard({
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-7xl px-4 pb-8">
-      {fileInputs}
-      {autoImportDialog}
-      {settingsDialog}
-      {helpDialog}
+    <ModelColorPaletteProvider modelNames={allModelsFromData}>
+      <div className="mx-auto min-h-screen max-w-7xl px-4 pb-8">
+        {fileInputs}
+        {autoImportDialog}
+        {settingsDialog}
+        {helpDialog}
 
-      <Header
-        dateRange={dateRange}
-        isDark={isDark}
-        currentLanguage={settings.language}
-        streak={streak}
-        dataSource={headerDataSource}
-        startupAutoLoad={startupAutoLoadBadge}
-        onHelpOpenChange={setHelpOpen}
-        onLanguageChange={handleLanguageChange}
-        onToggleTheme={handleToggleTheme}
-        onExportCSV={handleExportCSV}
-        onDelete={handleDelete}
-        onUpload={handleUpload}
-        onAutoImport={handleAutoImport}
-        settingsButton={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleOpenSettings}
-            title={t('header.settings')}
-            className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            <span>{t('header.settings')}</span>
-          </Button>
-        }
-        pdfButton={
-          <PDFReportButton generating={reportGenerating} onGenerate={handleGenerateReport} />
-        }
-      />
+        <Header
+          dateRange={dateRange}
+          isDark={isDark}
+          currentLanguage={settings.language}
+          streak={streak}
+          dataSource={headerDataSource}
+          startupAutoLoad={startupAutoLoadBadge}
+          onHelpOpenChange={setHelpOpen}
+          onLanguageChange={handleLanguageChange}
+          onToggleTheme={handleToggleTheme}
+          onExportCSV={handleExportCSV}
+          onDelete={handleDelete}
+          onUpload={handleUpload}
+          onAutoImport={handleAutoImport}
+          settingsButton={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenSettings}
+              title={t('header.settings')}
+              className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span>{t('header.settings')}</span>
+            </Button>
+          }
+          pdfButton={
+            <PDFReportButton generating={reportGenerating} onGenerate={handleGenerateReport} />
+          }
+        />
 
-      <div id="filters">
-        <FilterBar
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          selectedMonth={selectedMonth}
-          onMonthChange={setSelectedMonth}
-          availableMonths={availableMonths}
+        <div id="filters">
+          <FilterBar
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            selectedMonth={selectedMonth}
+            onMonthChange={setSelectedMonth}
+            availableMonths={availableMonths}
+            availableProviders={availableProviders}
+            selectedProviders={selectedProviders}
+            onToggleProvider={toggleProvider}
+            onClearProviders={clearProviders}
+            allModels={filterBarModels}
+            selectedModels={selectedModels}
+            onToggleModel={toggleModel}
+            onClearModels={clearModels}
+            {...(startDate ? { startDate } : {})}
+            {...(endDate ? { endDate } : {})}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onApplyPreset={applyPreset}
+            onResetAll={resetAll}
+          />
+        </div>
+
+        <div key={animationSeed} className="mt-4 space-y-4">
+          <DashboardSections
+            sectionOrder={sectionOrder}
+            sectionVisibility={sectionVisibility}
+            metrics={metrics}
+            viewMode={viewMode}
+            totalCalendarDays={totalCalendarDays}
+            filteredData={filteredData}
+            filteredDailyData={filteredDailyData}
+            todayData={todayData}
+            hasCurrentMonthData={hasCurrentMonthData}
+            visibleLimitProviders={visibleLimitProviders}
+            providerLimits={providerLimits}
+            selectedMonth={selectedMonth}
+            allModels={allModels}
+            costChartData={costChartData}
+            modelPieData={modelPieData}
+            modelCostChartData={modelCostChartData}
+            weekdayData={weekdayData}
+            tokenChartData={tokenChartData}
+            tokenPieData={tokenPieData}
+            requestChartData={requestChartData}
+            comparisonData={comparisonData}
+            modelCosts={modelCosts}
+            providerMetrics={providerMetrics}
+            isDark={isDark}
+            onDrillDownDateChange={setDrillDownDate}
+          />
+        </div>
+
+        <Suspense fallback={null}>
+          {drillDownDate !== null && (
+            <DrillDownModal
+              day={drillDownDay}
+              contextData={filteredData}
+              open={true}
+              hasPrevious={hasPreviousDrillDown}
+              hasNext={hasNextDrillDown}
+              currentIndex={drillDownIndex >= 0 ? drillDownIndex + 1 : 0}
+              totalCount={drillDownSequence.length}
+              onPrevious={handleDrillDownPrevious}
+              onNext={handleDrillDownNext}
+              onClose={() => setDrillDownDate(null)}
+            />
+          )}
+        </Suspense>
+        <CommandPalette
+          isDark={isDark}
           availableProviders={availableProviders}
           selectedProviders={selectedProviders}
-          onToggleProvider={toggleProvider}
-          onClearProviders={clearProviders}
-          allModels={availableModels}
+          availableModels={availableModels}
           selectedModels={selectedModels}
-          onToggleModel={toggleModel}
-          onClearModels={clearModels}
-          {...(startDate ? { startDate } : {})}
-          {...(endDate ? { endDate } : {})}
-          onStartDateChange={setStartDate}
-          onEndDateChange={setEndDate}
-          onApplyPreset={applyPreset}
-          onResetAll={resetAll}
-        />
-      </div>
-
-      <div key={animationSeed} className="mt-4 space-y-4">
-        <DashboardSections
-          sectionOrder={sectionOrder}
+          hasTodaySection={Boolean(todayData)}
+          hasMonthSection={hasCurrentMonthData}
+          hasRequestSection={metrics.hasRequestData}
           sectionVisibility={sectionVisibility}
-          metrics={metrics}
-          viewMode={viewMode}
-          totalCalendarDays={totalCalendarDays}
-          filteredData={filteredData}
-          filteredDailyData={filteredDailyData}
-          todayData={todayData}
-          hasCurrentMonthData={hasCurrentMonthData}
-          visibleLimitProviders={visibleLimitProviders}
-          providerLimits={providerLimits}
-          selectedMonth={selectedMonth}
-          allModels={allModels}
-          costChartData={costChartData}
-          modelPieData={modelPieData}
-          modelCostChartData={modelCostChartData}
-          weekdayData={weekdayData}
-          tokenChartData={tokenChartData}
-          tokenPieData={tokenPieData}
-          requestChartData={requestChartData}
-          comparisonData={comparisonData}
-          modelCosts={modelCosts}
-          providerMetrics={providerMetrics}
-          isDark={isDark}
-          onDrillDownDateChange={setDrillDownDate}
+          sectionOrder={sectionOrder}
+          reportGenerating={reportGenerating}
+          onToggleTheme={handleToggleTheme}
+          onExportCSV={handleExportCSV}
+          onGenerateReport={handleGenerateReport}
+          onDelete={handleDelete}
+          onUpload={handleUpload}
+          onAutoImport={handleAutoImport}
+          onOpenSettings={handleOpenSettings}
+          onScrollTo={handleScrollTo}
+          onViewModeChange={setViewMode}
+          onApplyPreset={applyPreset}
+          onToggleProvider={toggleProvider}
+          onToggleModel={toggleModel}
+          onClearProviders={clearProviders}
+          onClearModels={clearModels}
+          onClearDateRange={handleClearDateRange}
+          onResetAll={resetAll}
+          onHelp={() => setHelpOpen(true)}
+          onLanguageChange={handleLanguageChange}
         />
       </div>
-
-      <Suspense fallback={null}>
-        {drillDownDate !== null && (
-          <DrillDownModal
-            day={drillDownDay}
-            contextData={filteredData}
-            open={true}
-            hasPrevious={hasPreviousDrillDown}
-            hasNext={hasNextDrillDown}
-            currentIndex={drillDownIndex >= 0 ? drillDownIndex + 1 : 0}
-            totalCount={drillDownSequence.length}
-            onPrevious={handleDrillDownPrevious}
-            onNext={handleDrillDownNext}
-            onClose={() => setDrillDownDate(null)}
-          />
-        )}
-      </Suspense>
-      <CommandPalette
-        isDark={isDark}
-        availableProviders={availableProviders}
-        selectedProviders={selectedProviders}
-        availableModels={availableModels}
-        selectedModels={selectedModels}
-        hasTodaySection={Boolean(todayData)}
-        hasMonthSection={hasCurrentMonthData}
-        hasRequestSection={metrics.hasRequestData}
-        sectionVisibility={sectionVisibility}
-        sectionOrder={sectionOrder}
-        reportGenerating={reportGenerating}
-        onToggleTheme={handleToggleTheme}
-        onExportCSV={handleExportCSV}
-        onGenerateReport={handleGenerateReport}
-        onDelete={handleDelete}
-        onUpload={handleUpload}
-        onAutoImport={handleAutoImport}
-        onOpenSettings={handleOpenSettings}
-        onScrollTo={handleScrollTo}
-        onViewModeChange={setViewMode}
-        onApplyPreset={applyPreset}
-        onToggleProvider={toggleProvider}
-        onToggleModel={toggleModel}
-        onClearProviders={clearProviders}
-        onClearModels={clearModels}
-        onClearDateRange={() => {
-          setStartDate(undefined)
-          setEndDate(undefined)
-        }}
-        onResetAll={resetAll}
-        onHelp={() => setHelpOpen(true)}
-        onLanguageChange={handleLanguageChange}
-      />
-    </div>
+    </ModelColorPaletteProvider>
   )
 }

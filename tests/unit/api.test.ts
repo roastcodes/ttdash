@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchSettings, loadBootstrapSettings, updateSettings } from '@/lib/api'
+import {
+  fetchSettings,
+  fetchToktrackVersionStatus,
+  loadBootstrapSettings,
+  updateSettings,
+} from '@/lib/api'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { initI18n } from '@/lib/i18n'
 
@@ -124,5 +129,49 @@ describe('api error handling', () => {
       errorMessage: null,
       loadedFromServer: true,
     })
+  })
+
+  it('loads the toktrack version status payload unchanged', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            configuredVersion: '2.4.0',
+            latestVersion: '2.4.1',
+            isLatest: false,
+            lookupStatus: 'ok',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    )
+
+    await expect(fetchToktrackVersionStatus()).resolves.toEqual({
+      configuredVersion: '2.4.0',
+      latestVersion: '2.4.1',
+      isLatest: false,
+      lookupStatus: 'ok',
+    })
+  })
+
+  it('uses the localized toktrack fallback when the version status fetch fails', async () => {
+    await initI18n('de')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('{}', {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+
+    await expect(fetchToktrackVersionStatus()).rejects.toThrow(
+      'Fehler beim Laden des Toktrack-Versionsstatus',
+    )
   })
 })

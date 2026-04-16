@@ -13,7 +13,7 @@ import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, getLineAnimationProps } from './chart-theme'
-import { getModelColor } from '@/lib/model-utils'
+import { useModelColorHelpers } from '@/lib/model-color-context'
 import type { ModelCostChartPoint } from '@/lib/data-transforms'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
@@ -26,6 +26,7 @@ interface CostByModelOverTimeProps {
 /** Renders the per-model cost trend over time. */
 export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) {
   const { t } = useTranslation()
+  const { getModelColor } = useModelColorHelpers()
   const topModel =
     models
       .map((model) => ({

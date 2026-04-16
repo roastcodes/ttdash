@@ -24,7 +24,7 @@
     "streak": "{{count}} Tage in Folge"
   },
   "emptyState": {
-    "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx toktrack daily --json` oder `npx --yes toktrack daily --json`.",
+    "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx {{toktrackSpec}} daily --json` oder `npx --yes {{toktrackSpec}} daily --json`.",
     "autoImport": "Auto-Import",
     "uploadFile": "Datei hochladen",
     "openSettings": "Einstellungen & Backups",
@@ -912,6 +912,12 @@
       "sectionVisibilityDescription": "Steuere, welche Sektionen im Dashboard gerendert werden und in welcher Reihenfolge sie erscheinen.",
       "dashboardSettingsTitle": "Dashboard-Einstellungen",
       "dashboardSettingsDescription": "Steuere dashboardweite Verhaltensweisen, die über alle Animationen und bewegungssensitiven UI-Elemente konsistent bleiben sollen.",
+      "toktrackVersionTitle": "Toktrack-Version",
+      "toktrackVersionDescription": "TTDash fixiert toktrack auf eine getestete Version. Lokales toktrack wird nur verwendet, wenn es exakt zur fixierten Version passt.",
+      "toktrackCheckingLatest": "Prüfe Latest…",
+      "toktrackLatest": "Latest",
+      "toktrackUpdateAvailable": "Update verfügbar: {{version}}",
+      "toktrackLatestCheckFailed": "Latest-Version konnte nicht geprüft werden",
       "reducedMotionTitle": "prefers-reduced-motion",
       "reducedMotionDescription": "Überschreibt die Browsereinstellung für die gesamte App, inklusive Dashboard-Diagrammen, Heatmaps, Dialogen, Tooltips und Toast-Benachrichtigungen.",
       "reducedMotionOptions": {
@@ -1184,6 +1190,7 @@
   "api": {
     "fetchUsageFailed": "Fehler beim Laden der Daten",
     "fetchSettingsFailed": "Fehler beim Laden der Einstellungen",
+    "fetchToktrackVersionFailed": "Fehler beim Laden des Toktrack-Versionsstatus",
     "uploadFailed": "Upload fehlgeschlagen",
     "deleteFailed": "Löschen fehlgeschlagen",
     "deleteSettingsFailed": "Einstellungen konnten nicht zurückgesetzt werden",

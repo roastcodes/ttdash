@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { dashboardFixture } from '../fixtures/usage-data'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const { createModelColorPalette } = require('../../shared/model-colors.js') as {
+  createModelColorPalette: (modelNames?: string[]) => {
+    getColorRgb: (name: string, options?: { theme?: 'light' | 'dark' }) => string
+  }
+}
 
 describe('report utils', () => {
   it('keeps aggregated trend metrics disabled for monthly report data', async () => {
@@ -216,5 +224,47 @@ describe('report utils', () => {
     })
 
     expect(report.chartDescriptions.topModels.fullNamesNote).toBeNull()
+  })
+
+  it('keeps report model colors stable against filters by using the full loaded dataset palette', async () => {
+    const { buildReportData } = await import('../../server/report/utils.js')
+    const palette = createModelColorPalette(['Claude Opus 4.5', 'Claude Opus 4.6'])
+    const data = [
+      {
+        ...dashboardFixture[0],
+        date: '2026-04-01',
+        modelsUsed: ['claude-opus-4-5'],
+        modelBreakdowns: [
+          {
+            ...dashboardFixture[0].modelBreakdowns[0],
+            modelName: 'claude-opus-4-5',
+            cost: 4,
+          },
+        ],
+      },
+      {
+        ...dashboardFixture[1],
+        date: '2026-04-02',
+        modelsUsed: ['claude-opus-4-6'],
+        modelBreakdowns: [
+          {
+            ...dashboardFixture[1].modelBreakdowns[0],
+            modelName: 'claude-opus-4-6',
+            cost: 6,
+          },
+        ],
+      },
+    ]
+
+    const report = buildReportData(data, {
+      viewMode: 'daily',
+      language: 'en',
+      selectedModels: ['Claude Opus 4.5'],
+    })
+
+    expect(report.topModels[0].name).toBe('Claude Opus 4.5')
+    expect(report.topModels[0].color).toBe(
+      palette.getColorRgb('Claude Opus 4.5', { theme: 'light' }),
+    )
   })
 })
