@@ -65,6 +65,8 @@ const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
 const TOKTRACK_RUNNER_PROBE_TIMEOUT_MS = 7000;
 const TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS = 7000;
+const TOKTRACK_LATEST_CACHE_SUCCESS_TTL_MS = 5 * 60 * 1000;
+const TOKTRACK_LATEST_CACHE_FAILURE_TTL_MS = 60 * 1000;
 const DASHBOARD_DATE_PRESETS = dashboardPreferences.datePresets;
 const DASHBOARD_SECTION_IDS = dashboardPreferences.sectionDefinitions.map((section) => section.id);
 const DEFAULT_SETTINGS = {
@@ -1696,6 +1698,8 @@ function sendSSE(res, event, data) {
 }
 
 let autoImportRunning = false;
+let latestToktrackVersionCache = null;
+let latestToktrackVersionLookupPromise = null;
 
 function getExecutableName(baseName, isWindows = IS_WINDOWS) {
   if (!isWindows) {
@@ -1898,39 +1902,66 @@ function runToktrack(
 }
 
 async function lookupLatestToktrackVersion(timeoutMs = TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS) {
-  try {
-    const latestVersion = String(
-      await runCommand(
-        getExecutableName('npm'),
-        ['view', `${TOKTRACK_PACKAGE_NAME}@latest`, 'version'],
-        {
-          env: {
-            ...process.env,
-            npm_config_cache: NPX_CACHE_DIR,
-          },
-          timeoutMs,
-        },
-      ),
-    ).trim();
-
-    return {
-      configuredVersion: TOKTRACK_VERSION,
-      latestVersion,
-      isLatest: latestVersion === TOKTRACK_VERSION,
-      lookupStatus: 'ok',
-    };
-  } catch (error) {
-    return {
-      configuredVersion: TOKTRACK_VERSION,
-      latestVersion: null,
-      isLatest: null,
-      lookupStatus: 'failed',
-      message:
-        error instanceof Error && error.message.trim()
-          ? error.message.trim()
-          : 'Could not determine the latest toktrack version.',
-    };
+  const now = Date.now();
+  if (latestToktrackVersionCache && now < latestToktrackVersionCache.expiresAt) {
+    return latestToktrackVersionCache.value;
   }
+
+  if (latestToktrackVersionLookupPromise) {
+    return latestToktrackVersionLookupPromise;
+  }
+
+  latestToktrackVersionLookupPromise = (async () => {
+    try {
+      const latestVersion = String(
+        await runCommand(
+          getExecutableName('npm'),
+          ['view', `${TOKTRACK_PACKAGE_NAME}@latest`, 'version'],
+          {
+            env: {
+              ...process.env,
+              npm_config_cache: NPX_CACHE_DIR,
+            },
+            timeoutMs,
+          },
+        ),
+      ).trim();
+
+      const result = {
+        configuredVersion: TOKTRACK_VERSION,
+        latestVersion,
+        isLatest: latestVersion === TOKTRACK_VERSION,
+        lookupStatus: 'ok',
+      };
+
+      latestToktrackVersionCache = {
+        value: result,
+        expiresAt: Date.now() + TOKTRACK_LATEST_CACHE_SUCCESS_TTL_MS,
+      };
+      return result;
+    } catch (error) {
+      const result = {
+        configuredVersion: TOKTRACK_VERSION,
+        latestVersion: null,
+        isLatest: null,
+        lookupStatus: 'failed',
+        message:
+          error instanceof Error && error.message.trim()
+            ? error.message.trim()
+            : 'Could not determine the latest toktrack version.',
+      };
+
+      latestToktrackVersionCache = {
+        value: result,
+        expiresAt: Date.now() + TOKTRACK_LATEST_CACHE_FAILURE_TTL_MS,
+      };
+      return result;
+    } finally {
+      latestToktrackVersionLookupPromise = null;
+    }
+  })();
+
+  return latestToktrackVersionLookupPromise;
 }
 
 async function performAutoImport({
@@ -2466,6 +2497,10 @@ module.exports = {
     resolveToktrackRunner,
     runToktrack,
     lookupLatestToktrackVersion,
+    resetLatestToktrackVersionCache: () => {
+      latestToktrackVersionCache = null;
+      latestToktrackVersionLookupPromise = null;
+    },
     listenOnAvailablePort,
     getFileMutationLockDir,
     unlinkIfExists,

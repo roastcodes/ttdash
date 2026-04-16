@@ -6,6 +6,8 @@ import { EmptyState } from '@/components/EmptyState'
 import { TOKTRACK_PACKAGE_SPEC } from '@/lib/toktrack-version'
 import { initI18n } from '@/lib/i18n'
 
+const escapedToktrackPackageSpec = TOKTRACK_PACKAGE_SPEC.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 describe('EmptyState', () => {
   beforeEach(async () => {
     vi.stubGlobal(
@@ -27,10 +29,10 @@ describe('EmptyState', () => {
     render(<EmptyState onUpload={vi.fn()} onAutoImport={vi.fn()} onOpenSettings={vi.fn()} />)
 
     expect(
-      screen.getByText(new RegExp(`bunx ${TOKTRACK_PACKAGE_SPEC} daily --json`)),
+      screen.getByText(new RegExp(`bunx ${escapedToktrackPackageSpec} daily --json`)),
     ).toBeInTheDocument()
     expect(
-      screen.getByText(new RegExp(`npx --yes ${TOKTRACK_PACKAGE_SPEC} daily --json`)),
+      screen.getByText(new RegExp(`npx --yes ${escapedToktrackPackageSpec} daily --json`)),
     ).toBeInTheDocument()
   })
 })

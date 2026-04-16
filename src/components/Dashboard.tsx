@@ -210,6 +210,11 @@ export function Dashboard({
     setEndDate(undefined)
   }, [setStartDate, setEndDate])
 
+  const filterBarModels = useMemo(
+    () => Array.from(new Set([...availableModels, ...selectedModels])),
+    [availableModels, selectedModels],
+  )
+
   const autoImportDialog = (
     <Suspense fallback={null}>
       {autoImportOpen && (
@@ -359,7 +364,7 @@ export function Dashboard({
             selectedProviders={selectedProviders}
             onToggleProvider={toggleProvider}
             onClearProviders={clearProviders}
-            allModels={availableModels}
+            allModels={filterBarModels}
             selectedModels={selectedModels}
             onToggleModel={toggleModel}
             onClearModels={clearModels}

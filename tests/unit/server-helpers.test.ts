@@ -13,6 +13,7 @@ const {
     commandExists,
     getExecutableName,
     lookupLatestToktrackVersion,
+    resetLatestToktrackVersionCache,
     getFileMutationLockDir,
     parseToktrackVersionOutput,
     resolveToktrackRunner,
@@ -35,6 +36,7 @@ const {
       lookupStatus: 'ok' | 'failed'
       message?: string
     }>
+    resetLatestToktrackVersionCache: () => void
     getFileMutationLockDir: (filePath: string) => string
     parseToktrackVersionOutput: (output: string) => string
     resolveToktrackRunner: () => Promise<{
@@ -81,6 +83,7 @@ const { isLoopbackHost } = require('../../server/runtime.js') as {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  resetLatestToktrackVersionCache()
 })
 
 function createFakeServer(
@@ -208,6 +211,97 @@ describe('server helper utilities', () => {
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to probe bunx'))
       } finally {
         warnSpy.mockRestore()
+        process.env.PATH = originalPath
+        await fsPromises.rm(tempDir, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it.runIf(process.platform !== 'win32')(
+    'reuses a cached successful latest-version lookup until the TTL expires',
+    async () => {
+      const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-latest-cache-success-'))
+      const countFile = path.join(tempDir, 'count.txt')
+      const originalPath = process.env.PATH
+      const nowSpy = vi.spyOn(Date, 'now')
+      process.env.PATH = tempDir
+
+      try {
+        await writeExecutableScript(
+          tempDir,
+          'npm',
+          `echo hit >> ${JSON.stringify(countFile)}\necho "${TOKTRACK_VERSION}"`,
+        )
+
+        nowSpy.mockReturnValue(1_000_000)
+        const firstStatus = await lookupLatestToktrackVersion()
+        nowSpy.mockReturnValue(1_000_000)
+        const secondStatus = await lookupLatestToktrackVersion()
+        nowSpy.mockReturnValue(1_000_000 + 5 * 60 * 1000 + 1)
+        const thirdStatus = await lookupLatestToktrackVersion()
+
+        expect(firstStatus).toMatchObject({
+          configuredVersion: TOKTRACK_VERSION,
+          latestVersion: TOKTRACK_VERSION,
+          isLatest: true,
+          lookupStatus: 'ok',
+        })
+        expect(secondStatus).toEqual(firstStatus)
+        expect(thirdStatus).toEqual(firstStatus)
+
+        const invocations = (await fsPromises.readFile(countFile, 'utf8'))
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+        expect(invocations).toHaveLength(2)
+      } finally {
+        nowSpy.mockRestore()
+        process.env.PATH = originalPath
+        await fsPromises.rm(tempDir, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it.runIf(process.platform !== 'win32')(
+    'reuses a cached failed latest-version lookup until the failure TTL expires',
+    async () => {
+      const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-latest-cache-failure-'))
+      const countFile = path.join(tempDir, 'count.txt')
+      const originalPath = process.env.PATH
+      const nowSpy = vi.spyOn(Date, 'now')
+      process.env.PATH = tempDir
+
+      try {
+        await writeExecutableScript(
+          tempDir,
+          'npm',
+          `echo hit >> ${JSON.stringify(countFile)}\necho "lookup failed" >&2\nexit 1`,
+        )
+
+        nowSpy.mockReturnValue(2_000_000)
+        const firstStatus = await lookupLatestToktrackVersion()
+        nowSpy.mockReturnValue(2_000_000)
+        const secondStatus = await lookupLatestToktrackVersion()
+        nowSpy.mockReturnValue(2_000_000 + 60 * 1000 + 1)
+        const thirdStatus = await lookupLatestToktrackVersion()
+
+        expect(firstStatus).toMatchObject({
+          configuredVersion: TOKTRACK_VERSION,
+          latestVersion: null,
+          isLatest: null,
+          lookupStatus: 'failed',
+          message: 'lookup failed',
+        })
+        expect(secondStatus).toEqual(firstStatus)
+        expect(thirdStatus).toEqual(firstStatus)
+
+        const invocations = (await fsPromises.readFile(countFile, 'utf8'))
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+        expect(invocations).toHaveLength(2)
+      } finally {
+        nowSpy.mockRestore()
         process.env.PATH = originalPath
         await fsPromises.rm(tempDir, { recursive: true, force: true })
       }
