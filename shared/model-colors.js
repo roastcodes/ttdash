@@ -46,6 +46,7 @@ const MODEL_COLOR_FAMILIES = [
     resolve(name) {
       const match = name.match(/^GPT-(\d+(?:\.\d+)*)$/i)
       if (!match) return null
+      if (match[1] === '4.1') return null
 
       return {
         bucketKey: 'gpt-main',

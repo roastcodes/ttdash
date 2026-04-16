@@ -23,12 +23,7 @@ import {
   toLocalDateStr,
 } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
-import {
-  getUniqueModels,
-  getUniqueProviders,
-  resetActiveModelColorPalette,
-  setActiveModelColorPalette,
-} from '@/lib/model-utils'
+import { getUniqueModels, getUniqueProviders } from '@/lib/model-utils'
 import type {
   AppLanguage,
   AppSettings,
@@ -143,13 +138,6 @@ export function useDashboardControllerWithBootstrap(
     () => getUniqueModels(daily.map((entry) => entry.modelsUsed)),
     [daily],
   )
-
-  useEffect(() => {
-    setActiveModelColorPalette(allModelsFromData)
-    return () => {
-      resetActiveModelColorPalette()
-    }
-  }, [allModelsFromData])
 
   const {
     settings,

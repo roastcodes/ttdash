@@ -157,4 +157,21 @@ describe('api error handling', () => {
       lookupStatus: 'ok',
     })
   })
+
+  it('uses the localized toktrack fallback when the version status fetch fails', async () => {
+    await initI18n('de')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('{}', {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+
+    await expect(fetchToktrackVersionStatus()).rejects.toThrow(
+      'Fehler beim Laden des Toktrack-Versionsstatus',
+    )
+  })
 })

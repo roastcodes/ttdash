@@ -1191,6 +1191,7 @@
   "api": {
     "fetchUsageFailed": "Failed to load data",
     "fetchSettingsFailed": "Failed to load settings",
+    "fetchToktrackVersionFailed": "Failed to load toktrack version status",
     "uploadFailed": "Upload failed",
     "deleteFailed": "Delete failed",
     "deleteSettingsFailed": "Failed to reset settings",

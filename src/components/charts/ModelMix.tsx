@@ -12,7 +12,8 @@ import {
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CHART_COLORS, CHART_MARGIN, getAreaAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
-import { getModelColor, normalizeModelName } from '@/lib/model-utils'
+import { useModelColorHelpers } from '@/lib/model-color-context'
+import { normalizeModelName } from '@/lib/model-utils'
 import { coerceNumber, formatDateAxis, formatPercent } from '@/lib/formatters'
 import type { DailyUsage } from '@/types'
 
@@ -53,6 +54,7 @@ function MixTooltip({ active, payload, label }: MixTooltipProps) {
 /** Renders the stacked model-mix chart for cost share over time. */
 export function ModelMix({ data }: ModelMixProps) {
   const { t } = useTranslation()
+  const { getModelColor } = useModelColorHelpers()
   const { chartData, models } = useMemo(() => {
     const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
     const modelSet = new Set<string>()

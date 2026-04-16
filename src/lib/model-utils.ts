@@ -3,29 +3,15 @@ import {
   normalizeModelName as normalizeSharedModelName,
 } from '../../shared/dashboard-domain.js'
 import {
-  createModelColorPalette,
   getModelColor as getSharedModelColor,
-  type ModelColorPalette,
   type ModelColorTheme,
 } from '../../shared/model-colors.js'
 
-let activeModelColorPalette: ModelColorPalette | null = null
-
-function resolveModelTheme(theme?: ModelColorTheme): ModelColorTheme {
+/** Resolves the effective model-color theme, defaulting to the current document theme. */
+export function resolveModelTheme(theme?: ModelColorTheme): ModelColorTheme {
   if (theme === 'light' || theme === 'dark') return theme
   if (typeof document === 'undefined') return 'dark'
   return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-}
-
-/** Sets the dataset-wide model palette used by dashboard charts and tables. */
-export function setActiveModelColorPalette(modelNames: string[] | null | undefined) {
-  activeModelColorPalette =
-    modelNames && modelNames.length > 0 ? createModelColorPalette(modelNames) : null
-}
-
-/** Clears the dataset-wide model palette so one-off lookups use fallback colors again. */
-export function resetActiveModelColorPalette() {
-  activeModelColorPalette = null
 }
 
 /** Normalizes raw model names to their dashboard label. */
@@ -144,23 +130,15 @@ export function getProviderBadgeStyle(provider: string): {
 
 /** Returns the canonical chart color for a model. */
 export function getModelColor(name: string, theme?: ModelColorTheme): string {
-  const resolvedTheme = resolveModelTheme(theme)
-  return (
-    activeModelColorPalette?.getColor(name, { theme: resolvedTheme }) ??
-    getSharedModelColor(name, { theme: resolvedTheme })
-  )
+  return getSharedModelColor(name, { theme: resolveModelTheme(theme) })
 }
 
 /** Returns the canonical chart color for a model with a custom alpha value. */
 export function getModelColorAlpha(name: string, alpha: number, theme?: ModelColorTheme): string {
-  const resolvedTheme = resolveModelTheme(theme)
-  return (
-    activeModelColorPalette?.getColor(name, { theme: resolvedTheme, alpha }) ??
-    getSharedModelColor(name, {
-      theme: resolvedTheme,
-      alpha,
-    })
-  )
+  return getSharedModelColor(name, {
+    theme: resolveModelTheme(theme),
+    alpha,
+  })
 }
 
 /** Collects unique normalized model names from nested model lists. */

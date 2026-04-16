@@ -4,7 +4,7 @@ import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import { getRadialAnimationProps } from './chart-theme'
-import { getModelColor } from '@/lib/model-utils'
+import { useModelColorHelpers } from '@/lib/model-color-context'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
 
@@ -38,6 +38,7 @@ function CenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number };
 /** Renders the per-model cost distribution donut. */
 export function CostByModel({ data }: CostByModelProps) {
   const { t } = useTranslation()
+  const { getModelColor } = useModelColorHelpers()
   const total = data.reduce((sum, d) => sum + d.value, 0)
   const sortedSegments = [...data].sort((a, b) => b.value - a.value)
   const leadingSegments = sortedSegments.slice(0, 3).map((entry) => ({

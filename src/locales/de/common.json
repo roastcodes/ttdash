@@ -1190,6 +1190,7 @@
   "api": {
     "fetchUsageFailed": "Fehler beim Laden der Daten",
     "fetchSettingsFailed": "Fehler beim Laden der Einstellungen",
+    "fetchToktrackVersionFailed": "Fehler beim Laden des Toktrack-Versionsstatus",
     "uploadFailed": "Upload fehlgeschlagen",
     "deleteFailed": "Löschen fehlgeschlagen",
     "deleteSettingsFailed": "Einstellungen konnten nicht zurückgesetzt werden",

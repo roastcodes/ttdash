@@ -63,6 +63,8 @@ const USAGE_BACKUP_KIND = 'ttdash-usage-backup';
 const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
 const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
+const TOKTRACK_RUNNER_PROBE_TIMEOUT_MS = 7000;
+const TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS = 7000;
 const DASHBOARD_DATE_PRESETS = dashboardPreferences.datePresets;
 const DASHBOARD_SECTION_IDS = dashboardPreferences.sectionDefinitions.map((section) => section.id);
 const DEFAULT_SETTINGS = {
@@ -1775,7 +1777,7 @@ function createNpxToktrackRunner() {
 function runCommand(
   command,
   args,
-  { env = process.env, streamStderr = false, onStderr, signalOnClose } = {},
+  { env = process.env, streamStderr = false, onStderr, signalOnClose, timeoutMs = null } = {},
 ) {
   return new Promise((resolve, reject) => {
     const child = spawnCommand(command, args, {
@@ -1785,9 +1787,29 @@ function runCommand(
 
     let stdout = '';
     let stderr = '';
+    let finished = false;
+    let timeoutId = null;
+
+    const settle = (handler, value) => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      handler(value);
+    };
 
     if (signalOnClose) {
       signalOnClose(() => child.kill('SIGTERM'));
+    }
+
+    if (typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs > 0) {
+      timeoutId = setTimeout(() => {
+        child.kill('SIGTERM');
+        settle(reject, new Error(`Command timed out after ${timeoutMs}ms: ${command}`));
+      }, timeoutMs);
     }
 
     child.stdout.on('data', (chunk) => {
@@ -1802,15 +1824,32 @@ function runCommand(
       }
     });
 
-    child.on('error', reject);
+    child.on('error', (error) => settle(reject, error));
     child.on('close', (code) => {
-      if (code === 0) {
-        resolve(stdout.trimEnd());
+      if (finished) {
         return;
       }
-      reject(new Error(stderr.trim() || `Could not start ${command}.`));
+      if (code === 0) {
+        settle(resolve, stdout.trimEnd());
+        return;
+      }
+      settle(reject, new Error(stderr.trim() || `Could not start ${command}.`));
     });
   });
+}
+
+async function probeToktrackRunner(runner, timeoutMs = TOKTRACK_RUNNER_PROBE_TIMEOUT_MS) {
+  try {
+    await runToktrack(runner, ['--version'], { timeoutMs });
+    return true;
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message.trim()
+        ? error.message.trim()
+        : `Could not start ${runner.label}.`;
+    console.warn(`Failed to probe ${runner.label}: ${message}`);
+    return false;
+  }
 }
 
 async function resolveToktrackRunner() {
@@ -1819,7 +1858,9 @@ async function resolveToktrackRunner() {
 
     try {
       const localVersion = parseToktrackVersionOutput(
-        await runToktrack(localRunner, ['--version']),
+        await runToktrack(localRunner, ['--version'], {
+          timeoutMs: TOKTRACK_RUNNER_PROBE_TIMEOUT_MS,
+        }),
       );
       if (localVersion === TOKTRACK_VERSION) {
         return localRunner;
@@ -1830,26 +1871,37 @@ async function resolveToktrackRunner() {
   }
 
   if (await commandExists(getExecutableName('bun'))) {
-    return createBunxToktrackRunner();
+    const bunxRunner = createBunxToktrackRunner();
+    if (await probeToktrackRunner(bunxRunner)) {
+      return bunxRunner;
+    }
   }
 
   if (await commandExists(getExecutableName('npx'))) {
-    return createNpxToktrackRunner();
+    const npxRunner = createNpxToktrackRunner();
+    if (await probeToktrackRunner(npxRunner)) {
+      return npxRunner;
+    }
   }
 
   return null;
 }
 
-function runToktrack(runner, args, { streamStderr = false, onStderr, signalOnClose } = {}) {
+function runToktrack(
+  runner,
+  args,
+  { streamStderr = false, onStderr, signalOnClose, timeoutMs = null } = {},
+) {
   return runCommand(runner.command, [...runner.prefixArgs, ...args], {
     env: runner.env,
     streamStderr,
     onStderr,
     signalOnClose,
+    timeoutMs,
   });
 }
 
-async function lookupLatestToktrackVersion() {
+async function lookupLatestToktrackVersion(timeoutMs = TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS) {
   try {
     const latestVersion = String(
       await runCommand(
@@ -1860,6 +1912,7 @@ async function lookupLatestToktrackVersion() {
             ...process.env,
             npm_config_cache: NPX_CACHE_DIR,
           },
+          timeoutMs,
         },
       ),
     ).trim();

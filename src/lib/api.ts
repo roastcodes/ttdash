@@ -176,7 +176,7 @@ export async function importSettings(data: unknown): Promise<AppSettings> {
 export async function fetchToktrackVersionStatus(): Promise<ToktrackVersionStatus> {
   const res = await fetch('/api/toktrack/version-status')
   if (!res.ok) {
-    throw new Error(await readErrorMessage(res, i18n.t('api.fetchSettingsFailed')))
+    throw new Error(await readErrorMessage(res, i18n.t('api.fetchToktrackVersionFailed')))
   }
   return parseResponseJson<ToktrackVersionStatus>(res)
 }

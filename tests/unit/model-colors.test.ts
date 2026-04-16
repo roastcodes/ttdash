@@ -1,11 +1,6 @@
 import { createRequire } from 'node:module'
 import { afterEach, describe, expect, it } from 'vitest'
-import {
-  getModelColor,
-  getModelColorAlpha,
-  resetActiveModelColorPalette,
-  setActiveModelColorPalette,
-} from '@/lib/model-utils'
+import { getModelColor, getModelColorAlpha } from '@/lib/model-utils'
 
 const require = createRequire(import.meta.url)
 const {
@@ -51,7 +46,6 @@ describe('model colors', () => {
 
   afterEach(() => {
     delete (globalThis as { document?: unknown }).document
-    resetActiveModelColorPalette()
   })
 
   it('keeps the base family color on the latest known version in a dataset palette', () => {
@@ -122,6 +116,17 @@ describe('model colors', () => {
     expect(getModelColor('Gemini 2.5 Pro', 'light')).toBe('hsl(38, 86%, 34%)')
   })
 
+  it('routes GPT-4.1 through the omni family instead of the main GPT family', () => {
+    const palette = createModelColorPalette(['GPT-4.1', 'GPT-5.4'])
+
+    expect(getSharedModelColor('GPT-4.1', { theme: 'dark' })).toBe('hsl(160, 62%, 49%)')
+    expect(getSharedModelColor('GPT-4.1', { theme: 'light' })).toBe('hsl(160, 58%, 34%)')
+    expect(palette.getColor('GPT-4.1', { theme: 'dark' })).toBe('hsl(160, 62%, 49%)')
+    expect(palette.getColor('GPT-4.1', { theme: 'dark' })).not.toBe(
+      palette.getColor('GPT-5.4', { theme: 'dark' }),
+    )
+  })
+
   it('returns deterministic fallback colors for unknown models and tunes them per theme', () => {
     const dark = getModelColor('Mystery Frontier Alpha', 'dark')
     const light = getModelColor('Mystery Frontier Alpha', 'light')
@@ -132,10 +137,19 @@ describe('model colors', () => {
   })
 
   it('creates valid alpha variants for chip and bar backgrounds', () => {
-    setActiveModelColorPalette(['GPT-5', 'GPT-5.4', 'Claude Sonnet 4.5', 'Claude Sonnet 4.6'])
+    const palette = createModelColorPalette([
+      'GPT-5',
+      'GPT-5.4',
+      'Claude Sonnet 4.5',
+      'Claude Sonnet 4.6',
+    ])
 
-    expect(getModelColorAlpha('GPT-5.4', 0.16, 'dark')).toBe('hsla(148, 72%, 57%, 0.16)')
-    expect(getModelColorAlpha('Claude Sonnet 4.5', 0.16, 'light')).toBe('hsla(214, 70%, 50%, 0.16)')
+    expect(palette.getColor('GPT-5.4', { theme: 'dark', alpha: 0.16 })).toBe(
+      'hsla(148, 72%, 57%, 0.16)',
+    )
+    expect(palette.getColor('Claude Sonnet 4.5', { theme: 'light', alpha: 0.16 })).toBe(
+      'hsla(214, 70%, 50%, 0.16)',
+    )
   })
 
   it('uses the light palette consistently in report output', () => {
@@ -165,17 +179,6 @@ describe('model colors', () => {
       s: 72,
       l: 57,
     })
-  })
-
-  it('keeps the active app palette stable across filtered surfaces until the dataset changes', () => {
-    setActiveModelColorPalette(['Claude Opus 4.5', 'Claude Opus 4.6'])
-    const withLatestLoaded = getModelColor('Claude Opus 4.5', 'light')
-
-    setActiveModelColorPalette(['Claude Opus 4.5'])
-    const withoutLatestLoaded = getModelColor('Claude Opus 4.5', 'light')
-
-    expect(withLatestLoaded).not.toBe(withoutLatestLoaded)
-    expect(withoutLatestLoaded).toBe('hsl(274, 68%, 44%)')
   })
 
   it('uses the dark palette when no theme is passed and the document is dark', () => {

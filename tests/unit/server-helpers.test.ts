@@ -8,9 +8,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 
 const require = createRequire(import.meta.url)
-const packageJson = require('../../package.json') as {
-  dependencies?: Record<string, string>
-}
 const {
   __test__: {
     commandExists,
@@ -31,7 +28,7 @@ const {
   __test__: {
     commandExists: (command: string, args?: string[]) => Promise<boolean>
     getExecutableName: (baseName: string, isWindows?: boolean) => string
-    lookupLatestToktrackVersion: () => Promise<{
+    lookupLatestToktrackVersion: (timeoutMs?: number) => Promise<{
       configuredVersion: string
       latestVersion: string | null
       isLatest: boolean | null
@@ -106,11 +103,16 @@ function createFakeServer(
   }
 }
 
-describe('server helper utilities', () => {
-  it('pins toktrack as an exact runtime dependency', () => {
-    expect(packageJson.dependencies?.toktrack).toBe(TOKTRACK_VERSION)
+async function writeExecutableScript(dir: string, name: string, contents: string): Promise<string> {
+  const filePath = path.join(dir, name)
+  await fsPromises.writeFile(filePath, `#!/bin/sh\n${contents}\n`, {
+    mode: 0o755,
   })
+  await fsPromises.chmod(filePath, 0o755)
+  return filePath
+}
 
+describe('server helper utilities', () => {
   it('maps executable names correctly across platforms', () => {
     expect(getExecutableName('npm', true)).toBe('npm.cmd')
     expect(getExecutableName('bun', true)).toBe('bun.exe')
@@ -154,6 +156,58 @@ describe('server helper utilities', () => {
       process.env.PATH = originalPath
     }
   })
+
+  it.runIf(process.platform !== 'win32')(
+    'returns a structured warning when the latest toktrack version lookup times out',
+    async () => {
+      const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-toktrack-timeout-'))
+      const originalPath = process.env.PATH
+      process.env.PATH = tempDir
+
+      try {
+        await writeExecutableScript(tempDir, 'npm', 'sleep 1')
+
+        const status = await lookupLatestToktrackVersion(50)
+        expect(status).toMatchObject({
+          configuredVersion: TOKTRACK_VERSION,
+          latestVersion: null,
+          isLatest: null,
+          lookupStatus: 'failed',
+        })
+        expect(status.message).toContain('Command timed out')
+      } finally {
+        process.env.PATH = originalPath
+        await fsPromises.rm(tempDir, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it.runIf(process.platform !== 'win32')(
+    'falls back to npx when bunx exists but cannot execute toktrack',
+    async () => {
+      const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-runner-fallback-'))
+      const originalPath = process.env.PATH
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+      process.env.PATH = tempDir
+
+      try {
+        await writeExecutableScript(tempDir, 'bun', 'exit 0')
+        await writeExecutableScript(tempDir, 'bunx', 'echo "bunx failed" >&2\nexit 1')
+        await writeExecutableScript(tempDir, 'npx', `echo "toktrack ${TOKTRACK_VERSION}"\nexit 0`)
+
+        const runner = await resolveToktrackRunner()
+
+        expect(runner).not.toBeNull()
+        expect(runner?.method).toBe('npm')
+        expect(runner?.command).toBe('npx')
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to probe bunx'))
+      } finally {
+        warnSpy.mockRestore()
+        process.env.PATH = originalPath
+        await fsPromises.rm(tempDir, { recursive: true, force: true })
+      }
+    },
+  )
 
   it('accepts common loopback host variants', () => {
     expect(isLoopbackHost('127.0.0.1')).toBe(true)

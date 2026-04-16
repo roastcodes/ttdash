@@ -23,13 +23,8 @@ import {
   formatNumber,
   periodLabel,
 } from '@/lib/formatters'
-import {
-  normalizeModelName,
-  getModelColor,
-  getModelColorAlpha,
-  getModelProvider,
-  getProviderBadgeClasses,
-} from '@/lib/model-utils'
+import { useModelColorHelpers } from '@/lib/model-color-context'
+import { normalizeModelName, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
 import { ArrowUpDown } from 'lucide-react'
 import type { DailyUsage, ViewMode } from '@/types'
@@ -146,6 +141,7 @@ function getDeferredRowStyle(showAll: boolean, intrinsicSize: string): CSSProper
 /** Renders the sortable recent-period table with drilldown access. */
 export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysProps) {
   const { t } = useTranslation()
+  const { getModelColor, getModelColorAlpha } = useModelColorHelpers()
   const [showAll, setShowAll] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortAsc, setSortAsc] = useState(false)
