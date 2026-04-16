@@ -1,13 +1,27 @@
 import { createRequire } from 'node:module'
 import { afterEach, describe, expect, it } from 'vitest'
-import { getModelColor, getModelColorAlpha } from '@/lib/model-utils'
+import {
+  getModelColor,
+  getModelColorAlpha,
+  resetActiveModelColorPalette,
+  setActiveModelColorPalette,
+} from '@/lib/model-utils'
 
 const require = createRequire(import.meta.url)
 const {
+  createModelColorPalette,
   getModelColor: getSharedModelColor,
   getModelColorRgb,
   getModelColorSpec,
 } = require('../../shared/model-colors.js') as {
+  createModelColorPalette: (modelNames?: string[]) => {
+    getColor: (name: string, options?: { theme?: 'light' | 'dark'; alpha?: number }) => string
+    getColorRgb: (name: string, options?: { theme?: 'light' | 'dark'; alpha?: number }) => string
+    getColorSpec: (
+      name: string,
+      options?: { theme?: 'light' | 'dark'; alpha?: number },
+    ) => { h: number; s: number; l: number }
+  }
   getModelColor: (name: string, options?: { theme?: 'light' | 'dark'; alpha?: number }) => string
   getModelColorRgb: (name: string, options?: { theme?: 'light' | 'dark'; alpha?: number }) => string
   getModelColorSpec: (
@@ -37,31 +51,75 @@ describe('model colors', () => {
 
   afterEach(() => {
     delete (globalThis as { document?: unknown }).document
+    resetActiveModelColorPalette()
   })
 
-  it('assigns curated theme-aware colors to current model families', () => {
+  it('keeps the base family color on the latest known version in a dataset palette', () => {
+    const palette = createModelColorPalette([
+      'GPT-5',
+      'GPT-5.4',
+      'Claude Sonnet 4.5',
+      'Claude Sonnet 4.6',
+    ])
+
+    expect(palette.getColor('GPT-5.4', { theme: 'dark' })).toBe('hsl(148, 72%, 57%)')
+    expect(palette.getColor('GPT-5.4', { theme: 'light' })).toBe('hsl(148, 68%, 40%)')
+    expect(palette.getColor('Claude Sonnet 4.6', { theme: 'dark' })).toBe('hsl(214, 80%, 63%)')
+    expect(palette.getColor('Claude Sonnet 4.6', { theme: 'light' })).toBe('hsl(214, 72%, 44%)')
+  })
+
+  it('lightens older versions of the same family bucket inside a dataset palette', () => {
+    const palette = createModelColorPalette(['Claude Opus 4.5', 'Claude Opus 4.6'])
+    const latestDark = palette.getColorSpec('Claude Opus 4.6', { theme: 'dark' })
+    const olderDark = palette.getColorSpec('Claude Opus 4.5', { theme: 'dark' })
+    const latestLight = palette.getColorSpec('Claude Opus 4.6', { theme: 'light' })
+    const olderLight = palette.getColorSpec('Claude Opus 4.5', { theme: 'light' })
+
+    expect(olderDark.l).toBeGreaterThan(latestDark.l)
+    expect(olderDark.h).toBe(latestDark.h)
+    expect(olderLight.l).toBeGreaterThan(latestLight.l)
+    expect(olderLight.h).toBe(latestLight.h)
+  })
+
+  it('keeps model families recognizable while separating version buckets dynamically', () => {
+    const palette = createModelColorPalette([
+      'GPT-5',
+      'GPT-5.4',
+      'Claude Opus 4.5',
+      'Claude Opus 4.6',
+      'Gemini 2.5 Pro',
+      'Gemini 3 Flash Preview',
+    ])
+
+    expect(palette.getColor('GPT-5.4', { theme: 'dark' })).not.toBe(
+      palette.getColor('GPT-5', { theme: 'dark' }),
+    )
+    expect(palette.getColor('Claude Opus 4.6', { theme: 'dark' })).not.toBe(
+      palette.getColor('Claude Opus 4.5', { theme: 'dark' }),
+    )
+    expect(palette.getColor('Gemini 3 Flash Preview', { theme: 'light' })).not.toBe(
+      palette.getColor('Gemini 2.5 Pro', { theme: 'light' }),
+    )
+  })
+
+  it('maps prefixed and unprefixed Anthropic display names to the same family palette entry', () => {
+    const palette = createModelColorPalette(['Claude Sonnet 4.5', 'Sonnet 4.5', 'Opus 4.6'])
+
+    expect(palette.getColor('Claude Sonnet 4.5', { theme: 'dark' })).toBe(
+      palette.getColor('Sonnet 4.5', { theme: 'dark' }),
+    )
+    expect(palette.getColor('Claude Opus 4.6', { theme: 'light' })).toBe(
+      palette.getColor('Opus 4.6', { theme: 'light' }),
+    )
+  })
+
+  it('falls back to the base family color when no dataset palette is active', () => {
     expect(getModelColor('GPT-5.4', 'dark')).toBe('hsl(148, 72%, 57%)')
     expect(getModelColor('GPT-5.4', 'light')).toBe('hsl(148, 68%, 40%)')
-    expect(getModelColor('Claude Sonnet 4.5', 'dark')).toBe('hsl(214, 66%, 52%)')
-    expect(getModelColor('Claude Sonnet 4.5', 'light')).toBe('hsl(214, 60%, 36%)')
+    expect(getModelColor('Claude Sonnet 4.5', 'dark')).toBe('hsl(214, 80%, 63%)')
+    expect(getModelColor('Claude Sonnet 4.5', 'light')).toBe('hsl(214, 72%, 44%)')
     expect(getModelColor('Gemini 2.5 Pro', 'dark')).toBe('hsl(40, 88%, 49%)')
     expect(getModelColor('Gemini 2.5 Pro', 'light')).toBe('hsl(38, 86%, 34%)')
-  })
-
-  it('keeps model families recognizable while separating versions', () => {
-    expect(getModelColor('GPT-5.4', 'dark')).not.toBe(getModelColor('GPT-5', 'dark'))
-    expect(getModelColor('GPT-5.4', 'light')).not.toBe(getModelColor('GPT-5', 'light'))
-    expect(getModelColor('Claude Opus 4.6', 'dark')).not.toBe(
-      getModelColor('Claude Opus 4.5', 'dark'),
-    )
-    expect(getModelColor('Gemini 3 Flash Preview', 'light')).not.toBe(
-      getModelColor('Gemini 2.5 Pro', 'light'),
-    )
-  })
-
-  it('maps prefixed and unprefixed Anthropic display names to the same curated color', () => {
-    expect(getModelColor('Claude Sonnet 4.5', 'dark')).toBe(getModelColor('Sonnet 4.5', 'dark'))
-    expect(getModelColor('Claude Opus 4.6', 'light')).toBe(getModelColor('Opus 4.6', 'light'))
   })
 
   it('returns deterministic fallback colors for unknown models and tunes them per theme', () => {
@@ -74,8 +132,10 @@ describe('model colors', () => {
   })
 
   it('creates valid alpha variants for chip and bar backgrounds', () => {
+    setActiveModelColorPalette(['GPT-5', 'GPT-5.4', 'Claude Sonnet 4.5', 'Claude Sonnet 4.6'])
+
     expect(getModelColorAlpha('GPT-5.4', 0.16, 'dark')).toBe('hsla(148, 72%, 57%, 0.16)')
-    expect(getModelColorAlpha('Claude Sonnet 4.5', 0.16, 'light')).toBe('hsla(214, 60%, 36%, 0.16)')
+    expect(getModelColorAlpha('Claude Sonnet 4.5', 0.16, 'light')).toBe('hsla(214, 70%, 50%, 0.16)')
   })
 
   it('uses the light palette consistently in report output', () => {
@@ -105,6 +165,17 @@ describe('model colors', () => {
       s: 72,
       l: 57,
     })
+  })
+
+  it('keeps the active app palette stable across filtered surfaces until the dataset changes', () => {
+    setActiveModelColorPalette(['Claude Opus 4.5', 'Claude Opus 4.6'])
+    const withLatestLoaded = getModelColor('Claude Opus 4.5', 'light')
+
+    setActiveModelColorPalette(['Claude Opus 4.5'])
+    const withoutLatestLoaded = getModelColor('Claude Opus 4.5', 'light')
+
+    expect(withLatestLoaded).not.toBe(withoutLatestLoaded)
+    expect(withoutLatestLoaded).toBe('hsl(274, 68%, 44%)')
   })
 
   it('uses the dark palette when no theme is passed and the document is dark', () => {

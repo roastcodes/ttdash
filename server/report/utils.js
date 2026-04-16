@@ -13,12 +13,14 @@ const {
   normalizeModelName,
   sortByDate,
 } = require('../../shared/dashboard-domain');
-const { getModelColorRgb } = require('../../shared/model-colors.js');
+const { createModelColorPalette, getModelColorRgb } = require('../../shared/model-colors.js');
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
-function getModelColor(name) {
-  return getModelColorRgb(name, { theme: 'light' });
+function getModelColor(name, palette = null) {
+  return palette
+    ? palette.getColorRgb(name, { theme: 'light' })
+    : getModelColorRgb(name, { theme: 'light' });
 }
 
 function toCostChartData(data) {
@@ -63,7 +65,7 @@ function toWeekdayData(data) {
   });
 }
 
-function computeModelRows(data) {
+function computeModelRows(data, palette) {
   const rows = new Map();
   for (const day of data) {
     const entryDays = day._aggregatedDays || 1;
@@ -102,7 +104,7 @@ function computeModelRows(data) {
       tokens: entry.tokens,
       requests: entry.requests,
       days: entry.days,
-      color: getModelColor(entry.name),
+      color: getModelColor(entry.name, palette),
     }))
     .sort((a, b) => b.cost - a.cost);
 }
@@ -375,8 +377,13 @@ function buildReportData(allDailyData, options = {}) {
   };
 
   const { filteredDaily, filtered, dateRange } = applyReportFilters(allDailyData, filters);
+  const reportPalette = createModelColorPalette(
+    allDailyData.flatMap((day) =>
+      day.modelBreakdowns.map((entry) => normalizeModelName(entry.modelName)),
+    ),
+  );
   const metrics = computeMetrics(filtered);
-  const modelRows = computeModelRows(filtered).slice(0, 12);
+  const modelRows = computeModelRows(filtered, reportPalette).slice(0, 12);
   const providerRows = computeProviderRows(filtered).slice(0, 8);
   const periodLabel = periodUnit(filters.viewMode, language);
   const notAvailable = translate(language, 'report.common.notAvailable');
