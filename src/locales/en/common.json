@@ -24,7 +24,7 @@
     "streak": "{{count}}D streak"
   },
   "emptyState": {
-    "description": "Upload a `toktrack` or legacy JSON file, or start local auto-import with local `toktrack`, `bunx toktrack@2.4.0 daily --json`, or `npx --yes toktrack@2.4.0 daily --json`.",
+    "description": "Upload a `toktrack` or legacy JSON file, or start local auto-import with local `toktrack`, `bunx {{toktrackSpec}} daily --json`, or `npx --yes {{toktrackSpec}} daily --json`.",
     "autoImport": "Auto import",
     "uploadFile": "Upload file",
     "openSettings": "Settings & backups",

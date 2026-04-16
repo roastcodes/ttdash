@@ -4,6 +4,8 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { ModelColorPaletteProvider, useModelColorHelpers } from '@/lib/model-color-context'
 
+const RGB_PATTERN = /^rgb\(\d+,\s*\d+,\s*\d+\)$/
+
 function ModelSwatches({ models }: { models: string[] }) {
   const { getModelColor } = useModelColorHelpers()
 
@@ -54,6 +56,8 @@ describe('ModelColorPaletteProvider', () => {
 
     const baseColor = getComputedStyle(screen.getByTestId('Claude Opus 4.5')).color
 
+    expect(shadedColor).toMatch(RGB_PATTERN)
+    expect(baseColor).toMatch(RGB_PATTERN)
     expect(shadedColor).not.toBe(baseColor)
   })
 })

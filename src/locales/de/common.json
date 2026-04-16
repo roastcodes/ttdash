@@ -24,7 +24,7 @@
     "streak": "{{count}} Tage in Folge"
   },
   "emptyState": {
-    "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx toktrack@2.4.0 daily --json` oder `npx --yes toktrack@2.4.0 daily --json`.",
+    "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx {{toktrackSpec}} daily --json` oder `npx --yes {{toktrackSpec}} daily --json`.",
     "autoImport": "Auto-Import",
     "uploadFile": "Datei hochladen",
     "openSettings": "Einstellungen & Backups",

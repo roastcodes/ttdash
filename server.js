@@ -1870,18 +1870,14 @@ async function resolveToktrackRunner() {
     }
   }
 
-  if (await commandExists(getExecutableName('bun'))) {
-    const bunxRunner = createBunxToktrackRunner();
-    if (await probeToktrackRunner(bunxRunner)) {
-      return bunxRunner;
-    }
+  const bunxRunner = createBunxToktrackRunner();
+  if (await probeToktrackRunner(bunxRunner)) {
+    return bunxRunner;
   }
 
-  if (await commandExists(getExecutableName('npx'))) {
-    const npxRunner = createNpxToktrackRunner();
-    if (await probeToktrackRunner(npxRunner)) {
-      return npxRunner;
-    }
+  const npxRunner = createNpxToktrackRunner();
+  if (await probeToktrackRunner(npxRunner)) {
+    return npxRunner;
   }
 
   return null;

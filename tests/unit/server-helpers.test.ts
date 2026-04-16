@@ -162,10 +162,15 @@ describe('server helper utilities', () => {
     async () => {
       const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-toktrack-timeout-'))
       const originalPath = process.env.PATH
+      const nodePath = JSON.stringify(process.execPath)
       process.env.PATH = tempDir
 
       try {
-        await writeExecutableScript(tempDir, 'npm', 'sleep 1')
+        await writeExecutableScript(
+          tempDir,
+          'npm',
+          `exec ${nodePath} -e "setTimeout(() => {}, 1000)"`,
+        )
 
         const status = await lookupLatestToktrackVersion(50)
         expect(status).toMatchObject({

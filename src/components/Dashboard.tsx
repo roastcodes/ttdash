@@ -205,6 +205,11 @@ export function Dashboard({
     setDrillDownDate(drillDownSequence[drillDownIndex + 1]?.date ?? null)
   }, [drillDownIndex, drillDownSequence, hasNextDrillDown, setDrillDownDate])
 
+  const handleClearDateRange = useCallback(() => {
+    setStartDate(undefined)
+    setEndDate(undefined)
+  }, [setStartDate, setEndDate])
+
   const autoImportDialog = (
     <Suspense fallback={null}>
       {autoImportOpen && (
@@ -439,10 +444,7 @@ export function Dashboard({
           onToggleModel={toggleModel}
           onClearProviders={clearProviders}
           onClearModels={clearModels}
-          onClearDateRange={() => {
-            setStartDate(undefined)
-            setEndDate(undefined)
-          }}
+          onClearDateRange={handleClearDateRange}
           onResetAll={resetAll}
           onHelp={() => setHelpOpen(true)}
           onLanguageChange={handleLanguageChange}
