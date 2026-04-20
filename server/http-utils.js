@@ -146,6 +146,32 @@ function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders, bindHost }) 
     return normalizeHostname(hostHeader);
   }
 
+  function getNormalizedHostHeader(req) {
+    const hostHeader = getHeaderValue(req, 'host').trim();
+    if (!hostHeader) {
+      return '';
+    }
+
+    if (hostHeader.startsWith('[')) {
+      const closingBracketIndex = hostHeader.indexOf(']');
+      if (closingBracketIndex === -1) {
+        return '';
+      }
+
+      const hostname = normalizeHostname(hostHeader.slice(0, closingBracketIndex + 1));
+      const remainder = hostHeader.slice(closingBracketIndex + 1);
+      return remainder ? `[${hostname}]${remainder}` : `[${hostname}]`;
+    }
+
+    const colonMatches = hostHeader.match(/:/g) || [];
+    if (colonMatches.length <= 1) {
+      const [hostname, port = ''] = hostHeader.split(':');
+      return port ? `${normalizeHostname(hostname)}:${port}` : normalizeHostname(hostname);
+    }
+
+    return normalizeHostname(hostHeader);
+  }
+
   function getSocketLocalAddress(req) {
     return normalizeHostname(req.socket?.localAddress || '');
   }
@@ -180,14 +206,14 @@ function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders, bindHost }) 
 
   function hasTrustedOrigin(req) {
     const originHeader = getHeaderValue(req, 'origin').trim();
-    const hostHeader = getHeaderValue(req, 'host').trim();
+    const hostHeader = getNormalizedHostHeader(req);
     if (!originHeader || !hostHeader || originHeader === 'null') {
       return false;
     }
 
     try {
       const origin = new URL(originHeader);
-      return origin.host === hostHeader;
+      return origin.host.toLowerCase() === hostHeader;
     } catch {
       return false;
     }

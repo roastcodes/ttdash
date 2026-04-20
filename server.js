@@ -1878,8 +1878,30 @@ function runCommand(
   args,
   { env = process.env, streamStderr = false, onStderr, signalOnClose, timeoutMs = null } = {},
 ) {
+  return runCommandWithSpawn(command, args, {
+    env,
+    streamStderr,
+    onStderr,
+    signalOnClose,
+    timeoutMs,
+    spawnImpl: spawnCommand,
+  });
+}
+
+function runCommandWithSpawn(
+  command,
+  args,
+  {
+    env = process.env,
+    streamStderr = false,
+    onStderr,
+    signalOnClose,
+    timeoutMs = null,
+    spawnImpl = spawnCommand,
+  } = {},
+) {
   return new Promise((resolve, reject) => {
-    const child = spawnCommand(command, args, {
+    const child = spawnImpl(command, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       env,
     });
@@ -1889,6 +1911,7 @@ function runCommand(
     let stderr = '';
     let finished = false;
     let timeoutId = null;
+    let timeoutError = null;
 
     const settle = (handler, value) => {
       if (finished) {
@@ -1907,17 +1930,17 @@ function runCommand(
 
     if (typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs > 0) {
       timeoutId = setTimeout(() => {
-        terminateChildProcess(child);
-        settle(
-          reject,
-          createCommandError(`Command timed out after ${timeoutMs}ms: ${commandLabel}`, {
+        timeoutError = createCommandError(
+          `Command timed out after ${timeoutMs}ms: ${commandLabel}`,
+          {
             command,
             args,
             stdout,
             stderr,
             timedOut: true,
-          }),
+          },
         );
+        terminateChildProcess(child);
       }, timeoutMs);
     }
 
@@ -1946,6 +1969,10 @@ function runCommand(
     );
     child.on('close', (code) => {
       if (finished) {
+        return;
+      }
+      if (timeoutError) {
+        settle(reject, timeoutError);
         return;
       }
       if (code === 0) {
@@ -2813,6 +2840,7 @@ module.exports = {
     resolveToktrackRunner,
     toAutoImportRunnerResolutionError,
     runToktrack,
+    runCommandWithSpawn,
     lookupLatestToktrackVersion,
     resetLatestToktrackVersionCache: () => {
       latestToktrackVersionCache = null;

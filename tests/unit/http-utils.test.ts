@@ -117,6 +117,22 @@ describe('http utils', () => {
     expect(utils.validateMutationRequest(req)).toBeNull()
   })
 
+  it('accepts same-origin mutation requests when the Host header casing differs', () => {
+    const utils = createHttpUtils({
+      apiPrefix: '/api',
+      bindHost: '127.0.0.1',
+      maxBodySize: 1024,
+      securityHeaders: {},
+    })
+    const req = new MockRequest()
+    req.headers.host = 'LOCALHOST:3000'
+    req.headers.origin = 'http://localhost:3000'
+    req.socket.localAddress = '127.0.0.1'
+
+    expect(utils.validateRequestHost(req)).toBeNull()
+    expect(utils.validateMutationRequest(req)).toBeNull()
+  })
+
   it('rejects untrusted host headers even when the origin matches them', () => {
     const utils = createHttpUtils({
       apiPrefix: '/api',

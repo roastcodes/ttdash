@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import sampleUsage from '../../examples/sample-usage.json'
+import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 import {
   DEFAULT_DASHBOARD_FILTERS,
   getDefaultDashboardSectionOrder,
@@ -735,7 +736,7 @@ describe('local server API', () => {
         [
           '#!/bin/sh',
           'if [ "$1" = "--version" ]; then',
-          '  echo "toktrack 2.5.0"',
+          `  echo "toktrack ${TOKTRACK_VERSION}"`,
           '  exit 0',
           'fi',
           'echo "{invalid json"',
@@ -790,7 +791,7 @@ describe('local server API', () => {
           `const countFile = ${JSON.stringify(invocationCountPath)}`,
           `const payload = ${JSON.stringify(sampleUsage)}`,
           'if (process.argv[2] === "--version") {',
-          '  console.log("toktrack 2.5.0")',
+          `  console.log("toktrack ${TOKTRACK_VERSION}")`,
           '  process.exit(0)',
           '}',
           'let count = 0',

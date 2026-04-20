@@ -20,6 +20,7 @@ const {
     resolveToktrackRunner,
     toAutoImportRunnerResolutionError,
     runToktrack,
+    runCommandWithSpawn,
     listenOnAvailablePort,
     unlinkIfExists,
     writeJsonAtomicAsync,
@@ -68,6 +69,27 @@ const {
       options?: {
         signalOnClose?: (close: () => void) => void
         timeoutMs?: number | null
+      },
+    ) => Promise<string>
+    runCommandWithSpawn: (
+      command: string,
+      args: string[],
+      options?: {
+        env?: NodeJS.ProcessEnv
+        streamStderr?: boolean
+        onStderr?: (line: string) => void
+        signalOnClose?: (close: () => void) => void
+        timeoutMs?: number | null
+        spawnImpl?: (
+          command: string,
+          args: string[],
+          options: { stdio: string[]; env: NodeJS.ProcessEnv },
+        ) => EventEmitter & {
+          stdout: EventEmitter
+          stderr: EventEmitter
+          exitCode: number | null
+          kill: (signal: string) => void
+        }
       },
     ) => Promise<string>
     listenOnAvailablePort: (
@@ -274,6 +296,50 @@ describe('server helper utilities', () => {
       }
     },
   )
+
+  it('waits for timed-out toktrack commands to exit before rejecting', async () => {
+    class FakeChild extends EventEmitter {
+      stdout = new EventEmitter()
+      stderr = new EventEmitter()
+      exitCode: number | null = null
+
+      kill(signal: string) {
+        if (signal !== 'SIGTERM') {
+          this.exitCode = 137
+          this.emit('close', 137)
+          return
+        }
+
+        setTimeout(() => {
+          this.exitCode = 143
+          this.emit('close', 143)
+        }, 150)
+      }
+    }
+
+    const child = new FakeChild()
+    let settled = false
+    const outcomePromise = runCommandWithSpawn('fake-runner', ['daily', '--json'], {
+      timeoutMs: 50,
+      spawnImpl: () => child,
+    })
+      .then((value) => ({ ok: true as const, value }))
+      .catch((error) => ({ ok: false as const, error }))
+      .finally(() => {
+        settled = true
+      })
+
+    await new Promise((resolve) => setTimeout(resolve, 75))
+    expect(settled).toBe(false)
+
+    await expect(outcomePromise).resolves.toMatchObject({
+      ok: false,
+      error: {
+        message: expect.stringContaining('Command timed out'),
+        timedOut: true,
+      },
+    })
+  })
 
   it.runIf(process.platform !== 'win32')(
     'surfaces stdout text when a runner exits with an error and empty stderr',

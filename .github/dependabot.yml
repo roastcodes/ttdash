@@ -16,6 +16,17 @@ updates:
     open-pull-requests-limit: 5
     rebase-strategy: 'auto'
     versioning-strategy: 'increase-if-necessary'
+    ignore:
+      - dependency-name: 'eslint'
+        update-types:
+          - 'version-update:semver-major'
+        versions:
+          - '>=10'
+      - dependency-name: '@eslint/js'
+        update-types:
+          - 'version-update:semver-major'
+        versions:
+          - '>=10'
     labels:
       - 'dependencies'
     commit-message:
