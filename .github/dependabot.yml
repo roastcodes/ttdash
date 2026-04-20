@@ -3,6 +3,10 @@ version: 2
 updates:
   - package-ecosystem: 'npm'
     directory: '/'
+    # Keep eslint/@eslint/js on 9.x for now.
+    # Verified on 2026-04-20: an isolated npm install of eslint@10.2.1 and @eslint/js@10.0.1
+    # still fails dependency resolution, and eslint-plugin-react@7.37.5 currently advertises
+    # eslint support only through ^9.7.
     schedule:
       interval: 'weekly'
       day: 'monday'
