@@ -711,9 +711,17 @@
     "serverConnectionLost": "Verbindung zum Server verloren.",
     "autoImportRunning": "Ein Auto-Import läuft bereits. Bitte warten.",
     "noRunnerFound": "Kein lokales toktrack, Bun oder npm exec gefunden.",
+    "localToktrackVersionMismatch": "Lokales toktrack v{{detectedVersion}} passt nicht zur erwarteten v{{expectedVersion}}.",
+    "localToktrackFailed": "Lokales toktrack konnte nicht gestartet werden: {{message}}",
+    "packageRunnerFailed": "Kein kompatibler bunx- oder npm-exec-Runner war erfolgreich: {{message}}",
+    "toktrackVersionCheckFailed": "toktrack wurde gefunden, aber die Versionsprüfung ist fehlgeschlagen: {{message}}",
+    "toktrackExecutionFailed": "toktrack ist beim Laden der Nutzungsdaten fehlgeschlagen: {{message}}",
+    "toktrackInvalidJson": "toktrack hat ungültiges JSON zurückgegeben: {{message}}",
+    "toktrackInvalidData": "toktrack hat Daten geliefert, die TTDash nicht verarbeiten konnte: {{message}}",
     "errorPrefix": "Fehler: {{message}}",
     "loadedDays": "{{days}} Tage geladen ({{cost}} USD)",
     "errorOccurred": "Fehler aufgetreten",
+    "cancel": "Abbrechen",
     "close": "Schliessen"
   },
   "commandPalette": {

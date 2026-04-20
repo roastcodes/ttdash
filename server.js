@@ -43,12 +43,9 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const IS_WINDOWS = process.platform === 'win32';
 const SECURE_DIR_MODE = 0o700;
 const SECURE_FILE_MODE = 0o600;
-const TOKTRACK_LOCAL_BIN = path.join(
-  ROOT,
-  'node_modules',
-  '.bin',
-  IS_WINDOWS ? 'toktrack.cmd' : 'toktrack',
-);
+const TOKTRACK_LOCAL_BIN =
+  process.env.TTDASH_TOKTRACK_LOCAL_BIN ||
+  path.join(ROOT, 'node_modules', '.bin', IS_WINDOWS ? 'toktrack.cmd' : 'toktrack');
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
@@ -64,9 +61,12 @@ const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
 const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
 const TOKTRACK_RUNNER_PROBE_TIMEOUT_MS = 7000;
+const TOKTRACK_VERSION_CHECK_TIMEOUT_MS = 7000;
+const TOKTRACK_IMPORT_TIMEOUT_MS = 60000;
 const TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS = 7000;
 const TOKTRACK_LATEST_CACHE_SUCCESS_TTL_MS = 5 * 60 * 1000;
 const TOKTRACK_LATEST_CACHE_FAILURE_TTL_MS = 60 * 1000;
+const PROCESS_TERMINATION_GRACE_MS = 1000;
 const DASHBOARD_DATE_PRESETS = dashboardPreferences.datePresets;
 const DASHBOARD_SECTION_IDS = dashboardPreferences.sectionDefinitions.map((section) => section.id);
 const DEFAULT_SETTINGS = {
@@ -1146,6 +1146,14 @@ function createAutoImportError(message, key, vars = {}) {
   return error;
 }
 
+function summarizeCommandError(error, fallbackMessage = 'Unknown error') {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  return fallbackMessage;
+}
+
 function toAutoImportErrorEvent(error) {
   if (error && typeof error.messageKey === 'string') {
     return createAutoImportMessageEvent(error.messageKey, error.messageVars || {});
@@ -1168,6 +1176,20 @@ function formatAutoImportMessageEvent(event) {
       return 'An auto-import is already running. Please wait.';
     case 'noRunnerFound':
       return 'No local toktrack, Bun, or npm exec installation found.';
+    case 'localToktrackVersionMismatch':
+      return `Local toktrack v${event.vars?.detectedVersion || 'unknown'} does not match the required v${event.vars?.expectedVersion || TOKTRACK_VERSION}.`;
+    case 'localToktrackFailed':
+      return `Local toktrack could not be started: ${event.vars?.message || 'Unknown error'}`;
+    case 'packageRunnerFailed':
+      return `No compatible bunx or npm exec runner succeeded: ${event.vars?.message || 'Unknown error'}`;
+    case 'toktrackVersionCheckFailed':
+      return `Toktrack was found, but the version check failed: ${event.vars?.message || 'Unknown error'}`;
+    case 'toktrackExecutionFailed':
+      return `Toktrack failed while loading usage data: ${event.vars?.message || 'Unknown error'}`;
+    case 'toktrackInvalidJson':
+      return `Toktrack returned invalid JSON output: ${event.vars?.message || 'Unknown error'}`;
+    case 'toktrackInvalidData':
+      return `Toktrack returned data that TTDash could not process: ${event.vars?.message || 'Unknown error'}`;
     case 'errorPrefix':
       return `Error: ${event.vars?.message || 'Unknown error'}`;
     default:
@@ -1749,8 +1771,18 @@ function createLocalToktrackRunner() {
     env: process.env,
     method: 'local',
     label: 'local toktrack',
-    displayCommand: 'node_modules/.bin/toktrack daily --json',
+    displayCommand: getLocalToktrackDisplayCommand(),
   };
+}
+
+function getLocalToktrackDisplayCommand(isWindows = IS_WINDOWS) {
+  if (process.env.TTDASH_TOKTRACK_LOCAL_BIN) {
+    return `${TOKTRACK_LOCAL_BIN} daily --json`;
+  }
+
+  return isWindows
+    ? 'node_modules\\.bin\\toktrack.cmd daily --json'
+    : 'node_modules/.bin/toktrack daily --json';
 }
 
 function createBunxToktrackRunner() {
@@ -1778,6 +1810,42 @@ function createNpxToktrackRunner() {
   };
 }
 
+function formatCommandForDisplay(command, args = []) {
+  return [command, ...args].join(' ').trim();
+}
+
+function createCommandError(
+  message,
+  { command, args = [], stdout = '', stderr = '', exitCode = null, timedOut = false } = {},
+) {
+  const error = new Error(message);
+  error.command = command;
+  error.args = args;
+  error.stdout = stdout;
+  error.stderr = stderr;
+  error.exitCode = exitCode;
+  error.timedOut = timedOut;
+  return error;
+}
+
+function terminateChildProcess(child) {
+  if (!child || child.exitCode !== null) {
+    return;
+  }
+
+  child.kill('SIGTERM');
+
+  const forceKillTimeout = setTimeout(() => {
+    if (child.exitCode === null) {
+      child.kill('SIGKILL');
+    }
+  }, PROCESS_TERMINATION_GRACE_MS);
+
+  child.once('close', () => {
+    clearTimeout(forceKillTimeout);
+  });
+}
+
 function runCommand(
   command,
   args,
@@ -1788,6 +1856,7 @@ function runCommand(
       stdio: ['ignore', 'pipe', 'pipe'],
       env,
     });
+    const commandLabel = formatCommandForDisplay(command, args);
 
     let stdout = '';
     let stderr = '';
@@ -1806,13 +1875,22 @@ function runCommand(
     };
 
     if (signalOnClose) {
-      signalOnClose(() => child.kill('SIGTERM'));
+      signalOnClose(() => terminateChildProcess(child));
     }
 
     if (typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs > 0) {
       timeoutId = setTimeout(() => {
-        child.kill('SIGTERM');
-        settle(reject, new Error(`Command timed out after ${timeoutMs}ms: ${command}`));
+        terminateChildProcess(child);
+        settle(
+          reject,
+          createCommandError(`Command timed out after ${timeoutMs}ms: ${commandLabel}`, {
+            command,
+            args,
+            stdout,
+            stderr,
+            timedOut: true,
+          }),
+        );
       }, timeoutMs);
     }
 
@@ -1828,7 +1906,17 @@ function runCommand(
       }
     });
 
-    child.on('error', (error) => settle(reject, error));
+    child.on('error', (error) =>
+      settle(
+        reject,
+        createCommandError(error.message || `Could not start ${commandLabel}.`, {
+          command,
+          args,
+          stdout,
+          stderr,
+        }),
+      ),
+    );
     child.on('close', (code) => {
       if (finished) {
         return;
@@ -1837,7 +1925,19 @@ function runCommand(
         settle(resolve, stdout.trimEnd());
         return;
       }
-      settle(reject, new Error(stderr.trim() || `Could not start ${command}.`));
+      settle(
+        reject,
+        createCommandError(
+          stderr.trim() || stdout.trim() || `Command exited with code ${code}: ${commandLabel}`,
+          {
+            command,
+            args,
+            stdout,
+            stderr,
+            exitCode: code,
+          },
+        ),
+      );
     });
   });
 }
@@ -1845,18 +1945,28 @@ function runCommand(
 async function probeToktrackRunner(runner, timeoutMs = TOKTRACK_RUNNER_PROBE_TIMEOUT_MS) {
   try {
     await runToktrack(runner, ['--version'], { timeoutMs });
-    return true;
+    return {
+      ok: true,
+      errorMessage: null,
+    };
   } catch (error) {
-    const message =
-      error instanceof Error && error.message.trim()
-        ? error.message.trim()
-        : `Could not start ${runner.label}.`;
+    const message = summarizeCommandError(error, `Could not start ${runner.label}.`);
     console.warn(`Failed to probe ${runner.label}: ${message}`);
-    return false;
+    return {
+      ok: false,
+      errorMessage: message,
+    };
   }
 }
 
-async function resolveToktrackRunner() {
+async function resolveToktrackRunnerWithDiagnostics() {
+  const resolution = {
+    runner: null,
+    localVersionMismatch: null,
+    localFailure: null,
+    runnerFailures: [],
+  };
+
   if (fs.existsSync(TOKTRACK_LOCAL_BIN)) {
     const localRunner = createLocalToktrackRunner();
 
@@ -1867,24 +1977,95 @@ async function resolveToktrackRunner() {
         }),
       );
       if (localVersion === TOKTRACK_VERSION) {
-        return localRunner;
+        resolution.runner = localRunner;
+        return resolution;
       }
-    } catch {
-      // Fall back to pinned package runners when the local binary is missing or invalid.
+      resolution.localVersionMismatch = {
+        detectedVersion: localVersion || 'unknown',
+        expectedVersion: TOKTRACK_VERSION,
+      };
+    } catch (error) {
+      resolution.localFailure = summarizeCommandError(
+        error,
+        'The local toktrack binary could not be started.',
+      );
     }
   }
 
   const bunxRunner = createBunxToktrackRunner();
-  if (await probeToktrackRunner(bunxRunner)) {
-    return bunxRunner;
+  const bunxProbe = await probeToktrackRunner(bunxRunner);
+  if (bunxProbe.ok) {
+    resolution.runner = bunxRunner;
+    return resolution;
+  }
+  if (bunxProbe.errorMessage) {
+    resolution.runnerFailures.push(`bunx: ${bunxProbe.errorMessage}`);
   }
 
   const npxRunner = createNpxToktrackRunner();
-  if (await probeToktrackRunner(npxRunner)) {
-    return npxRunner;
+  const npxProbe = await probeToktrackRunner(npxRunner);
+  if (npxProbe.ok) {
+    resolution.runner = npxRunner;
+    return resolution;
+  }
+  if (npxProbe.errorMessage) {
+    resolution.runnerFailures.push(`npm exec: ${npxProbe.errorMessage}`);
   }
 
-  return null;
+  return resolution;
+}
+
+async function resolveToktrackRunner() {
+  const resolution = await resolveToktrackRunnerWithDiagnostics();
+  return resolution.runner;
+}
+
+function toAutoImportRunnerResolutionError(resolution) {
+  if (resolution.localVersionMismatch) {
+    return createAutoImportError(
+      formatAutoImportMessageEvent(
+        createAutoImportMessageEvent(
+          'localToktrackVersionMismatch',
+          resolution.localVersionMismatch,
+        ),
+      ),
+      'localToktrackVersionMismatch',
+      resolution.localVersionMismatch,
+    );
+  }
+
+  if (resolution.localFailure) {
+    return createAutoImportError(
+      formatAutoImportMessageEvent(
+        createAutoImportMessageEvent('localToktrackFailed', {
+          message: resolution.localFailure,
+        }),
+      ),
+      'localToktrackFailed',
+      {
+        message: resolution.localFailure,
+      },
+    );
+  }
+
+  if (resolution.runnerFailures.length > 0) {
+    return createAutoImportError(
+      formatAutoImportMessageEvent(
+        createAutoImportMessageEvent('packageRunnerFailed', {
+          message: resolution.runnerFailures.join(' | '),
+        }),
+      ),
+      'packageRunnerFailed',
+      {
+        message: resolution.runnerFailures.join(' | '),
+      },
+    );
+  }
+
+  return createAutoImportError(
+    'No local toktrack, Bun, or npm exec installation found.',
+    'noRunnerFound',
+  );
 }
 
 function runToktrack(
@@ -1989,16 +2170,34 @@ async function performAutoImport({
     onCheck({ tool: 'toktrack', status: 'checking' });
     onProgress(createAutoImportMessageEvent('startingLocalImport'));
 
-    const runner = await resolveToktrackRunner();
+    const resolution = await resolveToktrackRunnerWithDiagnostics();
+    const runner = resolution.runner;
     if (!runner) {
-      onCheck({ tool: 'toktrack', status: 'not_found' });
-      throw createAutoImportError(
-        'No local toktrack, Bun, or npm exec installation found.',
-        'noRunnerFound',
-      );
+      const resolutionError = toAutoImportRunnerResolutionError(resolution);
+      if (resolutionError.messageKey === 'noRunnerFound') {
+        onCheck({ tool: 'toktrack', status: 'not_found' });
+      }
+      throw resolutionError;
     }
 
-    const versionResult = await runToktrack(runner, ['--version']);
+    let versionResult;
+    try {
+      versionResult = await runToktrack(runner, ['--version'], {
+        timeoutMs: TOKTRACK_VERSION_CHECK_TIMEOUT_MS,
+      });
+    } catch (error) {
+      throw createAutoImportError(
+        formatAutoImportMessageEvent(
+          createAutoImportMessageEvent('toktrackVersionCheckFailed', {
+            message: summarizeCommandError(error),
+          }),
+        ),
+        'toktrackVersionCheckFailed',
+        {
+          message: summarizeCommandError(error),
+        },
+      );
+    }
     onCheck({
       tool: 'toktrack',
       status: 'found',
@@ -2011,15 +2210,63 @@ async function performAutoImport({
       }),
     );
 
-    const rawJson = await runToktrack(runner, ['daily', '--json'], {
-      streamStderr: true,
-      onStderr: (line) => {
-        onOutput(line);
-      },
-      signalOnClose,
-    });
+    let rawJson;
+    try {
+      rawJson = await runToktrack(runner, ['daily', '--json'], {
+        streamStderr: true,
+        onStderr: (line) => {
+          onOutput(line);
+        },
+        signalOnClose,
+        timeoutMs: TOKTRACK_IMPORT_TIMEOUT_MS,
+      });
+    } catch (error) {
+      throw createAutoImportError(
+        formatAutoImportMessageEvent(
+          createAutoImportMessageEvent('toktrackExecutionFailed', {
+            message: summarizeCommandError(error),
+          }),
+        ),
+        'toktrackExecutionFailed',
+        {
+          message: summarizeCommandError(error),
+        },
+      );
+    }
 
-    const normalized = normalizeIncomingData(JSON.parse(rawJson));
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(rawJson);
+    } catch (error) {
+      throw createAutoImportError(
+        formatAutoImportMessageEvent(
+          createAutoImportMessageEvent('toktrackInvalidJson', {
+            message: summarizeCommandError(error),
+          }),
+        ),
+        'toktrackInvalidJson',
+        {
+          message: summarizeCommandError(error),
+        },
+      );
+    }
+
+    let normalized;
+    try {
+      normalized = normalizeIncomingData(parsedJson);
+    } catch (error) {
+      throw createAutoImportError(
+        formatAutoImportMessageEvent(
+          createAutoImportMessageEvent('toktrackInvalidData', {
+            message: summarizeCommandError(error),
+          }),
+        ),
+        'toktrackInvalidData',
+        {
+          message: summarizeCommandError(error),
+        },
+      );
+    }
     await withSettingsAndDataMutationLock(async () => {
       await writeData(normalized);
       await updateDataLoadState({
@@ -2493,8 +2740,10 @@ module.exports = {
   __test__: {
     commandExists,
     getExecutableName,
+    getLocalToktrackDisplayCommand,
     parseToktrackVersionOutput,
     resolveToktrackRunner,
+    toAutoImportRunnerResolutionError,
     runToktrack,
     lookupLatestToktrackVersion,
     resetLatestToktrackVersionCache: () => {

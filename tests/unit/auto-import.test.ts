@@ -7,6 +7,19 @@ const translations = {
   'autoImportModal.processingUsageData': 'Verarbeite Nutzungsdaten... ({{seconds}}s)',
   'autoImportModal.autoImportRunning': 'Ein Auto-Import läuft bereits. Bitte warten.',
   'autoImportModal.noRunnerFound': 'Kein lokales toktrack, Bun oder npm exec gefunden.',
+  'autoImportModal.localToktrackVersionMismatch':
+    'Lokales toktrack v{{detectedVersion}} passt nicht zur erwarteten v{{expectedVersion}}.',
+  'autoImportModal.localToktrackFailed':
+    'Lokales toktrack konnte nicht gestartet werden: {{message}}',
+  'autoImportModal.packageRunnerFailed':
+    'Kein kompatibler bunx- oder npm-exec-Runner war erfolgreich: {{message}}',
+  'autoImportModal.toktrackVersionCheckFailed':
+    'toktrack wurde gefunden, aber die Versionsprüfung ist fehlgeschlagen: {{message}}',
+  'autoImportModal.toktrackExecutionFailed':
+    'toktrack ist beim Laden der Nutzungsdaten fehlgeschlagen: {{message}}',
+  'autoImportModal.toktrackInvalidJson': 'toktrack hat ungültiges JSON zurückgegeben: {{message}}',
+  'autoImportModal.toktrackInvalidData':
+    'toktrack hat Daten geliefert, die TTDash nicht verarbeiten konnte: {{message}}',
   'autoImportModal.errorPrefix': 'Fehler: {{message}}',
 } as const
 
@@ -49,6 +62,15 @@ describe('translateAutoImportEvent', () => {
     expect(translateAutoImportEvent({ key: 'noRunnerFound' }, translate)).toBe(
       'Kein lokales toktrack, Bun oder npm exec gefunden.',
     )
+    expect(
+      translateAutoImportEvent(
+        {
+          key: 'toktrackInvalidJson',
+          vars: { message: 'Unexpected end of JSON input' },
+        },
+        translate,
+      ),
+    ).toBe('toktrack hat ungültiges JSON zurückgegeben: Unexpected end of JSON input')
     expect(
       translateAutoImportEvent(
         {

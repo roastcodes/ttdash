@@ -40,6 +40,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
   const [status, setStatus] = useState<Status>('idle')
   const [lines, setLines] = useState<Line[]>([])
   const [summary, setSummary] = useState<SuccessEvent | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<{ close: () => void } | null>(null)
 
@@ -57,6 +58,7 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
     setStatus('checking')
     setLines([])
     setSummary(null)
+    setErrorMessage(null)
 
     const handle = startAutoImport(
       {
@@ -89,11 +91,13 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
             t('autoImportModal.importedDays', { days: data.days, cost: data.totalCost.toFixed(2) }),
           )
           setSummary(data)
+          setErrorMessage(null)
           setStatus('success')
           onSuccess()
         },
         onError: (data) => {
           addLine('error', data.message)
+          setErrorMessage(data.message)
           setStatus('error')
         },
         onDone: () => {
@@ -119,6 +123,10 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
   }, [lines])
 
   const isRunning = status === 'checking' || status === 'running'
+  const handleCancel = () => {
+    closeRef.current?.close()
+    onOpenChange(false)
+  }
 
   return (
     <Dialog
@@ -185,10 +193,18 @@ export function AutoImportModal({ open, onOpenChange, onSuccess }: AutoImportMod
             {status === 'error' && (
               <>
                 <XCircle className="h-4 w-4 text-destructive" />
-                <span className="text-destructive">{t('autoImportModal.errorOccurred')}</span>
+                <span className="text-destructive">
+                  {errorMessage ?? t('autoImportModal.errorOccurred')}
+                </span>
               </>
             )}
           </div>
+
+          {isRunning && (
+            <Button variant="outline" size="sm" onClick={handleCancel}>
+              {t('autoImportModal.cancel')}
+            </Button>
+          )}
 
           {!isRunning && (
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>

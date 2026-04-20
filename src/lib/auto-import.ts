@@ -12,6 +12,13 @@ type AutoImportMessageKey =
   | 'serverConnectionLost'
   | 'autoImportRunning'
   | 'noRunnerFound'
+  | 'localToktrackVersionMismatch'
+  | 'localToktrackFailed'
+  | 'packageRunnerFailed'
+  | 'toktrackVersionCheckFailed'
+  | 'toktrackExecutionFailed'
+  | 'toktrackInvalidJson'
+  | 'toktrackInvalidData'
   | 'errorPrefix'
 
 type AutoImportMessageEvent = {
@@ -92,6 +99,35 @@ export function translateAutoImportEvent(event: AutoImportMessageEvent, t: AutoI
       return t('autoImportModal.autoImportRunning')
     case 'noRunnerFound':
       return t('autoImportModal.noRunnerFound')
+    case 'localToktrackVersionMismatch':
+      return t('autoImportModal.localToktrackVersionMismatch', {
+        detectedVersion: String(event.vars?.['detectedVersion'] ?? 'unknown'),
+        expectedVersion: String(event.vars?.['expectedVersion'] ?? ''),
+      })
+    case 'localToktrackFailed':
+      return t('autoImportModal.localToktrackFailed', {
+        message: String(event.vars?.['message'] ?? ''),
+      })
+    case 'packageRunnerFailed':
+      return t('autoImportModal.packageRunnerFailed', {
+        message: String(event.vars?.['message'] ?? ''),
+      })
+    case 'toktrackVersionCheckFailed':
+      return t('autoImportModal.toktrackVersionCheckFailed', {
+        message: String(event.vars?.['message'] ?? ''),
+      })
+    case 'toktrackExecutionFailed':
+      return t('autoImportModal.toktrackExecutionFailed', {
+        message: String(event.vars?.['message'] ?? ''),
+      })
+    case 'toktrackInvalidJson':
+      return t('autoImportModal.toktrackInvalidJson', {
+        message: String(event.vars?.['message'] ?? ''),
+      })
+    case 'toktrackInvalidData':
+      return t('autoImportModal.toktrackInvalidData', {
+        message: String(event.vars?.['message'] ?? ''),
+      })
     case 'errorPrefix':
       return t('autoImportModal.errorPrefix', {
         message: String(event.vars?.['message'] ?? ''),

@@ -675,6 +675,54 @@ describe('local server API', () => {
     }
   })
 
+  itIfPosix(
+    'streams a structured invalid-JSON auto-import error when toktrack output is malformed',
+    async () => {
+      const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-auto-import-invalid-json-'))
+      const fakeToktrackPath = path.join(runtimeRoot, 'fake-toktrack')
+      let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+      writeFileSync(
+        fakeToktrackPath,
+        [
+          '#!/bin/sh',
+          'if [ "$1" = "--version" ]; then',
+          '  echo "toktrack 2.5.0"',
+          '  exit 0',
+          'fi',
+          'echo "{invalid json"',
+          'exit 0',
+        ].join('\n'),
+      )
+      chmodSync(fakeToktrackPath, 0o755)
+
+      try {
+        standaloneServer = await startStandaloneServer({
+          root: runtimeRoot,
+          envOverrides: {
+            PATH: '',
+            TTDASH_TOKTRACK_LOCAL_BIN: fakeToktrackPath,
+          },
+        })
+
+        const streamResponse = await fetch(`${standaloneServer.url}/api/auto-import/stream`, {
+          method: 'POST',
+        })
+
+        expect(streamResponse.status).toBe(200)
+        const streamBody = await streamResponse.text()
+        expect(streamBody).toContain('event: error')
+        expect(streamBody).toContain('"key":"toktrackInvalidJson"')
+        expect(streamBody).toContain('event: done')
+      } finally {
+        if (standaloneServer) {
+          await stopProcess(standaloneServer.child)
+        }
+        rmSync(runtimeRoot, { recursive: true, force: true })
+      }
+    },
+  )
+
   it('serves the API only from the configured API prefix', async () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-api-prefix-test-'))
     let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
