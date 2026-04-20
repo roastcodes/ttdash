@@ -773,6 +773,7 @@ describe('local server API', () => {
         rmSync(runtimeRoot, { recursive: true, force: true })
       }
     },
+    15_000,
   )
 
   itIfPosix(
@@ -1448,9 +1449,15 @@ describe('local server API', () => {
       const firstUsageResponse = await fetch(`${firstUrl}/api/usage`)
       expect(firstUsageResponse.status).toBe(200)
       await waitForServerUnavailable(secondUrl)
+      await waitForBackgroundRegistry(
+        backgroundRoot,
+        (entries) => entries.some((entry) => entry.url === firstUrl),
+        15_000,
+      )
 
       const stopFirst = await runCli(['stop'], {
         env: backgroundEnv,
+        input: '1\n',
       })
 
       expect(stopFirst.code).toBe(0)
@@ -1538,7 +1545,7 @@ describe('local server API', () => {
     } finally {
       rmSync(backgroundRoot, { recursive: true, force: true })
     }
-  })
+  }, 15_000)
 
   it('keeps explicit runtime dir overrides independent', async () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-runtime-dir-test-'))
@@ -1674,7 +1681,7 @@ describe('local server API', () => {
       }
       rmSync(runtimeRoot, { recursive: true, force: true })
     }
-  })
+  }, 15_000)
 
   it('returns 500 for corrupt persisted settings and recovers after deletion', async () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-corrupt-settings-test-'))

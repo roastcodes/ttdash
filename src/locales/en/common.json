@@ -187,7 +187,8 @@
       "periodComparison": "Period comparison",
       "anomalyDetection": "Anomaly detection",
       "costForecast": "Cost forecast",
-      "cacheRoi": "Cache ROI"
+      "cacheRoi": "Cache ROI",
+      "providerForecast": "Provider forecast"
     },
     "stats": {
       "min": "Min",
@@ -515,6 +516,12 @@
     "vsLastWeek": "vs last week",
     "chartTitle": "Current month cost forecast",
     "chartSubtitle": "Month-end forecast for the full current month based on smoothed calendar-day cost",
+    "providerChartTitle": "Current month forecast by provider",
+    "providerChartSubtitle": "{{count}} visible providers for the full current month",
+    "providerDailyOnly": "Provider forecast is available in daily view only",
+    "providerRequiresData": "At least one visible provider needs current-month data",
+    "zoomDialogTitle": "Forecast details",
+    "zoomDialogDescription": "Combined view of month-end forecast, current month cost forecast, and provider forecast.",
     "lowerBound": "Lower bound",
     "uncertaintyBand": "Uncertainty band",
     "actualCost": "Actual cost",

@@ -69,6 +69,8 @@ const HELP_CONTENT = {
         'Zeigt eine Kalender-Heatmap des Tokenvolumens pro Tag. So lassen sich volumenstarke und kostenstarke Tage besser unterscheiden.',
       forecast:
         'Zeigt die Kostenprognose für den laufenden Monat auf Basis geglätteter Kalendertageskosten. Ergänzt wird sie durch Trend und Unsicherheitsband.',
+      providerForecast:
+        'Zeigt die laufende Monatsprognose getrennt nach Anbietern. So lassen sich sichtbare Anbieter-Trends und die erwarteten Monatsendkosten direkt vergleichen.',
       cacheROI:
         'Zeigt den Effekt der Cache-Nutzung, indem hypothetische Kosten ohne Cache mit den tatsächlichen Kosten verglichen werden.',
       providerLimitProgress:
@@ -187,6 +189,8 @@ const HELP_CONTENT = {
         'Shows a calendar heatmap of token volume per day. This helps distinguish high-volume days from high-cost days.',
       forecast:
         'Shows cost forecast for the current month based on smoothed calendar-day costs, complemented by trend and uncertainty band.',
+      providerForecast:
+        'Shows the current-month forecast split by provider so visible provider trends and projected month-end spend can be compared directly.',
       cacheROI:
         'Shows the impact of cache usage by comparing hypothetical no-cache costs with actual costs.',
       providerLimitProgress:

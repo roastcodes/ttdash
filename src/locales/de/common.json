@@ -187,7 +187,8 @@
       "periodComparison": "Periodenvergleich",
       "anomalyDetection": "Anomalie-Erkennung",
       "costForecast": "Kostenprognose",
-      "cacheRoi": "Cache ROI"
+      "cacheRoi": "Cache ROI",
+      "providerForecast": "Anbieter-Prognose"
     },
     "stats": {
       "min": "Min",
@@ -515,6 +516,12 @@
     "vsLastWeek": "vs. Vorwoche",
     "chartTitle": "Kostenprognose aktueller Monat",
     "chartSubtitle": "Monatsend-Prognose für den vollständigen aktuellen Monat auf Basis geglätteter Kalender-Tageskosten",
+    "providerChartTitle": "Monatsprognose nach Anbieter",
+    "providerChartSubtitle": "{{count}} sichtbare Anbieter für den vollständigen aktuellen Monat",
+    "providerDailyOnly": "Die Anbieter-Prognose ist nur in der Tagesansicht verfügbar",
+    "providerRequiresData": "Mindestens ein sichtbarer Anbieter braucht Daten im aktuellen Monat",
+    "zoomDialogTitle": "Prognose-Details",
+    "zoomDialogDescription": "Gemeinsame Ansicht von Monatsend-Prognose, Kostenprognose für den aktuellen Monat und Anbieter-Prognose.",
     "lowerBound": "Untere Spanne",
     "uncertaintyBand": "Unsicherheitsband",
     "actualCost": "Ist-Kosten",

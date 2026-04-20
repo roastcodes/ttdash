@@ -32,10 +32,16 @@ interface CostForecastProps {
   data: DailyUsage[]
   forecastData?: DailyUsage[]
   viewMode?: ViewMode
+  expandable?: boolean
 }
 
 /** Renders the current-month cost forecast card. */
-export function CostForecast({ data, forecastData, viewMode = 'daily' }: CostForecastProps) {
+export function CostForecast({
+  data,
+  forecastData,
+  viewMode = 'daily',
+  expandable = true,
+}: CostForecastProps) {
   const { t } = useTranslation()
   const forecastInput = forecastData ?? data
   const {
@@ -206,6 +212,7 @@ export function CostForecast({ data, forecastData, viewMode = 'daily' }: CostFor
         subtitle={t('forecast.chartSubtitle')}
         summary={<FormattedValue value={forecastTotal} type="currency" />}
         info={CHART_HELP.forecast}
+        expandable={expandable}
         chartData={chartData as unknown as Record<string, unknown>[]}
         valueKey="cost"
         valueFormatter={formatCurrency}
