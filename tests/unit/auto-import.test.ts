@@ -113,6 +113,17 @@ describe('translateAutoImportEvent', () => {
     expect(
       translateAutoImportEvent(
         {
+          key: 'toktrackInvalidData',
+          vars: { message: 'Unsupported usage payload' },
+        },
+        translate,
+      ),
+    ).toBe(
+      'toktrack hat Daten geliefert, die TTDash nicht verarbeiten konnte: Unsupported usage payload',
+    )
+    expect(
+      translateAutoImportEvent(
+        {
           key: 'errorPrefix',
           vars: { message: 'toktrack failed' },
         },
