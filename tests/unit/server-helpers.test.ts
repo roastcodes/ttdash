@@ -12,12 +12,17 @@ const {
   __test__: {
     commandExists,
     getExecutableName,
+    getLocalToktrackDisplayCommand,
+    getToktrackLatestLookupTimeoutMs,
+    getToktrackRunnerTimeouts,
     lookupLatestToktrackVersion,
     resetLatestToktrackVersionCache,
     getFileMutationLockDir,
     parseToktrackVersionOutput,
     resolveToktrackRunner,
+    toAutoImportRunnerResolutionError,
     runToktrack,
+    runCommandWithSpawn,
     listenOnAvailablePort,
     unlinkIfExists,
     writeJsonAtomicAsync,
@@ -29,6 +34,13 @@ const {
   __test__: {
     commandExists: (command: string, args?: string[]) => Promise<boolean>
     getExecutableName: (baseName: string, isWindows?: boolean) => string
+    getLocalToktrackDisplayCommand: (isWindows?: boolean) => string
+    getToktrackLatestLookupTimeoutMs: () => number
+    getToktrackRunnerTimeouts: (runner: { method?: string | null }) => {
+      probeMs: number
+      versionCheckMs: number
+      importMs: number
+    }
     lookupLatestToktrackVersion: (timeoutMs?: number) => Promise<{
       configuredVersion: string
       latestVersion: string | null
@@ -47,6 +59,18 @@ const {
       label: string
       displayCommand: string
     } | null>
+    toAutoImportRunnerResolutionError: (resolution: {
+      localVersionMismatch: { detectedVersion: string; expectedVersion: string } | null
+      localFailure: string | null
+      runnerFailures: Array<{
+        label: string
+        message: string
+        timedOut: boolean
+      }>
+    }) => Error & {
+      messageKey?: string
+      messageVars?: Record<string, string | number>
+    }
     runToktrack: (
       runner: {
         command: string
@@ -54,6 +78,31 @@ const {
         env: NodeJS.ProcessEnv
       },
       args: string[],
+      options?: {
+        signalOnClose?: (close: () => void) => void
+        timeoutMs?: number | null
+      },
+    ) => Promise<string>
+    runCommandWithSpawn: (
+      command: string,
+      args: string[],
+      options?: {
+        env?: NodeJS.ProcessEnv
+        streamStderr?: boolean
+        onStderr?: (line: string) => void
+        signalOnClose?: (close: () => void) => void
+        timeoutMs?: number | null
+        spawnImpl?: (
+          command: string,
+          args: string[],
+          options: { stdio: string[]; env: NodeJS.ProcessEnv },
+        ) => EventEmitter & {
+          stdout: EventEmitter
+          stderr: EventEmitter
+          exitCode: number | null
+          kill: (signal: string) => void
+        }
+      },
     ) => Promise<string>
     listenOnAvailablePort: (
       serverInstance: {
@@ -128,9 +177,38 @@ describe('server helper utilities', () => {
     expect(getExecutableName('npx', false)).toBe('npx')
   })
 
+  it('renders the local toktrack command example correctly across platforms', () => {
+    expect(getLocalToktrackDisplayCommand(false)).toBe('node_modules/.bin/toktrack daily --json')
+    expect(getLocalToktrackDisplayCommand(true)).toBe(
+      'node_modules\\.bin\\toktrack.cmd daily --json',
+    )
+  })
+
   it('parses toktrack version banners down to the raw version', () => {
     expect(parseToktrackVersionOutput(`toktrack ${TOKTRACK_VERSION}`)).toBe(TOKTRACK_VERSION)
     expect(parseToktrackVersionOutput(`${TOKTRACK_VERSION}\n`)).toBe(TOKTRACK_VERSION)
+  })
+
+  it('uses longer warmup timeouts for package runners than for local toktrack', () => {
+    const localTimeouts = getToktrackRunnerTimeouts({ method: 'local' })
+    const bunxTimeouts = getToktrackRunnerTimeouts({ method: 'bunx' })
+    const npxTimeouts = getToktrackRunnerTimeouts({ method: 'npm' })
+
+    expect(localTimeouts).toEqual({
+      probeMs: 7000,
+      versionCheckMs: 7000,
+      importMs: 60000,
+    })
+    expect(bunxTimeouts).toEqual({
+      probeMs: 45000,
+      versionCheckMs: 45000,
+      importMs: 60000,
+    })
+    expect(npxTimeouts).toEqual(bunxTimeouts)
+  })
+
+  it('uses a less aggressive timeout for latest-version registry lookups', () => {
+    expect(getToktrackLatestLookupTimeoutMs()).toBe(15000)
   })
 
   it('prefers the pinned local toktrack installation when available', async () => {
@@ -216,6 +294,159 @@ describe('server helper utilities', () => {
       }
     },
   )
+
+  it.runIf(process.platform !== 'win32')(
+    'times out hung toktrack commands instead of waiting indefinitely',
+    async () => {
+      const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-runner-timeout-'))
+      const originalPath = process.env.PATH
+      const nodePath = JSON.stringify(process.execPath)
+      process.env.PATH = tempDir
+
+      try {
+        const slowRunnerPath = await writeExecutableScript(
+          tempDir,
+          'slowtoktrack',
+          `exec ${nodePath} -e "setTimeout(() => {}, 1000)"`,
+        )
+
+        await expect(
+          runToktrack(
+            {
+              command: slowRunnerPath,
+              prefixArgs: [],
+              env: process.env,
+            },
+            ['daily', '--json'],
+            { timeoutMs: 50 },
+          ),
+        ).rejects.toMatchObject({
+          message: expect.stringContaining('Command timed out'),
+          timedOut: true,
+        })
+      } finally {
+        process.env.PATH = originalPath
+        await fsPromises.rm(tempDir, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it('waits for timed-out toktrack commands to exit before rejecting', async () => {
+    class FakeChild extends EventEmitter {
+      stdout = new EventEmitter()
+      stderr = new EventEmitter()
+      exitCode: number | null = null
+
+      kill(signal: string) {
+        if (signal !== 'SIGTERM') {
+          this.exitCode = 137
+          this.emit('close', 137)
+          return
+        }
+
+        setTimeout(() => {
+          this.exitCode = 143
+          this.emit('close', 143)
+        }, 150)
+      }
+    }
+
+    const child = new FakeChild()
+    let settled = false
+    const outcomePromise = runCommandWithSpawn('fake-runner', ['daily', '--json'], {
+      timeoutMs: 50,
+      spawnImpl: () => child,
+    })
+      .then((value) => ({ ok: true as const, value }))
+      .catch((error) => ({ ok: false as const, error }))
+      .finally(() => {
+        settled = true
+      })
+
+    await new Promise((resolve) => setTimeout(resolve, 75))
+    expect(settled).toBe(false)
+
+    await expect(outcomePromise).resolves.toMatchObject({
+      ok: false,
+      error: {
+        message: expect.stringContaining('Command timed out'),
+        timedOut: true,
+      },
+    })
+  })
+
+  it.runIf(process.platform !== 'win32')(
+    'surfaces stdout text when a runner exits with an error and empty stderr',
+    async () => {
+      const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-runner-stdout-fail-'))
+
+      try {
+        const failingRunnerPath = await writeExecutableScript(
+          tempDir,
+          'stdoutfail',
+          'echo "stdout failure"\nexit 1',
+        )
+
+        await expect(
+          runToktrack(
+            {
+              command: failingRunnerPath,
+              prefixArgs: [],
+              env: process.env,
+            },
+            ['--version'],
+          ),
+        ).rejects.toThrow('stdout failure')
+      } finally {
+        await fsPromises.rm(tempDir, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it('prioritizes local version mismatches over generic no-runner feedback', () => {
+    const error = toAutoImportRunnerResolutionError({
+      localVersionMismatch: {
+        detectedVersion: '9.9.9',
+        expectedVersion: TOKTRACK_VERSION,
+      },
+      localFailure: null,
+      runnerFailures: ['bunx: missing'],
+    })
+
+    expect(error.messageKey).toBe('localToktrackVersionMismatch')
+    expect(error.message).toContain('9.9.9')
+    expect(error.message).toContain(TOKTRACK_VERSION)
+  })
+
+  it('reports package runner failures when no compatible fallback succeeds', () => {
+    const error = toAutoImportRunnerResolutionError({
+      localVersionMismatch: null,
+      localFailure: null,
+      runnerFailures: [
+        { label: 'bunx', message: 'timed out', timedOut: false },
+        { label: 'npm exec', message: 'permission denied', timedOut: false },
+      ],
+    })
+
+    expect(error.messageKey).toBe('packageRunnerFailed')
+    expect(error.message).toContain('bunx: timed out')
+    expect(error.message).toContain('npm exec: permission denied')
+  })
+
+  it('surfaces a dedicated warmup-timeout message when only package runners time out', () => {
+    const error = toAutoImportRunnerResolutionError({
+      localVersionMismatch: null,
+      localFailure: null,
+      runnerFailures: [
+        { label: 'bunx', message: 'Command timed out', timedOut: true },
+        { label: 'npm exec', message: 'Command timed out', timedOut: true },
+      ],
+    })
+
+    expect(error.messageKey).toBe('packageRunnerWarmupTimedOut')
+    expect(error.message).toContain('bunx / npm exec')
+    expect(error.message).toContain('45s')
+  })
 
   it.runIf(process.platform !== 'win32')(
     'reuses a cached successful latest-version lookup until the TTL expires',

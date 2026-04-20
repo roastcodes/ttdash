@@ -43,12 +43,9 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const IS_WINDOWS = process.platform === 'win32';
 const SECURE_DIR_MODE = 0o700;
 const SECURE_FILE_MODE = 0o600;
-const TOKTRACK_LOCAL_BIN = path.join(
-  ROOT,
-  'node_modules',
-  '.bin',
-  IS_WINDOWS ? 'toktrack.cmd' : 'toktrack',
-);
+const TOKTRACK_LOCAL_BIN =
+  process.env.TTDASH_TOKTRACK_LOCAL_BIN ||
+  path.join(ROOT, 'node_modules', '.bin', IS_WINDOWS ? 'toktrack.cmd' : 'toktrack');
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
@@ -63,10 +60,16 @@ const USAGE_BACKUP_KIND = 'ttdash-usage-backup';
 const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
 const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
-const TOKTRACK_RUNNER_PROBE_TIMEOUT_MS = 7000;
-const TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS = 7000;
+const TOKTRACK_LOCAL_RUNNER_PROBE_TIMEOUT_MS = 7000;
+const TOKTRACK_LOCAL_RUNNER_VERSION_CHECK_TIMEOUT_MS = 7000;
+const TOKTRACK_LOCAL_RUNNER_IMPORT_TIMEOUT_MS = 60000;
+const TOKTRACK_PACKAGE_RUNNER_PROBE_TIMEOUT_MS = 45000;
+const TOKTRACK_PACKAGE_RUNNER_VERSION_CHECK_TIMEOUT_MS = 45000;
+const TOKTRACK_PACKAGE_RUNNER_IMPORT_TIMEOUT_MS = 60000;
+const TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS = 15000;
 const TOKTRACK_LATEST_CACHE_SUCCESS_TTL_MS = 5 * 60 * 1000;
 const TOKTRACK_LATEST_CACHE_FAILURE_TTL_MS = 60 * 1000;
+const PROCESS_TERMINATION_GRACE_MS = 1000;
 const DASHBOARD_DATE_PRESETS = dashboardPreferences.datePresets;
 const DASHBOARD_SECTION_IDS = dashboardPreferences.sectionDefinitions.map((section) => section.id);
 const DEFAULT_SETTINGS = {
@@ -560,12 +563,12 @@ function isProcessRunning(pid) {
   }
 }
 
-async function fetchRuntimeIdentity(url, timeoutMs = 1000) {
+async function fetchRuntimeIdentity(url, apiPrefix = API_PREFIX, timeoutMs = 1000) {
   if (typeof url !== 'string' || !url.trim()) {
     return null;
   }
 
-  const runtimePath = `${API_PREFIX.replace(/\/+$/, '')}/runtime`;
+  const runtimePath = `${String(apiPrefix || API_PREFIX).replace(/\/+$/, '')}/runtime`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -600,14 +603,12 @@ async function isBackgroundInstanceOwned(instance) {
     return false;
   }
 
-  const runtime = await fetchRuntimeIdentity(instance.url);
+  const runtime = await fetchRuntimeIdentity(instance.url, instance.apiPrefix);
   if (!runtime || typeof runtime.id !== 'string') {
     return false;
   }
 
-  return (
-    runtime.id === instance.id && runtime.pid === instance.pid && runtime.port === instance.port
-  );
+  return runtime.id === instance.id && runtime.port === instance.port;
 }
 
 function normalizeBackgroundInstance(value) {
@@ -621,6 +622,10 @@ function normalizeBackgroundInstance(value) {
   const id = typeof value.id === 'string' && value.id.trim() ? value.id.trim() : null;
   const url = typeof value.url === 'string' && value.url.trim() ? value.url.trim() : null;
   const host = typeof value.host === 'string' && value.host.trim() ? value.host.trim() : BIND_HOST;
+  const apiPrefix =
+    typeof value.apiPrefix === 'string' && value.apiPrefix.trim()
+      ? value.apiPrefix.trim()
+      : API_PREFIX;
 
   if (
     !id ||
@@ -640,6 +645,7 @@ function normalizeBackgroundInstance(value) {
     port,
     url,
     host,
+    apiPrefix,
     startedAt,
     logFile:
       typeof value.logFile === 'string' && value.logFile.trim() ? value.logFile.trim() : null,
@@ -789,6 +795,7 @@ function createBackgroundInstance({ port, url }) {
     port,
     url,
     host: BIND_HOST,
+    apiPrefix: API_PREFIX,
     startedAt: RUNTIME_INSTANCE.startedAt,
     logFile: process.env.TTDASH_BACKGROUND_LOG_FILE || null,
   };
@@ -1146,6 +1153,18 @@ function createAutoImportError(message, key, vars = {}) {
   return error;
 }
 
+function summarizeCommandError(error, fallbackMessage = 'Unknown error') {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  return fallbackMessage;
+}
+
+function getTimeoutSeconds(timeoutMs) {
+  return Math.max(1, Math.ceil(Number(timeoutMs) / 1000));
+}
+
 function toAutoImportErrorEvent(error) {
   if (error && typeof error.messageKey === 'string') {
     return createAutoImportMessageEvent(error.messageKey, error.messageVars || {});
@@ -1159,7 +1178,9 @@ function toAutoImportErrorEvent(error) {
 function formatAutoImportMessageEvent(event) {
   switch (event?.key) {
     case 'startingLocalImport':
-      return 'Starting local toktrack import...';
+      return 'Starting toktrack import...';
+    case 'warmingUpPackageRunner':
+      return `Preparing ${event.vars?.runner || 'package runner'} (the first run may take longer while toktrack is downloaded)...`;
     case 'loadingUsageData':
       return `Loading usage data via ${event.vars?.command || 'unknown command'}...`;
     case 'processingUsageData':
@@ -1168,6 +1189,24 @@ function formatAutoImportMessageEvent(event) {
       return 'An auto-import is already running. Please wait.';
     case 'noRunnerFound':
       return 'No local toktrack, Bun, or npm exec installation found.';
+    case 'localToktrackVersionMismatch':
+      return `Local toktrack v${event.vars?.detectedVersion || 'unknown'} does not match the required v${event.vars?.expectedVersion || TOKTRACK_VERSION}.`;
+    case 'localToktrackFailed':
+      return `Local toktrack could not be started: ${event.vars?.message || 'Unknown error'}`;
+    case 'packageRunnerFailed':
+      return `No compatible bunx or npm exec runner succeeded: ${event.vars?.message || 'Unknown error'}`;
+    case 'packageRunnerWarmupTimedOut':
+      return `${event.vars?.runner || 'The package runner'} took longer than ${event.vars?.seconds || 0}s to prepare toktrack. The first run may need to download the package first. Please try again or verify network access.`;
+    case 'toktrackVersionCheckFailed':
+      return `Toktrack was found, but the version check failed: ${event.vars?.message || 'Unknown error'}`;
+    case 'toktrackExecutionFailed':
+      return `Toktrack failed while loading usage data: ${event.vars?.message || 'Unknown error'}`;
+    case 'toktrackExecutionTimedOut':
+      return `Toktrack did not finish loading usage data within ${event.vars?.seconds || 0}s via ${event.vars?.runner || 'the selected runner'}. Please try again.`;
+    case 'toktrackInvalidJson':
+      return `Toktrack returned invalid JSON output: ${event.vars?.message || 'Unknown error'}`;
+    case 'toktrackInvalidData':
+      return `Toktrack returned data that TTDash could not process: ${event.vars?.message || 'Unknown error'}`;
     case 'errorPrefix':
       return `Error: ${event.vars?.message || 'Unknown error'}`;
     default:
@@ -1566,39 +1605,59 @@ function getCacheControl(filePath) {
   return 'public, max-age=86400';
 }
 
+function writeStaticErrorResponse(res, status, message) {
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    ...SECURITY_HEADERS,
+  });
+  res.end(JSON.stringify({ message }));
+}
+
 function serveFile(res, reqPath) {
   const ext = path.extname(reqPath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-  fs.readFile(reqPath, (err, data) => {
-    if (err) {
-      if (err.code === 'ENOENT') {
-        fs.readFile(path.join(STATIC_ROOT, 'index.html'), (err2, html) => {
-          if (err2) {
-            res.writeHead(500);
-            res.end('Internal Server Error');
-            return;
-          }
-          res.writeHead(200, {
-            'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'no-cache',
-            ...SECURITY_HEADERS,
+  try {
+    fs.readFile(reqPath, (err, data) => {
+      if (err) {
+        if (err.code === 'ENOENT') {
+          fs.readFile(path.join(STATIC_ROOT, 'index.html'), (err2, html) => {
+            if (err2) {
+              writeStaticErrorResponse(res, 500, 'Internal Server Error');
+              return;
+            }
+            res.writeHead(200, {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-cache',
+              ...SECURITY_HEADERS,
+            });
+            res.end(html);
           });
-          res.end(html);
-        });
+          return;
+        }
+        writeStaticErrorResponse(
+          res,
+          err.code === 'ERR_INVALID_ARG_VALUE' ? 400 : 500,
+          err.code === 'ERR_INVALID_ARG_VALUE' ? 'Invalid request path' : 'Internal Server Error',
+        );
         return;
       }
-      res.writeHead(500);
-      res.end('Internal Server Error');
-      return;
-    }
-    res.writeHead(200, {
-      'Content-Type': contentType,
-      'Cache-Control': getCacheControl(reqPath),
-      ...SECURITY_HEADERS,
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': getCacheControl(reqPath),
+        ...SECURITY_HEADERS,
+      });
+      res.end(data);
     });
-    res.end(data);
-  });
+  } catch (error) {
+    writeStaticErrorResponse(
+      res,
+      error && error.code === 'ERR_INVALID_ARG_VALUE' ? 400 : 500,
+      error && error.code === 'ERR_INVALID_ARG_VALUE'
+        ? 'Invalid request path'
+        : 'Internal Server Error',
+    );
+  }
 }
 
 // --- API helpers ---
@@ -1685,11 +1744,13 @@ async function updateSettings(patch) {
   });
 }
 
-const { json, readBody, resolveApiPath, sendBuffer, validateMutationRequest } = createHttpUtils({
-  apiPrefix: API_PREFIX,
-  maxBodySize: MAX_BODY_SIZE,
-  securityHeaders: SECURITY_HEADERS,
-});
+const { json, readBody, resolveApiPath, sendBuffer, validateMutationRequest, validateRequestHost } =
+  createHttpUtils({
+    apiPrefix: API_PREFIX,
+    maxBodySize: MAX_BODY_SIZE,
+    securityHeaders: SECURITY_HEADERS,
+    bindHost: BIND_HOST,
+  });
 
 // --- SSE helpers ---
 
@@ -1698,6 +1759,7 @@ function sendSSE(res, event, data) {
 }
 
 let autoImportRunning = false;
+let autoImportStreamRunning = false;
 let latestToktrackVersionCache = null;
 let latestToktrackVersionLookupPromise = null;
 
@@ -1749,8 +1811,18 @@ function createLocalToktrackRunner() {
     env: process.env,
     method: 'local',
     label: 'local toktrack',
-    displayCommand: 'node_modules/.bin/toktrack daily --json',
+    displayCommand: getLocalToktrackDisplayCommand(),
   };
+}
+
+function getLocalToktrackDisplayCommand(isWindows = IS_WINDOWS) {
+  if (process.env.TTDASH_TOKTRACK_LOCAL_BIN) {
+    return `${TOKTRACK_LOCAL_BIN} daily --json`;
+  }
+
+  return isWindows
+    ? 'node_modules\\.bin\\toktrack.cmd daily --json'
+    : 'node_modules/.bin/toktrack daily --json';
 }
 
 function createBunxToktrackRunner() {
@@ -1778,21 +1850,101 @@ function createNpxToktrackRunner() {
   };
 }
 
+function isPackageToktrackRunner(runner) {
+  return runner?.method === 'bunx' || runner?.method === 'npm';
+}
+
+function getToktrackRunnerTimeouts(runner) {
+  if (isPackageToktrackRunner(runner)) {
+    return {
+      probeMs: TOKTRACK_PACKAGE_RUNNER_PROBE_TIMEOUT_MS,
+      versionCheckMs: TOKTRACK_PACKAGE_RUNNER_VERSION_CHECK_TIMEOUT_MS,
+      importMs: TOKTRACK_PACKAGE_RUNNER_IMPORT_TIMEOUT_MS,
+    };
+  }
+
+  return {
+    probeMs: TOKTRACK_LOCAL_RUNNER_PROBE_TIMEOUT_MS,
+    versionCheckMs: TOKTRACK_LOCAL_RUNNER_VERSION_CHECK_TIMEOUT_MS,
+    importMs: TOKTRACK_LOCAL_RUNNER_IMPORT_TIMEOUT_MS,
+  };
+}
+
+function formatCommandForDisplay(command, args = []) {
+  return [command, ...args].join(' ').trim();
+}
+
+function createCommandError(
+  message,
+  { command, args = [], stdout = '', stderr = '', exitCode = null, timedOut = false } = {},
+) {
+  const error = new Error(message);
+  error.command = command;
+  error.args = args;
+  error.stdout = stdout;
+  error.stderr = stderr;
+  error.exitCode = exitCode;
+  error.timedOut = timedOut;
+  return error;
+}
+
+function terminateChildProcess(child) {
+  if (!child || child.exitCode !== null) {
+    return;
+  }
+
+  child.kill('SIGTERM');
+
+  const forceKillTimeout = setTimeout(() => {
+    if (child.exitCode === null) {
+      child.kill('SIGKILL');
+    }
+  }, PROCESS_TERMINATION_GRACE_MS);
+
+  child.once('close', () => {
+    clearTimeout(forceKillTimeout);
+  });
+}
+
 function runCommand(
   command,
   args,
   { env = process.env, streamStderr = false, onStderr, signalOnClose, timeoutMs = null } = {},
 ) {
+  return runCommandWithSpawn(command, args, {
+    env,
+    streamStderr,
+    onStderr,
+    signalOnClose,
+    timeoutMs,
+    spawnImpl: spawnCommand,
+  });
+}
+
+function runCommandWithSpawn(
+  command,
+  args,
+  {
+    env = process.env,
+    streamStderr = false,
+    onStderr,
+    signalOnClose,
+    timeoutMs = null,
+    spawnImpl = spawnCommand,
+  } = {},
+) {
   return new Promise((resolve, reject) => {
-    const child = spawnCommand(command, args, {
+    const child = spawnImpl(command, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       env,
     });
+    const commandLabel = formatCommandForDisplay(command, args);
 
     let stdout = '';
     let stderr = '';
     let finished = false;
     let timeoutId = null;
+    let timeoutError = null;
 
     const settle = (handler, value) => {
       if (finished) {
@@ -1806,13 +1958,22 @@ function runCommand(
     };
 
     if (signalOnClose) {
-      signalOnClose(() => child.kill('SIGTERM'));
+      signalOnClose(() => terminateChildProcess(child));
     }
 
     if (typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs > 0) {
       timeoutId = setTimeout(() => {
-        child.kill('SIGTERM');
-        settle(reject, new Error(`Command timed out after ${timeoutMs}ms: ${command}`));
+        timeoutError = createCommandError(
+          `Command timed out after ${timeoutMs}ms: ${commandLabel}`,
+          {
+            command,
+            args,
+            stdout,
+            stderr,
+            timedOut: true,
+          },
+        );
+        terminateChildProcess(child);
       }, timeoutMs);
     }
 
@@ -1828,63 +1989,206 @@ function runCommand(
       }
     });
 
-    child.on('error', (error) => settle(reject, error));
+    child.on('error', (error) =>
+      settle(
+        reject,
+        createCommandError(error.message || `Could not start ${commandLabel}.`, {
+          command,
+          args,
+          stdout,
+          stderr,
+        }),
+      ),
+    );
     child.on('close', (code) => {
       if (finished) {
+        return;
+      }
+      if (timeoutError) {
+        settle(reject, timeoutError);
         return;
       }
       if (code === 0) {
         settle(resolve, stdout.trimEnd());
         return;
       }
-      settle(reject, new Error(stderr.trim() || `Could not start ${command}.`));
+      settle(
+        reject,
+        createCommandError(
+          stderr.trim() || stdout.trim() || `Command exited with code ${code}: ${commandLabel}`,
+          {
+            command,
+            args,
+            stdout,
+            stderr,
+            exitCode: code,
+          },
+        ),
+      );
     });
   });
 }
 
-async function probeToktrackRunner(runner, timeoutMs = TOKTRACK_RUNNER_PROBE_TIMEOUT_MS) {
+async function probeToktrackRunner(runner, timeoutMs = getToktrackRunnerTimeouts(runner).probeMs) {
   try {
     await runToktrack(runner, ['--version'], { timeoutMs });
-    return true;
+    return {
+      ok: true,
+      errorMessage: null,
+      timedOut: false,
+    };
   } catch (error) {
-    const message =
-      error instanceof Error && error.message.trim()
-        ? error.message.trim()
-        : `Could not start ${runner.label}.`;
+    const message = summarizeCommandError(error, `Could not start ${runner.label}.`);
     console.warn(`Failed to probe ${runner.label}: ${message}`);
-    return false;
+    return {
+      ok: false,
+      errorMessage: message,
+      timedOut: Boolean(error?.timedOut),
+    };
   }
 }
 
-async function resolveToktrackRunner() {
+async function resolveToktrackRunnerWithDiagnostics() {
+  const resolution = {
+    runner: null,
+    localVersionMismatch: null,
+    localFailure: null,
+    runnerFailures: [],
+  };
+
   if (fs.existsSync(TOKTRACK_LOCAL_BIN)) {
     const localRunner = createLocalToktrackRunner();
 
     try {
       const localVersion = parseToktrackVersionOutput(
         await runToktrack(localRunner, ['--version'], {
-          timeoutMs: TOKTRACK_RUNNER_PROBE_TIMEOUT_MS,
+          timeoutMs: getToktrackRunnerTimeouts(localRunner).probeMs,
         }),
       );
       if (localVersion === TOKTRACK_VERSION) {
-        return localRunner;
+        resolution.runner = localRunner;
+        return resolution;
       }
-    } catch {
-      // Fall back to pinned package runners when the local binary is missing or invalid.
+      resolution.localVersionMismatch = {
+        detectedVersion: localVersion || 'unknown',
+        expectedVersion: TOKTRACK_VERSION,
+      };
+    } catch (error) {
+      resolution.localFailure = summarizeCommandError(
+        error,
+        'The local toktrack binary could not be started.',
+      );
     }
   }
 
   const bunxRunner = createBunxToktrackRunner();
-  if (await probeToktrackRunner(bunxRunner)) {
-    return bunxRunner;
+  const bunxProbe = await probeToktrackRunner(bunxRunner);
+  if (bunxProbe.ok) {
+    resolution.runner = bunxRunner;
+    return resolution;
+  }
+  if (bunxProbe.errorMessage) {
+    resolution.runnerFailures.push({
+      label: bunxRunner.label,
+      message: bunxProbe.errorMessage,
+      timedOut: bunxProbe.timedOut,
+    });
   }
 
   const npxRunner = createNpxToktrackRunner();
-  if (await probeToktrackRunner(npxRunner)) {
-    return npxRunner;
+  const npxProbe = await probeToktrackRunner(npxRunner);
+  if (npxProbe.ok) {
+    resolution.runner = npxRunner;
+    return resolution;
+  }
+  if (npxProbe.errorMessage) {
+    resolution.runnerFailures.push({
+      label: npxRunner.label,
+      message: npxProbe.errorMessage,
+      timedOut: npxProbe.timedOut,
+    });
   }
 
-  return null;
+  return resolution;
+}
+
+async function resolveToktrackRunner() {
+  const resolution = await resolveToktrackRunnerWithDiagnostics();
+  return resolution.runner;
+}
+
+function toAutoImportRunnerResolutionError(resolution) {
+  if (resolution.localVersionMismatch) {
+    return createAutoImportError(
+      formatAutoImportMessageEvent(
+        createAutoImportMessageEvent(
+          'localToktrackVersionMismatch',
+          resolution.localVersionMismatch,
+        ),
+      ),
+      'localToktrackVersionMismatch',
+      resolution.localVersionMismatch,
+    );
+  }
+
+  if (resolution.localFailure) {
+    return createAutoImportError(
+      formatAutoImportMessageEvent(
+        createAutoImportMessageEvent('localToktrackFailed', {
+          message: resolution.localFailure,
+        }),
+      ),
+      'localToktrackFailed',
+      {
+        message: resolution.localFailure,
+      },
+    );
+  }
+
+  if (resolution.runnerFailures.length > 0) {
+    const timedOutRunnerFailures = resolution.runnerFailures.filter((failure) => failure.timedOut);
+    if (
+      timedOutRunnerFailures.length > 0 &&
+      timedOutRunnerFailures.length === resolution.runnerFailures.length
+    ) {
+      const runners = timedOutRunnerFailures.map((failure) => failure.label).join(' / ');
+      const seconds = getTimeoutSeconds(TOKTRACK_PACKAGE_RUNNER_PROBE_TIMEOUT_MS);
+      return createAutoImportError(
+        formatAutoImportMessageEvent(
+          createAutoImportMessageEvent('packageRunnerWarmupTimedOut', {
+            runner: runners,
+            seconds,
+          }),
+        ),
+        'packageRunnerWarmupTimedOut',
+        {
+          runner: runners,
+          seconds,
+        },
+      );
+    }
+
+    return createAutoImportError(
+      formatAutoImportMessageEvent(
+        createAutoImportMessageEvent('packageRunnerFailed', {
+          message: resolution.runnerFailures
+            .map((failure) => `${failure.label}: ${failure.message}`)
+            .join(' | '),
+        }),
+      ),
+      'packageRunnerFailed',
+      {
+        message: resolution.runnerFailures
+          .map((failure) => `${failure.label}: ${failure.message}`)
+          .join(' | '),
+      },
+    );
+  }
+
+  return createAutoImportError(
+    'No local toktrack, Bun, or npm exec installation found.',
+    'noRunnerFound',
+  );
 }
 
 function runToktrack(
@@ -1989,16 +2293,58 @@ async function performAutoImport({
     onCheck({ tool: 'toktrack', status: 'checking' });
     onProgress(createAutoImportMessageEvent('startingLocalImport'));
 
-    const runner = await resolveToktrackRunner();
+    const resolution = await resolveToktrackRunnerWithDiagnostics();
+    const runner = resolution.runner;
     if (!runner) {
-      onCheck({ tool: 'toktrack', status: 'not_found' });
-      throw createAutoImportError(
-        'No local toktrack, Bun, or npm exec installation found.',
-        'noRunnerFound',
+      const resolutionError = toAutoImportRunnerResolutionError(resolution);
+      if (resolutionError.messageKey === 'noRunnerFound') {
+        onCheck({ tool: 'toktrack', status: 'not_found' });
+      }
+      throw resolutionError;
+    }
+
+    if (isPackageToktrackRunner(runner)) {
+      onProgress(
+        createAutoImportMessageEvent('warmingUpPackageRunner', {
+          runner: runner.label,
+        }),
       );
     }
 
-    const versionResult = await runToktrack(runner, ['--version']);
+    let versionResult;
+    try {
+      versionResult = await runToktrack(runner, ['--version'], {
+        timeoutMs: getToktrackRunnerTimeouts(runner).versionCheckMs,
+      });
+    } catch (error) {
+      if (isPackageToktrackRunner(runner) && error?.timedOut) {
+        throw createAutoImportError(
+          formatAutoImportMessageEvent(
+            createAutoImportMessageEvent('packageRunnerWarmupTimedOut', {
+              runner: runner.label,
+              seconds: getTimeoutSeconds(getToktrackRunnerTimeouts(runner).versionCheckMs),
+            }),
+          ),
+          'packageRunnerWarmupTimedOut',
+          {
+            runner: runner.label,
+            seconds: getTimeoutSeconds(getToktrackRunnerTimeouts(runner).versionCheckMs),
+          },
+        );
+      }
+
+      throw createAutoImportError(
+        formatAutoImportMessageEvent(
+          createAutoImportMessageEvent('toktrackVersionCheckFailed', {
+            message: summarizeCommandError(error),
+          }),
+        ),
+        'toktrackVersionCheckFailed',
+        {
+          message: summarizeCommandError(error),
+        },
+      );
+    }
     onCheck({
       tool: 'toktrack',
       status: 'found',
@@ -2011,15 +2357,79 @@ async function performAutoImport({
       }),
     );
 
-    const rawJson = await runToktrack(runner, ['daily', '--json'], {
-      streamStderr: true,
-      onStderr: (line) => {
-        onOutput(line);
-      },
-      signalOnClose,
-    });
+    let rawJson;
+    try {
+      rawJson = await runToktrack(runner, ['daily', '--json'], {
+        streamStderr: true,
+        onStderr: (line) => {
+          onOutput(line);
+        },
+        signalOnClose,
+        timeoutMs: getToktrackRunnerTimeouts(runner).importMs,
+      });
+    } catch (error) {
+      if (error?.timedOut) {
+        throw createAutoImportError(
+          formatAutoImportMessageEvent(
+            createAutoImportMessageEvent('toktrackExecutionTimedOut', {
+              runner: runner.label,
+              seconds: getTimeoutSeconds(getToktrackRunnerTimeouts(runner).importMs),
+            }),
+          ),
+          'toktrackExecutionTimedOut',
+          {
+            runner: runner.label,
+            seconds: getTimeoutSeconds(getToktrackRunnerTimeouts(runner).importMs),
+          },
+        );
+      }
 
-    const normalized = normalizeIncomingData(JSON.parse(rawJson));
+      throw createAutoImportError(
+        formatAutoImportMessageEvent(
+          createAutoImportMessageEvent('toktrackExecutionFailed', {
+            message: summarizeCommandError(error),
+          }),
+        ),
+        'toktrackExecutionFailed',
+        {
+          message: summarizeCommandError(error),
+        },
+      );
+    }
+
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(rawJson);
+    } catch (error) {
+      throw createAutoImportError(
+        formatAutoImportMessageEvent(
+          createAutoImportMessageEvent('toktrackInvalidJson', {
+            message: summarizeCommandError(error),
+          }),
+        ),
+        'toktrackInvalidJson',
+        {
+          message: summarizeCommandError(error),
+        },
+      );
+    }
+
+    let normalized;
+    try {
+      normalized = normalizeIncomingData(parsedJson);
+    } catch (error) {
+      throw createAutoImportError(
+        formatAutoImportMessageEvent(
+          createAutoImportMessageEvent('toktrackInvalidData', {
+            message: summarizeCommandError(error),
+          }),
+        ),
+        'toktrackInvalidData',
+        {
+          message: summarizeCommandError(error),
+        },
+      );
+    }
     await withSettingsAndDataMutationLock(async () => {
       await writeData(normalized);
       await updateDataLoadState({
@@ -2069,7 +2479,7 @@ async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
 
 // --- Server ---
 
-const server = http.createServer(async (req, res) => {
+async function handleServerRequest(req, res) {
   let url;
   let pathname;
 
@@ -2078,6 +2488,11 @@ const server = http.createServer(async (req, res) => {
     pathname = decodeURIComponent(url.pathname);
   } catch {
     return json(res, 400, { message: 'Invalid request path' });
+  }
+
+  const hostValidationError = validateRequestHost(req);
+  if (hostValidationError) {
+    return json(res, hostValidationError.status, { message: hostValidationError.message });
   }
 
   // API routing
@@ -2140,8 +2555,6 @@ const server = http.createServer(async (req, res) => {
 
     return json(res, 200, {
       id: RUNTIME_INSTANCE.id,
-      pid: RUNTIME_INSTANCE.pid,
-      startedAt: RUNTIME_INSTANCE.startedAt,
       mode: RUNTIME_INSTANCE.mode,
       port: runtimePort,
       url: runtimeUrl,
@@ -2291,6 +2704,14 @@ const server = http.createServer(async (req, res) => {
       return json(res, validationError.status, { message: validationError.message });
     }
 
+    if (autoImportStreamRunning || autoImportRunning) {
+      return json(res, 409, {
+        message: formatAutoImportMessageEvent(createAutoImportMessageEvent('autoImportRunning')),
+      });
+    }
+
+    autoImportStreamRunning = true;
+
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -2341,6 +2762,8 @@ const server = http.createServer(async (req, res) => {
       sendSSE(res, 'error', toAutoImportErrorEvent(err));
       sendSSE(res, 'done', {});
       res.end();
+    } finally {
+      autoImportStreamRunning = false;
     }
     return;
   }
@@ -2410,6 +2833,9 @@ const server = http.createServer(async (req, res) => {
 
   // Static file serving
   const safePath = pathname === '/' ? '/index.html' : pathname;
+  if (safePath.includes('\0')) {
+    return json(res, 400, { message: 'Invalid request path' });
+  }
   const filePath = path.resolve(STATIC_ROOT, `.${safePath}`);
 
   if (
@@ -2420,6 +2846,31 @@ const server = http.createServer(async (req, res) => {
   }
 
   serveFile(res, filePath);
+}
+
+const server = http.createServer((req, res) => {
+  void handleServerRequest(req, res).catch((error) => {
+    console.error(error);
+    if (res.headersSent) {
+      res.end();
+      return;
+    }
+    json(res, 500, { message: 'Internal Server Error' });
+  });
+});
+
+server.on('clientError', (error, socket) => {
+  console.error(error);
+  if (!socket.writable) {
+    return;
+  }
+  socket.end(
+    'HTTP/1.1 400 Bad Request\r\n' +
+      'Content-Type: application/json; charset=utf-8\r\n' +
+      'Connection: close\r\n' +
+      '\r\n' +
+      JSON.stringify({ message: 'Invalid request path' }),
+  );
 });
 
 function tryListen(port) {
@@ -2493,10 +2944,15 @@ module.exports = {
   __test__: {
     commandExists,
     getExecutableName,
+    getLocalToktrackDisplayCommand,
     parseToktrackVersionOutput,
     resolveToktrackRunner,
+    toAutoImportRunnerResolutionError,
     runToktrack,
+    runCommandWithSpawn,
     lookupLatestToktrackVersion,
+    getToktrackRunnerTimeouts,
+    getToktrackLatestLookupTimeoutMs: () => TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS,
     resetLatestToktrackVersionCache: () => {
       latestToktrackVersionCache = null;
       latestToktrackVersionLookupPromise = null;

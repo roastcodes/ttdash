@@ -81,8 +81,8 @@ describe('SettingsModal', () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            configuredVersion: '2.4.0',
-            latestVersion: '2.4.0',
+            configuredVersion: '2.5.0',
+            latestVersion: '2.5.0',
             isLatest: true,
             lookupStatus: 'ok',
           }),
@@ -161,7 +161,7 @@ describe('SettingsModal', () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          configuredVersion: '2.4.0',
+          configuredVersion: '2.5.0',
           latestVersion: '2.4.1',
           isLatest: false,
           lookupStatus: 'ok',
@@ -176,7 +176,7 @@ describe('SettingsModal', () => {
 
     renderSettingsModal()
 
-    expect(screen.getByTestId('settings-toktrack-version')).toHaveTextContent('2.4.0')
+    expect(screen.getByTestId('settings-toktrack-version')).toHaveTextContent('2.5.0')
 
     await vi.waitFor(() => {
       expect(screen.getByTestId('settings-toktrack-status')).toHaveTextContent(
@@ -191,8 +191,8 @@ describe('SettingsModal', () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          configuredVersion: '2.4.0',
-          latestVersion: '2.4.0',
+          configuredVersion: '2.5.0',
+          latestVersion: '2.5.0',
           isLatest: true,
           lookupStatus: 'ok',
         }),
