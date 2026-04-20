@@ -165,6 +165,7 @@ interface DashboardSectionsProps {
   metrics: DashboardMetrics
   viewMode: ViewMode
   totalCalendarDays: number
+  forecastData: DailyUsage[]
   filteredData: DailyUsage[]
   filteredDailyData: DailyUsage[]
   todayData: DailyUsage | null
@@ -207,6 +208,7 @@ export function DashboardSections({
   metrics,
   viewMode,
   totalCalendarDays,
+  forecastData,
   filteredData,
   filteredDailyData,
   todayData,
@@ -412,7 +414,11 @@ export function DashboardSections({
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {renderLazySection(
                     <ExpandableCard title={t('dashboard.cards.costForecast')}>
-                      <CostForecast data={filteredData} viewMode={viewMode} />
+                      <CostForecast
+                        data={filteredData}
+                        forecastData={forecastData}
+                        viewMode={viewMode}
+                      />
                     </ExpandableCard>,
                     'h-[360px]',
                   )}

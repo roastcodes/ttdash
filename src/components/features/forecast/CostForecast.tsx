@@ -30,12 +30,14 @@ import type { DailyUsage, ViewMode } from '@/types'
 
 interface CostForecastProps {
   data: DailyUsage[]
+  forecastData?: DailyUsage[]
   viewMode?: ViewMode
 }
 
 /** Renders the current-month cost forecast card. */
-export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
+export function CostForecast({ data, forecastData, viewMode = 'daily' }: CostForecastProps) {
   const { t } = useTranslation()
+  const forecastInput = forecastData ?? data
   const {
     chartData,
     forecastTotal,
@@ -46,7 +48,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
     confidence,
     confidenceColor,
   } = useMemo(() => {
-    const forecast = computeCurrentMonthForecast(data)
+    const forecast = computeCurrentMonthForecast(forecastInput)
 
     if (!forecast) {
       return {
@@ -128,7 +130,7 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
       confidence,
       confidenceColor,
     }
-  }, [data])
+  }, [forecastInput])
 
   // For monthly/yearly views, show a summary instead of a forecast
   if (viewMode !== 'daily') {
@@ -237,7 +239,14 @@ export function CostForecast({ data, viewMode = 'daily' }: CostForecastProps) {
                     tickLine={false}
                     axisLine={false}
                   />
-                  <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
+                  <Tooltip
+                    content={
+                      <CustomTooltip
+                        formatter={(v) => formatCurrency(v)}
+                        showComputedTotal={false}
+                      />
+                    }
+                  />
                   <Legend content={<ChartLegend />} />
                   <Area
                     type="monotone"

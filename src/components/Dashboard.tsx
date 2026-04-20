@@ -102,6 +102,7 @@ export function Dashboard({
     setEndDate,
     resetAll,
     applyPreset,
+    forecastData,
     filteredDailyData,
     filteredData,
     availableMonths,
@@ -384,6 +385,7 @@ export function Dashboard({
             metrics={metrics}
             viewMode={viewMode}
             totalCalendarDays={totalCalendarDays}
+            forecastData={forecastData}
             filteredData={filteredData}
             filteredDailyData={filteredDailyData}
             todayData={todayData}

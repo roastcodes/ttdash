@@ -514,7 +514,7 @@
     "projectedPerDay": "Prognose {{value}}/Tag",
     "vsLastWeek": "vs. Vorwoche",
     "chartTitle": "Kostenprognose aktueller Monat",
-    "chartSubtitle": "Monatsend-Prognose auf Basis geglätteter Kalender-Tageskosten",
+    "chartSubtitle": "Monatsend-Prognose für den vollständigen aktuellen Monat auf Basis geglätteter Kalender-Tageskosten",
     "lowerBound": "Untere Spanne",
     "uncertaintyBand": "Unsicherheitsband",
     "actualCost": "Ist-Kosten",

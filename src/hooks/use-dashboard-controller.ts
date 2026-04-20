@@ -23,6 +23,7 @@ import {
   toLocalDateStr,
 } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
+import { getCurrentMonthForecastData } from '@/lib/data-transforms'
 import { getUniqueModels, getUniqueProviders } from '@/lib/model-utils'
 import type {
   AppLanguage,
@@ -290,6 +291,10 @@ export function useDashboardControllerWithBootstrap(
   const visibleLimitProviders = useMemo(
     () => (selectedProviders.length > 0 ? selectedProviders : allProviders),
     [selectedProviders, allProviders],
+  )
+  const forecastData = useMemo(
+    () => getCurrentMonthForecastData(daily, selectedProviders, selectedModels),
+    [daily, selectedProviders, selectedModels],
   )
   const settingsProviderOptions = useMemo(
     () =>
@@ -704,6 +709,7 @@ export function useDashboardControllerWithBootstrap(
     setEndDate,
     resetAll,
     applyPreset,
+    forecastData,
     filteredDailyData,
     filteredData,
     availableMonths,
