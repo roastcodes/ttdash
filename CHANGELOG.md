@@ -1,5 +1,23 @@
 # Changelog
 
+## [6.2.5] - 2026-04-20
+
+### Added
+
+- **Gezielte Security-Regressionstests für lokale Serverhärtung** — neue Unit-, Integrations- und E2E-Tests decken jetzt Null-Byte-Requests, Host-/Origin-Vertrauen, Auto-Import-Serialisierung und Custom-API-Prefix-Pfade gezielt gegen Regressionen ab
+
+### Improved
+
+- **Toktrack-Stand und Nutzerkommunikation im Auto-Import** — `toktrack` ist jetzt repo-weit exakt auf `2.5.0` angehoben, inklusive aktualisierter Runner-/UI-/Test-Erwartungen und robusterer Fehler- sowie Abbruchkommunikation bei Version-Check, Runner-Fehlern, ungültigem JSON und fehlerhaften Nutzdaten
+- **Direktabhängigkeiten und Workflow-Actions auf aktuelle kompatible Stände gebracht** — kompatible npm-Dependencies sowie GitHub Actions wurden aktualisiert, darunter `actions/setup-node` auf `6.4.0`, bei unverändert stabilem lokalen Verify-, Coverage- und E2E-Gate
+- **Background-Registry und Runtime-Metadaten für lokale Serverinstanzen** — Background-Einträge speichern jetzt den zugehörigen `apiPrefix`, und `/api/runtime` gibt nur noch die für App und CLI tatsächlich benötigten Felder zurück
+
+### Fixed
+
+- **Hängende oder unklare Toktrack-Auto-Import-Läufe** — der Auto-Import hat jetzt explizite Timeouts, einen sauberen Cancel-/Abort-Pfad bis zum Child-Process und differenzierte, lokalisierbare Fehlermeldungen statt generischer oder irreführender Runner-Fehler
+- **Unscharfe Vertrauensgrenzen bei lokalen Mutationen** — mutierende Requests ohne vertrauenswürdigen `Origin` sowie untrusted `Host`-Header werden jetzt konsequent mit `403` blockiert, ohne das Local-First-Modell um einen Login-/Token-Layer zu erweitern
+- **Mehrere robuste Server-Härtungslücken aus dem Pentest-Review** — Null-Byte-Pfade und rohe fehlerhafte Requests führen nicht mehr zu instabilem Static-Serving, und parallele `POST /api/auto-import/stream`-Starts werden frühzeitig abgewehrt, bevor ein zweiter `toktrack`-Runner gestartet werden kann
+
 ## [6.2.4] - 2026-04-16
 
 ### Added
