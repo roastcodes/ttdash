@@ -560,12 +560,12 @@ function isProcessRunning(pid) {
   }
 }
 
-async function fetchRuntimeIdentity(url, timeoutMs = 1000) {
+async function fetchRuntimeIdentity(url, apiPrefix = API_PREFIX, timeoutMs = 1000) {
   if (typeof url !== 'string' || !url.trim()) {
     return null;
   }
 
-  const runtimePath = `${API_PREFIX.replace(/\/+$/, '')}/runtime`;
+  const runtimePath = `${String(apiPrefix || API_PREFIX).replace(/\/+$/, '')}/runtime`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -600,14 +600,12 @@ async function isBackgroundInstanceOwned(instance) {
     return false;
   }
 
-  const runtime = await fetchRuntimeIdentity(instance.url);
+  const runtime = await fetchRuntimeIdentity(instance.url, instance.apiPrefix);
   if (!runtime || typeof runtime.id !== 'string') {
     return false;
   }
 
-  return (
-    runtime.id === instance.id && runtime.pid === instance.pid && runtime.port === instance.port
-  );
+  return runtime.id === instance.id && runtime.port === instance.port;
 }
 
 function normalizeBackgroundInstance(value) {
@@ -621,6 +619,10 @@ function normalizeBackgroundInstance(value) {
   const id = typeof value.id === 'string' && value.id.trim() ? value.id.trim() : null;
   const url = typeof value.url === 'string' && value.url.trim() ? value.url.trim() : null;
   const host = typeof value.host === 'string' && value.host.trim() ? value.host.trim() : BIND_HOST;
+  const apiPrefix =
+    typeof value.apiPrefix === 'string' && value.apiPrefix.trim()
+      ? value.apiPrefix.trim()
+      : API_PREFIX;
 
   if (
     !id ||
@@ -640,6 +642,7 @@ function normalizeBackgroundInstance(value) {
     port,
     url,
     host,
+    apiPrefix,
     startedAt,
     logFile:
       typeof value.logFile === 'string' && value.logFile.trim() ? value.logFile.trim() : null,
@@ -789,6 +792,7 @@ function createBackgroundInstance({ port, url }) {
     port,
     url,
     host: BIND_HOST,
+    apiPrefix: API_PREFIX,
     startedAt: RUNTIME_INSTANCE.startedAt,
     logFile: process.env.TTDASH_BACKGROUND_LOG_FILE || null,
   };
@@ -1588,39 +1592,59 @@ function getCacheControl(filePath) {
   return 'public, max-age=86400';
 }
 
+function writeStaticErrorResponse(res, status, message) {
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    ...SECURITY_HEADERS,
+  });
+  res.end(JSON.stringify({ message }));
+}
+
 function serveFile(res, reqPath) {
   const ext = path.extname(reqPath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-  fs.readFile(reqPath, (err, data) => {
-    if (err) {
-      if (err.code === 'ENOENT') {
-        fs.readFile(path.join(STATIC_ROOT, 'index.html'), (err2, html) => {
-          if (err2) {
-            res.writeHead(500);
-            res.end('Internal Server Error');
-            return;
-          }
-          res.writeHead(200, {
-            'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'no-cache',
-            ...SECURITY_HEADERS,
+  try {
+    fs.readFile(reqPath, (err, data) => {
+      if (err) {
+        if (err.code === 'ENOENT') {
+          fs.readFile(path.join(STATIC_ROOT, 'index.html'), (err2, html) => {
+            if (err2) {
+              writeStaticErrorResponse(res, 500, 'Internal Server Error');
+              return;
+            }
+            res.writeHead(200, {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-cache',
+              ...SECURITY_HEADERS,
+            });
+            res.end(html);
           });
-          res.end(html);
-        });
+          return;
+        }
+        writeStaticErrorResponse(
+          res,
+          err.code === 'ERR_INVALID_ARG_VALUE' ? 400 : 500,
+          err.code === 'ERR_INVALID_ARG_VALUE' ? 'Invalid request path' : 'Internal Server Error',
+        );
         return;
       }
-      res.writeHead(500);
-      res.end('Internal Server Error');
-      return;
-    }
-    res.writeHead(200, {
-      'Content-Type': contentType,
-      'Cache-Control': getCacheControl(reqPath),
-      ...SECURITY_HEADERS,
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': getCacheControl(reqPath),
+        ...SECURITY_HEADERS,
+      });
+      res.end(data);
     });
-    res.end(data);
-  });
+  } catch (error) {
+    writeStaticErrorResponse(
+      res,
+      error && error.code === 'ERR_INVALID_ARG_VALUE' ? 400 : 500,
+      error && error.code === 'ERR_INVALID_ARG_VALUE'
+        ? 'Invalid request path'
+        : 'Internal Server Error',
+    );
+  }
 }
 
 // --- API helpers ---
@@ -1707,11 +1731,13 @@ async function updateSettings(patch) {
   });
 }
 
-const { json, readBody, resolveApiPath, sendBuffer, validateMutationRequest } = createHttpUtils({
-  apiPrefix: API_PREFIX,
-  maxBodySize: MAX_BODY_SIZE,
-  securityHeaders: SECURITY_HEADERS,
-});
+const { json, readBody, resolveApiPath, sendBuffer, validateMutationRequest, validateRequestHost } =
+  createHttpUtils({
+    apiPrefix: API_PREFIX,
+    maxBodySize: MAX_BODY_SIZE,
+    securityHeaders: SECURITY_HEADERS,
+    bindHost: BIND_HOST,
+  });
 
 // --- SSE helpers ---
 
@@ -1720,6 +1746,7 @@ function sendSSE(res, event, data) {
 }
 
 let autoImportRunning = false;
+let autoImportStreamRunning = false;
 let latestToktrackVersionCache = null;
 let latestToktrackVersionLookupPromise = null;
 
@@ -2316,7 +2343,7 @@ async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
 
 // --- Server ---
 
-const server = http.createServer(async (req, res) => {
+async function handleServerRequest(req, res) {
   let url;
   let pathname;
 
@@ -2325,6 +2352,11 @@ const server = http.createServer(async (req, res) => {
     pathname = decodeURIComponent(url.pathname);
   } catch {
     return json(res, 400, { message: 'Invalid request path' });
+  }
+
+  const hostValidationError = validateRequestHost(req);
+  if (hostValidationError) {
+    return json(res, hostValidationError.status, { message: hostValidationError.message });
   }
 
   // API routing
@@ -2387,8 +2419,6 @@ const server = http.createServer(async (req, res) => {
 
     return json(res, 200, {
       id: RUNTIME_INSTANCE.id,
-      pid: RUNTIME_INSTANCE.pid,
-      startedAt: RUNTIME_INSTANCE.startedAt,
       mode: RUNTIME_INSTANCE.mode,
       port: runtimePort,
       url: runtimeUrl,
@@ -2538,6 +2568,14 @@ const server = http.createServer(async (req, res) => {
       return json(res, validationError.status, { message: validationError.message });
     }
 
+    if (autoImportStreamRunning || autoImportRunning) {
+      return json(res, 409, {
+        message: formatAutoImportMessageEvent(createAutoImportMessageEvent('autoImportRunning')),
+      });
+    }
+
+    autoImportStreamRunning = true;
+
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -2588,6 +2626,8 @@ const server = http.createServer(async (req, res) => {
       sendSSE(res, 'error', toAutoImportErrorEvent(err));
       sendSSE(res, 'done', {});
       res.end();
+    } finally {
+      autoImportStreamRunning = false;
     }
     return;
   }
@@ -2657,6 +2697,9 @@ const server = http.createServer(async (req, res) => {
 
   // Static file serving
   const safePath = pathname === '/' ? '/index.html' : pathname;
+  if (safePath.includes('\0')) {
+    return json(res, 400, { message: 'Invalid request path' });
+  }
   const filePath = path.resolve(STATIC_ROOT, `.${safePath}`);
 
   if (
@@ -2667,6 +2710,31 @@ const server = http.createServer(async (req, res) => {
   }
 
   serveFile(res, filePath);
+}
+
+const server = http.createServer((req, res) => {
+  void handleServerRequest(req, res).catch((error) => {
+    console.error(error);
+    if (res.headersSent) {
+      res.end();
+      return;
+    }
+    json(res, 500, { message: 'Internal Server Error' });
+  });
+});
+
+server.on('clientError', (error, socket) => {
+  console.error(error);
+  if (!socket.writable) {
+    return;
+  }
+  socket.end(
+    'HTTP/1.1 400 Bad Request\r\n' +
+      'Content-Type: application/json; charset=utf-8\r\n' +
+      'Connection: close\r\n' +
+      '\r\n' +
+      JSON.stringify({ message: 'Invalid request path' }),
+  );
 });
 
 function tryListen(port) {

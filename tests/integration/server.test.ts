@@ -248,12 +248,28 @@ async function sendRawHttpRequest(port: number, request: string) {
   })
 }
 
+async function fetchTrusted(url: string, init: RequestInit = {}) {
+  const method = (init.method || 'GET').toUpperCase()
+  if (method === 'GET' || method === 'HEAD') {
+    return await fetch(url, init)
+  }
+
+  const headers = new Headers(init.headers)
+  headers.set('Origin', new URL(url).origin)
+
+  return await fetch(url, {
+    ...init,
+    headers,
+  })
+}
+
 function readBackgroundRegistry(root: string) {
   const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
   return JSON.parse(readFileSync(registryPath, 'utf-8')) as Array<{
     url: string
     port: number
     pid: number
+    apiPrefix?: string
     logFile?: string | null
   }>
 }
@@ -265,6 +281,7 @@ function tryReadBackgroundRegistry(root: string) {
       url: string
       port: number
       pid: number
+      apiPrefix?: string
       logFile?: string | null
     }>
   }
@@ -274,6 +291,7 @@ function tryReadBackgroundRegistry(root: string) {
       url: string
       port: number
       pid: number
+      apiPrefix?: string
       logFile?: string | null
     }>
   } catch {
@@ -294,6 +312,7 @@ async function waitForBackgroundRegistry(
       url: string
       port: number
       pid: number
+      apiPrefix?: string
       logFile?: string | null
     }>,
   ) => boolean,
@@ -477,7 +496,7 @@ describe('local server API', () => {
       cliAutoLoadActive: false,
     })
 
-    const uploadResponse = await fetch(`${baseUrl}/api/upload`, {
+    const uploadResponse = await fetchTrusted(`${baseUrl}/api/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(sampleUsage),
@@ -499,7 +518,7 @@ describe('local server API', () => {
     expect(afterUploadSettings.lastLoadSource).toBe('file')
     expect(afterUploadSettings.lastLoadedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/)
 
-    const patchResponse = await fetch(`${baseUrl}/api/settings`, {
+    const patchResponse = await fetchTrusted(`${baseUrl}/api/settings`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -568,7 +587,7 @@ describe('local server API', () => {
       cliAutoLoadActive: false,
     })
 
-    const deleteResponse = await fetch(`${baseUrl}/api/usage`, {
+    const deleteResponse = await fetchTrusted(`${baseUrl}/api/usage`, {
       method: 'DELETE',
     })
     expect(deleteResponse.status).toBe(200)
@@ -601,8 +620,8 @@ describe('local server API', () => {
     expect(finalSettings.sectionOrder.slice(0, 3)).toEqual(['metrics', 'insights', 'today'])
   })
 
-  it('rejects cross-site mutation requests, enforces JSON bodies, and blocks auto-import GET requests', async () => {
-    const wrongContentTypeResponse = await fetch(`${baseUrl}/api/upload`, {
+  it('rejects untrusted mutation requests, enforces JSON bodies, and blocks auto-import GET requests', async () => {
+    const wrongContentTypeResponse = await fetchTrusted(`${baseUrl}/api/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(sampleUsage),
@@ -636,11 +655,40 @@ describe('local server API', () => {
       message: 'Cross-site requests are not allowed',
     })
 
+    const missingOriginDeleteResponse = await fetch(`${baseUrl}/api/usage`, {
+      method: 'DELETE',
+    })
+    expect(missingOriginDeleteResponse.status).toBe(403)
+    expect(await missingOriginDeleteResponse.json()).toEqual({
+      message: 'Cross-site requests are not allowed',
+    })
+
     const autoImportGetResponse = await fetch(`${baseUrl}/api/auto-import/stream`)
     expect(autoImportGetResponse.status).toBe(405)
     expect(await autoImportGetResponse.json()).toEqual({
       message: 'Method Not Allowed',
     })
+  })
+
+  it('rejects untrusted host headers before route handling', async () => {
+    const port = Number(new URL(baseUrl).port)
+    const rawResponse = await sendRawHttpRequest(
+      port,
+      [
+        'DELETE /api/usage HTTP/1.1',
+        'Host: evil.example',
+        'Origin: http://evil.example',
+        'Connection: close',
+        '',
+        '',
+      ].join('\r\n'),
+    )
+
+    expect(rawResponse.startsWith('HTTP/1.1 403 Forbidden')).toBe(true)
+    expect(rawResponse).toContain('{"message":"Untrusted host header"}')
+
+    const usageResponse = await fetch(`${baseUrl}/api/usage`)
+    expect(usageResponse.status).toBe(200)
   })
 
   it('streams auto-import events over POST instead of mutating via GET', async () => {
@@ -655,7 +703,7 @@ describe('local server API', () => {
         },
       })
 
-      const streamResponse = await fetch(`${standaloneServer.url}/api/auto-import/stream`, {
+      const streamResponse = await fetchTrusted(`${standaloneServer.url}/api/auto-import/stream`, {
         method: 'POST',
       })
 
@@ -705,15 +753,87 @@ describe('local server API', () => {
           },
         })
 
-        const streamResponse = await fetch(`${standaloneServer.url}/api/auto-import/stream`, {
-          method: 'POST',
-        })
+        const streamResponse = await fetchTrusted(
+          `${standaloneServer.url}/api/auto-import/stream`,
+          {
+            method: 'POST',
+          },
+        )
 
         expect(streamResponse.status).toBe(200)
         const streamBody = await streamResponse.text()
         expect(streamBody).toContain('event: error')
         expect(streamBody).toContain('"key":"toktrackInvalidJson"')
         expect(streamBody).toContain('event: done')
+      } finally {
+        if (standaloneServer) {
+          await stopProcess(standaloneServer.child)
+        }
+        rmSync(runtimeRoot, { recursive: true, force: true })
+      }
+    },
+  )
+
+  itIfPosix(
+    'rejects parallel auto-import starts before launching a second toktrack runner',
+    async () => {
+      const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-auto-import-singleton-'))
+      const fakeToktrackPath = path.join(runtimeRoot, 'fake-toktrack')
+      const invocationCountPath = path.join(runtimeRoot, 'toktrack-daily-count.txt')
+      let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+      writeFileSync(
+        fakeToktrackPath,
+        [
+          `#!${process.execPath}`,
+          "const fs = require('node:fs')",
+          `const countFile = ${JSON.stringify(invocationCountPath)}`,
+          `const payload = ${JSON.stringify(sampleUsage)}`,
+          'if (process.argv[2] === "--version") {',
+          '  console.log("toktrack 2.5.0")',
+          '  process.exit(0)',
+          '}',
+          'let count = 0',
+          'try {',
+          '  count = Number.parseInt(fs.readFileSync(countFile, "utf-8"), 10) || 0',
+          '} catch {}',
+          'fs.writeFileSync(countFile, String(count + 1))',
+          'setTimeout(() => {',
+          '  process.stdout.write(JSON.stringify(payload))',
+          '}, 2000)',
+        ].join('\n'),
+      )
+      chmodSync(fakeToktrackPath, 0o755)
+
+      try {
+        standaloneServer = await startStandaloneServer({
+          root: runtimeRoot,
+          envOverrides: {
+            PATH: '',
+            TTDASH_TOKTRACK_LOCAL_BIN: fakeToktrackPath,
+          },
+        })
+
+        const firstResponse = await fetchTrusted(`${standaloneServer.url}/api/auto-import/stream`, {
+          method: 'POST',
+        })
+        expect(firstResponse.status).toBe(200)
+
+        const secondResponse = await fetchTrusted(
+          `${standaloneServer.url}/api/auto-import/stream`,
+          {
+            method: 'POST',
+          },
+        )
+        expect(secondResponse.status).toBe(409)
+        expect(await secondResponse.json()).toEqual({
+          message: 'An auto-import is already running. Please wait.',
+        })
+
+        const firstStreamBody = await firstResponse.text()
+        expect(firstStreamBody).toContain('event: success')
+        expect(firstStreamBody).toContain('event: done')
+        expect(readFileSync(invocationCountPath, 'utf-8')).toBe('1')
       } finally {
         if (standaloneServer) {
           await stopProcess(standaloneServer.child)
@@ -761,14 +881,14 @@ describe('local server API', () => {
         root: runtimeRoot,
       })
 
-      const uploadResponse = await fetch(`${standaloneServer.url}/api/upload`, {
+      const uploadResponse = await fetchTrusted(`${standaloneServer.url}/api/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sampleUsage),
       })
       expect(uploadResponse.status).toBe(200)
 
-      const settingsResponse = await fetch(`${standaloneServer.url}/api/settings`, {
+      const settingsResponse = await fetchTrusted(`${standaloneServer.url}/api/settings`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -819,6 +939,7 @@ describe('local server API', () => {
           (entries) => entries.length === 1,
         )
         expect(instance).toBeDefined()
+        expect(instance?.apiPrefix).toBe('/custom-api')
         expect(instance?.logFile).toBeTruthy()
         expect(permissionBits(instance!.logFile!)).toBe(0o600)
 
@@ -864,14 +985,14 @@ describe('local server API', () => {
   })
 
   it('imports settings backups and merges usage backups without overwriting conflicting local days', async () => {
-    const seedResponse = await fetch(`${baseUrl}/api/upload`, {
+    const seedResponse = await fetchTrusted(`${baseUrl}/api/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(sampleUsage),
     })
     expect(seedResponse.status).toBe(200)
 
-    const settingsImportResponse = await fetch(`${baseUrl}/api/settings/import`, {
+    const settingsImportResponse = await fetchTrusted(`${baseUrl}/api/settings/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -953,7 +1074,7 @@ describe('local server API', () => {
       date: '2026-03-31',
     }
 
-    const usageImportResponse = await fetch(`${baseUrl}/api/usage/import`, {
+    const usageImportResponse = await fetchTrusted(`${baseUrl}/api/usage/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1016,7 +1137,7 @@ describe('local server API', () => {
   })
 
   it('rejects unrelated JSON and wrong backup types for settings import', async () => {
-    const invalidPayloadResponse = await fetch(`${baseUrl}/api/settings/import`, {
+    const invalidPayloadResponse = await fetchTrusted(`${baseUrl}/api/settings/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1029,7 +1150,7 @@ describe('local server API', () => {
       message: 'Uploaded JSON is not a settings backup file.',
     })
 
-    const invalidSettingsPayloadResponse = await fetch(`${baseUrl}/api/settings/import`, {
+    const invalidSettingsPayloadResponse = await fetchTrusted(`${baseUrl}/api/settings/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1044,7 +1165,7 @@ describe('local server API', () => {
       message: 'The settings backup file has an invalid settings payload.',
     })
 
-    const usageBackupResponse = await fetch(`${baseUrl}/api/settings/import`, {
+    const usageBackupResponse = await fetchTrusted(`${baseUrl}/api/settings/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1059,7 +1180,7 @@ describe('local server API', () => {
       message: 'This is a data backup file, not a settings file.',
     })
 
-    const settingsBackupResponse = await fetch(`${baseUrl}/api/usage/import`, {
+    const settingsBackupResponse = await fetchTrusted(`${baseUrl}/api/usage/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1078,7 +1199,7 @@ describe('local server API', () => {
   })
 
   it('resets persisted settings to defaults via DELETE /api/settings', async () => {
-    const patchResponse = await fetch(`${baseUrl}/api/settings`, {
+    const patchResponse = await fetchTrusted(`${baseUrl}/api/settings`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1094,7 +1215,7 @@ describe('local server API', () => {
 
     expect(patchResponse.status).toBe(200)
 
-    const deleteResponse = await fetch(`${baseUrl}/api/settings`, {
+    const deleteResponse = await fetchTrusted(`${baseUrl}/api/settings`, {
       method: 'DELETE',
     })
 
@@ -1130,11 +1251,11 @@ describe('local server API', () => {
   })
 
   it('rejects report generation when no usage data exists', async () => {
-    await fetch(`${baseUrl}/api/usage`, {
+    await fetchTrusted(`${baseUrl}/api/usage`, {
       method: 'DELETE',
     })
 
-    const response = await fetch(`${baseUrl}/api/report/pdf`, {
+    const response = await fetchTrusted(`${baseUrl}/api/report/pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ viewMode: 'daily' }),
@@ -1147,14 +1268,14 @@ describe('local server API', () => {
   })
 
   itIfTypst('generates a PDF report for valid requests', async () => {
-    const seedResponse = await fetch(`${baseUrl}/api/upload`, {
+    const seedResponse = await fetchTrusted(`${baseUrl}/api/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(sampleUsage),
     })
     expect(seedResponse.status).toBe(200)
 
-    const response = await fetch(`${baseUrl}/api/report/pdf`, {
+    const response = await fetchTrusted(`${baseUrl}/api/report/pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1180,14 +1301,14 @@ describe('local server API', () => {
   })
 
   it('rejects malformed report payloads before report generation starts', async () => {
-    const seedResponse = await fetch(`${baseUrl}/api/upload`, {
+    const seedResponse = await fetchTrusted(`${baseUrl}/api/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(sampleUsage),
     })
     expect(seedResponse.status).toBe(200)
 
-    const response = await fetch(`${baseUrl}/api/report/pdf`, {
+    const response = await fetchTrusted(`${baseUrl}/api/report/pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{"viewMode":"daily"',
@@ -1213,10 +1334,36 @@ describe('local server API', () => {
     expect(usageResponse.status).toBe(200)
   })
 
+  it('returns only the runtime metadata that the app still needs', async () => {
+    const runtimeResponse = await fetch(`${baseUrl}/api/runtime`)
+
+    expect(runtimeResponse.status).toBe(200)
+    expect(await runtimeResponse.json()).toEqual({
+      id: expect.any(String),
+      mode: 'foreground',
+      port: Number(new URL(baseUrl).port),
+      url: baseUrl,
+    })
+  })
+
+  it('rejects null-byte static paths without crashing the server', async () => {
+    const port = Number(new URL(baseUrl).port)
+    const rawResponse = await sendRawHttpRequest(
+      port,
+      'GET /%00/etc/passwd HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n',
+    )
+
+    expect(rawResponse.startsWith('HTTP/1.1 400 Bad Request')).toBe(true)
+    expect(rawResponse).toContain('{"message":"Invalid request path"}')
+
+    const usageResponse = await fetch(`${baseUrl}/api/usage`)
+    expect(usageResponse.status).toBe(200)
+  })
+
   it('returns 413 for oversized upload payloads instead of resetting the connection', async () => {
     const oversizedPayload = `"${'a'.repeat(11 * 1024 * 1024)}"`
 
-    const response = await fetch(`${baseUrl}/api/upload`, {
+    const response = await fetchTrusted(`${baseUrl}/api/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: oversizedPayload,
@@ -1232,7 +1379,7 @@ describe('local server API', () => {
   })
 
   it('returns 413 for oversized report payloads instead of resetting the connection', async () => {
-    const seedResponse = await fetch(`${baseUrl}/api/upload`, {
+    const seedResponse = await fetchTrusted(`${baseUrl}/api/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(sampleUsage),
@@ -1240,7 +1387,7 @@ describe('local server API', () => {
     expect(seedResponse.status).toBe(200)
 
     const oversizedPayload = `"${'a'.repeat(11 * 1024 * 1024)}"`
-    const response = await fetch(`${baseUrl}/api/report/pdf`, {
+    const response = await fetchTrusted(`${baseUrl}/api/report/pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: oversizedPayload,
@@ -1430,14 +1577,14 @@ describe('local server API', () => {
         },
       })
 
-      const uploadResponse = await fetch(`${standaloneServer.url}/api/upload`, {
+      const uploadResponse = await fetchTrusted(`${standaloneServer.url}/api/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sampleUsage),
       })
       expect(uploadResponse.status).toBe(200)
 
-      const settingsResponse = await fetch(`${standaloneServer.url}/api/settings`, {
+      const settingsResponse = await fetchTrusted(`${standaloneServer.url}/api/settings`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: 'en' }),
@@ -1505,7 +1652,7 @@ describe('local server API', () => {
         message: 'Usage data file is unreadable or corrupted.',
       })
 
-      const deleteResponse = await fetch(`${standaloneServer.url}/api/usage`, {
+      const deleteResponse = await fetchTrusted(`${standaloneServer.url}/api/usage`, {
         method: 'DELETE',
       })
       expect(deleteResponse.status).toBe(200)
@@ -1546,7 +1693,7 @@ describe('local server API', () => {
         message: 'Settings file is unreadable or corrupted.',
       })
 
-      const deleteResponse = await fetch(`${standaloneServer.url}/api/settings`, {
+      const deleteResponse = await fetchTrusted(`${standaloneServer.url}/api/settings`, {
         method: 'DELETE',
       })
       expect(deleteResponse.status).toBe(200)

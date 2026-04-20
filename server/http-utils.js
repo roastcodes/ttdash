@@ -1,4 +1,18 @@
-function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders }) {
+const { isLoopbackHost } = require('./runtime.js');
+
+function normalizeHostname(host) {
+  return String(host || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, '');
+}
+
+function isWildcardHost(host) {
+  const normalized = normalizeHostname(host);
+  return normalized === '0.0.0.0' || normalized === '::';
+}
+
+function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders, bindHost }) {
   function readBody(req) {
     return new Promise((resolve, reject) => {
       const chunks = [];
@@ -110,14 +124,64 @@ function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders }) {
     return contentType.split(';', 1)[0].trim().toLowerCase() === 'application/json';
   }
 
-  function hasTrustedOrigin(req) {
-    const originHeader = getHeaderValue(req, 'origin').trim();
-    if (!originHeader) {
+  function getHostHeaderHost(req) {
+    const hostHeader = getHeaderValue(req, 'host').trim();
+    if (!hostHeader) {
+      return '';
+    }
+
+    if (hostHeader.startsWith('[')) {
+      const closingBracketIndex = hostHeader.indexOf(']');
+      if (closingBracketIndex === -1) {
+        return '';
+      }
+      return normalizeHostname(hostHeader.slice(0, closingBracketIndex + 1));
+    }
+
+    const colonMatches = hostHeader.match(/:/g) || [];
+    if (colonMatches.length <= 1) {
+      return normalizeHostname(hostHeader.split(':', 1)[0]);
+    }
+
+    return normalizeHostname(hostHeader);
+  }
+
+  function getSocketLocalAddress(req) {
+    return normalizeHostname(req.socket?.localAddress || '');
+  }
+
+  function hasTrustedHost(req) {
+    const hostHeaderHost = getHostHeaderHost(req);
+    if (!hostHeaderHost) {
+      return false;
+    }
+
+    const normalizedBindHost = normalizeHostname(bindHost);
+    const socketLocalAddress = getSocketLocalAddress(req);
+
+    if (isLoopbackHost(normalizedBindHost) || isLoopbackHost(socketLocalAddress)) {
+      return isLoopbackHost(hostHeaderHost);
+    }
+
+    if (hostHeaderHost === normalizedBindHost) {
       return true;
     }
 
+    if (socketLocalAddress && hostHeaderHost === socketLocalAddress) {
+      return true;
+    }
+
+    if (isWildcardHost(normalizedBindHost)) {
+      return hostHeaderHost === socketLocalAddress;
+    }
+
+    return false;
+  }
+
+  function hasTrustedOrigin(req) {
+    const originHeader = getHeaderValue(req, 'origin').trim();
     const hostHeader = getHeaderValue(req, 'host').trim();
-    if (!hostHeader || originHeader === 'null') {
+    if (!originHeader || !hostHeader || originHeader === 'null') {
       return false;
     }
 
@@ -131,6 +195,17 @@ function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders }) {
 
   function isCrossSiteFetch(req) {
     return getHeaderValue(req, 'sec-fetch-site').trim().toLowerCase() === 'cross-site';
+  }
+
+  function validateRequestHost(req) {
+    if (hasTrustedHost(req)) {
+      return null;
+    }
+
+    return {
+      status: 403,
+      message: 'Untrusted host header',
+    };
   }
 
   function validateMutationRequest(req, { requiresJsonContentType = false } = {}) {
@@ -156,6 +231,7 @@ function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders }) {
     json,
     sendBuffer,
     resolveApiPath,
+    validateRequestHost,
     validateMutationRequest,
   };
 }

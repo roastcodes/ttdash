@@ -5,6 +5,9 @@ import { expect, test, type Page } from '@playwright/test'
 
 const sampleUsagePath = path.join(process.cwd(), 'examples', 'sample-usage.json')
 const sampleUsage = JSON.parse(fs.readFileSync(sampleUsagePath, 'utf-8'))
+const playwrightBaseUrl = `http://${process.env.PLAYWRIGHT_TEST_HOST || '127.0.0.1'}:${
+  process.env.PLAYWRIGHT_TEST_PORT || '3015'
+}`
 const uploadToastPattern =
   /^(Datei sample-usage\.json erfolgreich geladen|File sample-usage\.json loaded successfully)$/
 const autoImportButtonPattern = /^(Auto-Import|Auto import)$/
@@ -24,6 +27,9 @@ const viewModeComboboxPattern = /^(Ansichtsmodus|View mode)$/
 const providersActivePattern = /^(1 providers active|1 Anbieter aktiv)$/
 const modelsActivePattern = /^(1 models active|1 Modelle aktiv)$/
 const dateFilterActivePattern = /^(Date filter active|Datumsfilter aktiv)$/
+const trustedMutationHeaders = {
+  Origin: playwrightBaseUrl,
+}
 
 async function uploadSampleUsage(page: Page) {
   await page.locator('[data-testid="usage-upload-input"]').setInputFiles(sampleUsagePath)
@@ -45,8 +51,8 @@ test('uploads sample usage data and renders the dashboard without browser errors
     pageErrors.push(error.message)
   })
 
-  await page.request.delete('/api/usage')
-  await page.request.delete('/api/settings')
+  await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
+  await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
 
   await page.goto('/')
 
@@ -67,8 +73,8 @@ test('uploads sample usage data and renders the dashboard without browser errors
 test('exposes pressed filter state and supports keyboard date selection in the dashboard filters', async ({
   page,
 }) => {
-  await page.request.delete('/api/usage')
-  await page.request.delete('/api/settings')
+  await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
+  await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
 
   await page.goto('/')
   await uploadSampleUsage(page)
@@ -121,8 +127,8 @@ test('exposes pressed filter state and supports keyboard date selection in the d
 test('manages settings and backup imports through the settings dialog using isolated test storage', async ({
   page,
 }, testInfo) => {
-  await page.request.delete('/api/usage')
-  await page.request.delete('/api/settings')
+  await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
+  await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
   await page.addInitScript(() => {
     const globalWindow = window as typeof window & {
       __TTDASH_DOWNLOAD_RECORDS__?: Array<{
@@ -443,10 +449,11 @@ test('loads persisted settings on a fresh browser start and applies them immedia
   browser,
   page,
 }) => {
-  await page.request.delete('/api/usage')
-  await page.request.delete('/api/settings')
+  await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
+  await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
 
   const patchSettingsResponse = await page.request.patch('/api/settings', {
+    headers: trustedMutationHeaders,
     data: {
       language: 'en',
       theme: 'light',
@@ -474,6 +481,7 @@ test('loads persisted settings on a fresh browser start and applies them immedia
   expect(patchSettingsResponse.ok()).toBe(true)
 
   const uploadResponse = await page.request.post('/api/upload', {
+    headers: trustedMutationHeaders,
     data: sampleUsage,
   })
   expect(uploadResponse.ok()).toBe(true)
@@ -602,7 +610,7 @@ test('loads persisted settings on a fresh browser start and applies them immedia
 test('uses the current UI language when generating a PDF report after switching locale', async ({
   page,
 }) => {
-  await page.request.delete('/api/usage')
+  await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
 
   let reportRequest: Record<string, unknown> | null = null
 
