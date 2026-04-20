@@ -110,7 +110,12 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
       }
     }
 
-    const topModels = Array.from(modelTotals.entries()).sort((a, b) => b[1] - a[1])
+    const topModels = Array.from(modelTotals.entries())
+      .filter(([, total]) => total > 0)
+      .sort((a, b) => {
+        if (b[1] !== a[1]) return b[1] - a[1]
+        return a[0].localeCompare(b[0])
+      })
 
     const totalRequests = data.reduce((sum, point) => sum + point.totalRequests, 0)
     const peak = [...data].sort((a, b) => b.totalRequests - a.totalRequests)[0]
@@ -123,10 +128,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
     }
   }, [data])
 
-  const visibleModels = useMemo(
-    () => (summary?.topModels ?? []).slice(0, 5).map(([name]) => name),
-    [summary],
-  )
+  const visibleModels = useMemo(() => (summary?.topModels ?? []).map(([name]) => name), [summary])
   const donutData = useMemo(
     () => (summary?.topModels ?? []).map(([name, value]) => ({ name, value })),
     [summary],
@@ -181,7 +183,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                     connectNulls
                     {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
-                  {(summary?.topModels ?? []).map(([model], index) => (
+                  {visibleModels.map((model, index) => (
                     <Line
                       key={`${model}_ma7`}
                       type="monotone"
