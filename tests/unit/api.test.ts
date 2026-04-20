@@ -137,7 +137,7 @@ describe('api error handling', () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            configuredVersion: '2.4.0',
+            configuredVersion: '2.5.0',
             latestVersion: '2.4.1',
             isLatest: false,
             lookupStatus: 'ok',
@@ -151,7 +151,7 @@ describe('api error handling', () => {
     )
 
     await expect(fetchToktrackVersionStatus()).resolves.toEqual({
-      configuredVersion: '2.4.0',
+      configuredVersion: '2.5.0',
       latestVersion: '2.4.1',
       isLatest: false,
       lookupStatus: 'ok',

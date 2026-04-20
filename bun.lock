@@ -9,7 +9,7 @@
         "i18next": "^26.0.3",
         "react-i18next": "^17.0.3",
         "react-is": "^19.2.4",
-        "toktrack": "2.4.0",
+        "toktrack": "2.5.0",
       },
       "devDependencies": {
         "@eslint/js": "^9.39.4",
@@ -1116,7 +1116,7 @@
 
     "to-valid-identifier": ["to-valid-identifier@1.0.0", "", { "dependencies": { "@sindresorhus/base62": "^1.0.0", "reserved-identifiers": "^1.0.0" } }, "sha512-41wJyvKep3yT2tyPqX/4blcfybknGB4D+oETKLs7Q76UiPqRpUJK3hr1nxelyYO0PHKVzJwlu0aCeEAsGI6rpw=="],
 
-    "toktrack": ["toktrack@2.4.0", "", { "os": [ "linux", "win32", "darwin", ], "cpu": [ "x64", "arm64", ], "bin": { "toktrack": "bin/run.js" } }, "sha512-rKqMm/9vGgxnXRs/+VfSgxYRi7wdiFMCA4PubnPyloV06SpbrndIwTk90jYC64RmaOtCqfRp7yV/hRY3a9jciQ=="],
+    "toktrack": ["toktrack@2.5.0", "", { "os": [ "linux", "win32", "darwin", ], "cpu": [ "x64", "arm64", ], "bin": { "toktrack": "bin/run.js" } }, "sha512-WJYj86vF6uQ2NA3eBQZ7bzN9Idrn12i3u2vEqT7FkjuTAz6zaRXX1/Z1JjIyurc7OR8xfzE78PiONhCTl0T3jw=="],
 
     "tough-cookie": ["tough-cookie@6.0.1", "", { "dependencies": { "tldts": "^7.0.5" } }, "sha512-LktZQb3IeoUWB9lqR5EWTHgW/VTITCXg4D21M+lvybRVdylLrRMnqaIONLVb5mav8vM19m44HIcGq4qASeu2Qw=="],
 

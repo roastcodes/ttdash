@@ -29,11 +29,11 @@ describe('translateAutoImportEvent', () => {
       translateAutoImportEvent(
         {
           key: 'loadingUsageData',
-          vars: { command: 'npx --yes toktrack@2.4.0 daily --json' },
+          vars: { command: 'npx --yes toktrack@2.5.0 daily --json' },
         },
         translate,
       ),
-    ).toBe('Lade Nutzungsdaten via npx --yes toktrack@2.4.0 daily --json...')
+    ).toBe('Lade Nutzungsdaten via npx --yes toktrack@2.5.0 daily --json...')
     expect(
       translateAutoImportEvent(
         {

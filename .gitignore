@@ -19,6 +19,7 @@ test-json/
 .idea
 coverage/
 requirements/
+docs/security/
 /activity-*.png
 /cache-hit-rate-*.png
 /request-*.png
