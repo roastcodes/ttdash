@@ -842,6 +842,7 @@ describe('local server API', () => {
         rmSync(runtimeRoot, { recursive: true, force: true })
       }
     },
+    15_000,
   )
 
   it('serves the API only from the configured API prefix', async () => {

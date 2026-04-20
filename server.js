@@ -60,10 +60,13 @@ const USAGE_BACKUP_KIND = 'ttdash-usage-backup';
 const IS_BACKGROUND_CHILD = process.env.TTDASH_BACKGROUND_CHILD === '1';
 const FORCE_OPEN_BROWSER = process.env.TTDASH_FORCE_OPEN_BROWSER === '1';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
-const TOKTRACK_RUNNER_PROBE_TIMEOUT_MS = 7000;
-const TOKTRACK_VERSION_CHECK_TIMEOUT_MS = 7000;
-const TOKTRACK_IMPORT_TIMEOUT_MS = 60000;
-const TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS = 7000;
+const TOKTRACK_LOCAL_RUNNER_PROBE_TIMEOUT_MS = 7000;
+const TOKTRACK_LOCAL_RUNNER_VERSION_CHECK_TIMEOUT_MS = 7000;
+const TOKTRACK_LOCAL_RUNNER_IMPORT_TIMEOUT_MS = 60000;
+const TOKTRACK_PACKAGE_RUNNER_PROBE_TIMEOUT_MS = 45000;
+const TOKTRACK_PACKAGE_RUNNER_VERSION_CHECK_TIMEOUT_MS = 45000;
+const TOKTRACK_PACKAGE_RUNNER_IMPORT_TIMEOUT_MS = 60000;
+const TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS = 15000;
 const TOKTRACK_LATEST_CACHE_SUCCESS_TTL_MS = 5 * 60 * 1000;
 const TOKTRACK_LATEST_CACHE_FAILURE_TTL_MS = 60 * 1000;
 const PROCESS_TERMINATION_GRACE_MS = 1000;
@@ -1158,6 +1161,10 @@ function summarizeCommandError(error, fallbackMessage = 'Unknown error') {
   return fallbackMessage;
 }
 
+function getTimeoutSeconds(timeoutMs) {
+  return Math.max(1, Math.ceil(Number(timeoutMs) / 1000));
+}
+
 function toAutoImportErrorEvent(error) {
   if (error && typeof error.messageKey === 'string') {
     return createAutoImportMessageEvent(error.messageKey, error.messageVars || {});
@@ -1171,7 +1178,9 @@ function toAutoImportErrorEvent(error) {
 function formatAutoImportMessageEvent(event) {
   switch (event?.key) {
     case 'startingLocalImport':
-      return 'Starting local toktrack import...';
+      return 'Starting toktrack import...';
+    case 'warmingUpPackageRunner':
+      return `Preparing ${event.vars?.runner || 'package runner'} (the first run may take longer while toktrack is downloaded)...`;
     case 'loadingUsageData':
       return `Loading usage data via ${event.vars?.command || 'unknown command'}...`;
     case 'processingUsageData':
@@ -1186,10 +1195,14 @@ function formatAutoImportMessageEvent(event) {
       return `Local toktrack could not be started: ${event.vars?.message || 'Unknown error'}`;
     case 'packageRunnerFailed':
       return `No compatible bunx or npm exec runner succeeded: ${event.vars?.message || 'Unknown error'}`;
+    case 'packageRunnerWarmupTimedOut':
+      return `${event.vars?.runner || 'The package runner'} took longer than ${event.vars?.seconds || 0}s to prepare toktrack. The first run may need to download the package first. Please try again or verify network access.`;
     case 'toktrackVersionCheckFailed':
       return `Toktrack was found, but the version check failed: ${event.vars?.message || 'Unknown error'}`;
     case 'toktrackExecutionFailed':
       return `Toktrack failed while loading usage data: ${event.vars?.message || 'Unknown error'}`;
+    case 'toktrackExecutionTimedOut':
+      return `Toktrack did not finish loading usage data within ${event.vars?.seconds || 0}s via ${event.vars?.runner || 'the selected runner'}. Please try again.`;
     case 'toktrackInvalidJson':
       return `Toktrack returned invalid JSON output: ${event.vars?.message || 'Unknown error'}`;
     case 'toktrackInvalidData':
@@ -1837,6 +1850,26 @@ function createNpxToktrackRunner() {
   };
 }
 
+function isPackageToktrackRunner(runner) {
+  return runner?.method === 'bunx' || runner?.method === 'npm';
+}
+
+function getToktrackRunnerTimeouts(runner) {
+  if (isPackageToktrackRunner(runner)) {
+    return {
+      probeMs: TOKTRACK_PACKAGE_RUNNER_PROBE_TIMEOUT_MS,
+      versionCheckMs: TOKTRACK_PACKAGE_RUNNER_VERSION_CHECK_TIMEOUT_MS,
+      importMs: TOKTRACK_PACKAGE_RUNNER_IMPORT_TIMEOUT_MS,
+    };
+  }
+
+  return {
+    probeMs: TOKTRACK_LOCAL_RUNNER_PROBE_TIMEOUT_MS,
+    versionCheckMs: TOKTRACK_LOCAL_RUNNER_VERSION_CHECK_TIMEOUT_MS,
+    importMs: TOKTRACK_LOCAL_RUNNER_IMPORT_TIMEOUT_MS,
+  };
+}
+
 function formatCommandForDisplay(command, args = []) {
   return [command, ...args].join(' ').trim();
 }
@@ -1996,12 +2029,13 @@ function runCommandWithSpawn(
   });
 }
 
-async function probeToktrackRunner(runner, timeoutMs = TOKTRACK_RUNNER_PROBE_TIMEOUT_MS) {
+async function probeToktrackRunner(runner, timeoutMs = getToktrackRunnerTimeouts(runner).probeMs) {
   try {
     await runToktrack(runner, ['--version'], { timeoutMs });
     return {
       ok: true,
       errorMessage: null,
+      timedOut: false,
     };
   } catch (error) {
     const message = summarizeCommandError(error, `Could not start ${runner.label}.`);
@@ -2009,6 +2043,7 @@ async function probeToktrackRunner(runner, timeoutMs = TOKTRACK_RUNNER_PROBE_TIM
     return {
       ok: false,
       errorMessage: message,
+      timedOut: Boolean(error?.timedOut),
     };
   }
 }
@@ -2027,7 +2062,7 @@ async function resolveToktrackRunnerWithDiagnostics() {
     try {
       const localVersion = parseToktrackVersionOutput(
         await runToktrack(localRunner, ['--version'], {
-          timeoutMs: TOKTRACK_RUNNER_PROBE_TIMEOUT_MS,
+          timeoutMs: getToktrackRunnerTimeouts(localRunner).probeMs,
         }),
       );
       if (localVersion === TOKTRACK_VERSION) {
@@ -2053,7 +2088,11 @@ async function resolveToktrackRunnerWithDiagnostics() {
     return resolution;
   }
   if (bunxProbe.errorMessage) {
-    resolution.runnerFailures.push(`bunx: ${bunxProbe.errorMessage}`);
+    resolution.runnerFailures.push({
+      label: bunxRunner.label,
+      message: bunxProbe.errorMessage,
+      timedOut: bunxProbe.timedOut,
+    });
   }
 
   const npxRunner = createNpxToktrackRunner();
@@ -2063,7 +2102,11 @@ async function resolveToktrackRunnerWithDiagnostics() {
     return resolution;
   }
   if (npxProbe.errorMessage) {
-    resolution.runnerFailures.push(`npm exec: ${npxProbe.errorMessage}`);
+    resolution.runnerFailures.push({
+      label: npxRunner.label,
+      message: npxProbe.errorMessage,
+      timedOut: npxProbe.timedOut,
+    });
   }
 
   return resolution;
@@ -2103,15 +2146,41 @@ function toAutoImportRunnerResolutionError(resolution) {
   }
 
   if (resolution.runnerFailures.length > 0) {
+    const timedOutRunnerFailures = resolution.runnerFailures.filter((failure) => failure.timedOut);
+    if (
+      timedOutRunnerFailures.length > 0 &&
+      timedOutRunnerFailures.length === resolution.runnerFailures.length
+    ) {
+      const runners = timedOutRunnerFailures.map((failure) => failure.label).join(' / ');
+      const seconds = getTimeoutSeconds(TOKTRACK_PACKAGE_RUNNER_PROBE_TIMEOUT_MS);
+      return createAutoImportError(
+        formatAutoImportMessageEvent(
+          createAutoImportMessageEvent('packageRunnerWarmupTimedOut', {
+            runner: runners,
+            seconds,
+          }),
+        ),
+        'packageRunnerWarmupTimedOut',
+        {
+          runner: runners,
+          seconds,
+        },
+      );
+    }
+
     return createAutoImportError(
       formatAutoImportMessageEvent(
         createAutoImportMessageEvent('packageRunnerFailed', {
-          message: resolution.runnerFailures.join(' | '),
+          message: resolution.runnerFailures
+            .map((failure) => `${failure.label}: ${failure.message}`)
+            .join(' | '),
         }),
       ),
       'packageRunnerFailed',
       {
-        message: resolution.runnerFailures.join(' | '),
+        message: resolution.runnerFailures
+          .map((failure) => `${failure.label}: ${failure.message}`)
+          .join(' | '),
       },
     );
   }
@@ -2234,12 +2303,36 @@ async function performAutoImport({
       throw resolutionError;
     }
 
+    if (isPackageToktrackRunner(runner)) {
+      onProgress(
+        createAutoImportMessageEvent('warmingUpPackageRunner', {
+          runner: runner.label,
+        }),
+      );
+    }
+
     let versionResult;
     try {
       versionResult = await runToktrack(runner, ['--version'], {
-        timeoutMs: TOKTRACK_VERSION_CHECK_TIMEOUT_MS,
+        timeoutMs: getToktrackRunnerTimeouts(runner).versionCheckMs,
       });
     } catch (error) {
+      if (isPackageToktrackRunner(runner) && error?.timedOut) {
+        throw createAutoImportError(
+          formatAutoImportMessageEvent(
+            createAutoImportMessageEvent('packageRunnerWarmupTimedOut', {
+              runner: runner.label,
+              seconds: getTimeoutSeconds(getToktrackRunnerTimeouts(runner).versionCheckMs),
+            }),
+          ),
+          'packageRunnerWarmupTimedOut',
+          {
+            runner: runner.label,
+            seconds: getTimeoutSeconds(getToktrackRunnerTimeouts(runner).versionCheckMs),
+          },
+        );
+      }
+
       throw createAutoImportError(
         formatAutoImportMessageEvent(
           createAutoImportMessageEvent('toktrackVersionCheckFailed', {
@@ -2272,9 +2365,25 @@ async function performAutoImport({
           onOutput(line);
         },
         signalOnClose,
-        timeoutMs: TOKTRACK_IMPORT_TIMEOUT_MS,
+        timeoutMs: getToktrackRunnerTimeouts(runner).importMs,
       });
     } catch (error) {
+      if (error?.timedOut) {
+        throw createAutoImportError(
+          formatAutoImportMessageEvent(
+            createAutoImportMessageEvent('toktrackExecutionTimedOut', {
+              runner: runner.label,
+              seconds: getTimeoutSeconds(getToktrackRunnerTimeouts(runner).importMs),
+            }),
+          ),
+          'toktrackExecutionTimedOut',
+          {
+            runner: runner.label,
+            seconds: getTimeoutSeconds(getToktrackRunnerTimeouts(runner).importMs),
+          },
+        );
+      }
+
       throw createAutoImportError(
         formatAutoImportMessageEvent(
           createAutoImportMessageEvent('toktrackExecutionFailed', {
@@ -2842,6 +2951,8 @@ module.exports = {
     runToktrack,
     runCommandWithSpawn,
     lookupLatestToktrackVersion,
+    getToktrackRunnerTimeouts,
+    getToktrackLatestLookupTimeoutMs: () => TOKTRACK_LATEST_LOOKUP_TIMEOUT_MS,
     resetLatestToktrackVersionCache: () => {
       latestToktrackVersionCache = null;
       latestToktrackVersionLookupPromise = null;

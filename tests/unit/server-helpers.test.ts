@@ -13,6 +13,8 @@ const {
     commandExists,
     getExecutableName,
     getLocalToktrackDisplayCommand,
+    getToktrackLatestLookupTimeoutMs,
+    getToktrackRunnerTimeouts,
     lookupLatestToktrackVersion,
     resetLatestToktrackVersionCache,
     getFileMutationLockDir,
@@ -33,6 +35,12 @@ const {
     commandExists: (command: string, args?: string[]) => Promise<boolean>
     getExecutableName: (baseName: string, isWindows?: boolean) => string
     getLocalToktrackDisplayCommand: (isWindows?: boolean) => string
+    getToktrackLatestLookupTimeoutMs: () => number
+    getToktrackRunnerTimeouts: (runner: { method?: string | null }) => {
+      probeMs: number
+      versionCheckMs: number
+      importMs: number
+    }
     lookupLatestToktrackVersion: (timeoutMs?: number) => Promise<{
       configuredVersion: string
       latestVersion: string | null
@@ -54,10 +62,14 @@ const {
     toAutoImportRunnerResolutionError: (resolution: {
       localVersionMismatch: { detectedVersion: string; expectedVersion: string } | null
       localFailure: string | null
-      runnerFailures: string[]
+      runnerFailures: Array<{
+        label: string
+        message: string
+        timedOut: boolean
+      }>
     }) => Error & {
       messageKey?: string
-      messageVars?: Record<string, string>
+      messageVars?: Record<string, string | number>
     }
     runToktrack: (
       runner: {
@@ -175,6 +187,28 @@ describe('server helper utilities', () => {
   it('parses toktrack version banners down to the raw version', () => {
     expect(parseToktrackVersionOutput(`toktrack ${TOKTRACK_VERSION}`)).toBe(TOKTRACK_VERSION)
     expect(parseToktrackVersionOutput(`${TOKTRACK_VERSION}\n`)).toBe(TOKTRACK_VERSION)
+  })
+
+  it('uses longer warmup timeouts for package runners than for local toktrack', () => {
+    const localTimeouts = getToktrackRunnerTimeouts({ method: 'local' })
+    const bunxTimeouts = getToktrackRunnerTimeouts({ method: 'bunx' })
+    const npxTimeouts = getToktrackRunnerTimeouts({ method: 'npm' })
+
+    expect(localTimeouts).toEqual({
+      probeMs: 7000,
+      versionCheckMs: 7000,
+      importMs: 60000,
+    })
+    expect(bunxTimeouts).toEqual({
+      probeMs: 45000,
+      versionCheckMs: 45000,
+      importMs: 60000,
+    })
+    expect(npxTimeouts).toEqual(bunxTimeouts)
+  })
+
+  it('uses a less aggressive timeout for latest-version registry lookups', () => {
+    expect(getToktrackLatestLookupTimeoutMs()).toBe(15000)
   })
 
   it('prefers the pinned local toktrack installation when available', async () => {
@@ -388,12 +422,30 @@ describe('server helper utilities', () => {
     const error = toAutoImportRunnerResolutionError({
       localVersionMismatch: null,
       localFailure: null,
-      runnerFailures: ['bunx: timed out', 'npm exec: permission denied'],
+      runnerFailures: [
+        { label: 'bunx', message: 'timed out', timedOut: false },
+        { label: 'npm exec', message: 'permission denied', timedOut: false },
+      ],
     })
 
     expect(error.messageKey).toBe('packageRunnerFailed')
     expect(error.message).toContain('bunx: timed out')
     expect(error.message).toContain('npm exec: permission denied')
+  })
+
+  it('surfaces a dedicated warmup-timeout message when only package runners time out', () => {
+    const error = toAutoImportRunnerResolutionError({
+      localVersionMismatch: null,
+      localFailure: null,
+      runnerFailures: [
+        { label: 'bunx', message: 'Command timed out', timedOut: true },
+        { label: 'npm exec', message: 'Command timed out', timedOut: true },
+      ],
+    })
+
+    expect(error.messageKey).toBe('packageRunnerWarmupTimedOut')
+    expect(error.message).toContain('bunx / npm exec')
+    expect(error.message).toContain('45s')
   })
 
   it.runIf(process.platform !== 'win32')(

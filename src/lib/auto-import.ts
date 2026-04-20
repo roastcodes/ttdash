@@ -7,6 +7,7 @@ export interface CheckEvent {
 }
 type AutoImportMessageKey =
   | 'startingLocalImport'
+  | 'warmingUpPackageRunner'
   | 'loadingUsageData'
   | 'processingUsageData'
   | 'serverConnectionLost'
@@ -15,8 +16,10 @@ type AutoImportMessageKey =
   | 'localToktrackVersionMismatch'
   | 'localToktrackFailed'
   | 'packageRunnerFailed'
+  | 'packageRunnerWarmupTimedOut'
   | 'toktrackVersionCheckFailed'
   | 'toktrackExecutionFailed'
+  | 'toktrackExecutionTimedOut'
   | 'toktrackInvalidJson'
   | 'toktrackInvalidData'
   | 'errorPrefix'
@@ -85,6 +88,10 @@ export function translateAutoImportEvent(event: AutoImportMessageEvent, t: AutoI
   switch (event.key) {
     case 'startingLocalImport':
       return t('autoImportModal.startingLocalImport')
+    case 'warmingUpPackageRunner':
+      return t('autoImportModal.warmingUpPackageRunner', {
+        runner: String(event.vars?.['runner'] ?? ''),
+      })
     case 'loadingUsageData':
       return t('autoImportModal.loadingUsageData', {
         command: String(event.vars?.['command'] ?? ''),
@@ -112,6 +119,11 @@ export function translateAutoImportEvent(event: AutoImportMessageEvent, t: AutoI
       return t('autoImportModal.packageRunnerFailed', {
         message: String(event.vars?.['message'] ?? ''),
       })
+    case 'packageRunnerWarmupTimedOut':
+      return t('autoImportModal.packageRunnerWarmupTimedOut', {
+        runner: String(event.vars?.['runner'] ?? ''),
+        seconds: String(event.vars?.['seconds'] ?? '0'),
+      })
     case 'toktrackVersionCheckFailed':
       return t('autoImportModal.toktrackVersionCheckFailed', {
         message: String(event.vars?.['message'] ?? ''),
@@ -119,6 +131,11 @@ export function translateAutoImportEvent(event: AutoImportMessageEvent, t: AutoI
     case 'toktrackExecutionFailed':
       return t('autoImportModal.toktrackExecutionFailed', {
         message: String(event.vars?.['message'] ?? ''),
+      })
+    case 'toktrackExecutionTimedOut':
+      return t('autoImportModal.toktrackExecutionTimedOut', {
+        runner: String(event.vars?.['runner'] ?? ''),
+        seconds: String(event.vars?.['seconds'] ?? '0'),
       })
     case 'toktrackInvalidJson':
       return t('autoImportModal.toktrackInvalidJson', {

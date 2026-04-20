@@ -9,6 +9,7 @@
 ### Improved
 
 - **Toktrack-Stand und Nutzerkommunikation im Auto-Import** — `toktrack` ist jetzt repo-weit exakt auf `2.5.0` angehoben, inklusive aktualisierter Runner-/UI-/Test-Erwartungen und robusterer Fehler- sowie Abbruchkommunikation bei Version-Check, Runner-Fehlern, ungültigem JSON und fehlerhaften Nutzdaten
+- **Robustere Paket-Runner-Warmups für `bunx` und `npx`** — paketbasierte `toktrack`-Aufrufe verwenden jetzt großzügigere, runner-spezifische Probe-/Versions-Timeouts, liefern klarere First-Run- und Timeout-Hinweise für Paket-Downloads und bleiben im Auto-Import über Unit-, Integration- und E2E-Tests vollständig abgesichert
 - **Direktabhängigkeiten und Workflow-Actions auf aktuelle kompatible Stände gebracht** — kompatible npm-Dependencies sowie GitHub Actions wurden aktualisiert, darunter `actions/setup-node` auf `6.4.0`, bei unverändert stabilem lokalen Verify-, Coverage- und E2E-Gate
 - **Background-Registry und Runtime-Metadaten für lokale Serverinstanzen** — Background-Einträge speichern jetzt den zugehörigen `apiPrefix`, und `/api/runtime` gibt nur noch die für App und CLI tatsächlich benötigten Felder zurück
 
