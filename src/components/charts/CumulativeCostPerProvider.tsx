@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   ResponsiveContainer,
-  LineChart,
+  ComposedChart,
+  Area,
   Line,
   XAxis,
   YAxis,
@@ -13,7 +14,14 @@ import {
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_COLORS, CHART_MARGIN, getLineAnimationProps } from './chart-theme'
+import {
+  CHART_AREA_GRADIENT,
+  CHART_COLORS,
+  CHART_MARGIN,
+  getAreaAnimationProps,
+  getLineAnimationProps,
+  scopedGradientId,
+} from './chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
 import { getModelProvider, getProviderBadgeStyle } from '@/lib/model-utils'
@@ -29,6 +37,7 @@ type ProviderSeriesMeta = {
   provider: string
   actualKey: string
   projectedKey: string
+  gradientId: string
   color: string
 }
 
@@ -43,6 +52,7 @@ function toSeriesKey(provider: string) {
 /** Renders cumulative cost by provider with an optional month-end projection. */
 export function CumulativeCostPerProvider({ data, forecast }: CumulativeCostPerProviderProps) {
   const { t } = useTranslation()
+  const uid = useId().replace(/:/g, '')
 
   const { chartData, seriesMeta, topProvider } = useMemo(() => {
     const visibleTotals = new Map<string, number>()
@@ -81,6 +91,7 @@ export function CumulativeCostPerProvider({ data, forecast }: CumulativeCostPerP
         provider,
         actualKey: `${key}Cumulative`,
         projectedKey: `${key}Projected`,
+        gradientId: scopedGradientId(uid, `${key}-cumulative`),
         color: getProviderBadgeStyle(provider).color,
       }
     })
@@ -162,7 +173,7 @@ export function CumulativeCostPerProvider({ data, forecast }: CumulativeCostPerP
       seriesMeta: nextSeriesMeta,
       topProvider: nextTopProvider,
     }
-  }, [data, forecast])
+  }, [data, forecast, uid])
 
   return (
     <ChartCard
@@ -182,7 +193,35 @@ export function CumulativeCostPerProvider({ data, forecast }: CumulativeCostPerP
         {(animate) => (
           <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData} margin={CHART_MARGIN}>
+              <ComposedChart data={chartData} margin={CHART_MARGIN}>
+                <defs>
+                  {seriesMeta.map((series) => (
+                    <linearGradient
+                      key={series.gradientId}
+                      id={series.gradientId}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="0%"
+                        stopColor={series.color}
+                        stopOpacity={CHART_AREA_GRADIENT.topOpacity}
+                      />
+                      <stop
+                        offset="60%"
+                        stopColor={series.color}
+                        stopOpacity={CHART_AREA_GRADIENT.middleOpacity}
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor={series.color}
+                        stopOpacity={CHART_AREA_GRADIENT.bottomOpacity}
+                      />
+                    </linearGradient>
+                  ))}
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
                 <XAxis
                   dataKey="date"
@@ -213,16 +252,17 @@ export function CumulativeCostPerProvider({ data, forecast }: CumulativeCostPerP
                 />
                 <Legend content={<ChartLegend />} />
                 {seriesMeta.map((series, index) => (
-                  <Line
+                  <Area
                     key={series.actualKey}
                     type="monotone"
                     dataKey={series.actualKey}
                     stroke={series.color}
+                    fill={`url(#${series.gradientId})`}
                     name={series.provider}
                     dot={false}
                     strokeWidth={2}
                     connectNulls={false}
-                    {...getLineAnimationProps(animate, { order: index % 5 })}
+                    {...getAreaAnimationProps(animate, { order: index % 5 })}
                   />
                 ))}
                 {seriesMeta.map((series, index) => (
@@ -239,7 +279,7 @@ export function CumulativeCostPerProvider({ data, forecast }: CumulativeCostPerP
                     {...getLineAnimationProps(animate, { order: index % 5, role: 'secondary' })}
                   />
                 ))}
-              </LineChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </ChartReveal>
         )}

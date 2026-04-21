@@ -1,5 +1,8 @@
+import { useId } from 'react'
 import {
   ResponsiveContainer,
+  ComposedChart,
+  Area,
   LineChart,
   Line,
   XAxis,
@@ -12,7 +15,14 @@ import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
-import { CHART_COLORS, CHART_MARGIN, getLineAnimationProps } from './chart-theme'
+import {
+  CHART_AREA_GRADIENT,
+  CHART_COLORS,
+  CHART_MARGIN,
+  getAreaAnimationProps,
+  getLineAnimationProps,
+  scopedGradientId,
+} from './chart-theme'
 import { useModelColorHelpers } from '@/lib/model-color-context'
 import type { ModelCostChartPoint } from '@/lib/data-transforms'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
@@ -27,6 +37,7 @@ interface CostByModelOverTimeProps {
 export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) {
   const { t } = useTranslation()
   const { getModelColor } = useModelColorHelpers()
+  const uid = useId().replace(/:/g, '')
   const topModel =
     models
       .map((model) => ({
@@ -115,7 +126,33 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
         {(animate) => (
           <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={data} margin={CHART_MARGIN}>
+              <ComposedChart data={data} margin={CHART_MARGIN}>
+                <defs>
+                  {models.map((model) => {
+                    const color = getModelColor(model)
+                    const id = scopedGradientId(uid, model)
+
+                    return (
+                      <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
+                        <stop
+                          offset="0%"
+                          stopColor={color}
+                          stopOpacity={CHART_AREA_GRADIENT.topOpacity}
+                        />
+                        <stop
+                          offset="60%"
+                          stopColor={color}
+                          stopOpacity={CHART_AREA_GRADIENT.middleOpacity}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={color}
+                          stopOpacity={CHART_AREA_GRADIENT.bottomOpacity}
+                        />
+                      </linearGradient>
+                    )
+                  })}
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
                 <XAxis
                   dataKey="date"
@@ -140,18 +177,19 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                 />
                 <Legend content={<ChartLegend />} />
                 {models.map((model, index) => (
-                  <Line
+                  <Area
                     key={model}
                     type="monotone"
                     dataKey={model}
                     stroke={getModelColor(model)}
+                    fill={`url(#${scopedGradientId(uid, model)})`}
                     name={model}
                     dot={false}
                     strokeWidth={1.5}
-                    {...getLineAnimationProps(animate, { order: index % 5 })}
+                    {...getAreaAnimationProps(animate, { order: index % 5 })}
                   />
                 ))}
-              </LineChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </ChartReveal>
         )}

@@ -15,13 +15,21 @@ vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer>{children}</MockSvgContainer>
   ),
-  LineChart: ({ children, data }: { children: ReactNode; data?: unknown }) => (
+  ComposedChart: ({ children, data }: { children: ReactNode; data?: unknown }) => (
     <MockSvgContainer
       data-testid="provider-cumulative-chart"
       data-chart={JSON.stringify(data ?? [])}
     >
       {children}
     </MockSvgContainer>
+  ),
+  Area: ({ name, stroke, fill }: { name?: string; stroke?: string; fill?: string }) => (
+    <MockSvgGroup
+      data-testid="provider-cumulative-area"
+      data-name={name ?? ''}
+      data-stroke={stroke ?? ''}
+      data-fill={fill ?? ''}
+    />
   ),
   Line: ({
     name,
@@ -99,6 +107,9 @@ describe('CumulativeCostPerProvider', () => {
     expect(screen.getByText(/Top driver: OpenAI/)).toBeInTheDocument()
 
     const lineEls = screen.getAllByTestId('provider-cumulative-line')
+    const areaEls = screen.getAllByTestId('provider-cumulative-area')
+    const openAiArea = areaEls.find((entry) => entry.getAttribute('data-name') === 'OpenAI')
+    const anthropicArea = areaEls.find((entry) => entry.getAttribute('data-name') === 'Anthropic')
     const openAiActual = lineEls.find((entry) => entry.getAttribute('data-name') === 'OpenAI')
     const openAiProjection = lineEls.find(
       (entry) => entry.getAttribute('data-name') === 'OpenAI Projection',
@@ -108,8 +119,12 @@ describe('CumulativeCostPerProvider', () => {
       (entry) => entry.getAttribute('data-name') === 'Anthropic Projection',
     )
 
-    expect(openAiActual).toHaveAttribute('data-stroke', getProviderBadgeStyle('OpenAI').color)
-    expect(anthropicActual).toHaveAttribute('data-stroke', getProviderBadgeStyle('Anthropic').color)
+    expect(openAiArea).toHaveAttribute('data-stroke', getProviderBadgeStyle('OpenAI').color)
+    expect(anthropicArea).toHaveAttribute('data-stroke', getProviderBadgeStyle('Anthropic').color)
+    expect(openAiArea).toHaveAttribute('data-fill', expect.stringMatching(/^url\(#grad-/))
+    expect(anthropicArea).toHaveAttribute('data-fill', expect.stringMatching(/^url\(#grad-/))
+    expect(openAiActual).toBeUndefined()
+    expect(anthropicActual).toBeUndefined()
     expect(openAiProjection).toHaveAttribute('data-dash', '5 5')
     expect(anthropicProjection).toHaveAttribute('data-dash', '5 5')
 
@@ -156,6 +171,8 @@ describe('CumulativeCostPerProvider', () => {
       { date: '2026-04', openaiCumulative: 74, anthropicCumulative: 42 },
     ])
     expect(screen.queryByText(/Projection/)).not.toBeInTheDocument()
+    const areaEls = screen.getAllByTestId('provider-cumulative-area')
+    expect(areaEls).toHaveLength(2)
   })
 })
 

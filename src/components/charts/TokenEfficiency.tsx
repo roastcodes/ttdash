@@ -14,10 +14,12 @@ import {
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import {
+  CHART_AREA_GRADIENT,
   CHART_COLORS,
   CHART_MARGIN,
   getAreaAnimationProps,
   getLineAnimationProps,
+  scopedGradientId,
 } from './chart-theme'
 import { computeMovingAverage } from '@/lib/calculations'
 import { CHART_HELP } from '@/lib/help-content'
@@ -32,6 +34,7 @@ interface TokenEfficiencyProps {
 export function TokenEfficiency({ data }: TokenEfficiencyProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
+  const efficiencyGradientId = scopedGradientId(uid, 'efficiency')
 
   const { chartData, avg } = useMemo(() => {
     const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
@@ -68,9 +71,22 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
             <ResponsiveContainer width="100%" height={250}>
               <ComposedChart data={chartData} margin={CHART_MARGIN}>
                 <defs>
-                  <linearGradient id={`${uid}-effGrad`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={CHART_COLORS.input} stopOpacity={0.2} />
-                    <stop offset="100%" stopColor={CHART_COLORS.input} stopOpacity={0} />
+                  <linearGradient id={efficiencyGradientId} x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="0%"
+                      stopColor={CHART_COLORS.input}
+                      stopOpacity={CHART_AREA_GRADIENT.topOpacity}
+                    />
+                    <stop
+                      offset="60%"
+                      stopColor={CHART_COLORS.input}
+                      stopOpacity={CHART_AREA_GRADIENT.middleOpacity}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor={CHART_COLORS.input}
+                      stopOpacity={CHART_AREA_GRADIENT.bottomOpacity}
+                    />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
@@ -105,7 +121,7 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
                   type="monotone"
                   dataKey="efficiency"
                   stroke={CHART_COLORS.input}
-                  fill={`url(#${uid}-effGrad)`}
+                  fill={`url(#${efficiencyGradientId})`}
                   strokeWidth={1.5}
                   name={t('charts.tokenEfficiency.series')}
                   dot={false}
