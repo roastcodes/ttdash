@@ -4,11 +4,14 @@ import { screen } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsModal } from '@/components/features/settings/SettingsModal'
 import { initI18n } from '@/lib/i18n'
+import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 import {
   buildSettingsModalProps,
   renderSettingsModal,
   stubToktrackVersionStatus,
 } from './settings-modal-test-helpers'
+
+const MOCK_NEWER_VERSION = '2.5.1'
 
 describe('SettingsModal toktrack version status', () => {
   beforeAll(async () => {
@@ -21,17 +24,17 @@ describe('SettingsModal toktrack version status', () => {
 
   it('loads and displays the pinned toktrack version state when the dialog opens', async () => {
     const fetchMock = stubToktrackVersionStatus({
-      configuredVersion: '2.5.0',
-      latestVersion: '2.4.1',
+      configuredVersion: TOKTRACK_VERSION,
+      latestVersion: MOCK_NEWER_VERSION,
       isLatest: false,
       lookupStatus: 'ok',
     })
 
     renderSettingsModal()
 
-    expect(screen.getByTestId('settings-toktrack-version')).toHaveTextContent('2.5.0')
+    expect(screen.getByTestId('settings-toktrack-version')).toHaveTextContent(TOKTRACK_VERSION)
     expect(await screen.findByTestId('settings-toktrack-status')).toHaveTextContent(
-      'Update available: 2.4.1',
+      `Update available: ${MOCK_NEWER_VERSION}`,
     )
     expect(fetchMock).toHaveBeenCalledWith('/api/toktrack/version-status')
   })

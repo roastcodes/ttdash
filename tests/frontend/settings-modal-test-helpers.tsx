@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react'
 import { vi } from 'vitest'
 import { SettingsModal } from '@/components/features/settings/SettingsModal'
+import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 import { renderWithAppProviders } from '../test-utils'
 
 const defaultSectionVisibility = {
@@ -75,8 +76,8 @@ export function renderSettingsModal(overrides: Partial<ComponentProps<typeof Set
 
 export function stubToktrackVersionStatus(
   body = {
-    configuredVersion: '2.5.0',
-    latestVersion: '2.5.0',
+    configuredVersion: TOKTRACK_VERSION,
+    latestVersion: TOKTRACK_VERSION,
     isLatest: true,
     lookupStatus: 'ok',
   },
