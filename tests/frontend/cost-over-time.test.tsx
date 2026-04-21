@@ -1,22 +1,14 @@
 // @vitest-environment jsdom
 
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { ChartLegend } from '@/components/charts/ChartLegend'
 import { CostOverTime } from '@/components/charts/CostOverTime'
-import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
+import { renderWithTooltip } from '../test-utils'
 
 describe('CostOverTime', () => {
-  beforeEach(async () => {
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    )
+  beforeAll(async () => {
     await initI18n('en')
   })
 
@@ -27,11 +19,7 @@ describe('CostOverTime', () => {
       { date: '2026-04-03', cost: 6 },
     ]
 
-    render(
-      <TooltipProvider>
-        <CostOverTime data={data} />
-      </TooltipProvider>,
-    )
+    renderWithTooltip(<CostOverTime data={data} />)
 
     expect(screen.getByText(/latest \$6\.00 · peak \$12\.0 on 04\/02/i)).toBeInTheDocument()
     expect(data.map((point) => point.date)).toEqual(['2026-04-01', '2026-04-02', '2026-04-03'])

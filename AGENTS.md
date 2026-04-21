@@ -24,7 +24,22 @@ Frontend code is TypeScript + React. Follow the existing style: 2-space indentat
 
 ## Testing Guidelines
 
-Automated tests are part of the repo now. Before opening a PR, run `npm run verify` and `npm run test:e2e`. If you want the same gate the release workflow uses, also run `npm run test:unit:coverage`. If local port `3015` is already in use, run Playwright with `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`. Continue to manually verify the main flows affected by the change: dashboard load, auto-import, JSON upload, filtering, and export actions. If you add tests, prefer focused `*.test.ts` or `*.test.tsx` coverage for data transforms, hooks, or complex UI behavior.
+Automated tests are part of the repo now. Before opening a PR, run `npm run verify:full`. If you only need the main local gate without Playwright, run `npm run verify`. If local port `3015` is already in use, run Playwright with `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`. Use `npm run test:timings` to inspect the slowest Vitest suites and cases after larger test changes, but do not run it in parallel with another Vitest command that writes the same JUnit report.
+
+When adding tests:
+
+- use `tests/unit` for pure logic, transforms, formatting, and small server helpers
+- use `tests/frontend` for React/jsdom behavior
+- use `tests/integration` for local server, CLI, filesystem, and API behavior without a browser
+- use `tests/e2e` only for real browser journeys
+- prefer focused `*.test.ts` or `*.test.tsx` files over broad catch-all regression suites
+- use the shared helpers in `tests/test-utils.tsx` instead of ad hoc provider wrappers
+- use real subprocesses only when shell/PATH/CLI or cross-process behavior is the thing being tested
+- split files once they mix unrelated concerns like content, navigation, localization, motion, or keyboard behavior
+- keep `waitFor(...)` for real eventual consistency only, not as the default assertion pattern
+- when improving coverage, prefer critical branch-heavy runtime modules like `src/lib/api.ts`, `src/hooks/use-usage-data.ts`, and `src/hooks/use-dashboard-controller.ts` over adding another broad dashboard catch-all test
+
+Continue to manually verify the main flows affected by the change: dashboard load, auto-import, JSON upload, filtering, and export actions.
 
 ## Commit & Pull Request Guidelines
 

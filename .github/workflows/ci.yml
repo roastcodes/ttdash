@@ -87,7 +87,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Run Windows server helper smoke tests
-        run: npx vitest run tests/unit/server-helpers.test.ts
+        run: npx vitest run tests/unit/server-helpers-runner-core.test.ts tests/unit/server-helpers-network.test.ts
 
       - name: Build production bundle
         run: npm run build:app

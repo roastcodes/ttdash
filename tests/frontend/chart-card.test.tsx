@@ -1,25 +1,18 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, screen } from '@testing-library/react'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { ChartCard } from '@/components/charts/ChartCard'
 import { initI18n } from '@/lib/i18n'
+import { renderWithAppProviders } from '../test-utils'
 
 describe('ChartCard', () => {
-  beforeEach(async () => {
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    )
+  beforeAll(async () => {
     await initI18n('en')
   })
 
   it('uses localized stat labels in the expanded view', () => {
-    render(
+    renderWithAppProviders(
       <ChartCard
         title="Demo chart"
         chartData={[
@@ -39,7 +32,7 @@ describe('ChartCard', () => {
   }, 15_000)
 
   it('reveals the expand control for keyboard focus on desktop', () => {
-    render(
+    renderWithAppProviders(
       <ChartCard title="Demo chart">
         <div>Content</div>
       </ChartCard>,

@@ -1,20 +1,25 @@
 // @vitest-environment jsdom
 
 import { cloneElement, type ReactElement, type ReactNode } from 'react'
-import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { screen } from '@testing-library/react'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as calculations from '@/lib/calculations'
 import { ProviderCostForecast } from '@/components/features/forecast/ProviderCostForecast'
-import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 import { getProviderBadgeStyle } from '@/lib/model-utils'
 import type { DailyUsage } from '@/types'
+import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
+import { renderWithTooltip } from '../test-utils'
 
 vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  ComposedChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ResponsiveContainer: ({ children }: { children: ReactNode }) => (
+    <MockSvgContainer>{children}</MockSvgContainer>
+  ),
+  ComposedChart: ({ children }: { children: ReactNode }) => (
+    <MockSvgContainer>{children}</MockSvgContainer>
+  ),
   Area: ({ dataKey, fill }: { dataKey?: string; fill?: string }) => (
-    <div data-testid="provider-area" data-key={dataKey} data-fill={fill ?? ''} />
+    <MockSvgGroup data-testid="provider-area" data-key={dataKey} data-fill={fill ?? ''} />
   ),
   Line: ({
     name,
@@ -25,7 +30,7 @@ vi.mock('recharts', () => ({
     stroke?: string
     strokeDasharray?: string
   }) => (
-    <div
+    <MockSvgGroup
       data-testid="provider-line"
       data-name={name ?? ''}
       data-stroke={stroke ?? ''}
@@ -99,17 +104,12 @@ function buildDay(
 }
 
 describe('ProviderCostForecast', () => {
-  beforeEach(async () => {
-    vi.restoreAllMocks()
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    )
+  beforeAll(async () => {
     await initI18n('en')
+  })
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('renders provider-specific actual and forecast series without a computed tooltip total', () => {
@@ -128,11 +128,7 @@ describe('ProviderCostForecast', () => {
       ]),
     ]
 
-    render(
-      <TooltipProvider>
-        <ProviderCostForecast data={data} />
-      </TooltipProvider>,
-    )
+    renderWithTooltip(<ProviderCostForecast data={data} />)
 
     expect(screen.getByText('Current month forecast by provider')).toBeInTheDocument()
     const chips = screen.getAllByTestId('provider-forecast-chip')
@@ -172,11 +168,7 @@ describe('ProviderCostForecast', () => {
       buildDay('2026-04-04', [{ modelName: 'gpt-5.4', cost: 16 }]),
     ]
 
-    render(
-      <TooltipProvider>
-        <ProviderCostForecast data={openAiOnlyData} />
-      </TooltipProvider>,
-    )
+    renderWithTooltip(<ProviderCostForecast data={openAiOnlyData} />)
 
     const chips = screen.getAllByTestId('provider-forecast-chip')
     expect(chips).toHaveLength(1)
@@ -201,11 +193,7 @@ describe('ProviderCostForecast', () => {
       buildDay('2026-04-02', [{ modelName: 'gpt-5.4', cost: 14 }]),
     ]
 
-    render(
-      <TooltipProvider>
-        <ProviderCostForecast data={data} viewMode="monthly" />
-      </TooltipProvider>,
-    )
+    renderWithTooltip(<ProviderCostForecast data={data} viewMode="monthly" />)
 
     expect(
       screen.getByText('Provider forecast is available in daily view only'),
