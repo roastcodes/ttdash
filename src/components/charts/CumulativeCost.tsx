@@ -28,13 +28,17 @@ interface CumulativeCostProps {
   rawData: DailyUsage[]
 }
 
+type CumulativeChartPoint = ChartDataPoint & {
+  projected?: number | undefined
+}
+
 /** Renders cumulative cost with the optional month-end projection. */
 export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
 
   // Add projected end-of-month line
-  const chartData = useMemo(() => {
+  const chartData = useMemo<CumulativeChartPoint[]>(() => {
     if (data.length < 3) return data
     const last = data[data.length - 1]
     if (!last?.date || !last.cumulative) return data
@@ -49,14 +53,10 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
 
     const projected = last.cumulative + projectedDailyBurn * (daysInMonth - dayNum)
     const endDate = `${currentMonth}-${String(daysInMonth).padStart(2, '0')}`
+    const bridgePoint: CumulativeChartPoint = { ...last, projected: last.cumulative }
+    const projectedPoint: CumulativeChartPoint = { date: endDate, projected, cost: 0, ma7: 0 }
 
-    return [
-      ...data.map((d) => ({ ...d, projected: undefined as number | undefined })),
-      // Bridge point on last actual date
-      { ...data[data.length - 1], projected: last.cumulative },
-      // Projected end-of-month point
-      { date: endDate, cumulative: undefined as number | undefined, projected, cost: 0, ma7: 0 },
-    ]
+    return [...data, bridgePoint, projectedPoint]
   }, [data, rawData])
 
   const lastCumulative = data[data.length - 1]?.cumulative ?? 0
@@ -66,7 +66,7 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
       title={t('charts.cumulativeCost.title')}
       subtitle={t('charts.cumulativeCost.total', { value: formatCurrency(lastCumulative) })}
       info={CHART_HELP.cumulativeCost}
-      chartData={data as unknown as Record<string, unknown>[]}
+      chartData={data}
       valueKey="cumulative"
       valueFormatter={formatCurrency}
     >
@@ -74,7 +74,7 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
         {(animate) => (
           <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={chartData as Record<string, unknown>[]} margin={CHART_MARGIN}>
+              <ComposedChart data={chartData} margin={CHART_MARGIN}>
                 <defs>
                   <linearGradient id={`${uid}-cumulGrad`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={CHART_COLORS.cumulative} stopOpacity={0.4} />

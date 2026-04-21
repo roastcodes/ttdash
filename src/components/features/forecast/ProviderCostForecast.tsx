@@ -297,7 +297,7 @@ export function ProviderCostForecast({
       }
       info={CHART_HELP.providerForecast}
       expandable={expandable}
-      chartData={chartData as Record<string, unknown>[]}
+      chartData={chartData}
       valueFormatter={formatCurrency}
     >
       <ChartAnimationAware>

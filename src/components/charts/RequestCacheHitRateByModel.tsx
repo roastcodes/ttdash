@@ -464,7 +464,7 @@ export function RequestCacheHitRateByModel({
         trailing: formatRate(summary.total[trendRate]),
       })}
       info={CHART_HELP.requestCacheHitRate}
-      chartData={barData as unknown as Record<string, unknown>[]}
+      chartData={barData}
       valueKey="totalRate"
       valueFormatter={formatRate}
       expandedExtra={expandedExtra}

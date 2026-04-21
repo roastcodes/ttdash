@@ -252,7 +252,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
       }
       info={CHART_HELP.requestsOverTime}
       summary={summary ? <FormattedValue value={summary.totalRequests} type="number" /> : undefined}
-      chartData={data as unknown as Record<string, unknown>[]}
+      chartData={data}
       valueKey="totalRequests"
       valueFormatter={formatRequests}
       expandedExtra={expandedChart}

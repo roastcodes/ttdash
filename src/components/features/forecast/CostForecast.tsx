@@ -213,7 +213,7 @@ export function CostForecast({
         summary={<FormattedValue value={forecastTotal} type="currency" />}
         info={CHART_HELP.forecast}
         expandable={expandable}
-        chartData={chartData as unknown as Record<string, unknown>[]}
+        chartData={chartData}
         valueKey="cost"
         valueFormatter={formatCurrency}
       >
