@@ -105,7 +105,7 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {heuristicModels.length > 0 && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/12 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/12 px-3 py-2 text-xs font-medium text-amber-800 dark:text-amber-50">
             {t('cacheRoi.heuristicFallback', {
               count: heuristicModels.length,
               modelsLabel:
