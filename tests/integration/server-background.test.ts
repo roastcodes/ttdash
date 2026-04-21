@@ -8,7 +8,6 @@ import {
   createSharedServerContext,
   getCliDataDir,
   getCliConfigDir,
-  getFreePort,
   isPosix,
   permissionBits,
   readBackgroundRegistry,
@@ -38,23 +37,19 @@ describe('local server background and CLI integration', () => {
         ...createCliEnv(backgroundRoot),
         API_PREFIX: '/custom-api',
       }
-      const backgroundPort = await getFreePort()
-      const backgroundUrl = `http://127.0.0.1:${backgroundPort}`
 
       try {
-        const startResult = await runCli(
-          ['--background', '--no-open', '--port', String(backgroundPort)],
-          {
-            env: backgroundEnv,
-          },
-        )
+        const startResult = await runCli(['--background', '--no-open'], {
+          env: backgroundEnv,
+        })
         expect(startResult.code).toBe(0)
 
-        await waitForHttpOk(`${backgroundUrl}/custom-api/usage`)
         const [instance] = await waitForBackgroundRegistry(
           backgroundRoot,
           (entries) => entries.length === 1,
         )
+        const backgroundUrl = instance!.url
+        await waitForHttpOk(`${backgroundUrl}/custom-api/usage`)
         expect(instance?.apiPrefix).toBe('/custom-api')
         expect(instance?.logFile).toBeTruthy()
         expect(permissionBits(instance!.logFile!)).toBe(0o600)
@@ -73,43 +68,44 @@ describe('local server background and CLI integration', () => {
   it('starts background servers and stops the selected instance via the CLI', async () => {
     const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-test-'))
     const backgroundEnv = createCliEnv(backgroundRoot)
-    const firstPort = await getFreePort()
-    const secondPort = await getFreePort()
-    const firstUrl = `http://127.0.0.1:${firstPort}`
-    const secondUrl = `http://127.0.0.1:${secondPort}`
 
     try {
-      const firstStart = await runCli(['--background', '--no-open', '--port', String(firstPort)], {
+      const firstStart = await runCli(['--background', '--no-open'], {
         env: backgroundEnv,
       })
       expect(firstStart.code).toBe(0)
+
+      const [firstInstance] = await waitForBackgroundRegistry(
+        backgroundRoot,
+        (entries) => entries.length === 1,
+      )
+      const firstUrl = firstInstance!.url
       await waitForUrlAvailable(firstUrl)
 
-      const secondStart = await runCli(
-        ['--background', '--no-open', '--port', String(secondPort)],
-        {
-          env: backgroundEnv,
-        },
-      )
+      const secondStart = await runCli(['--background', '--no-open'], {
+        env: backgroundEnv,
+      })
       expect(secondStart.code).toBe(0)
+
+      const registry = await waitForBackgroundRegistry(
+        backgroundRoot,
+        (entries) => entries.length === 2,
+        30_000,
+      )
+      const secondIndex = registry.findIndex((entry) => entry.url !== firstUrl)
+      const secondUrl = registry[secondIndex]!.url
       await waitForUrlAvailable(secondUrl)
 
       const stopSecond = await runCli(['stop'], {
         env: backgroundEnv,
-        input: '2\n',
+        input: `${secondIndex + 1}\n`,
       })
       expect(stopSecond.code).toBe(0)
       await waitForServerUnavailable(secondUrl)
-
-      await waitForBackgroundRegistry(
-        backgroundRoot,
-        (entries) => entries.some((entry) => entry.url === firstUrl),
-        15_000,
-      )
+      await waitForUrlAvailable(firstUrl)
 
       const stopFirst = await runCli(['stop'], {
         env: backgroundEnv,
-        input: '1\n',
       })
       expect(stopFirst.code).toBe(0)
       await waitForServerUnavailable(firstUrl)
@@ -122,30 +118,26 @@ describe('local server background and CLI integration', () => {
   it('keeps both instances in the registry when background starts happen concurrently', async () => {
     const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-parallel-test-'))
     const backgroundEnv = createCliEnv(backgroundRoot)
-    const firstPort = await getFreePort()
-    const secondPort = await getFreePort()
-    const firstUrl = `http://127.0.0.1:${firstPort}`
-    const secondUrl = `http://127.0.0.1:${secondPort}`
 
     try {
       const [firstStart, secondStart] = await Promise.all([
-        runCli(['--background', '--no-open', '--port', String(firstPort)], { env: backgroundEnv }),
-        runCli(['--background', '--no-open', '--port', String(secondPort)], { env: backgroundEnv }),
+        runCli(['--background', '--no-open'], { env: backgroundEnv }),
+        runCli(['--background', '--no-open'], { env: backgroundEnv }),
       ])
 
       expect(firstStart.code).toBe(0)
       expect(secondStart.code).toBe(0)
-      await waitForUrlAvailable(firstUrl)
-      await waitForUrlAvailable(secondUrl)
 
       const registry = await waitForBackgroundRegistry(
         backgroundRoot,
-        (entries) =>
-          entries.length === 2 &&
-          [firstUrl, secondUrl].every((url) => entries.some((entry) => entry.url === url)),
+        (entries) => entries.length === 2,
         30_000,
       )
+      const [firstInstance, secondInstance] = registry
+      await waitForUrlAvailable(firstInstance!.url)
+      await waitForUrlAvailable(secondInstance!.url)
       expect(registry).toHaveLength(2)
+      expect(new Set(registry.map((entry) => entry.url)).size).toBe(2)
     } finally {
       await stopAllBackgroundServers(backgroundEnv, backgroundRoot)
       rmSync(backgroundRoot, { recursive: true, force: true })

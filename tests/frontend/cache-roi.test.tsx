@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
 import { screen } from '@testing-library/react'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { CacheROI } from '@/components/features/cache-roi/CacheROI'
-import { initI18n } from '@/lib/i18n'
+import { getCurrentLanguage, initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
 import { renderWithTooltip } from '../test-utils'
 
@@ -36,8 +36,14 @@ vi.mock('@/components/ui/AnimatedBarFill', () => ({
 }))
 
 describe('CacheROI', () => {
+  const previousLanguage = getCurrentLanguage()
+
   beforeAll(async () => {
     await initI18n('en')
+  })
+
+  afterAll(async () => {
+    await initI18n(previousLanguage)
   })
 
   it('treats negative savings as a loss and clamps the comparison bar width', () => {

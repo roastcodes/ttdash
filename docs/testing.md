@@ -107,8 +107,9 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 
 ## Local Commands
 
-- Main developer gate: `npm run verify`
-- Release-style local gate: `npm run verify:full`
+- Required pre-PR gate: `npm run verify:full`
+- Run `npm run verify:full` before opening a PR to ensure all tests and checks pass.
+- Faster inner-loop gate: `npm run verify`
 - Architecture tests only: `npm run test:architecture`
 - Dependency graph gate: `npm run check:deps`
 - Coverage-only unit/integration gate: `npm run test:unit:coverage`

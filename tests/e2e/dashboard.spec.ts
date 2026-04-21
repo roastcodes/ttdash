@@ -34,7 +34,7 @@ function createTrustedMutationHeaders(baseURL?: string) {
   }
 
   return {
-    Origin: baseURL,
+    Origin: new URL(baseURL).origin,
   }
 }
 
