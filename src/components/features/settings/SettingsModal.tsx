@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { InfoHeading } from '@/components/features/help/InfoHeading'
+import { InfoHeading } from '@/components/ui/info-heading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatDateTimeFull } from '@/lib/formatters'
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n'

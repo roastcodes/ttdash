@@ -1,16 +1,21 @@
 // @vitest-environment jsdom
 
 import { cloneElement, type ReactElement, type ReactNode } from 'react'
-import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { screen } from '@testing-library/react'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CostForecast } from '@/components/features/forecast/CostForecast'
-import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
+import { MockSvgContainer } from '../recharts-test-utils'
+import { renderWithTooltip } from '../test-utils'
 
 vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  ComposedChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ResponsiveContainer: ({ children }: { children: ReactNode }) => (
+    <MockSvgContainer>{children}</MockSvgContainer>
+  ),
+  ComposedChart: ({ children }: { children: ReactNode }) => (
+    <MockSvgContainer>{children}</MockSvgContainer>
+  ),
   Area: () => null,
   Line: () => null,
   XAxis: () => null,
@@ -43,16 +48,12 @@ vi.mock('recharts', () => ({
 }))
 
 describe('CostForecast', () => {
-  beforeEach(async () => {
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    )
+  beforeAll(async () => {
     await initI18n('en')
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
   it('does not show a computed total in the forecast tooltip', () => {
@@ -107,11 +108,7 @@ describe('CostForecast', () => {
       },
     ]
 
-    render(
-      <TooltipProvider>
-        <CostForecast data={data} />
-      </TooltipProvider>,
-    )
+    renderWithTooltip(<CostForecast data={data} />)
 
     expect(screen.getByText('Actual cost:')).toBeInTheDocument()
     expect(screen.getByText('Forecast:')).toBeInTheDocument()
@@ -194,11 +191,7 @@ describe('CostForecast', () => {
       },
     ]
 
-    render(
-      <TooltipProvider>
-        <CostForecast data={fullMonthData.slice(1)} forecastData={fullMonthData} />
-      </TooltipProvider>,
-    )
+    renderWithTooltip(<CostForecast data={fullMonthData.slice(1)} forecastData={fullMonthData} />)
 
     expect(screen.getByText(/So far: \$36\.0/)).toBeInTheDocument()
     expect(screen.queryByText(/So far: \$30\.0/)).not.toBeInTheDocument()

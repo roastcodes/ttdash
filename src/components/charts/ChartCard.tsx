@@ -11,8 +11,9 @@ import { useTranslation } from 'react-i18next'
 import { motion, useInView } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { EXPAND_BUTTON_CLASSNAME } from '@/components/ui/expand-button-styles'
 import { Maximize2 } from 'lucide-react'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoButton } from '@/components/ui/InfoButton'
 import {
   DASHBOARD_MOTION,
   useDashboardElementMotion,
@@ -245,7 +246,7 @@ export function ChartCard({
               type="button"
               onClick={() => setExpanded(true)}
               tabIndex={isSectionVisible ? undefined : -1}
-              className="absolute top-3 right-3 z-10 rounded-lg border border-border/50 bg-background/80 p-1.5 text-muted-foreground opacity-100 backdrop-blur-sm transition-opacity duration-200 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
+              className={EXPAND_BUTTON_CLASSNAME}
               title={t('common.expand')}
               aria-label={t('common.expandWithTitle', { title })}
             >

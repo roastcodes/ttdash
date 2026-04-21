@@ -1,6 +1,6 @@
-import { motion, type MotionStyle } from 'framer-motion'
-import { useRef } from 'react'
 import type { CSSProperties } from 'react'
+import { useRef } from 'react'
+import { motion, type MotionStyle } from 'framer-motion'
 import { DASHBOARD_MOTION, useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
 import { cn } from '@/lib/cn'
 import { useShouldReduceMotion } from '@/lib/motion'
@@ -54,7 +54,7 @@ export function AnimatedBarFill({
     <motion.div
       ref={fillRef}
       className={cn(className)}
-      {...(style ? { style: style as unknown as MotionStyle } : {})}
+      {...(style ? { style: style as MotionStyle } : {})}
       initial={false}
       animate={{ width: isActive ? width : '0%' }}
       transition={{

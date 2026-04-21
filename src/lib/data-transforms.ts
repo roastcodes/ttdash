@@ -97,6 +97,12 @@ function getSortedData(data: DailyUsage[]) {
   return sortByDate(data)
 }
 
+// Fixed UTC reference date used only to generate weekday labels in calendar order.
+// The displayed weekday names depend on locale, not on the specific calendar year.
+const WEEKDAY_REFERENCE_YEAR = 2024
+const WEEKDAY_REFERENCE_MONTH = 0
+const WEEKDAY_REFERENCE_DAY = 1
+
 function createWeekdayLabels(locale: string) {
   const weekdayFormatter = new Intl.DateTimeFormat(locale, {
     weekday: 'short',
@@ -105,7 +111,11 @@ function createWeekdayLabels(locale: string) {
 
   return Array.from({ length: 7 }, (_, index) =>
     weekdayFormatter
-      .format(new Date(Date.UTC(2024, 0, 1 + index)))
+      .format(
+        new Date(
+          Date.UTC(WEEKDAY_REFERENCE_YEAR, WEEKDAY_REFERENCE_MONTH, WEEKDAY_REFERENCE_DAY + index),
+        ),
+      )
       .replace('.', '')
       .slice(0, 2),
   )

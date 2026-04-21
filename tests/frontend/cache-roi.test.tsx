@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { screen } from '@testing-library/react'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { CacheROI } from '@/components/features/cache-roi/CacheROI'
-import { TooltipProvider } from '@/components/ui/tooltip'
-import { initI18n } from '@/lib/i18n'
+import { getCurrentLanguage, initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
+import { renderWithTooltip } from '../test-utils'
 
-vi.mock('@/components/features/animations/AnimatedBarFill', () => ({
+vi.mock('@/components/ui/AnimatedBarFill', () => ({
   AnimatedBarFill: ({
     width,
     className,
@@ -36,20 +36,15 @@ vi.mock('@/components/features/animations/AnimatedBarFill', () => ({
 }))
 
 describe('CacheROI', () => {
-  beforeEach(async () => {
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    )
+  let previousLanguage = getCurrentLanguage()
+
+  beforeAll(async () => {
+    previousLanguage = getCurrentLanguage()
     await initI18n('en')
   })
 
-  afterEach(() => {
-    vi.unstubAllGlobals()
+  afterAll(async () => {
+    await initI18n(previousLanguage)
   })
 
   it('treats negative savings as a loss and clamps the comparison bar width', () => {
@@ -80,11 +75,7 @@ describe('CacheROI', () => {
       },
     ]
 
-    const { container } = render(
-      <TooltipProvider>
-        <CacheROI data={data} />
-      </TooltipProvider>,
-    )
+    const { container } = renderWithTooltip(<CacheROI data={data} />)
 
     const savingsValue = screen.getByText('Savings').nextElementSibling as HTMLElement
     expect(savingsValue).toHaveClass('text-rose-700')
@@ -124,11 +115,7 @@ describe('CacheROI', () => {
       },
     ]
 
-    render(
-      <TooltipProvider>
-        <CacheROI data={data} />
-      </TooltipProvider>,
-    )
+    renderWithTooltip(<CacheROI data={data} />)
 
     const fills = screen.getAllByTestId('animated-bar-fill')
     expect(fills).toHaveLength(3)

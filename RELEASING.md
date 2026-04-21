@@ -42,9 +42,13 @@ If branch protection or rulesets block the `ttdash-release` app from writing to 
 Optional local confidence check before starting the workflow:
 
 ```bash
-npm run verify
-npm run test:unit:coverage
-PLAYWRIGHT_TEST_PORT=3016 npm_config_cache=/tmp/ttdash-npm-cache npm run test:e2e
+npm run verify:full
+```
+
+If port `3015` is already occupied locally, keep the same one-pass gate and only override the Playwright port:
+
+```bash
+PLAYWRIGHT_TEST_PORT=3016 npm_config_cache=/tmp/ttdash-npm-cache npm run verify:full
 ```
 
 ## What the Release Workflow Does

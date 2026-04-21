@@ -7,10 +7,15 @@ import { ForecastZoomDialog } from '@/components/features/forecast/ForecastZoomD
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
+import { MockSvgContainer } from '../recharts-test-utils'
 
 vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  ComposedChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ResponsiveContainer: ({ children }: { children: ReactNode }) => (
+    <MockSvgContainer>{children}</MockSvgContainer>
+  ),
+  ComposedChart: ({ children }: { children: ReactNode }) => (
+    <MockSvgContainer>{children}</MockSvgContainer>
+  ),
   Area: () => null,
   Line: () => null,
   XAxis: () => null,

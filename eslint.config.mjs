@@ -1,6 +1,7 @@
 import { defineConfig } from 'eslint/config'
 import js from '@eslint/js'
 import eslintConfigPrettier from 'eslint-config-prettier'
+import boundaries from 'eslint-plugin-boundaries'
 import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript'
 import importPlugin from 'eslint-plugin-import-x'
 import jestDom from 'eslint-plugin-jest-dom'
@@ -81,11 +82,59 @@ export default defineConfig(
   {
     files: ['src/**/*.{ts,tsx}'],
     extends: [...tseslint.configs.recommendedTypeCheckedOnly],
+    plugins: {
+      boundaries,
+    },
     languageOptions: {
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
+    },
+    settings: {
+      'boundaries/include': ['src/**/*.{ts,tsx}'],
+      'boundaries/elements': [
+        {
+          type: 'app-shell',
+          pattern: 'src/App.tsx',
+          mode: 'full',
+        },
+        {
+          type: 'app-shell',
+          pattern: 'src/main.tsx',
+          mode: 'full',
+        },
+        {
+          type: 'components',
+          pattern: 'src/components/**/*',
+          mode: 'full',
+        },
+        {
+          type: 'hooks',
+          pattern: 'src/hooks/**/*',
+          mode: 'full',
+        },
+        {
+          type: 'lib-react',
+          pattern: 'src/lib/**/*.tsx',
+          mode: 'full',
+        },
+        {
+          type: 'lib-i18n',
+          pattern: 'src/lib/i18n.ts',
+          mode: 'full',
+        },
+        {
+          type: 'lib-core',
+          pattern: 'src/lib/**/*.ts',
+          mode: 'full',
+        },
+        {
+          type: 'types',
+          pattern: 'src/types/**/*',
+          mode: 'full',
+        },
+      ],
     },
     rules: {
       '@typescript-eslint/no-misused-promises': [
@@ -98,6 +147,72 @@ export default defineConfig(
       ],
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      'boundaries/dependencies': [
+        'error',
+        {
+          default: 'allow',
+          checkAllOrigins: true,
+          rules: [
+            {
+              from: { type: 'lib-react' },
+              disallow: {
+                to: { type: ['app-shell', 'components', 'hooks'] },
+              },
+            },
+            {
+              from: { type: 'lib-core' },
+              disallow: {
+                to: { type: ['app-shell', 'components', 'hooks', 'lib-react'] },
+              },
+            },
+            {
+              from: { type: 'lib-i18n' },
+              disallow: {
+                to: { type: ['app-shell', 'components', 'hooks', 'lib-react', 'lib-core'] },
+              },
+            },
+            {
+              from: { type: 'types' },
+              disallow: {
+                to: {
+                  type: ['app-shell', 'components', 'hooks', 'lib-react', 'lib-core', 'lib-i18n'],
+                },
+              },
+            },
+            {
+              from: { type: 'components' },
+              disallow: {
+                to: { type: ['app-shell'] },
+              },
+            },
+            {
+              from: { type: 'hooks' },
+              disallow: {
+                to: { type: ['app-shell', 'components'] },
+              },
+            },
+            {
+              from: { type: ['lib-core', 'types'] },
+              disallow: {
+                dependency: {
+                  source: [
+                    'react',
+                    'react-dom',
+                    'react-i18next',
+                    'framer-motion',
+                    'recharts',
+                    'lucide-react',
+                    '@radix-ui/*',
+                    '@tanstack/react-query',
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      'boundaries/no-unknown': 'error',
+      'boundaries/no-unknown-files': 'error',
     },
   },
   {
@@ -146,6 +261,12 @@ export default defineConfig(
       ecmaVersion: 'latest',
     },
     settings: {
+      'import/resolver': {
+        typescript: {
+          alwaysTryTypes: true,
+          project: './tsconfig.json',
+        },
+      },
       'import-x/resolver-next': [
         createTypeScriptImportResolver({
           alwaysTryTypes: true,

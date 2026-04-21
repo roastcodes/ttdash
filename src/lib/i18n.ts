@@ -1,7 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import de from '@/locales/de/common.json'
-import en from '@/locales/en/common.json'
+import de from '../../shared/locales/de/common.json'
+import en from '../../shared/locales/en/common.json'
 import type { AppLanguage } from '@/types'
 
 /** Lists the languages supported by the app. */

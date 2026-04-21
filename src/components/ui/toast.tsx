@@ -1,22 +1,9 @@
 import type * as React from 'react'
-import { createContext, useContext, useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
+import { ToastContext, type Toast } from '@/lib/toast'
 import { getMotionAwareClasses, useShouldReduceMotion } from '@/lib/motion'
-
-interface Toast {
-  id: string
-  message: string
-  type?: 'success' | 'error' | 'info'
-}
-
-interface ToastContextValue {
-  toasts: Toast[]
-  addToast: (message: string, type?: Toast['type']) => void
-  removeToast: (id: string) => void
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null)
 
 /** Provides global toast state and live-region rendering. */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -78,9 +65,4 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-/** Returns the shared toast API. */
-export function useToast() {
-  const ctx = useContext(ToastContext)
-  if (!ctx) throw new Error('useToast must be used within ToastProvider')
-  return ctx
-}
+export { useToast } from '@/lib/toast'

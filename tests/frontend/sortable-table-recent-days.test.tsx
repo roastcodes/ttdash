@@ -1,93 +1,18 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ModelEfficiency } from '@/components/tables/ModelEfficiency'
-import { ProviderEfficiency } from '@/components/tables/ProviderEfficiency'
+import { fireEvent, screen, within } from '@testing-library/react'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { RecentDays } from '@/components/tables/RecentDays'
-import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
+import { renderWithTooltip } from '../test-utils'
 
-function renderWithProviders(ui: React.ReactNode) {
-  return render(<TooltipProvider>{ui}</TooltipProvider>)
-}
-
-describe('sortable tables', () => {
-  beforeEach(async () => {
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    )
+describe('sortable recent-days table', () => {
+  beforeAll(async () => {
     await initI18n('en')
   })
 
-  afterEach(() => {
-    vi.useRealTimers()
-    vi.unstubAllGlobals()
-  })
-
-  it('exposes accessible sort state for provider efficiency headers', () => {
-    renderWithProviders(
-      <ProviderEfficiency
-        providerMetrics={
-          new Map([
-            ['OpenAI', { cost: 10, tokens: 1000, requests: 5, cacheRead: 200, days: 2 }],
-            ['Anthropic', { cost: 5, tokens: 500, requests: 2, cacheRead: 50, days: 1 }],
-          ])
-        }
-        totalCost={15}
-      />,
-    )
-
-    const costButton = screen.getByRole('button', { name: /^cost$/i })
-    const requestsButton = screen.getByRole('button', { name: /^req$/i })
-    const costHeader = costButton.closest('th')
-    const requestsHeader = requestsButton.closest('th')
-
-    expect(costHeader).toHaveAttribute('aria-sort', 'descending')
-    expect(costButton).toBeInTheDocument()
-    expect(requestsHeader).toHaveAttribute('aria-sort', 'none')
-
-    fireEvent.click(requestsButton)
-    expect(screen.getByRole('button', { name: /^req$/i }).closest('th')).toHaveAttribute(
-      'aria-sort',
-      'descending',
-    )
-  }, 15_000)
-
-  it('renders model efficiency sort controls as buttons inside column headers', () => {
-    renderWithProviders(
-      <ModelEfficiency
-        modelCosts={
-          new Map([
-            ['GPT-5.4', { cost: 10, tokens: 1000, requests: 5, days: 2 }],
-            ['Sonnet 4.6', { cost: 5, tokens: 500, requests: 2, days: 1 }],
-          ])
-        }
-        totalCost={15}
-      />,
-    )
-
-    const costButton = screen.getByRole('button', { name: /^cost$/i })
-    const tokensButton = screen.getByRole('button', { name: /^tokens$/i })
-    const costHeader = costButton.closest('th')
-
-    expect(costHeader).toHaveAttribute('aria-sort', 'descending')
-    expect(costButton).toBeInTheDocument()
-
-    fireEvent.click(tokensButton)
-    expect(screen.getByRole('button', { name: /^tokens$/i }).closest('th')).toHaveAttribute(
-      'aria-sort',
-      'descending',
-    )
-  })
-
   it('updates aria-sort when recent days headers are toggled', () => {
-    renderWithProviders(
+    renderWithTooltip(
       <RecentDays
         data={[
           {
@@ -153,12 +78,12 @@ describe('sortable tables', () => {
 
     fireEvent.click(within(costHeader).getByRole('button', { name: /^cost$/i }))
     expect(costHeader).toHaveAttribute('aria-sort', 'ascending')
-  }, 15000)
+  }, 15_000)
 
   it('supports keyboard row activation for clickable recent-days rows', () => {
     const onClickDay = vi.fn()
 
-    renderWithProviders(
+    renderWithTooltip(
       <RecentDays
         onClickDay={onClickDay}
         data={[

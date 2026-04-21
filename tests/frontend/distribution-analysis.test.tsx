@@ -7,13 +7,14 @@ import { DistributionAnalysis } from '@/components/charts/DistributionAnalysis'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
+import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
 
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
+    <MockSvgContainer data-testid="responsive-container">{children}</MockSvgContainer>
   ),
   BarChart: ({ children }: { children: ReactNode }) => (
-    <div data-testid="distribution-bar-chart">{children}</div>
+    <MockSvgContainer data-testid="distribution-bar-chart">{children}</MockSvgContainer>
   ),
   Bar: ({
     children,
@@ -24,12 +25,12 @@ vi.mock('recharts', () => ({
     dataKey: string
     isAnimationActive?: boolean
   }) => (
-    <div
+    <MockSvgGroup
       data-testid={`distribution-bar-${dataKey}`}
       data-animate={String(Boolean(isAnimationActive))}
     >
       {children}
-    </div>
+    </MockSvgGroup>
   ),
   XAxis: () => null,
   YAxis: () => null,

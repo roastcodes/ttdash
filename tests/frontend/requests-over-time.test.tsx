@@ -1,24 +1,31 @@
 // @vitest-environment jsdom
 
 import type { ReactNode } from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, screen } from '@testing-library/react'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RequestsOverTime } from '@/components/charts/RequestsOverTime'
-import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 import type { RequestChartDataPoint } from '@/types'
+import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
+import { renderWithTooltip } from '../test-utils'
 
 vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  ComposedChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  PieChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  Pie: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ResponsiveContainer: ({ children }: { children: ReactNode }) => (
+    <MockSvgContainer>{children}</MockSvgContainer>
+  ),
+  ComposedChart: ({ children }: { children: ReactNode }) => (
+    <MockSvgContainer>{children}</MockSvgContainer>
+  ),
+  PieChart: ({ children }: { children: ReactNode }) => (
+    <MockSvgContainer>{children}</MockSvgContainer>
+  ),
+  Pie: ({ children }: { children: ReactNode }) => <MockSvgGroup>{children}</MockSvgGroup>,
   Cell: () => null,
   Area: ({ name, dataKey }: { name?: string; dataKey?: string }) => (
-    <div data-testid="request-area" data-name={name ?? ''} data-key={dataKey ?? ''} />
+    <MockSvgGroup data-testid="request-area" data-name={name ?? ''} data-key={dataKey ?? ''} />
   ),
   Line: ({ name, dataKey }: { name?: string; dataKey?: string }) => (
-    <div data-testid="request-line" data-name={name ?? ''} data-key={dataKey ?? ''} />
+    <MockSvgGroup data-testid="request-line" data-name={name ?? ''} data-key={dataKey ?? ''} />
   ),
   XAxis: () => null,
   YAxis: () => null,
@@ -51,16 +58,12 @@ function buildRequestPoint(
 }
 
 describe('RequestsOverTime', () => {
-  beforeEach(async () => {
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    )
+  beforeAll(async () => {
     await initI18n('en')
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
   it('renders all model lines instead of truncating the chart to the top five models', () => {
@@ -75,11 +78,7 @@ describe('RequestsOverTime', () => {
       }),
     ]
 
-    render(
-      <TooltipProvider>
-        <RequestsOverTime data={data} />
-      </TooltipProvider>,
-    )
+    renderWithTooltip(<RequestsOverTime data={data} />)
 
     const lineNames = screen
       .getAllByTestId('request-line')
@@ -144,11 +143,7 @@ describe('RequestsOverTime', () => {
       ),
     ]
 
-    render(
-      <TooltipProvider>
-        <RequestsOverTime data={data} />
-      </TooltipProvider>,
-    )
+    renderWithTooltip(<RequestsOverTime data={data} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Requests over time expand' }))
 

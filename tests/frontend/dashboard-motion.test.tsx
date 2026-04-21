@@ -213,6 +213,14 @@ describe('AnimatedDashboardSection', () => {
 
   it('treats item motion as active when IntersectionObserver is unavailable', async () => {
     vi.unstubAllGlobals()
+    delete (
+      window as Window &
+        typeof globalThis & {
+          IntersectionObserver?: typeof window.IntersectionObserver
+        }
+    ).IntersectionObserver
+    delete (globalThis as typeof globalThis & { IntersectionObserver?: unknown })
+      .IntersectionObserver
 
     render(
       <AnimatedDashboardSection id="demo" eager>

@@ -8,24 +8,31 @@ import { RequestsOverTime } from '@/components/charts/RequestsOverTime'
 import { TokenTypes } from '@/components/charts/TokenTypes'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
+import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
 
 let lastLegendPayload: Array<{ value: string; color: string }> = []
 
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
+    <MockSvgContainer data-testid="responsive-container">{children}</MockSvgContainer>
   ),
-  PieChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  ComposedChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  PieChart: ({ children }: { children: ReactNode }) => (
+    <MockSvgContainer>{children}</MockSvgContainer>
+  ),
+  ComposedChart: ({ children }: { children: ReactNode }) => (
+    <MockSvgContainer>{children}</MockSvgContainer>
+  ),
   Pie: ({ children, data = [] }: { children: ReactNode; data?: Array<{ name: string }> }) => {
     lastLegendPayload = data.map((entry, index) => ({
       value: entry.name,
       color: `hsl(${(index + 1) * 40} 70% 50%)`,
     }))
-    return <div>{children}</div>
+    return <MockSvgGroup>{children}</MockSvgGroup>
   },
   Legend: ({ content }: { content?: ReactElement }) =>
-    content ? <div>{cloneElement(content, { payload: lastLegendPayload })}</div> : null,
+    content ? (
+      <MockSvgContainer>{cloneElement(content, { payload: lastLegendPayload })}</MockSvgContainer>
+    ) : null,
   Tooltip: () => null,
   Cell: () => null,
   Area: () => null,

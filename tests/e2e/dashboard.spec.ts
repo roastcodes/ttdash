@@ -5,9 +5,6 @@ import { expect, test, type Page } from '@playwright/test'
 
 const sampleUsagePath = path.join(process.cwd(), 'examples', 'sample-usage.json')
 const sampleUsage = JSON.parse(fs.readFileSync(sampleUsagePath, 'utf-8'))
-const playwrightBaseUrl = `http://${process.env.PLAYWRIGHT_TEST_HOST || '127.0.0.1'}:${
-  process.env.PLAYWRIGHT_TEST_PORT || '3015'
-}`
 const uploadToastPattern =
   /^(Datei sample-usage\.json erfolgreich geladen|File sample-usage\.json loaded successfully)$/
 const autoImportButtonPattern = /^(Auto-Import|Auto import)$/
@@ -30,8 +27,15 @@ const forecastDialogTitlePattern = /^(Forecast details|Prognose-Details)$/
 const providersActivePattern = /^(1 providers active|1 Anbieter aktiv)$/
 const modelsActivePattern = /^(1 models active|1 Modelle aktiv)$/
 const dateFilterActivePattern = /^(Date filter active|Datumsfilter aktiv)$/
-const trustedMutationHeaders = {
-  Origin: playwrightBaseUrl,
+
+function createTrustedMutationHeaders(baseURL?: string) {
+  if (!baseURL) {
+    throw new Error('Playwright baseURL is required for trusted mutation headers')
+  }
+
+  return {
+    Origin: new URL(baseURL).origin,
+  }
 }
 
 async function uploadSampleUsage(page: Page) {
@@ -41,7 +45,9 @@ async function uploadSampleUsage(page: Page) {
 
 test('uploads sample usage data and renders the dashboard without browser errors', async ({
   page,
+  baseURL,
 }) => {
+  const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
   const pageErrors: string[] = []
 
   page.on('console', (message) => {
@@ -73,7 +79,11 @@ test('uploads sample usage data and renders the dashboard without browser errors
   expect(pageErrors, pageErrors.join('\n')).toEqual([])
 })
 
-test('opens one shared forecast zoom dialog from both forecast cards', async ({ page }) => {
+test('opens one shared forecast zoom dialog from both forecast cards', async ({
+  page,
+  baseURL,
+}) => {
+  const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
   await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
   await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
 
@@ -123,7 +133,9 @@ test('opens one shared forecast zoom dialog from both forecast cards', async ({ 
 
 test('exposes pressed filter state and supports keyboard date selection in the dashboard filters', async ({
   page,
+  baseURL,
 }) => {
+  const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
   await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
   await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
 
@@ -177,7 +189,9 @@ test('exposes pressed filter state and supports keyboard date selection in the d
 
 test('manages settings and backup imports through the settings dialog using isolated test storage', async ({
   page,
+  baseURL,
 }, testInfo) => {
+  const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
   await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
   await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
   await page.addInitScript(() => {
@@ -499,7 +513,9 @@ test('manages settings and backup imports through the settings dialog using isol
 test('loads persisted settings on a fresh browser start and applies them immediately', async ({
   browser,
   page,
+  baseURL,
 }) => {
+  const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
   await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
   await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
 
@@ -660,7 +676,9 @@ test('loads persisted settings on a fresh browser start and applies them immedia
 
 test('uses the current UI language when generating a PDF report after switching locale', async ({
   page,
+  baseURL,
 }) => {
+  const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
   await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
 
   let reportRequest: Record<string, unknown> | null = null

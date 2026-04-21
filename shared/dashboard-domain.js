@@ -1,4 +1,4 @@
-const modelNormalizationSpec = require('../server/model-normalization.json')
+const modelNormalizationSpec = require('./model-normalization.json')
 
 const DISPLAY_ALIASES = modelNormalizationSpec.displayAliases.map((alias) => ({
   ...alias,

@@ -19,9 +19,7 @@ export default defineConfig(async () => {
     resolvedViteConfig,
     defineConfig({
       test: {
-        environment: 'node',
-        setupFiles: ['./vitest.setup.ts'],
-        include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+        include: [],
         reporters: ['default', 'junit'],
         outputFile: {
           junit: './test-results/vitest.junit.xml',
@@ -44,6 +42,75 @@ export default defineConfig(async () => {
             'tests/**',
           ],
         },
+        projects: [
+          {
+            extends: true,
+            test: {
+              name: 'architecture',
+              include: ['tests/architecture/**/*.test.ts'],
+              environment: 'node',
+              globals: true,
+              setupFiles: ['./vitest.setup.ts'],
+              fileParallelism: false,
+              sequence: {
+                groupOrder: 0,
+              },
+            },
+          },
+          {
+            extends: true,
+            test: {
+              name: 'unit',
+              include: ['tests/unit/**/*.test.ts'],
+              environment: 'node',
+              setupFiles: ['./vitest.setup.ts'],
+              maxWorkers: '80%',
+              sequence: {
+                groupOrder: 1,
+              },
+            },
+          },
+          {
+            extends: true,
+            test: {
+              name: 'frontend',
+              include: ['tests/frontend/**/*.test.{ts,tsx}'],
+              environment: 'jsdom',
+              setupFiles: ['./vitest.setup.ts', './vitest.setup.frontend.ts'],
+              maxWorkers: '50%',
+              sequence: {
+                groupOrder: 2,
+              },
+            },
+          },
+          {
+            extends: true,
+            test: {
+              name: 'integration',
+              include: ['tests/integration/**/*.test.ts'],
+              exclude: ['tests/integration/**/*background*.test.ts'],
+              environment: 'node',
+              setupFiles: ['./vitest.setup.ts'],
+              maxWorkers: '50%',
+              sequence: {
+                groupOrder: 3,
+              },
+            },
+          },
+          {
+            extends: true,
+            test: {
+              name: 'integration-background',
+              include: ['tests/integration/**/*background*.test.ts'],
+              environment: 'node',
+              setupFiles: ['./vitest.setup.ts'],
+              fileParallelism: false,
+              sequence: {
+                groupOrder: 4,
+              },
+            },
+          },
+        ],
       },
     }),
   )

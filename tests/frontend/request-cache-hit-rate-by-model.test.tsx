@@ -7,13 +7,14 @@ import { RequestCacheHitRateByModel } from '@/components/charts/RequestCacheHitR
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
+import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
 
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
+    <MockSvgContainer data-testid="responsive-container">{children}</MockSvgContainer>
   ),
   ComposedChart: ({ children }: { children: ReactNode }) => (
-    <div data-testid="composed-chart">{children}</div>
+    <MockSvgContainer data-testid="composed-chart">{children}</MockSvgContainer>
   ),
   BarChart: ({
     children,
@@ -24,13 +25,13 @@ vi.mock('recharts', () => ({
     barSize?: number
     maxBarSize?: number
   }) => (
-    <div
+    <MockSvgContainer
       data-testid="snapshot-bar-chart"
       data-bar-size={String(barSize)}
       data-max-bar-size={String(maxBarSize)}
     >
       {children}
-    </div>
+    </MockSvgContainer>
   ),
   Area: () => null,
   Line: () => null,
@@ -39,7 +40,9 @@ vi.mock('recharts', () => ({
   CartesianGrid: () => null,
   Tooltip: () => null,
   Legend: () => null,
-  Bar: ({ dataKey }: { dataKey: string }) => <div data-testid={`snapshot-bar-${dataKey}`} />,
+  Bar: ({ dataKey }: { dataKey: string }) => (
+    <MockSvgGroup data-testid={`snapshot-bar-${dataKey}`} />
+  ),
   Cell: () => null,
 }))
 
