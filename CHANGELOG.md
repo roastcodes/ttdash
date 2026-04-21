@@ -1,5 +1,24 @@
 # Changelog
 
+## [6.2.6] - 2026-04-21
+
+### Added
+
+- **Provider-basierter Monatsforecast in `Forecast & Cache`** — ein zusätzliches Diagramm zeigt jetzt den laufenden Monatsforecast pro sichtbarem Provider mit providerbezogenen Ist-/Forecast-Linien und konsistenter Farbgebung
+- **Gezielte Regressionstests für Forecast-, Drilldown- und Request-Visualisierungen** — neue Frontend- und Unit-Tests sichern den gemeinsamen Forecast-Zoom, providerbezogene Forecast-Header, den oben verankerten Drilldown-Dialog, Donut-Motion im Drilldown sowie die vollständige Modellanzeige im Request-Zeitverlauf gegen Regressionen ab
+
+### Improved
+
+- **Monatsforecast-Semantik und Datengrundlage** — der `Current month cost forecast` arbeitet jetzt auf einer echten Month-to-date-Basis statt auf einem bloß zugeschnittenen sichtbaren Datumsbereich, bei unverändert wirksamen Provider- und Modellfiltern
+- **Gemeinsamer Forecast-Zoom und ruhigere Drilldown-UX** — `Month-end forecast`, `Current month cost forecast` und `Current month forecast by provider` verwenden jetzt denselben Zoom-Dialog, und der Drilldown aus `Recent days in detail` öffnet mit festem oberen Abstand statt mit springender vertikaler Zentrierung
+- **Tooling-Kompatibilität auf aktuelle Patchstände** — `prettier` wurde auf `3.8.3` und `typescript-eslint` auf `8.59.0` angehoben, inklusive kleiner Typ-/Chart-Bereinigungen für die strengere Lint-Auswertung
+
+### Fixed
+
+- **Irreführende Forecast-Summen und Provider-Zusammenfassungen** — Forecast-Tooltips zeigen keine fachlich falsche `Total`-Zeile mehr, und der Header von `Current month forecast by provider` zeigt jetzt Forecast-Werte pro Provider statt einer aggregierten Gesamtsumme
+- **Unvollständige Modellanzeige in `Requests over time`** — das Liniendiagramm zeigt jetzt alle Modelle mit echten Request-Daten statt nur einer impliziten Top-5-Auswahl, sodass Modelle wie `Claude Opus 4.7` ohne zusätzlichen Filter sichtbar bleiben
+- **Motion- und Testinkonsistenzen rund um Drilldown und Server-Helper** — das Drilldown-Donut respektiert `reduce motion` jetzt korrekt, und fehlerhafte Test-Fixtures für Toktrack-Runner-Auflösung und Timeout-Semantik wurden an die echte Runtime-Struktur angepasst
+
 ## [6.2.5] - 2026-04-20
 
 ### Added
