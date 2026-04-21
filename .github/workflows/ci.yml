@@ -40,8 +40,14 @@ jobs:
       - name: Run docstring lint
         run: npm run lint:docstrings
 
+      - name: Run dependency graph checks
+        run: npm run check:deps
+
       - name: Run TypeScript checks
         run: ./node_modules/.bin/tsc --noEmit
+
+      - name: Run architecture tests
+        run: npm run test:architecture
 
       - name: Run unit and integration tests with coverage
         run: npm run test:unit:coverage

@@ -1,5 +1,5 @@
-const de = require('../../src/locales/de/common.json');
-const en = require('../../src/locales/en/common.json');
+const de = require('../../shared/locales/de/common.json');
+const en = require('../../shared/locales/en/common.json');
 
 const resources = { de, en };
 

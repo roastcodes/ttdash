@@ -5,7 +5,7 @@ import { useUsageData, useUploadData, useDeleteData } from '@/hooks/use-usage-da
 import { useAppSettings } from '@/hooks/use-app-settings'
 import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
 import { useComputedMetrics } from '@/hooks/use-computed-metrics'
-import { useToast } from '@/components/ui/toast'
+import { useToast } from '@/lib/toast'
 import { applyTheme, DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { downloadCSV } from '@/lib/csv-export'
 import { VERSION } from '@/lib/constants'

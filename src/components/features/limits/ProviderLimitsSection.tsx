@@ -17,7 +17,7 @@ import { AlertTriangle, CreditCard, ShieldCheck, TrendingUp } from 'lucide-react
 import { Card, CardContent } from '@/components/ui/card'
 import { SectionHeader } from '@/components/ui/section-header'
 import { DashboardMotionItem } from '@/components/dashboard/DashboardMotion'
-import { AnimatedBarFill } from '@/components/features/animations/AnimatedBarFill'
+import { AnimatedBarFill } from '@/components/ui/animated-bar-fill'
 import { ChartAnimationAware, ChartCard, ChartReveal } from '@/components/charts/ChartCard'
 import { ChartLegend } from '@/components/charts/ChartLegend'
 import {

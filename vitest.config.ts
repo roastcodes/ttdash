@@ -46,13 +46,27 @@ export default defineConfig(async () => {
           {
             extends: true,
             test: {
+              name: 'architecture',
+              include: ['tests/architecture/**/*.test.ts'],
+              environment: 'node',
+              globals: true,
+              setupFiles: ['./vitest.setup.ts'],
+              fileParallelism: false,
+              sequence: {
+                groupOrder: 0,
+              },
+            },
+          },
+          {
+            extends: true,
+            test: {
               name: 'unit',
               include: ['tests/unit/**/*.test.ts'],
               environment: 'node',
               setupFiles: ['./vitest.setup.ts'],
               maxWorkers: '80%',
               sequence: {
-                groupOrder: 0,
+                groupOrder: 1,
               },
             },
           },
@@ -65,7 +79,7 @@ export default defineConfig(async () => {
               setupFiles: ['./vitest.setup.ts', './vitest.setup.frontend.ts'],
               maxWorkers: '50%',
               sequence: {
-                groupOrder: 1,
+                groupOrder: 2,
               },
             },
           },
@@ -79,7 +93,7 @@ export default defineConfig(async () => {
               setupFiles: ['./vitest.setup.ts'],
               maxWorkers: '50%',
               sequence: {
-                groupOrder: 2,
+                groupOrder: 3,
               },
             },
           },
@@ -92,7 +106,7 @@ export default defineConfig(async () => {
               setupFiles: ['./vitest.setup.ts'],
               fileParallelism: false,
               sequence: {
-                groupOrder: 3,
+                groupOrder: 4,
               },
             },
           },

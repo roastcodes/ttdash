@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { InfoButton } from '@/components/features/help/InfoButton'
 import { cn } from '@/lib/cn'
+import { InfoButton } from '@/components/ui/info-button'
 
 interface InfoHeadingProps {
   children: ReactNode

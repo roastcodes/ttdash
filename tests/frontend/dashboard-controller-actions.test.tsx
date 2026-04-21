@@ -45,7 +45,7 @@ vi.mock('@/hooks/use-usage-data', () => usageHookMocks)
 vi.mock('@/hooks/use-app-settings', () => settingsHookMocks)
 vi.mock('@/hooks/use-dashboard-filters', () => filterHookMocks)
 vi.mock('@/hooks/use-computed-metrics', () => computedHookMocks)
-vi.mock('@/components/ui/toast', () => ({
+vi.mock('@/lib/toast', () => ({
   useToast: () => ({ addToast: toastMocks.addToast }),
 }))
 vi.mock('@/lib/api', () => apiMocks)

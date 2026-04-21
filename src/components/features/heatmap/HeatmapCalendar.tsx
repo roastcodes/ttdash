@@ -10,7 +10,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { DASHBOARD_MOTION, useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
-import { InfoHeading } from '@/components/features/help/InfoHeading'
+import { InfoHeading } from '@/components/ui/info-heading'
 import { CHART_HELP } from '@/lib/help-content'
 import {
   formatCurrency,

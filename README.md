@@ -349,6 +349,8 @@ npm run verify:full
 If you want to run the steps individually, use:
 
 ```bash
+npm run check:deps
+npm run test:architecture
 npm run test:unit:coverage
 npm run test:e2e
 ```
@@ -375,6 +377,7 @@ npm run docs:screenshots
 
 - Contributor guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - Release guide: [`RELEASING.md`](RELEASING.md)
+- Architecture rules: [`docs/architecture.md`](docs/architecture.md)
 - Test architecture: [`docs/testing.md`](docs/testing.md)
 - Security policy: [`SECURITY.md`](SECURITY.md)
 - Code of conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)

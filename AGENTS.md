@@ -24,7 +24,7 @@ Frontend code is TypeScript + React. Follow the existing style: 2-space indentat
 
 ## Testing Guidelines
 
-Automated tests are part of the repo now. Before opening a PR, run `npm run verify:full`. If you only need the main local gate without Playwright, run `npm run verify`. If local port `3015` is already in use, run Playwright with `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`. Use `npm run test:timings` to inspect the slowest Vitest suites and cases after larger test changes, but do not run it in parallel with another Vitest command that writes the same JUnit report.
+Automated tests are part of the repo now. Before opening a PR, run `npm run verify:full`. If you only need the main local gate without Playwright, run `npm run verify`. If local port `3015` is already in use, run Playwright with `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`. Use `npm run test:timings` to inspect the slowest Vitest suites and cases after larger test changes, but do not run it in parallel with another Vitest command that writes the same JUnit report. Architecture and dependency boundaries are guarded by `npm run test:architecture` and `npm run check:deps`; when you add or move modules, keep [`docs/architecture.md`](docs/architecture.md) aligned with the actual structure.
 
 When adding tests:
 

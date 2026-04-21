@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { InfoHeading } from '@/components/features/help/InfoHeading'
+import { InfoHeading } from '@/components/ui/info-heading'
 import { formatCurrency, formatDate, periodLabel } from '@/lib/formatters'
 import { computeAnomalies } from '@/lib/calculations'
 import { CHART_HELP } from '@/lib/help-content'

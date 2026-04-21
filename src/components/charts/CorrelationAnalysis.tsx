@@ -12,7 +12,7 @@ import {
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
-import { InfoHeading } from '@/components/features/help/InfoHeading'
+import { InfoHeading } from '@/components/ui/info-heading'
 import { CHART_COLORS, CHART_MARGIN, getScatterAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import {

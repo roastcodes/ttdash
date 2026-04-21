@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { InfoHeading } from '@/components/features/help/InfoHeading'
+import { InfoHeading } from '@/components/ui/info-heading'
 import { cn } from '@/lib/cn'
 
 interface SectionHeaderProps {

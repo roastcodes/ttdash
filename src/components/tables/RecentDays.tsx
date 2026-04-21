@@ -13,8 +13,8 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FormattedValue } from '@/components/ui/formatted-value'
-import { AnimatedBarFill } from '@/components/features/animations/AnimatedBarFill'
-import { InfoHeading } from '@/components/features/help/InfoHeading'
+import { AnimatedBarFill } from '@/components/ui/animated-bar-fill'
+import { InfoHeading } from '@/components/ui/info-heading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import {
   formatCurrency,

@@ -1,0 +1,29 @@
+import { createRequire } from 'node:module'
+import { describe, expect, it } from 'vitest'
+
+const require = createRequire(import.meta.url)
+const { getLanguage, getLocale, translate } = require('../../server/report/i18n.js') as {
+  getLanguage: (language: string) => 'de' | 'en'
+  getLocale: (language: string) => string
+  translate: (language: string, key: string, vars?: Record<string, string>) => string
+}
+
+describe('report i18n shared resources', () => {
+  it('resolves the expected locales for supported and fallback languages', () => {
+    expect(getLanguage('en')).toBe('en')
+    expect(getLanguage('fr')).toBe('de')
+    expect(getLocale('en')).toBe('en-US')
+    expect(getLocale('fr')).toBe('de-CH')
+  })
+
+  it('translates report keys from the shared locale bundles', () => {
+    expect(translate('en', 'header.loaded')).toBe('Loaded')
+    expect(translate('de', 'header.loaded')).toBe('Geladen')
+    expect(translate('fr', 'common.close')).toBe('Schliessen')
+  })
+
+  it('interpolates variables and falls back to the key when unknown', () => {
+    expect(translate('en', 'header.versionLinkTitle', { version: '6.2.6' })).toContain('6.2.6')
+    expect(translate('en', 'missing.section.key')).toBe('missing.section.key')
+  })
+})

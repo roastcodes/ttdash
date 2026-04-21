@@ -2,7 +2,7 @@ import { Upload, ChartBar, Zap, SlidersHorizontal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { FadeIn } from '@/components/features/animations/FadeIn'
+import { FadeIn } from '@/components/ui/fade-in'
 import { VERSION } from '@/lib/constants'
 import { TOKTRACK_PACKAGE_SPEC } from '@/lib/toktrack-version'
 

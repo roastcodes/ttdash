@@ -2,6 +2,8 @@
 
 TTDash uses four test layers. Add new coverage at the narrowest layer that can prove the behavior.
 
+Architecture constraints are documented separately in [`docs/architecture.md`](/Users/pascaltheiler/npm/ttdash/docs/architecture.md). Use that file as the source of truth for dependency rules, layer ownership, and architecture-specific gates.
+
 ## Test Layers
 
 - `tests/unit`
@@ -107,6 +109,8 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 
 - Main developer gate: `npm run verify`
 - Release-style local gate: `npm run verify:full`
+- Architecture tests only: `npm run test:architecture`
+- Dependency graph gate: `npm run check:deps`
 - Coverage-only unit/integration gate: `npm run test:unit:coverage`
 - Playwright only: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`
 - Timing diagnostics: `npm run test:timings`

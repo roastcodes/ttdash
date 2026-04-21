@@ -12,7 +12,7 @@ import { motion, useInView } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Maximize2 } from 'lucide-react'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoButton } from '@/components/ui/info-button'
 import {
   DASHBOARD_MOTION,
   useDashboardElementMotion,

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Card } from '@/components/ui/card'
-import { InfoButton } from '@/components/features/help/InfoButton'
+import { InfoButton } from '@/components/ui/info-button'
 import { cn } from '@/lib/cn'
 
 interface MetricCardProps {
