@@ -9,11 +9,15 @@ const { getLanguage, getLocale, translate } = require('../../server/report/i18n.
 }
 
 describe('report i18n shared resources', () => {
-  it('resolves the expected locales for supported and fallback languages', () => {
+  it('resolves locales for supported languages and falls back to default language and locale for unsupported inputs', () => {
     expect(getLanguage('en')).toBe('en')
-    expect(getLanguage('fr')).toBe('de')
     expect(getLocale('en')).toBe('en-US')
+
+    // Unsupported languages should use the default German report language and locale.
+    expect(getLanguage('fr')).toBe('de')
     expect(getLocale('fr')).toBe('de-CH')
+    expect(getLanguage('xx')).toBe('de')
+    expect(getLocale('xx')).toBe('de-CH')
   })
 
   it('translates report keys from the shared locale bundles', () => {
