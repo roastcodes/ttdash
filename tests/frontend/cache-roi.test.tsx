@@ -36,9 +36,10 @@ vi.mock('@/components/ui/AnimatedBarFill', () => ({
 }))
 
 describe('CacheROI', () => {
-  const previousLanguage = getCurrentLanguage()
+  let previousLanguage = getCurrentLanguage()
 
   beforeAll(async () => {
+    previousLanguage = getCurrentLanguage()
     await initI18n('en')
   })
 

@@ -10,54 +10,58 @@ import { fetchTrusted, startStandaloneServer, stopProcess } from './server-test-
 import { createApiSharedServer, sampleUsage } from './server-api-test-helpers'
 
 const sharedServer = createApiSharedServer()
+const emptyUsageResponse = {
+  daily: [],
+  totals: {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheCreationTokens: 0,
+    cacheReadTokens: 0,
+    thinkingTokens: 0,
+    totalCost: 0,
+    totalTokens: 0,
+    requestCount: 0,
+  },
+}
+const defaultSettingsResponse = {
+  language: 'de',
+  theme: 'dark',
+  reducedMotionPreference: 'system',
+  providerLimits: {},
+  defaultFilters: DEFAULT_DASHBOARD_FILTERS,
+  sectionVisibility: {
+    insights: true,
+    metrics: true,
+    today: true,
+    currentMonth: true,
+    activity: true,
+    forecastCache: true,
+    limits: true,
+    costAnalysis: true,
+    tokenAnalysis: true,
+    requestAnalysis: true,
+    advancedAnalysis: true,
+    comparisons: true,
+    tables: true,
+  },
+  sectionOrder: getDefaultDashboardSectionOrder(),
+  lastLoadedAt: null,
+  lastLoadSource: null,
+  cliAutoLoadActive: false,
+}
 
 describe('local server API persistence', () => {
-  it('serves the upload, usage, settings, and delete flow against real persisted files', async () => {
+  it('starts with empty usage and default settings', async () => {
     const initialUsageResponse = await fetch(`${sharedServer.baseUrl}/api/usage`)
     expect(initialUsageResponse.status).toBe(200)
-    expect(await initialUsageResponse.json()).toEqual({
-      daily: [],
-      totals: {
-        inputTokens: 0,
-        outputTokens: 0,
-        cacheCreationTokens: 0,
-        cacheReadTokens: 0,
-        thinkingTokens: 0,
-        totalCost: 0,
-        totalTokens: 0,
-        requestCount: 0,
-      },
-    })
+    expect(await initialUsageResponse.json()).toEqual(emptyUsageResponse)
 
     const initialSettingsResponse = await fetch(`${sharedServer.baseUrl}/api/settings`)
     expect(initialSettingsResponse.status).toBe(200)
-    expect(await initialSettingsResponse.json()).toMatchObject({
-      language: 'de',
-      theme: 'dark',
-      reducedMotionPreference: 'system',
-      providerLimits: {},
-      defaultFilters: DEFAULT_DASHBOARD_FILTERS,
-      sectionVisibility: {
-        insights: true,
-        metrics: true,
-        today: true,
-        currentMonth: true,
-        activity: true,
-        forecastCache: true,
-        limits: true,
-        costAnalysis: true,
-        tokenAnalysis: true,
-        requestAnalysis: true,
-        advancedAnalysis: true,
-        comparisons: true,
-        tables: true,
-      },
-      sectionOrder: getDefaultDashboardSectionOrder(),
-      lastLoadedAt: null,
-      lastLoadSource: null,
-      cliAutoLoadActive: false,
-    })
+    expect(await initialSettingsResponse.json()).toMatchObject(defaultSettingsResponse)
+  })
 
+  it('upload persists usage data', async () => {
     const uploadResponse = await fetchTrusted(`${sharedServer.baseUrl}/api/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -74,12 +78,24 @@ describe('local server API persistence', () => {
     expect(usageResponse.status).toBe(200)
     expect(usageBody.daily).toHaveLength(5)
     expect(usageBody.totals.totalCost).toBeCloseTo(19.87, 6)
+  })
+
+  it('upload updates settings last-load metadata', async () => {
+    const uploadResponse = await fetchTrusted(`${sharedServer.baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sampleUsage),
+    })
+    expect(uploadResponse.status).toBe(200)
 
     const afterUploadSettingsResponse = await fetch(`${sharedServer.baseUrl}/api/settings`)
     const afterUploadSettings = await afterUploadSettingsResponse.json()
+    expect(afterUploadSettingsResponse.status).toBe(200)
     expect(afterUploadSettings.lastLoadSource).toBe('file')
     expect(afterUploadSettings.lastLoadedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
 
+  it('settings patch normalizes persisted values', async () => {
     const patchResponse = await fetchTrusted(`${sharedServer.baseUrl}/api/settings`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -148,6 +164,15 @@ describe('local server API persistence', () => {
       ],
       cliAutoLoadActive: false,
     })
+  })
+
+  it('delete clears usage data', async () => {
+    const uploadResponse = await fetchTrusted(`${sharedServer.baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sampleUsage),
+    })
+    expect(uploadResponse.status).toBe(200)
 
     const deleteResponse = await fetchTrusted(`${sharedServer.baseUrl}/api/usage`, {
       method: 'DELETE',
@@ -157,8 +182,7 @@ describe('local server API persistence', () => {
 
     const finalUsageResponse = await fetch(`${sharedServer.baseUrl}/api/usage`)
     const finalUsage = await finalUsageResponse.json()
-    expect(finalUsage.daily).toEqual([])
-    expect(finalUsage.totals.totalCost).toBe(0)
+    expect(finalUsage).toEqual(emptyUsageResponse)
   })
 
   it('resets persisted settings to defaults via DELETE /api/settings', async () => {

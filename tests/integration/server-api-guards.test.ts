@@ -5,14 +5,16 @@ import { createApiSharedServer, sampleUsage } from './server-api-test-helpers'
 const sharedServer = createApiSharedServer()
 
 describe('local server API guards', () => {
-  it('rejects untrusted mutation requests, enforces JSON bodies, and blocks auto-import GET requests', async () => {
+  it('rejects wrong Content-Type for usage upload', async () => {
     const wrongContentTypeResponse = await fetchTrusted(`${sharedServer.baseUrl}/api/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(sampleUsage),
     })
     expect(wrongContentTypeResponse.status).toBe(415)
+  })
 
+  it('blocks cross-site upload requests', async () => {
     const crossSiteUploadResponse = await fetch(`${sharedServer.baseUrl}/api/upload`, {
       method: 'POST',
       headers: {
@@ -22,18 +24,24 @@ describe('local server API guards', () => {
       body: JSON.stringify(sampleUsage),
     })
     expect(crossSiteUploadResponse.status).toBe(403)
+  })
 
+  it('blocks cross-site usage deletion', async () => {
     const crossSiteDeleteResponse = await fetch(`${sharedServer.baseUrl}/api/usage`, {
       method: 'DELETE',
       headers: { Origin: 'https://evil.example' },
     })
     expect(crossSiteDeleteResponse.status).toBe(403)
+  })
 
+  it('blocks usage deletion without Origin', async () => {
     const missingOriginDeleteResponse = await fetch(`${sharedServer.baseUrl}/api/usage`, {
       method: 'DELETE',
     })
     expect(missingOriginDeleteResponse.status).toBe(403)
+  })
 
+  it('disallows GET requests on the auto-import stream endpoint', async () => {
     const autoImportGetResponse = await fetch(`${sharedServer.baseUrl}/api/auto-import/stream`)
     expect(autoImportGetResponse.status).toBe(405)
   })

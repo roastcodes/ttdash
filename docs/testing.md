@@ -62,9 +62,9 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
 ## Choosing the Right Layer
 
 - Use `tests/unit` when the behavior can be proven without a DOM, a real server, or filesystem side effects.
-- Use `tests/frontend` when the assertion is about rendered UI behavior, localization, accessibility, motion, or chart wiring.
-- Use `tests/integration` when browser rendering is irrelevant but the real server, CLI, persistence, background processes, or filesystem coordination matters.
-- Use `tests/e2e` only when the behavior depends on a real browser journey across multiple surfaces.
+- Prefer `tests/frontend` when the assertion is about rendered UI behavior, localization, accessibility, motion, or chart wiring.
+- Reach for `tests/integration` when browser rendering is irrelevant but the real server, CLI, persistence, background processes, or filesystem coordination matters.
+- Reserve `tests/e2e` for behavior that depends on a real browser journey across multiple surfaces.
 
 Choose the narrowest layer that can still falsify the behavior. Do not promote a test to Playwright if the same behavior can be proven in `jsdom` or with server integration.
 
@@ -107,8 +107,7 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 
 ## Local Commands
 
-- Required pre-PR gate: `npm run verify:full`
-- Run `npm run verify:full` before opening a PR to ensure all tests and checks pass.
+- Required pre-PR gate: run `npm run verify:full` before opening a PR to ensure all tests and checks pass.
 - Faster inner-loop gate: `npm run verify`
 - Architecture tests only: `npm run test:architecture`
 - Dependency graph gate: `npm run check:deps`
