@@ -17,12 +17,43 @@ vi.mock('recharts', () => ({
   ComposedChart: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer>{children}</MockSvgContainer>
   ),
-  Area: () => null,
+  Area: ({
+    dataKey,
+    legendType,
+    name,
+  }: {
+    dataKey?: string
+    legendType?: string
+    name?: string
+  }) => (
+    <div
+      data-testid="forecast-area"
+      data-key={dataKey ?? ''}
+      data-legend-type={legendType ?? ''}
+      data-name={name ?? ''}
+    />
+  ),
   Line: () => null,
   XAxis: () => null,
   YAxis: () => null,
   CartesianGrid: () => null,
-  Legend: () => null,
+  Legend: ({
+    content,
+  }: {
+    content?: ReactElement<{
+      payload?: Array<{ value?: string; color?: string; dataKey?: string }>
+    }>
+  }) =>
+    content
+      ? cloneElement(content, {
+          payload: [
+            { value: 'Actual cost', color: '#38bdf8', dataKey: 'cost' },
+            { value: 'Forecast', color: '#8b5cf6', dataKey: 'forecast' },
+            { value: 'Lower bound', color: 'transparent', dataKey: 'lower' },
+            { value: 'Uncertainty band', color: '#8b5cf6', dataKey: 'band' },
+          ],
+        })
+      : null,
   Tooltip: ({ content }: { content?: ReactElement }) =>
     content
       ? cloneElement(content, {
@@ -41,6 +72,13 @@ vi.mock('recharts', () => ({
               value: 12,
               color: '#8b5cf6',
               dataKey: 'forecast',
+              payload: {},
+            },
+            {
+              name: 'Lower bound',
+              value: 9,
+              color: '#8b5cf6',
+              dataKey: 'lower',
               payload: {},
             },
           ],
@@ -113,6 +151,8 @@ describe('CostForecast', () => {
 
     expect(screen.getByText('Actual cost:')).toBeInTheDocument()
     expect(screen.getByText('Forecast:')).toBeInTheDocument()
+    expect(screen.getByText('Lower bound:')).toBeInTheDocument()
+    expect(screen.queryByText('Lower bound')).not.toBeInTheDocument()
     expect(screen.queryByText('Total:')).not.toBeInTheDocument()
   })
 
@@ -260,5 +300,65 @@ describe('CostForecast', () => {
     expect(
       screen.getByRole('button', { name: 'Current month cost forecast expand' }),
     ).toBeInTheDocument()
+  })
+
+  it('keeps the lower bound out of the legend payload by marking the base area as legendless', () => {
+    const data: DailyUsage[] = [
+      {
+        date: '2026-04-01',
+        inputTokens: 100,
+        outputTokens: 40,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        totalTokens: 140,
+        totalCost: 10,
+        requestCount: 2,
+        modelsUsed: ['gpt-5.4'],
+        modelBreakdowns: [
+          {
+            modelName: 'gpt-5.4',
+            inputTokens: 100,
+            outputTokens: 40,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            cost: 10,
+            requestCount: 2,
+          },
+        ],
+      },
+      {
+        date: '2026-04-02',
+        inputTokens: 120,
+        outputTokens: 50,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        totalTokens: 170,
+        totalCost: 18,
+        requestCount: 3,
+        modelsUsed: ['gpt-5.4'],
+        modelBreakdowns: [
+          {
+            modelName: 'gpt-5.4',
+            inputTokens: 120,
+            outputTokens: 50,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            cost: 18,
+            requestCount: 3,
+          },
+        ],
+      },
+    ]
+
+    renderWithTooltip(<CostForecast data={data} forecast={computeCurrentMonthForecast(data)} />)
+
+    const lowerArea = screen
+      .getAllByTestId('forecast-area')
+      .find((entry) => entry.getAttribute('data-key') === 'lower')
+    expect(lowerArea).toHaveAttribute('data-legend-type', 'none')
   })
 })

@@ -18,23 +18,48 @@ vi.mock('recharts', () => ({
   ComposedChart: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer>{children}</MockSvgContainer>
   ),
-  Area: ({ dataKey, fill }: { dataKey?: string; fill?: string }) => (
-    <MockSvgGroup data-testid="provider-area" data-key={dataKey} data-fill={fill ?? ''} />
+  Area: ({
+    dataKey,
+    fill,
+    fillOpacity,
+    name,
+    stroke,
+    legendType,
+  }: {
+    dataKey?: string
+    fill?: string
+    fillOpacity?: number
+    name?: string
+    stroke?: string
+    legendType?: string
+  }) => (
+    <MockSvgGroup
+      data-testid="provider-area"
+      data-key={dataKey}
+      data-fill={fill ?? ''}
+      data-fill-opacity={fillOpacity === undefined ? '' : String(fillOpacity)}
+      data-name={name ?? ''}
+      data-stroke={stroke ?? ''}
+      data-legend-type={legendType ?? ''}
+    />
   ),
   Line: ({
     name,
     stroke,
     strokeDasharray,
+    filter,
   }: {
     name?: string
     stroke?: string
     strokeDasharray?: string
+    filter?: string
   }) => (
     <MockSvgGroup
       data-testid="provider-line"
       data-name={name ?? ''}
       data-stroke={stroke ?? ''}
       data-dash={strokeDasharray ?? ''}
+      data-filter={filter ?? ''}
     />
   ),
   XAxis: () => null,
@@ -43,7 +68,9 @@ vi.mock('recharts', () => ({
   Tooltip: ({
     content,
   }: {
-    content?: ReactElement<{ seriesMeta?: Array<{ actualKey: string; forecastKey: string }> }>
+    content?: ReactElement<{
+      seriesMeta?: Array<{ actualKey: string; forecastKey: string; lowerKey: string }>
+    }>
   }) => {
     if (!content) return null
     const seriesMeta = content.props.seriesMeta ?? []
@@ -60,10 +87,37 @@ vi.mock('recharts', () => ({
           dataKey: series.forecastKey,
           value: 9 + index * 2,
         },
+        {
+          dataKey: series.lowerKey,
+          value: 7 + index * 2,
+        },
       ]),
     })
   },
-  Legend: () => null,
+  Legend: ({
+    content,
+  }: {
+    content?: ReactElement<{
+      payload?: Array<{ value?: string; color?: string; dataKey?: string }>
+    }>
+  }) =>
+    content
+      ? cloneElement(content, {
+          payload: [
+            { value: 'OpenAI', color: '#34d399', dataKey: 'openaiActual' },
+            { value: 'OpenAI Forecast', color: '#34d399', dataKey: 'openaiForecast' },
+            { value: 'openaiLower', color: 'transparent', dataKey: 'openaiLower' },
+            {
+              value: 'OpenAI Uncertainty band',
+              color: 'rgba(16, 185, 129, 0.10)',
+              dataKey: 'openaiBand',
+            },
+            { value: 'Anthropic', color: '#fb923c', dataKey: 'anthropicActual' },
+            { value: 'Anthropic Forecast', color: '#fb923c', dataKey: 'anthropicForecast' },
+            { value: 'anthropicLower', color: 'transparent', dataKey: 'anthropicLower' },
+          ],
+        })
+      : null,
 }))
 
 function buildDay(
@@ -139,28 +193,54 @@ describe('ProviderCostForecast', () => {
     expect(chips[1]).toHaveAttribute('data-provider', 'Anthropic')
     expect(screen.getAllByText('Actual cost:')).toHaveLength(2)
     expect(screen.getAllByText('Forecast:')).toHaveLength(2)
+    expect(screen.getAllByText('Lower bound:')).toHaveLength(2)
     expect(screen.getAllByText('Month-end forecast:')).toHaveLength(2)
+    expect(screen.queryByText('anthropicLower')).not.toBeInTheDocument()
+    expect(screen.queryByText('openaiLower')).not.toBeInTheDocument()
     expect(screen.queryByText('Total:')).not.toBeInTheDocument()
 
     const lineEls = screen.getAllByTestId('provider-line')
-    const openAiActual = lineEls.find((entry) => entry.getAttribute('data-name') === 'OpenAI')
+    const areaEls = screen.getAllByTestId('provider-area')
+    const openAiActual = areaEls.find((entry) => entry.getAttribute('data-name') === 'OpenAI')
     const openAiForecast = lineEls.find(
       (entry) => entry.getAttribute('data-name') === 'OpenAI Forecast',
     )
-    const anthropicActual = lineEls.find((entry) => entry.getAttribute('data-name') === 'Anthropic')
+    const anthropicActual = areaEls.find((entry) => entry.getAttribute('data-name') === 'Anthropic')
     const anthropicForecast = lineEls.find(
       (entry) => entry.getAttribute('data-name') === 'Anthropic Forecast',
     )
 
     expect(openAiActual).toHaveAttribute('data-stroke', getProviderBadgeStyle('OpenAI').color)
+    expect(openAiActual).toHaveAttribute('data-fill', 'url(#openaiForecastGrad)')
+    expect(openAiActual).toHaveAttribute('data-fill-opacity', '1')
     expect(openAiForecast).toHaveAttribute('data-stroke', getProviderBadgeStyle('OpenAI').color)
     expect(openAiForecast).toHaveAttribute('data-dash', '6 3')
     expect(anthropicActual).toHaveAttribute('data-stroke', getProviderBadgeStyle('Anthropic').color)
+    expect(anthropicActual).toHaveAttribute('data-fill', 'url(#anthropicForecastGrad)')
+    expect(anthropicActual).toHaveAttribute('data-fill-opacity', '1')
     expect(anthropicForecast).toHaveAttribute(
       'data-stroke',
       getProviderBadgeStyle('Anthropic').color,
     )
     expect(anthropicForecast).toHaveAttribute('data-dash', '6 3')
+
+    const bandEls = areaEls
+    const openAiBand = bandEls.find((entry) => entry.getAttribute('data-key') === 'openaiBand')
+    const anthropicBand = bandEls.find(
+      (entry) => entry.getAttribute('data-key') === 'anthropicBand',
+    )
+    expect(openAiBand).toHaveAttribute('data-fill', getProviderBadgeStyle('OpenAI').backgroundColor)
+    expect(openAiBand).toHaveAttribute('data-fill-opacity', '0.36')
+    expect(anthropicBand).toHaveAttribute(
+      'data-fill',
+      getProviderBadgeStyle('Anthropic').backgroundColor,
+    )
+    expect(anthropicBand).toHaveAttribute('data-fill-opacity', '0.36')
+    expect(
+      areaEls
+        .filter((entry) => entry.getAttribute('data-key')?.endsWith('Lower'))
+        .every((entry) => entry.getAttribute('data-legend-type') === 'none'),
+    ).toBe(true)
   }, 15_000)
 
   it('only renders visible providers from the filtered dataset', () => {
@@ -179,12 +259,10 @@ describe('ProviderCostForecast', () => {
     expect(chips[0]).toHaveAttribute('data-provider', 'OpenAI')
 
     const lineEls = screen.getAllByTestId('provider-line')
-    expect(lineEls).toHaveLength(2)
-    expect(
-      lineEls.every(
-        (entry) => entry.getAttribute('data-stroke') === getProviderBadgeStyle('OpenAI').color,
-      ),
-    ).toBe(true)
+    const areaEls = screen.getAllByTestId('provider-area')
+    expect(lineEls).toHaveLength(1)
+    expect(lineEls[0]).toHaveAttribute('data-stroke', getProviderBadgeStyle('OpenAI').color)
+    expect(areaEls.some((entry) => entry.getAttribute('data-name') === 'OpenAI')).toBe(true)
   })
 
   it('shows the daily-only fallback outside daily view', () => {

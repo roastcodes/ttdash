@@ -12,16 +12,19 @@ interface ChartLegendProps {
   payload?: ChartLegendEntry[]
   className?: string
   renderLabel?: (entry: ChartLegendEntry) => ReactNode
+  filterEntry?: (entry: ChartLegendEntry) => boolean
 }
 
 /** Renders a compact responsive legend for Recharts payload items. */
-export function ChartLegend({ payload, className, renderLabel }: ChartLegendProps) {
-  if (!payload?.length) return null
+export function ChartLegend({ payload, className, renderLabel, filterEntry }: ChartLegendProps) {
+  const visiblePayload = filterEntry ? payload?.filter(filterEntry) : payload
+
+  if (!visiblePayload?.length) return null
 
   return (
     <div className={cn('mt-3 pb-1', className)}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2 pr-2">
-        {payload.map((entry, index) => {
+        {visiblePayload.map((entry, index) => {
           const color = typeof entry.color === 'string' ? entry.color : 'currentColor'
           const label = String(entry.value ?? '')
           const renderedLabel = renderLabel ? renderLabel(entry) : label

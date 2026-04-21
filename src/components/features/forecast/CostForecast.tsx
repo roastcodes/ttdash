@@ -20,6 +20,7 @@ import {
   getAreaAnimationProps,
   getLineAnimationProps,
 } from '@/components/charts/chart-theme'
+import type { TooltipPayloadEntry } from '@/components/charts/CustomTooltip'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { MetricCard } from '@/components/cards/MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
@@ -28,12 +29,39 @@ import { CHART_HELP } from '@/lib/help-content'
 import type { CurrentMonthForecast } from '@/lib/calculations'
 import type { DailyUsage, ViewMode } from '@/types'
 
+function ForecastTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean
+  payload?: TooltipPayloadEntry[]
+  label?: string
+}) {
+  const { t } = useTranslation()
+  const tooltipProps = {
+    ...(active !== undefined ? { active } : {}),
+    ...(payload !== undefined ? { payload } : {}),
+    ...(label !== undefined ? { label } : {}),
+    formatter: (v: number) => formatCurrency(v),
+    pinnedEntryNames: [t('forecast.lowerBound')],
+    showComputedTotal: false as const,
+  }
+
+  return <CustomTooltip {...tooltipProps} />
+}
+
 interface CostForecastProps {
   data: DailyUsage[]
   forecast: CurrentMonthForecast | null
   viewMode?: ViewMode
   expandable?: boolean
   onExpand?: () => void
+}
+
+function showForecastLegendEntry(entry: { dataKey?: string | number }) {
+  const dataKey = typeof entry.dataKey === 'string' ? entry.dataKey : ''
+  return dataKey !== 'lower'
 }
 
 /** Renders the current-month cost forecast card. */
@@ -246,15 +274,8 @@ export function CostForecast({
                     tickLine={false}
                     axisLine={false}
                   />
-                  <Tooltip
-                    content={
-                      <CustomTooltip
-                        formatter={(v) => formatCurrency(v)}
-                        showComputedTotal={false}
-                      />
-                    }
-                  />
-                  <Legend content={<ChartLegend />} />
+                  <Tooltip content={<ForecastTooltip />} />
+                  <Legend content={<ChartLegend filterEntry={showForecastLegendEntry} />} />
                   <Area
                     type="monotone"
                     dataKey="lower"
@@ -262,6 +283,7 @@ export function CostForecast({
                     stroke="none"
                     fill="transparent"
                     name={t('forecast.lowerBound')}
+                    legendType="none"
                   />
                   <Area
                     type="monotone"

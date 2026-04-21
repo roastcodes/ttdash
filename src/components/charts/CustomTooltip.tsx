@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
-interface TooltipPayloadEntry {
+/** Describes one Recharts tooltip payload entry consumed by the shared tooltip surface. */
+export interface TooltipPayloadEntry {
   name: string
   value: number
   color: string
