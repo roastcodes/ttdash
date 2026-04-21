@@ -98,7 +98,7 @@ describe('DrillDownModal motion and positioning', () => {
       'never',
     )
 
-    const dialog = screen.getByRole('dialog')
+    const dialog = screen.getByTestId('drilldown-dialog')
 
     expect(dialog).toHaveClass('top-6')
     expect(dialog).toHaveClass('translate-y-0')

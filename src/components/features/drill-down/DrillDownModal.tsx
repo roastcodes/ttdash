@@ -545,6 +545,7 @@ export function DrillDownModal({
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent
+        data-testid="drilldown-dialog"
         className="data-[state=closed]:slide-out-to-top-[2rem] data-[state=open]:slide-in-from-top-[2rem] top-6 max-h-[calc(100vh-3rem)] max-w-5xl translate-y-0 overflow-y-auto sm:top-10 sm:max-h-[calc(100vh-5rem)]"
         onKeyDown={handleDialogKeyDown}
       >
