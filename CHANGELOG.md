@@ -1,5 +1,23 @@
 # Changelog
 
+## [6.2.7] - 2026-04-21
+
+### Added
+
+- **Architektur-Gates für Abhängigkeits- und Layer-Regeln** — `dependency-cruiser`, `eslint-plugin-boundaries` und `archunit` prüfen jetzt repo-weit die Abhängigkeitsstruktur, Frontend-Layer sowie Feature-Slice-Grenzen gegen Regressionen
+- **Gezielte Architektur- und Runtime-Regressionen** — neue Tests decken Feature-Slice-Isolation, Hook-Namenskonventionen, Shared-UI-Platzierung und die serverseitige i18n-/Locale-Auflösung aus den neutralen Shared-Assets explizit ab
+
+### Improved
+
+- **Test- und Release-Gates für die überarbeitete Teststruktur** — `ci.yml` und `release.yml` führen jetzt den Dependency-Graph-Check und die Architekturtests explizit als eigene Schritte aus, statt sie nur implizit über Sammelkommandos mitzuziehen
+- **Repo-Struktur und Ownership zwischen `src`, `server` und `shared`** — generische UI-Helfer, Toast-State, Modellnormalisierung und Locale-Assets liegen jetzt in neutraleren, wiederverwendbaren Bereichen, wodurch Frontend-, Server- und Shared-Code klarere Grenzen einhalten
+- **Dokumentierte Architektur- und Testkonventionen für zukünftige Erweiterungen** — Architektur-, Test- und Agent-Dokumentation beschreiben jetzt verbindlicher, welche Strukturregeln durch die neuen Gates geschützt werden und wie neue Tests und Architekturprüfungen im Repo ergänzt werden sollen
+
+### Fixed
+
+- **Versteckte Strukturdrift im Frontend und zwischen Runtime-Bereichen** — implizite `hooks`-zu-`components`-Kopplungen, featureübergreifende UI-Helfer und neutrale Assets in nichtneutralen Ordnern wurden bereinigt, sodass die App-Struktur wieder konsistent mit den neuen Architekturregeln ist
+- **Unklare CI-Diagnose bei Architekturverstößen** — Dependency- und Architekturfehler erscheinen jetzt direkt in den GitHub-Workflows an der richtigen Stelle, statt erst indirekt in späteren Sammelgates aufzufallen
+
 ## [6.2.6] - 2026-04-21
 
 ### Added
