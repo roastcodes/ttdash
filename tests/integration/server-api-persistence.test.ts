@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -10,6 +10,7 @@ import { fetchTrusted, startStandaloneServer, stopProcess } from './server-test-
 import { createApiSharedServer, sampleUsage } from './server-api-test-helpers'
 
 const sharedServer = createApiSharedServer()
+const defaultSectionOrder = getDefaultDashboardSectionOrder()
 const emptyUsageResponse = {
   daily: [],
   totals: {
@@ -29,22 +30,10 @@ const defaultSettingsResponse = {
   reducedMotionPreference: 'system',
   providerLimits: {},
   defaultFilters: DEFAULT_DASHBOARD_FILTERS,
-  sectionVisibility: {
-    insights: true,
-    metrics: true,
-    today: true,
-    currentMonth: true,
-    activity: true,
-    forecastCache: true,
-    limits: true,
-    costAnalysis: true,
-    tokenAnalysis: true,
-    requestAnalysis: true,
-    advancedAnalysis: true,
-    comparisons: true,
-    tables: true,
-  },
-  sectionOrder: getDefaultDashboardSectionOrder(),
+  sectionVisibility: Object.fromEntries(
+    defaultSectionOrder.map((sectionId) => [sectionId, true] as const),
+  ),
+  sectionOrder: defaultSectionOrder,
   lastLoadedAt: null,
   lastLoadSource: null,
   cliAutoLoadActive: false,
@@ -181,6 +170,7 @@ describe('local server API persistence', () => {
     expect(await deleteResponse.json()).toEqual({ success: true })
 
     const finalUsageResponse = await fetch(`${sharedServer.baseUrl}/api/usage`)
+    expect(finalUsageResponse.status).toBe(200)
     const finalUsage = await finalUsageResponse.json()
     expect(finalUsage).toEqual(emptyUsageResponse)
   })
@@ -214,6 +204,7 @@ describe('local server API persistence', () => {
   it('keeps explicit runtime dir overrides independent', async () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-runtime-dir-test-'))
     const explicitConfigDir = path.join(runtimeRoot, 'explicit-config')
+    const explicitSettingsFile = path.join(explicitConfigDir, 'settings.json')
     let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
 
     try {
@@ -235,7 +226,8 @@ describe('local server API persistence', () => {
         body: JSON.stringify({ language: 'en' }),
       })
       expect(settingsResponse.status).toBe(200)
-      expect(standaloneServer.getOutput()).toContain('Settings File:')
+      expect(existsSync(explicitSettingsFile)).toBe(true)
+      expect(standaloneServer.getOutput()).toContain(explicitSettingsFile)
     } finally {
       if (standaloneServer) await stopProcess(standaloneServer.child)
       rmSync(runtimeRoot, { recursive: true, force: true })
