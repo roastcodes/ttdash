@@ -58,7 +58,7 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
       title={t('charts.tokenEfficiency.title')}
       subtitle={t('charts.tokenEfficiency.subtitle', { value: formatCurrency(avg) })}
       info={CHART_HELP.tokenEfficiency}
-      chartData={chartData as unknown as Record<string, unknown>[]}
+      chartData={chartData}
       valueKey="efficiency"
       valueFormatter={formatCurrency}
     >

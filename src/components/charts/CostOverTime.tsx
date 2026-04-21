@@ -64,7 +64,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
           : t('charts.costOverTime.subtitle')
       }
       info={CHART_HELP.costOverTime}
-      chartData={data as unknown as Record<string, unknown>[]}
+      chartData={data}
       valueKey="cost"
       valueFormatter={formatCurrency}
     >

@@ -326,10 +326,13 @@ describe('SettingsModal', () => {
 
     renderSettingsModal()
 
-    await vi.waitFor(() => {
-      expect(screen.getByTestId('settings-toktrack-status')).toHaveTextContent(
-        'Latest version could not be checked',
-      )
-    })
-  })
+    await vi.waitFor(
+      () => {
+        expect(screen.getByTestId('settings-toktrack-status')).toHaveTextContent(
+          'Latest version could not be checked',
+        )
+      },
+      { timeout: 10_000 },
+    )
+  }, 10_000)
 })

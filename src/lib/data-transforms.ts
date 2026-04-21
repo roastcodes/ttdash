@@ -43,6 +43,23 @@ export function sortByDate(data: DailyUsage[]): DailyUsage[] {
   return sortSharedByDate(data)
 }
 
+/** Builds the month-to-date daily dataset that powers the current-month forecast. */
+export function getCurrentMonthForecastData(
+  data: DailyUsage[],
+  selectedProviders: string[] = [],
+  selectedModels: string[] = [],
+): DailyUsage[] {
+  const sorted = sortByDate(data)
+  const lastEntry = sorted[sorted.length - 1]
+  if (!lastEntry) return []
+
+  const currentMonth = lastEntry.date.slice(0, 7)
+  let result = sorted.filter((entry) => entry.date.startsWith(currentMonth))
+  result = filterByProviders(result, selectedProviders)
+  result = filterByModels(result, selectedModels)
+  return result
+}
+
 /** Returns the distinct months present in the dataset. */
 export function getAvailableMonths(data: DailyUsage[]): string[] {
   const months = new Set<string>()

@@ -781,7 +781,7 @@ export function ProviderLimitsSection({
           title={t('limits.tracks.portfolioTitle')}
           subtitle={t('limits.tracks.portfolioSubtitle')}
           info={CHART_HELP.providerLimitTimeline}
-          chartData={timelineData as unknown as Record<string, unknown>[]}
+          chartData={timelineData}
           valueKey="totalCost"
           valueFormatter={formatCurrency}
         >

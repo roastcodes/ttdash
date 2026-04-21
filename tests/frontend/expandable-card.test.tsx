@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ExpandableCard } from '@/components/ui/expandable-card'
 import { initI18n } from '@/lib/i18n'
 
@@ -29,5 +29,24 @@ describe('ExpandableCard', () => {
         'Erweiterte Kartenansicht mit zusätzlichen Kennzahlen und vollständigem Inhalt.',
       ),
     ).toBeInTheDocument()
+  }, 15_000)
+
+  it('delegates expand handling to an external callback without opening its own dialog', () => {
+    const onExpand = vi.fn()
+
+    render(
+      <ExpandableCard title="Forecast" onExpand={onExpand}>
+        <div>Inhalt</div>
+      </ExpandableCard>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Forecast vergrössern' }))
+
+    expect(onExpand).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByText(
+        'Erweiterte Kartenansicht mit zusätzlichen Kennzahlen und vollständigem Inhalt.',
+      ),
+    ).not.toBeInTheDocument()
   })
 })

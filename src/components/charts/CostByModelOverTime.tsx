@@ -107,7 +107,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
       }
       info={CHART_HELP.costByModelOverTime}
       className="lg:col-span-2"
-      chartData={data as unknown as Record<string, unknown>[]}
+      chartData={data}
       valueKey="cost"
       valueFormatter={formatCurrency}
       expandedExtra={expandedChart}

@@ -484,3 +484,88 @@ export function computeCurrentMonthForecast(data: DailyUsage[]) {
     confidence,
   }
 }
+
+function createForecastDay(date: string, totalCost: number): DailyUsage {
+  return {
+    date,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheCreationTokens: 0,
+    cacheReadTokens: 0,
+    thinkingTokens: 0,
+    totalTokens: 0,
+    totalCost,
+    requestCount: 0,
+    modelsUsed: [],
+    modelBreakdowns: [],
+  }
+}
+
+/** Forecasts current-month totals separately for each visible provider. */
+export function computeCurrentMonthProviderForecasts(data: DailyUsage[]) {
+  if (data.length < 2) return null
+
+  const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
+  const lastEntry = sorted[sorted.length - 1]
+  if (!lastEntry) return null
+
+  const currentMonth = lastEntry.date.slice(0, 7)
+  const monthData = sorted.filter((entry) => entry.date.startsWith(currentMonth))
+  if (monthData.length < 2) return null
+
+  const elapsedDays = Number(lastEntry.date.slice(8, 10))
+  if (!Number.isFinite(elapsedDays) || elapsedDays < 2) return null
+
+  const providerCostMaps = new Map<string, Map<string, number>>()
+  const providerTotals = new Map<string, number>()
+
+  for (const day of monthData) {
+    for (const breakdown of day.modelBreakdowns) {
+      const provider = getModelProvider(breakdown.modelName)
+      const dateCosts = providerCostMaps.get(provider) ?? new Map<string, number>()
+      dateCosts.set(day.date, (dateCosts.get(day.date) ?? 0) + breakdown.cost)
+      providerCostMaps.set(provider, dateCosts)
+      providerTotals.set(provider, (providerTotals.get(provider) ?? 0) + breakdown.cost)
+    }
+  }
+
+  const providers = Array.from(providerCostMaps.keys())
+    .filter((provider) => (providerTotals.get(provider) ?? 0) > 0)
+    .sort((left, right) => {
+      const delta = (providerTotals.get(right) ?? 0) - (providerTotals.get(left) ?? 0)
+      return delta !== 0 ? delta : left.localeCompare(right)
+    })
+
+  if (providers.length === 0) return null
+
+  const providerForecasts = providers
+    .map((provider) => {
+      const providerCostMap = providerCostMaps.get(provider) ?? new Map<string, number>()
+      const providerData = Array.from({ length: elapsedDays }, (_, index) => {
+        const day = index + 1
+        const date = `${currentMonth}-${String(day).padStart(2, '0')}`
+        return createForecastDay(date, providerCostMap.get(date) ?? 0)
+      })
+
+      const forecast = computeCurrentMonthForecast(providerData)
+      if (!forecast) return null
+
+      return {
+        provider,
+        ...forecast,
+      }
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+
+  if (providerForecasts.length === 0) return null
+
+  return {
+    currentMonth,
+    elapsedDays: providerForecasts[0]?.elapsedDays ?? elapsedDays,
+    daysInMonth: providerForecasts[0]?.daysInMonth ?? elapsedDays,
+    remainingDays: providerForecasts[0]?.remainingDays ?? 0,
+    providers: providerForecasts,
+    currentMonthTotal: providerForecasts.reduce((sum, entry) => sum + entry.currentMonthTotal, 0),
+    forecastTotal: providerForecasts.reduce((sum, entry) => sum + entry.forecastTotal, 0),
+  }
+}

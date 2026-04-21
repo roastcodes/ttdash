@@ -24,6 +24,9 @@ const last30DaysPattern = /^(Letzte 30 Tage|Last 30 days)$/
 const defaultDailyPattern = /^(Täglich|Daily)$/
 const allDataPattern = /^(Alle Daten|All data)$/
 const viewModeComboboxPattern = /^(Ansichtsmodus|View mode)$/
+const costForecastExpandPattern = /^(Cost forecast expand|Kostenprognose vergrössern)$/
+const providerForecastExpandPattern = /^(Provider forecast expand|Anbieter-Prognose vergrössern)$/
+const forecastDialogTitlePattern = /^(Forecast details|Prognose-Details)$/
 const providersActivePattern = /^(1 providers active|1 Anbieter aktiv)$/
 const modelsActivePattern = /^(1 models active|1 Modelle aktiv)$/
 const dateFilterActivePattern = /^(Date filter active|Datumsfilter aktiv)$/
@@ -68,6 +71,54 @@ test('uploads sample usage data and renders the dashboard without browser errors
   await expect(page.locator('#token-analysis')).toBeVisible()
 
   expect(pageErrors, pageErrors.join('\n')).toEqual([])
+})
+
+test('opens one shared forecast zoom dialog from both forecast cards', async ({ page }) => {
+  await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
+  await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
+
+  await page.goto('/')
+  await uploadSampleUsage(page)
+
+  const forecastSection = page.locator('#forecastCache')
+  await forecastSection.scrollIntoViewIfNeeded()
+  await expect(forecastSection.getByText(/Forecast & Cache|Prognose & Cache/)).toBeVisible()
+
+  const costExpandButton = page.getByRole('button', { name: costForecastExpandPattern })
+  await expect(costExpandButton).toBeVisible()
+  await costExpandButton.click()
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText(forecastDialogTitlePattern)).toBeVisible()
+  await expect(dialog.getByText(/Month-end forecast|Prognose Monatsende/)).toBeVisible()
+  await expect(
+    dialog.getByText(/Current month cost forecast|Kostenprognose aktueller Monat/),
+  ).toBeVisible()
+  await expect(
+    dialog.getByText(/Current month forecast by provider|Monatsprognose nach Anbieter/),
+  ).toBeVisible()
+  await expect(
+    dialog.locator('[data-testid="provider-forecast-chip"][data-provider="OpenAI"]'),
+  ).toBeVisible()
+  await expect(
+    dialog.locator('[data-testid="provider-forecast-chip"][data-provider="Anthropic"]'),
+  ).toBeVisible()
+  await expect(
+    dialog.getByText(/Current month cost forecast|Kostenprognose aktueller Monat/),
+  ).toHaveCount(1)
+  await dialog.getByRole('button', { name: /Close|Schliessen/ }).click()
+  await expect(dialog).toBeHidden()
+
+  const providerExpandButton = page.getByRole('button', { name: providerForecastExpandPattern })
+  await expect(providerExpandButton).toBeVisible()
+  await providerExpandButton.click()
+
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText(forecastDialogTitlePattern)).toBeVisible()
+  await expect(
+    dialog.getByText(/Current month forecast by provider|Monatsprognose nach Anbieter/),
+  ).toBeVisible()
 })
 
 test('exposes pressed filter state and supports keyboard date selection in the dashboard filters', async ({

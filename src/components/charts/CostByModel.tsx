@@ -60,7 +60,7 @@ export function CostByModel({ data }: CostByModelProps) {
         ) : undefined
       }
       info={CHART_HELP.costByModel}
-      chartData={data as unknown as Record<string, unknown>[]}
+      chartData={data}
       valueKey="value"
       valueFormatter={formatCurrency}
     >

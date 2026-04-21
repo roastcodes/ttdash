@@ -224,8 +224,10 @@ export function ChartCard({
           <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
           {info && <InfoButton text={info} />}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {summary && <span className="text-sm font-semibold text-foreground">{summary}</span>}
+        <div className="flex min-w-0 flex-1 justify-end">
+          {summary && (
+            <div className="min-w-0 text-sm font-semibold text-foreground">{summary}</div>
+          )}
         </div>
       </div>
       {subtitle && <CardDescription className="mt-0.5">{subtitle}</CardDescription>}

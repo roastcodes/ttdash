@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
+import { getRadialAnimationProps } from '@/components/charts/chart-theme'
 import {
   formatCurrency,
   formatDate,
@@ -21,6 +22,7 @@ import {
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { normalizeModelName, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { useModelColorHelpers } from '@/lib/model-color-context'
+import { useShouldReduceMotion } from '@/lib/motion'
 import { cn } from '@/lib/cn'
 import type { DailyUsage } from '@/types'
 
@@ -122,6 +124,7 @@ export function DrillDownModal({
 }: DrillDownModalProps) {
   const { t } = useTranslation()
   const { getModelColor } = useModelColorHelpers()
+  const shouldReduceMotion = useShouldReduceMotion()
 
   const periodKind = day ? getPeriodKind(day.date) : 'day'
 
@@ -529,7 +532,7 @@ export function DrillDownModal({
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent
-        className="max-h-[85vh] max-w-5xl overflow-y-auto"
+        className="data-[state=closed]:slide-out-to-top-[2rem] data-[state=open]:slide-in-from-top-[2rem] top-6 max-h-[calc(100vh-3rem)] max-w-5xl translate-y-0 overflow-y-auto sm:top-10 sm:max-h-[calc(100vh-5rem)]"
         onKeyDown={handleDialogKeyDown}
       >
         <DialogHeader>
@@ -653,6 +656,7 @@ export function DrillDownModal({
                         outerRadius={84}
                         paddingAngle={2}
                         dataKey="value"
+                        {...getRadialAnimationProps(!shouldReduceMotion)}
                       >
                         {pieData.map((entry) => (
                           <Cell key={entry.name} fill={getModelColor(entry.name)} />

@@ -410,7 +410,7 @@ describe('server helper utilities', () => {
         expectedVersion: TOKTRACK_VERSION,
       },
       localFailure: null,
-      runnerFailures: ['bunx: missing'],
+      runnerFailures: [{ label: 'bunx', message: 'missing', timedOut: false }],
     })
 
     expect(error.messageKey).toBe('localToktrackVersionMismatch')
@@ -423,13 +423,13 @@ describe('server helper utilities', () => {
       localVersionMismatch: null,
       localFailure: null,
       runnerFailures: [
-        { label: 'bunx', message: 'timed out', timedOut: false },
+        { label: 'bunx', message: 'failed to start', timedOut: false },
         { label: 'npm exec', message: 'permission denied', timedOut: false },
       ],
     })
 
     expect(error.messageKey).toBe('packageRunnerFailed')
-    expect(error.message).toContain('bunx: timed out')
+    expect(error.message).toContain('bunx: failed to start')
     expect(error.message).toContain('npm exec: permission denied')
   })
 

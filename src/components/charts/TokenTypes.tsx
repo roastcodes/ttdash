@@ -52,7 +52,7 @@ export function TokenTypes({ data }: TokenTypesProps) {
       title={t('charts.tokenTypes.title')}
       subtitle={t('charts.tokenTypes.subtitle')}
       info={CHART_HELP.tokenTypes}
-      chartData={data as unknown as Record<string, unknown>[]}
+      chartData={data}
       valueKey="value"
       valueFormatter={formatTokens}
     >

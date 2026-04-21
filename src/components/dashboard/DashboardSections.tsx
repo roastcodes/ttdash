@@ -2,6 +2,7 @@ import {
   Fragment,
   Suspense,
   lazy,
+  useState,
   type ComponentType,
   type LazyExoticComponent,
   type ReactNode,
@@ -61,6 +62,16 @@ function preloadComponents(
 const CostForecast = lazyWithPreload(() =>
   import('../features/forecast/CostForecast').then((module) => ({
     default: module.CostForecast,
+  })),
+)
+const ProviderCostForecast = lazyWithPreload(() =>
+  import('../features/forecast/ProviderCostForecast').then((module) => ({
+    default: module.ProviderCostForecast,
+  })),
+)
+const ForecastZoomDialog = lazyWithPreload(() =>
+  import('../features/forecast/ForecastZoomDialog').then((module) => ({
+    default: module.ForecastZoomDialog,
   })),
 )
 const CostByModelOverTime = lazyWithPreload(() =>
@@ -165,6 +176,7 @@ interface DashboardSectionsProps {
   metrics: DashboardMetrics
   viewMode: ViewMode
   totalCalendarDays: number
+  forecastData: DailyUsage[]
   filteredData: DailyUsage[]
   filteredDailyData: DailyUsage[]
   todayData: DailyUsage | null
@@ -207,6 +219,7 @@ export function DashboardSections({
   metrics,
   viewMode,
   totalCalendarDays,
+  forecastData,
   filteredData,
   filteredDailyData,
   todayData,
@@ -229,6 +242,7 @@ export function DashboardSections({
   onDrillDownDateChange,
 }: DashboardSectionsProps) {
   const { t } = useTranslation()
+  const [forecastZoomOpen, setForecastZoomOpen] = useState(false)
 
   const lazyCardFallback = (className?: string) => (
     <ChartCardSkeleton
@@ -264,7 +278,7 @@ export function DashboardSections({
     today: 'min-h-[320px]',
     currentMonth: 'min-h-[360px]',
     activity: 'min-h-[360px]',
-    forecastCache: 'min-h-[420px]',
+    forecastCache: 'min-h-[800px]',
     limits: 'min-h-[480px]',
     costAnalysis: 'min-h-[980px]',
     tokenAnalysis: 'min-h-[380px]',
@@ -411,8 +425,16 @@ export function DashboardSections({
                 />
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {renderLazySection(
-                    <ExpandableCard title={t('dashboard.cards.costForecast')}>
-                      <CostForecast data={filteredData} viewMode={viewMode} />
+                    <ExpandableCard
+                      title={t('dashboard.cards.costForecast')}
+                      onExpand={() => setForecastZoomOpen(true)}
+                    >
+                      <CostForecast
+                        data={filteredData}
+                        forecastData={forecastData}
+                        viewMode={viewMode}
+                        expandable={false}
+                      />
                     </ExpandableCard>,
                     'h-[360px]',
                   )}
@@ -439,10 +461,41 @@ export function DashboardSections({
                     'h-[360px]',
                   )}
                 </div>
+                <div className="mt-4">
+                  {renderLazySection(
+                    <ExpandableCard
+                      title={t('dashboard.cards.providerForecast')}
+                      onExpand={() => setForecastZoomOpen(true)}
+                    >
+                      <ProviderCostForecast
+                        data={forecastData}
+                        viewMode={viewMode}
+                        expandable={false}
+                      />
+                    </ExpandableCard>,
+                    'h-[430px]',
+                  )}
+                </div>
+                <ErrorBoundary fallback={null}>
+                  <Suspense fallback={null}>
+                    <ForecastZoomDialog
+                      open={forecastZoomOpen}
+                      onOpenChange={setForecastZoomOpen}
+                      data={filteredData}
+                      forecastData={forecastData}
+                      viewMode={viewMode}
+                    />
+                  </Suspense>
+                </ErrorBoundary>
               </>,
               {
                 onPreload: () => {
-                  return preloadComponents(CostForecast, CacheROI)
+                  return preloadComponents(
+                    CostForecast,
+                    ProviderCostForecast,
+                    ForecastZoomDialog,
+                    CacheROI,
+                  )
                 },
               },
             )
