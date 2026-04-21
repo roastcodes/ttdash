@@ -24,6 +24,7 @@ import {
 } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
 import { getCurrentMonthForecastData } from '@/lib/data-transforms'
+import { computeDashboardForecastState } from '@/lib/calculations'
 import { getUniqueModels, getUniqueProviders } from '@/lib/model-utils'
 import type {
   AppLanguage,
@@ -296,6 +297,7 @@ export function useDashboardControllerWithBootstrap(
     () => getCurrentMonthForecastData(daily, selectedProviders, selectedModels),
     [daily, selectedProviders, selectedModels],
   )
+  const forecastState = useMemo(() => computeDashboardForecastState(forecastData), [forecastData])
   const settingsProviderOptions = useMemo(
     () =>
       [...new Set([...allProviders, ...settings.defaultFilters.providers])].sort((left, right) =>
@@ -710,6 +712,7 @@ export function useDashboardControllerWithBootstrap(
     resetAll,
     applyPreset,
     forecastData,
+    forecastState,
     filteredDailyData,
     filteredData,
     availableMonths,

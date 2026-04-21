@@ -409,8 +409,60 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
+/** Labels the confidence attached to a current-month forecast. */
+export type ForecastConfidence = 'low' | 'medium' | 'high'
+
+/** Describes one elapsed calendar day in the month-to-date forecast series. */
+export interface CurrentMonthForecastPoint {
+  date: string
+  cost: number
+}
+
+/** Captures the shared current-month forecast used by dashboard forecast views. */
+export interface CurrentMonthForecast {
+  currentMonth: string
+  monthData: DailyUsage[]
+  currentMonthTotal: number
+  elapsedDays: number
+  elapsedCalendarSeries: CurrentMonthForecastPoint[]
+  daysInMonth: number
+  remainingDays: number
+  projectedDailyBurn: number
+  volatility: number
+  lowerDaily: number
+  upperDaily: number
+  forecastTotal: number
+  dailyAvgTrend: {
+    avg: number
+    change: number
+  }
+  confidence: ForecastConfidence
+}
+
+/** Extends the shared current-month forecast with its owning provider. */
+export interface ProviderCurrentMonthForecast extends CurrentMonthForecast {
+  provider: string
+}
+
+/** Groups the current-month forecast results for all visible providers. */
+export interface CurrentMonthProviderForecasts {
+  currentMonth: string
+  elapsedDays: number
+  daysInMonth: number
+  remainingDays: number
+  providers: ProviderCurrentMonthForecast[]
+  currentMonthTotal: number
+  forecastTotal: number
+}
+
+/** Bundles the shared dashboard forecast outputs derived from one month-to-date input. */
+export interface DashboardForecastState {
+  costForecast: CurrentMonthForecast | null
+  providerForecast: CurrentMonthProviderForecasts | null
+}
+
 /** Forecasts the current month total from elapsed daily costs. */
-export function computeCurrentMonthForecast(data: DailyUsage[]) {
+export function computeCurrentMonthForecast(data: DailyUsage[]): CurrentMonthForecast | null {
   if (data.length < 2) return null
 
   const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
@@ -463,7 +515,7 @@ export function computeCurrentMonthForecast(data: DailyUsage[]) {
       ? { avg: recentAvg, change: ((recentAvg - previousAvg) / previousAvg) * 100 }
       : { avg: recentAvg, change: 0 }
 
-  let confidence = 'low'
+  let confidence: ForecastConfidence = 'low'
   if (elapsedDays >= 14 && volatility <= projectedDailyBurn * 0.75) confidence = 'high'
   else if (elapsedDays >= 7 && volatility <= projectedDailyBurn * 1.25) confidence = 'medium'
 
@@ -502,7 +554,9 @@ function createForecastDay(date: string, totalCost: number): DailyUsage {
 }
 
 /** Forecasts current-month totals separately for each visible provider. */
-export function computeCurrentMonthProviderForecasts(data: DailyUsage[]) {
+export function computeCurrentMonthProviderForecasts(
+  data: DailyUsage[],
+): CurrentMonthProviderForecasts | null {
   if (data.length < 2) return null
 
   const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
@@ -567,5 +621,13 @@ export function computeCurrentMonthProviderForecasts(data: DailyUsage[]) {
     providers: providerForecasts,
     currentMonthTotal: providerForecasts.reduce((sum, entry) => sum + entry.currentMonthTotal, 0),
     forecastTotal: providerForecasts.reduce((sum, entry) => sum + entry.forecastTotal, 0),
+  }
+}
+
+/** Builds the shared dashboard forecast state from the month-to-date filtered dataset. */
+export function computeDashboardForecastState(data: DailyUsage[]): DashboardForecastState {
+  return {
+    costForecast: computeCurrentMonthForecast(data),
+    providerForecast: computeCurrentMonthProviderForecasts(data),
   }
 }

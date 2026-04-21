@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  computeDashboardForecastState,
   computeCurrentMonthForecast,
   computeCurrentMonthProviderForecasts,
 } from '@/lib/calculations'
@@ -182,5 +183,39 @@ describe('computeCurrentMonthProviderForecasts', () => {
     const forecast = computeCurrentMonthProviderForecasts([createDailyUsage('2026-04-01', 7)])
 
     expect(forecast).toBeNull()
+  })
+})
+
+describe('computeDashboardForecastState', () => {
+  it('derives total and provider forecasts from one shared month-to-date input', () => {
+    const data = [
+      createDailyUsage('2026-04-01', 10),
+      {
+        ...createDailyUsage('2026-04-02', 20),
+        modelBreakdowns: [
+          {
+            modelName: 'claude-sonnet-4-5',
+            inputTokens: 100,
+            outputTokens: 50,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            cost: 20,
+            requestCount: 1,
+          },
+        ],
+        modelsUsed: ['claude-sonnet-4-5'],
+      },
+      createDailyUsage('2026-04-04', 30),
+    ]
+
+    const forecastState = computeDashboardForecastState(data)
+
+    expect(forecastState.costForecast?.currentMonthTotal).toBe(60)
+    expect(forecastState.providerForecast?.currentMonthTotal).toBe(60)
+    expect(forecastState.providerForecast?.providers.map((entry) => entry.provider)).toEqual([
+      'OpenAI',
+      'Anthropic',
+    ])
   })
 })

@@ -4,6 +4,7 @@ import { cloneElement, type ReactElement, type ReactNode } from 'react'
 import { screen } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CostForecast } from '@/components/features/forecast/CostForecast'
+import { computeCurrentMonthForecast } from '@/lib/calculations'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
 import { MockSvgContainer } from '../recharts-test-utils'
@@ -108,7 +109,7 @@ describe('CostForecast', () => {
       },
     ]
 
-    renderWithTooltip(<CostForecast data={data} />)
+    renderWithTooltip(<CostForecast data={data} forecast={computeCurrentMonthForecast(data)} />)
 
     expect(screen.getByText('Actual cost:')).toBeInTheDocument()
     expect(screen.getByText('Forecast:')).toBeInTheDocument()
@@ -191,7 +192,12 @@ describe('CostForecast', () => {
       },
     ]
 
-    renderWithTooltip(<CostForecast data={fullMonthData.slice(1)} forecastData={fullMonthData} />)
+    renderWithTooltip(
+      <CostForecast
+        data={fullMonthData.slice(1)}
+        forecast={computeCurrentMonthForecast(fullMonthData)}
+      />,
+    )
 
     expect(screen.getByText(/So far: \$36\.0/)).toBeInTheDocument()
     expect(screen.queryByText(/So far: \$30\.0/)).not.toBeInTheDocument()

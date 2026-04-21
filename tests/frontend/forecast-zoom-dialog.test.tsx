@@ -5,6 +5,7 @@ import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ForecastZoomDialog } from '@/components/features/forecast/ForecastZoomDialog'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { computeDashboardForecastState } from '@/lib/calculations'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
 import { MockSvgContainer } from '../recharts-test-utils'
@@ -113,7 +114,7 @@ describe('ForecastZoomDialog', () => {
           open={true}
           onOpenChange={vi.fn()}
           data={data}
-          forecastData={data}
+          forecastState={computeDashboardForecastState(data)}
           viewMode="daily"
         />
       </TooltipProvider>,

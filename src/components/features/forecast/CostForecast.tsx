@@ -21,16 +21,16 @@ import {
   getLineAnimationProps,
 } from '@/components/charts/chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
-import { computeCurrentMonthForecast } from '@/lib/calculations'
 import { MetricCard } from '@/components/cards/MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { TrendingUp } from 'lucide-react'
 import { CHART_HELP } from '@/lib/help-content'
+import type { CurrentMonthForecast } from '@/lib/calculations'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface CostForecastProps {
   data: DailyUsage[]
-  forecastData?: DailyUsage[]
+  forecast: CurrentMonthForecast | null
   viewMode?: ViewMode
   expandable?: boolean
 }
@@ -38,12 +38,11 @@ interface CostForecastProps {
 /** Renders the current-month cost forecast card. */
 export function CostForecast({
   data,
-  forecastData,
+  forecast,
   viewMode = 'daily',
   expandable = true,
 }: CostForecastProps) {
   const { t } = useTranslation()
-  const forecastInput = forecastData ?? data
   const {
     chartData,
     forecastTotal,
@@ -54,8 +53,6 @@ export function CostForecast({
     confidence,
     confidenceColor,
   } = useMemo(() => {
-    const forecast = computeCurrentMonthForecast(forecastInput)
-
     if (!forecast) {
       return {
         chartData: [],
@@ -136,7 +133,7 @@ export function CostForecast({
       confidence,
       confidenceColor,
     }
-  }, [forecastInput])
+  }, [forecast])
 
   // For monthly/yearly views, show a summary instead of a forecast
   if (viewMode !== 'daily') {

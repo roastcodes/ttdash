@@ -3,8 +3,8 @@
 import { cloneElement, type ReactElement, type ReactNode } from 'react'
 import { screen } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import * as calculations from '@/lib/calculations'
 import { ProviderCostForecast } from '@/components/features/forecast/ProviderCostForecast'
+import { computeCurrentMonthProviderForecasts } from '@/lib/calculations'
 import { initI18n } from '@/lib/i18n'
 import { getProviderBadgeStyle } from '@/lib/model-utils'
 import type { DailyUsage } from '@/types'
@@ -128,7 +128,9 @@ describe('ProviderCostForecast', () => {
       ]),
     ]
 
-    renderWithTooltip(<ProviderCostForecast data={data} />)
+    renderWithTooltip(
+      <ProviderCostForecast forecast={computeCurrentMonthProviderForecasts(data)} />,
+    )
 
     expect(screen.getByText('Current month forecast by provider')).toBeInTheDocument()
     const chips = screen.getAllByTestId('provider-forecast-chip')
@@ -168,7 +170,9 @@ describe('ProviderCostForecast', () => {
       buildDay('2026-04-04', [{ modelName: 'gpt-5.4', cost: 16 }]),
     ]
 
-    renderWithTooltip(<ProviderCostForecast data={openAiOnlyData} />)
+    renderWithTooltip(
+      <ProviderCostForecast forecast={computeCurrentMonthProviderForecasts(openAiOnlyData)} />,
+    )
 
     const chips = screen.getAllByTestId('provider-forecast-chip')
     expect(chips).toHaveLength(1)
@@ -184,21 +188,11 @@ describe('ProviderCostForecast', () => {
   })
 
   it('shows the daily-only fallback outside daily view', () => {
-    const computeProviderForecastsSpy = vi.spyOn(
-      calculations,
-      'computeCurrentMonthProviderForecasts',
-    )
-    const data: DailyUsage[] = [
-      buildDay('2026-04-01', [{ modelName: 'gpt-5.4', cost: 10 }]),
-      buildDay('2026-04-02', [{ modelName: 'gpt-5.4', cost: 14 }]),
-    ]
-
-    renderWithTooltip(<ProviderCostForecast data={data} viewMode="monthly" />)
+    renderWithTooltip(<ProviderCostForecast forecast={null} viewMode="monthly" />)
 
     expect(
       screen.getByText('Provider forecast is available in daily view only'),
     ).toBeInTheDocument()
     expect(screen.queryByTestId('provider-line')).not.toBeInTheDocument()
-    expect(computeProviderForecastsSpy).not.toHaveBeenCalled()
   })
 })

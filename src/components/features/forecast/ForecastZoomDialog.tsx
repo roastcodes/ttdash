@@ -2,13 +2,14 @@ import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { CostForecast } from './CostForecast'
 import { ProviderCostForecast } from './ProviderCostForecast'
+import type { DashboardForecastState } from '@/lib/calculations'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface ForecastZoomDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   data: DailyUsage[]
-  forecastData: DailyUsage[]
+  forecastState: DashboardForecastState
   viewMode: ViewMode
 }
 
@@ -17,7 +18,7 @@ export function ForecastZoomDialog({
   open,
   onOpenChange,
   data,
-  forecastData,
+  forecastState,
   viewMode,
 }: ForecastZoomDialogProps) {
   const { t } = useTranslation()
@@ -30,11 +31,15 @@ export function ForecastZoomDialog({
         <div className="space-y-6 pt-2">
           <CostForecast
             data={data}
-            forecastData={forecastData}
+            forecast={forecastState.costForecast}
             viewMode={viewMode}
             expandable={false}
           />
-          <ProviderCostForecast data={forecastData} viewMode={viewMode} expandable={false} />
+          <ProviderCostForecast
+            forecast={forecastState.providerForecast}
+            viewMode={viewMode}
+            expandable={false}
+          />
         </div>
       </DialogContent>
     </Dialog>

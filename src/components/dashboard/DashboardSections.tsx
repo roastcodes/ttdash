@@ -25,6 +25,7 @@ import { AnimatedDashboardSection } from './DashboardMotion'
 import { SECTION_HELP } from '@/lib/help-content'
 import { cn } from '@/lib/cn'
 import type { ModelCostChartPoint } from '@/lib/data-transforms'
+import type { DashboardForecastState } from '@/lib/calculations'
 import { formatCurrency, formatPercent, formatTokens, periodUnit } from '@/lib/formatters'
 import type {
   AggregateMetrics,
@@ -176,7 +177,7 @@ interface DashboardSectionsProps {
   metrics: DashboardMetrics
   viewMode: ViewMode
   totalCalendarDays: number
-  forecastData: DailyUsage[]
+  forecastState: DashboardForecastState
   filteredData: DailyUsage[]
   filteredDailyData: DailyUsage[]
   todayData: DailyUsage | null
@@ -219,7 +220,7 @@ export function DashboardSections({
   metrics,
   viewMode,
   totalCalendarDays,
-  forecastData,
+  forecastState,
   filteredData,
   filteredDailyData,
   todayData,
@@ -431,7 +432,7 @@ export function DashboardSections({
                     >
                       <CostForecast
                         data={filteredData}
-                        forecastData={forecastData}
+                        forecast={forecastState.costForecast}
                         viewMode={viewMode}
                         expandable={false}
                       />
@@ -468,7 +469,7 @@ export function DashboardSections({
                       onExpand={() => setForecastZoomOpen(true)}
                     >
                       <ProviderCostForecast
-                        data={forecastData}
+                        forecast={forecastState.providerForecast}
                         viewMode={viewMode}
                         expandable={false}
                       />
@@ -482,7 +483,7 @@ export function DashboardSections({
                       open={forecastZoomOpen}
                       onOpenChange={setForecastZoomOpen}
                       data={filteredData}
-                      forecastData={forecastData}
+                      forecastState={forecastState}
                       viewMode={viewMode}
                     />
                   </Suspense>
@@ -545,7 +546,7 @@ export function DashboardSections({
                 </div>
                 <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {renderLazySection(
-                    <CumulativeCost data={costChartData} rawData={filteredData} />,
+                    <CumulativeCost data={costChartData} forecast={forecastState.costForecast} />,
                     'h-[320px]',
                   )}
                   {renderLazySection(<CostByWeekday data={weekdayData} />, 'h-[320px]')}

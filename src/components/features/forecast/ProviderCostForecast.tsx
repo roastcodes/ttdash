@@ -22,12 +22,12 @@ import {
 } from '@/components/charts/chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
-import { computeCurrentMonthProviderForecasts } from '@/lib/calculations'
 import { getProviderBadgeStyle } from '@/lib/model-utils'
-import type { DailyUsage, ViewMode } from '@/types'
+import type { CurrentMonthProviderForecasts } from '@/lib/calculations'
+import type { ViewMode } from '@/types'
 
 interface ProviderCostForecastProps {
-  data: DailyUsage[]
+  forecast: CurrentMonthProviderForecasts | null
   viewMode?: ViewMode
   expandable?: boolean
 }
@@ -154,7 +154,7 @@ function ProviderForecastTooltip({
 
 /** Renders the current-month forecast split by provider. */
 export function ProviderCostForecast({
-  data,
+  forecast,
   viewMode = 'daily',
   expandable = true,
 }: ProviderCostForecastProps) {
@@ -170,7 +170,6 @@ export function ProviderCostForecast({
       }
     }
 
-    const forecast = computeCurrentMonthProviderForecasts(data)
     if (!forecast) {
       return {
         chartData: [],
@@ -242,7 +241,7 @@ export function ProviderCostForecast({
       seriesMeta: nextSeriesMeta,
       providerCount: providers.length,
     }
-  }, [data, viewMode])
+  }, [forecast, viewMode])
 
   if (viewMode !== 'daily') {
     return (

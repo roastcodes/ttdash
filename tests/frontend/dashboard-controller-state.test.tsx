@@ -170,4 +170,68 @@ describe('useDashboardControllerWithBootstrap state', () => {
     await waitFor(() => expect(result.current.fatalLoadState).toBeNull())
     expect(toastMocks.addToast).toHaveBeenCalledWith('Settings reset', 'success')
   })
+
+  it('builds one shared forecast state from the month-to-date filtered data', async () => {
+    usageHookMocks.useUsageData.mockReturnValue({
+      data: createUsageData({
+        daily: [
+          createForecastDay('2026-04-01', 6),
+          createForecastDay('2026-04-05', 12),
+          createForecastDay('2026-04-06', 18),
+        ],
+      }),
+      isLoading: false,
+      error: null,
+    })
+    filterHookMocks.useDashboardFilters.mockReturnValue(
+      createFilterState({
+        selectedProviders: [],
+        selectedModels: [],
+      }),
+    )
+
+    const { result } = renderHookWithQueryClient(() =>
+      useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
+    )
+
+    await waitFor(() =>
+      expect(result.current.forecastState.costForecast).toMatchObject({
+        currentMonth: '2026-04',
+        currentMonthTotal: 36,
+        elapsedDays: 6,
+      }),
+    )
+    expect(result.current.forecastState.providerForecast).toMatchObject({
+      currentMonth: '2026-04',
+      currentMonthTotal: 36,
+    })
+    expect(result.current.forecastState.providerForecast?.providers[0]?.provider).toBe('OpenAI')
+  })
 })
+
+function createForecastDay(date: string, totalCost: number) {
+  return {
+    date,
+    inputTokens: 100,
+    outputTokens: 40,
+    cacheCreationTokens: 0,
+    cacheReadTokens: 0,
+    thinkingTokens: 0,
+    totalTokens: 140,
+    totalCost,
+    requestCount: 1,
+    modelsUsed: ['gpt-5.4'],
+    modelBreakdowns: [
+      {
+        modelName: 'gpt-5.4',
+        inputTokens: 100,
+        outputTokens: 40,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        cost: totalCost,
+        requestCount: 1,
+      },
+    ],
+  }
+}
