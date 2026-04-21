@@ -21,10 +21,12 @@ describe('HelpPanel', () => {
     expect(screen.getByText('Provider limit usage')).toBeInTheDocument()
     expect(screen.getByText('Provider subscriptions vs. API cost')).toBeInTheDocument()
     expect(screen.getByText('Provider limits over time')).toBeInTheDocument()
+    expect(screen.getByText('Cumulative cost per provider')).toBeInTheDocument()
 
     expect(screen.queryByText('providerLimitProgress')).not.toBeInTheDocument()
     expect(screen.queryByText('providerSubscriptionMix')).not.toBeInTheDocument()
     expect(screen.queryByText('providerLimitTimeline')).not.toBeInTheDocument()
+    expect(screen.queryByText('cumulativeCostPerProvider')).not.toBeInTheDocument()
   }, 10_000)
 
   it('uses consistent German terminology for request and limit surfaces', async () => {

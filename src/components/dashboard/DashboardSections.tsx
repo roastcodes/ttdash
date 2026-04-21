@@ -85,6 +85,11 @@ const CumulativeCost = lazyWithPreload(() =>
     default: module.CumulativeCost,
   })),
 )
+const CumulativeCostPerProvider = lazyWithPreload(() =>
+  import('../charts/CumulativeCostPerProvider').then((module) => ({
+    default: module.CumulativeCostPerProvider,
+  })),
+)
 const CostByWeekday = lazyWithPreload(() =>
   import('../charts/CostByWeekday').then((module) => ({
     default: module.CostByWeekday,
@@ -538,7 +543,14 @@ export function DashboardSections({
                   </div>
                   <CostByModel data={modelPieData} />
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {renderLazySection(
+                    <CumulativeCostPerProvider
+                      data={filteredData}
+                      forecast={forecastState.providerForecast}
+                    />,
+                    'h-[320px]',
+                  )}
                   {renderLazySection(
                     <CostByModelOverTime data={modelCostChartData} models={allModels} />,
                     'h-[320px]',
@@ -559,6 +571,7 @@ export function DashboardSections({
               {
                 onPreload: () => {
                   return preloadComponents(
+                    CumulativeCostPerProvider,
                     CostByModelOverTime,
                     CumulativeCost,
                     CostByWeekday,

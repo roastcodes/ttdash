@@ -43,6 +43,8 @@ const HELP_CONTENT = {
         'Zeigt, wie sich die Kosten je Modell über die Zeit entwickeln. Gut geeignet, um Treiber und Verschiebungen im Modellmix zu erkennen.',
       cumulativeCost:
         'Zeigt die kumulierten Gesamtkosten über den gewählten Zeitraum. Falls möglich, wird zusätzlich die Monatsend-Projektion eingeblendet.',
+      cumulativeCostPerProvider:
+        'Zeigt die kumulierten Kosten je Anbieter über den gewählten Zeitraum. Im Tagesmodus wird die Monatsend-Projektion pro Anbieter ergänzt, wenn Forecast-Daten vorliegen.',
       costByWeekday:
         'Zeigt die durchschnittlichen Kosten pro Wochentag. So werden wiederkehrende Lastmuster über die Woche sichtbar.',
       tokensOverTime:
@@ -164,6 +166,8 @@ const HELP_CONTENT = {
         'Shows how cost per model evolves over time. Useful for spotting shifts in the model mix.',
       cumulativeCost:
         'Shows cumulative total cost over the selected range. When possible, a month-end projection is added.',
+      cumulativeCostPerProvider:
+        'Shows cumulative cost per provider across the selected range. In daily mode, a month-end projection is added per provider when forecast data is available.',
       costByWeekday:
         'Shows average cost by weekday, making recurring weekly load patterns visible.',
       tokensOverTime:

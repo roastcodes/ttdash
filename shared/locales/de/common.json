@@ -367,6 +367,11 @@
       "cumulative": "Kumulativ",
       "projection": "Projektion"
     },
+    "cumulativeCostPerProvider": {
+      "title": "Kumulative Kosten pro Anbieter",
+      "subtitle": "Pro Anbieter über die Zeit",
+      "topDriver": "Top Treiber: {{provider}} · {{total}} kumuliert"
+    },
     "tokensOverTime": {
       "title": "Tokens im Zeitverlauf",
       "subtitle": "Alle Token-Typen mit 7-Tage Ø",
@@ -657,6 +662,7 @@
       "costByModel": "Kosten nach Modell",
       "costByModelOverTime": "Kosten/Modell über Zeit",
       "cumulativeCost": "Kumulative Kosten",
+      "cumulativeCostPerProvider": "Kumulative Kosten pro Anbieter",
       "costByWeekday": "Kosten nach Wochentag",
       "tokensOverTime": "Tokens über Zeit",
       "requestsOverTime": "Anfragen im Zeitverlauf",

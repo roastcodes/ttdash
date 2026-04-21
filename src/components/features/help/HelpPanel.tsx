@@ -60,6 +60,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
       costByModel: t('helpPanel.chartLabels.costByModel'),
       costByModelOverTime: t('helpPanel.chartLabels.costByModelOverTime'),
       cumulativeCost: t('helpPanel.chartLabels.cumulativeCost'),
+      cumulativeCostPerProvider: t('helpPanel.chartLabels.cumulativeCostPerProvider'),
       costByWeekday: t('helpPanel.chartLabels.costByWeekday'),
       tokensOverTime: t('helpPanel.chartLabels.tokensOverTime'),
       requestsOverTime: t('helpPanel.chartLabels.requestsOverTime'),

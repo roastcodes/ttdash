@@ -12,7 +12,7 @@ describe('CostByModelOverTime', () => {
   })
 
   it('ignores non-finite series values when computing the top model summary', () => {
-    renderWithTooltip(
+    const { container } = renderWithTooltip(
       <CostByModelOverTime
         models={['GPT-5.4', 'Sonnet 4.6']}
         data={[
@@ -36,5 +36,6 @@ describe('CostByModelOverTime', () => {
     expect(screen.getByText(/\$9\.00/)).toBeInTheDocument()
     expect(screen.queryByText(/nan/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/infinity/i)).not.toBeInTheDocument()
+    expect(container.querySelector('.lg\\:col-span-2')).toBeNull()
   })
 })

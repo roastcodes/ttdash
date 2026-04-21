@@ -106,7 +106,6 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
           : t('charts.costByModelOverTime.subtitle')
       }
       info={CHART_HELP.costByModelOverTime}
-      className="lg:col-span-2"
       chartData={data}
       valueKey="cost"
       valueFormatter={formatCurrency}

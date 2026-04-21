@@ -79,6 +79,29 @@ test('uploads sample usage data and renders the dashboard without browser errors
   expect(pageErrors, pageErrors.join('\n')).toEqual([])
 })
 
+test('shows cumulative provider cost next to model cost trends in cost analysis', async ({
+  page,
+  baseURL,
+}) => {
+  const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
+  await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
+  await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
+
+  await page.goto('/')
+  await uploadSampleUsage(page)
+
+  const costAnalysisSection = page.locator('#charts')
+  await costAnalysisSection.scrollIntoViewIfNeeded()
+
+  await expect(costAnalysisSection.getByText(/Cost analysis|Kostenanalyse/)).toBeVisible()
+  await expect(
+    costAnalysisSection.getByText(/Cumulative cost per provider|Kumulative Kosten pro Anbieter/),
+  ).toBeVisible()
+  await expect(
+    costAnalysisSection.getByText(/Cost by model over time|Kosten nach Modell im Zeitverlauf/),
+  ).toBeVisible()
+})
+
 test('opens one shared forecast zoom dialog from both forecast cards', async ({
   page,
   baseURL,
