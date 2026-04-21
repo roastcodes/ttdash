@@ -9,6 +9,13 @@ interface MotionPreferenceContextValue {
 
 const MotionPreferenceContext = createContext<MotionPreferenceContextValue | null>(null)
 
+/** Defines the shared app motion timings used across charts, meters, and dialogs. */
+export const APP_MOTION = {
+  ease: [0.22, 1, 0.36, 1] as const,
+  staggerMs: 105,
+  meterDurationMs: 960,
+}
+
 function getSystemReducedMotion() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
     return false

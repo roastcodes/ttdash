@@ -49,6 +49,8 @@ describe('DrillDownModal regressions', () => {
     expect(document.body).not.toHaveTextContent('Infinity')
     expect(document.body).not.toHaveTextContent('NaN')
     expect(screen.getAllByText('–').length).toBeGreaterThan(0)
+    expect(screen.getByTestId('drilldown-token-distribution')).toBeInTheDocument()
+    expect(screen.queryByTestId('drilldown-token-distribution-input')).not.toBeInTheDocument()
   }, 15_000)
 
   it('uses the canonical token sum instead of a stale day.totalTokens value', () => {
@@ -80,6 +82,14 @@ describe('DrillDownModal regressions', () => {
     renderDrillDown(day)
 
     expect(screen.getAllByText('100').length).toBeGreaterThan(0)
+    expect(screen.getByTestId('drilldown-token-distribution-input')).toHaveAttribute(
+      'data-target-width',
+      '60%',
+    )
+    expect(screen.getByTestId('drilldown-token-distribution-output')).toHaveAttribute(
+      'data-target-width',
+      '20%',
+    )
     expect(screen.getAllByText(/\$50\.0k/).length).toBeGreaterThan(0)
     expect(screen.getAllByText('Cache Read').length).toBeGreaterThan(0)
     expect(screen.getAllByText('10.0%').length).toBeGreaterThan(0)

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { ReactNode } from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DrillDownModal } from '@/components/features/drill-down/DrillDownModal'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -128,5 +128,42 @@ describe('DrillDownModal motion and positioning', () => {
     expect(pie).toHaveAttribute('data-begin', '305')
     expect(pie).toHaveAttribute('data-duration', '1230')
     expect(pie).toHaveAttribute('data-easing', 'ease-out')
+  })
+
+  it('animates token distribution segments through the shared motion policy', () => {
+    const day = buildDay()
+    const { rerender } = renderWithMotionPreference(
+      <DrillDownModal day={day} contextData={[day]} open onClose={() => {}} />,
+      'always',
+    )
+
+    const distribution = screen.getByTestId('drilldown-token-distribution')
+    const inputSegment = within(distribution).getByTestId('drilldown-token-distribution-input')
+
+    expect(inputSegment).toHaveAttribute('data-animate', 'false')
+    expect(inputSegment).toHaveAttribute('data-target-width', '63.636%')
+    expect(inputSegment).toHaveAttribute('data-delay-ms', '0')
+    expect(inputSegment).toHaveAttribute('data-duration-ms', '0')
+
+    rerender(
+      <AppMotionProvider preference="never">
+        <TooltipProvider>
+          <DrillDownModal day={day} contextData={[day]} open onClose={() => {}} />
+        </TooltipProvider>
+      </AppMotionProvider>,
+    )
+
+    const animatedDistribution = screen.getByTestId('drilldown-token-distribution')
+    const animatedInput = within(animatedDistribution).getByTestId(
+      'drilldown-token-distribution-input',
+    )
+    const animatedThinking = within(animatedDistribution).getByTestId(
+      'drilldown-token-distribution-thinking',
+    )
+
+    expect(animatedInput).toHaveAttribute('data-animate', 'true')
+    expect(animatedInput).toHaveAttribute('data-delay-ms', '210')
+    expect(animatedInput).toHaveAttribute('data-duration-ms', '960')
+    expect(animatedThinking).toHaveAttribute('data-delay-ms', '420')
   })
 })
