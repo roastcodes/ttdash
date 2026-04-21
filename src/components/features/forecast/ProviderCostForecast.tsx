@@ -161,6 +161,15 @@ export function ProviderCostForecast({
   const { t } = useTranslation()
 
   const { chartData, providerSummaries, seriesMeta, providerCount } = useMemo(() => {
+    if (viewMode !== 'daily') {
+      return {
+        chartData: [],
+        providerSummaries: [] as ProviderSummary[],
+        seriesMeta: [] as SeriesMeta[],
+        providerCount: 0,
+      }
+    }
+
     const forecast = computeCurrentMonthProviderForecasts(data)
     if (!forecast) {
       return {
@@ -233,7 +242,7 @@ export function ProviderCostForecast({
       seriesMeta: nextSeriesMeta,
       providerCount: providers.length,
     }
-  }, [data])
+  }, [data, viewMode])
 
   if (viewMode !== 'daily') {
     return (

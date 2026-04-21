@@ -34,7 +34,7 @@ describe('help-content proxy semantics', () => {
     expect(CHART_HELP.providerSubscriptionMix).toContain('Abo-Kosten')
     expect(CHART_HELP.providerSubscriptionMix).not.toContain('Subscription')
     expect(CHART_HELP.providerForecast).toContain('Anbietern')
-    expect(CHART_HELP.providerForecast).not.toContain('provider')
+    expect(CHART_HELP.providerForecast).not.toMatch(/provider/i)
 
     expect(SECTION_HELP.forecastCache).toContain('Anfragequalität')
     expect(SECTION_HELP.limits).toContain('Abos')

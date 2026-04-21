@@ -118,4 +118,27 @@ describe('getCurrentMonthForecastData', () => {
       getCurrentMonthForecastData(data, [], ['Claude Sonnet 4.5']).map((entry) => entry.date),
     ).toEqual(['2026-04-03'])
   })
+
+  it('returns no forecast rows when filters only match prior-month data', () => {
+    const latestMonthData: DailyUsage[] = [
+      {
+        ...data[0]!,
+        date: '2026-04-28',
+      },
+      {
+        ...data[1]!,
+        date: '2026-05-02',
+      },
+    ]
+
+    expect(
+      getCurrentMonthForecastData(latestMonthData, ['Anthropic']).map((entry) => entry.date),
+    ).toEqual([])
+
+    expect(
+      getCurrentMonthForecastData(latestMonthData, [], ['Claude Sonnet 4.5']).map(
+        (entry) => entry.date,
+      ),
+    ).toEqual([])
+  })
 })

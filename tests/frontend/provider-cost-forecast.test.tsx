@@ -3,6 +3,7 @@
 import { cloneElement, type ReactElement, type ReactNode } from 'react'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import * as calculations from '@/lib/calculations'
 import { ProviderCostForecast } from '@/components/features/forecast/ProviderCostForecast'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
@@ -99,6 +100,7 @@ function buildDay(
 
 describe('ProviderCostForecast', () => {
   beforeEach(async () => {
+    vi.restoreAllMocks()
     vi.stubGlobal(
       'IntersectionObserver',
       class {
@@ -190,6 +192,10 @@ describe('ProviderCostForecast', () => {
   })
 
   it('shows the daily-only fallback outside daily view', () => {
+    const computeProviderForecastsSpy = vi.spyOn(
+      calculations,
+      'computeCurrentMonthProviderForecasts',
+    )
     const data: DailyUsage[] = [
       buildDay('2026-04-01', [{ modelName: 'gpt-5.4', cost: 10 }]),
       buildDay('2026-04-02', [{ modelName: 'gpt-5.4', cost: 14 }]),
@@ -205,5 +211,6 @@ describe('ProviderCostForecast', () => {
       screen.getByText('Provider forecast is available in daily view only'),
     ).toBeInTheDocument()
     expect(screen.queryByTestId('provider-line')).not.toBeInTheDocument()
+    expect(computeProviderForecastsSpy).not.toHaveBeenCalled()
   })
 })

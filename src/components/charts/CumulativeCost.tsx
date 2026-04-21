@@ -41,7 +41,7 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
   const chartData = useMemo<CumulativeChartPoint[]>(() => {
     if (data.length < 3) return data
     const last = data[data.length - 1]
-    if (!last?.date || !last.cumulative) return data
+    if (!last?.date || last.cumulative == null) return data
     const forecast = computeCurrentMonthForecast(rawData)
     if (!forecast) return data
 

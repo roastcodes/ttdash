@@ -49,15 +49,15 @@ export function getCurrentMonthForecastData(
   selectedProviders: string[] = [],
   selectedModels: string[] = [],
 ): DailyUsage[] {
-  let result = sortByDate(data)
-  result = filterByProviders(result, selectedProviders)
-  result = filterByModels(result, selectedModels)
-
-  const lastEntry = result[result.length - 1]
+  const sorted = sortByDate(data)
+  const lastEntry = sorted[sorted.length - 1]
   if (!lastEntry) return []
 
   const currentMonth = lastEntry.date.slice(0, 7)
-  return result.filter((entry) => entry.date.startsWith(currentMonth))
+  let result = sorted.filter((entry) => entry.date.startsWith(currentMonth))
+  result = filterByProviders(result, selectedProviders)
+  result = filterByModels(result, selectedModels)
+  return result
 }
 
 /** Returns the distinct months present in the dataset. */
