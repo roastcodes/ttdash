@@ -85,4 +85,43 @@ describe('CustomTooltip', () => {
     expect(screen.queryByText('Infinity')).not.toBeInTheDocument()
     expect(screen.queryByText('Total:')).not.toBeInTheDocument()
   })
+
+  it('uses the single numeric pinned entry as the comparison focus when actual values are non-numeric', async () => {
+    await initI18n('en')
+
+    render(
+      <CustomTooltip
+        active
+        label="2026-04-01"
+        formatter={(value) => value.toFixed(1)}
+        pinnedEntryNames={['Pinned total']}
+        payload={[
+          {
+            name: 'Model A',
+            value: null,
+            color: '#f00',
+            dataKey: 'modelA',
+            payload: { pinnedTotalPrev: '10.5' },
+          },
+          {
+            name: 'Pinned total',
+            value: '12.5',
+            color: '#0f0',
+            dataKey: 'pinnedTotal',
+            payload: { pinnedTotalPrev: '10.5' },
+          },
+          {
+            name: 'Pinned total Ø',
+            value: '11.5',
+            color: '#0f0',
+            dataKey: 'pinnedtotalMA7',
+          },
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('Pinned total:')).toBeInTheDocument()
+    expect(screen.getByText('+2.0')).toBeInTheDocument()
+    expect(screen.getByText('+1.0')).toBeInTheDocument()
+  })
 })

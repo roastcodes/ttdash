@@ -78,6 +78,9 @@ export function CustomTooltip({
   const numericActualEntries = actualEntries.filter(
     (entry) => getNumericValue(entry.value) !== null,
   )
+  const numericPinnedEntries = pinnedEntries.filter(
+    (entry) => getNumericValue(entry.value) !== null,
+  )
   const total = numericActualEntries.reduce(
     (sum, entry) => sum + (getNumericValue(entry.value) ?? 0),
     0,
@@ -87,8 +90,8 @@ export function CustomTooltip({
   const focusEntry =
     numericActualEntries.length === 1
       ? numericActualEntries[0]
-      : pinnedEntries.filter((entry) => getNumericValue(entry.value) !== null).length === 1
-        ? pinnedEntries.filter((entry) => getNumericValue(entry.value) !== null)[0]
+      : numericPinnedEntries.length === 1
+        ? numericPinnedEntries[0]
         : null
   const prevValueRaw = focusEntry ? point[`${focusEntry.dataKey.toString()}Prev`] : undefined
   const prevValue =

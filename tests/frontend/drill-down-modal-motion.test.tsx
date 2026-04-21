@@ -3,8 +3,10 @@
 import type { ReactNode } from 'react'
 import { screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { CHART_ANIMATION } from '@/components/charts/chart-theme'
 import { DrillDownModal } from '@/components/features/drill-down/DrillDownModal'
 import { initI18n } from '@/lib/i18n'
+import { APP_MOTION } from '@/lib/motion'
 import type { DailyUsage } from '@/types'
 import { renderWithAppProviders, withAppProviders } from '../test-utils'
 
@@ -44,6 +46,13 @@ function renderWithMotionPreference(
 ) {
   return renderWithAppProviders(<>{ui}</>, { motionPreference: preference })
 }
+
+const RADIAL_ANIMATION_BEGIN_MS = CHART_ANIMATION.chartStartDelay + 20
+const RADIAL_ANIMATION_DURATION_MS = CHART_ANIMATION.radialDuration
+const RADIAL_ANIMATION_EASING = CHART_ANIMATION.easing
+const TOKEN_INPUT_DELAY_MS = APP_MOTION.staggerMs * 2
+const TOKEN_THINKING_DELAY_MS = APP_MOTION.staggerMs * 4
+const TOKEN_SEGMENT_DURATION_MS = APP_MOTION.meterDurationMs
 
 function buildDay(): DailyUsage {
   return {
@@ -118,9 +127,9 @@ describe('DrillDownModal motion and positioning', () => {
 
     const pie = screen.getByTestId('drilldown-cost-share-pie')
     expect(pie).toHaveAttribute('data-animate', 'true')
-    expect(pie).toHaveAttribute('data-begin', '305')
-    expect(pie).toHaveAttribute('data-duration', '1230')
-    expect(pie).toHaveAttribute('data-easing', 'ease-out')
+    expect(pie).toHaveAttribute('data-begin', String(RADIAL_ANIMATION_BEGIN_MS))
+    expect(pie).toHaveAttribute('data-duration', String(RADIAL_ANIMATION_DURATION_MS))
+    expect(pie).toHaveAttribute('data-easing', RADIAL_ANIMATION_EASING)
   })
 
   it('animates token distribution segments through the shared motion policy', () => {
@@ -153,8 +162,8 @@ describe('DrillDownModal motion and positioning', () => {
     )
 
     expect(animatedInput).toHaveAttribute('data-animate', 'true')
-    expect(animatedInput).toHaveAttribute('data-delay-ms', '210')
-    expect(animatedInput).toHaveAttribute('data-duration-ms', '960')
-    expect(animatedThinking).toHaveAttribute('data-delay-ms', '420')
+    expect(animatedInput).toHaveAttribute('data-delay-ms', String(TOKEN_INPUT_DELAY_MS))
+    expect(animatedInput).toHaveAttribute('data-duration-ms', String(TOKEN_SEGMENT_DURATION_MS))
+    expect(animatedThinking).toHaveAttribute('data-delay-ms', String(TOKEN_THINKING_DELAY_MS))
   })
 })
