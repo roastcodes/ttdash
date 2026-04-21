@@ -1,7 +1,6 @@
 import { createConnection, createServer } from 'node:net'
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import {
-  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -59,10 +58,49 @@ export async function getFreePort() {
           reject(error)
           return
         }
+
         resolve(port)
       })
     })
   })
+}
+
+async function waitForServerReady(
+  url: string,
+  {
+    child,
+    getOutput,
+    readinessPath = '/api/usage',
+    timeoutMs = 15_000,
+  }: {
+    child?: ChildProcessWithoutNullStreams | null
+    getOutput?: () => string
+    readinessPath?: string
+    timeoutMs?: number
+  } = {},
+) {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (child && child.exitCode !== null) {
+      throw new Error(`Server exited before becoming ready:\n${getOutput?.() ?? url}`)
+    }
+
+    try {
+      const response = await fetch(`${url}${readinessPath}`)
+      if (response.ok) {
+        return
+      }
+    } catch {}
+
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
+
+  if (getOutput) {
+    throw new Error(`Timed out waiting for server startup:\n${getOutput()}`)
+  }
+
+  throw new Error(`Timed out waiting for server startup: ${url}`)
 }
 
 export async function waitForServer(
@@ -70,41 +108,11 @@ export async function waitForServer(
   getOutput: () => string,
   child?: ChildProcessWithoutNullStreams | null,
 ) {
-  const startedAt = Date.now()
-
-  while (Date.now() - startedAt < 15_000) {
-    if (child?.exitCode !== null) {
-      throw new Error(`Server exited before becoming ready:\n${getOutput()}`)
-    }
-
-    try {
-      const response = await fetch(`${url}/api/usage`)
-      if (response.ok) {
-        return
-      }
-    } catch {}
-
-    await new Promise((resolve) => setTimeout(resolve, 200))
-  }
-
-  throw new Error(`Timed out waiting for server startup:\n${getOutput()}`)
+  await waitForServerReady(url, { getOutput, child })
 }
 
 export async function waitForUrlAvailable(url: string) {
-  const startedAt = Date.now()
-
-  while (Date.now() - startedAt < 15_000) {
-    try {
-      const response = await fetch(`${url}/api/usage`)
-      if (response.ok) {
-        return
-      }
-    } catch {}
-
-    await new Promise((resolve) => setTimeout(resolve, 200))
-  }
-
-  throw new Error(`Timed out waiting for server startup: ${url}`)
+  await waitForServerReady(url)
 }
 
 export async function waitForServerUnavailable(url: string) {
@@ -129,24 +137,11 @@ export async function waitForProcessServer(
   getOutput: () => string,
   readinessPath = '/api/usage',
 ) {
-  const startedAt = Date.now()
-
-  while (Date.now() - startedAt < 15_000) {
-    if (currentChild.exitCode !== null) {
-      throw new Error(`Server exited before becoming ready:\n${getOutput()}`)
-    }
-
-    try {
-      const response = await fetch(`${url}${readinessPath}`)
-      if (response.ok) {
-        return
-      }
-    } catch {}
-
-    await new Promise((resolve) => setTimeout(resolve, 200))
-  }
-
-  throw new Error(`Timed out waiting for server startup:\n${getOutput()}`)
+  await waitForServerReady(url, {
+    child: currentChild,
+    getOutput,
+    readinessPath,
+  })
 }
 
 export async function stopProcess(currentChild: ChildProcessWithoutNullStreams) {
@@ -386,9 +381,9 @@ export async function stopAllBackgroundServers(env: NodeJS.ProcessEnv, root?: st
     if (root) {
       const entriesAfterStop = tryReadBackgroundRegistry(root)
       if (entriesAfterStop.length === 0) {
-        await waitForBackgroundRegistry(root, (entries) => entries.length === 0)
         return
       }
+      continue
     } else if (result.output.includes('No running TTDash background servers found.')) {
       return
     }
@@ -445,16 +440,4 @@ export function registerSharedServerLifecycle(context: SharedServerContext) {
       rmSync(context.tempRoot, { recursive: true, force: true })
     }
   })
-}
-
-export {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  path,
-  readFileSync,
-  rmSync,
-  tmpdir,
-  writeFileSync,
 }

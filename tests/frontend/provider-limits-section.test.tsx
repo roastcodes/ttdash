@@ -6,7 +6,7 @@ import { ProviderLimitsSection } from '@/components/features/limits/ProviderLimi
 import { initI18n } from '@/lib/i18n'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
-vi.mock('@/components/ui/animated-bar-fill', () => ({
+vi.mock('@/components/ui/AnimatedBarFill', () => ({
   AnimatedBarFill: ({
     width,
     order,

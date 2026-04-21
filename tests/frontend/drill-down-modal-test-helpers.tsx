@@ -68,7 +68,7 @@ export function buildDetailedDayFixture() {
     cacheCreationTokens: 40,
     cacheReadTokens: 80,
     thinkingTokens: 50,
-    totalTokens: 1,
+    totalTokens: 1100,
     totalCost: 28,
     requestCount: 10,
     modelsUsed: ['gpt-5.4', 'claude-opus-4.1'],

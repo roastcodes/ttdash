@@ -1,7 +1,7 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { FadeIn } from '@/components/ui/fade-in'
+import { FadeIn } from '@/components/ui/FadeIn'
 
 interface LoadErrorAction {
   label: string

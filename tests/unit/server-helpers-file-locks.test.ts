@@ -18,6 +18,83 @@ afterEach(() => {
   resetServerHelperTestState()
 })
 
+function waitForChildMessage(
+  child: ReturnType<typeof fork>,
+  timeoutMs: number,
+  expectedMessage = 'locked',
+) {
+  return new Promise<void>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      child.kill()
+      cleanup()
+      reject(new Error(`Timed out waiting for child message: ${expectedMessage}`))
+    }, timeoutMs)
+
+    const cleanup = () => {
+      clearTimeout(timeoutId)
+      child.off('message', onMessage)
+      child.off('error', onError)
+      child.off('exit', onExit)
+    }
+
+    const onMessage = (message: unknown) => {
+      cleanup()
+      if (message === expectedMessage) {
+        resolve()
+        return
+      }
+      reject(new Error(`Unexpected child message: ${String(message)}`))
+    }
+
+    const onError = (error: unknown) => {
+      cleanup()
+      reject(error)
+    }
+
+    const onExit = (code: number | null) => {
+      cleanup()
+      reject(new Error(`Lock holder exited early with code ${code}`))
+    }
+
+    child.once('message', onMessage)
+    child.once('error', onError)
+    child.once('exit', onExit)
+  })
+}
+
+function waitForChildExit(child: ReturnType<typeof fork>, timeoutMs: number) {
+  return new Promise<void>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      child.kill()
+      cleanup()
+      reject(new Error('Timed out waiting for lock holder to exit'))
+    }, timeoutMs)
+
+    const cleanup = () => {
+      clearTimeout(timeoutId)
+      child.off('exit', onExit)
+      child.off('error', onError)
+    }
+
+    const onExit = (code: number | null) => {
+      cleanup()
+      if (code === 0) {
+        resolve()
+        return
+      }
+      reject(new Error(`Lock holder exited with code ${code}`))
+    }
+
+    const onError = (error: unknown) => {
+      cleanup()
+      reject(error)
+    }
+
+    child.once('exit', onExit)
+    child.once('error', onError)
+  })
+}
+
 describe('server helper utilities: file mutation locks', () => {
   it('serializes operations for the same file path and cleans up locks afterwards', async () => {
     const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-lock-same-file-'))
@@ -180,44 +257,26 @@ withFileMutationLock(filePath, async () => {
       stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
     })
 
-    await new Promise<void>((resolve, reject) => {
-      child.once('message', (message) => {
-        if (message === 'locked') {
-          resolve()
-          return
-        }
-        reject(new Error(`Unexpected child message: ${String(message)}`))
-      })
-      child.once('error', reject)
-      child.once('exit', (code) => {
-        if (code !== 0) {
-          reject(new Error(`Lock holder exited early with code ${code}`))
-        }
-      })
-    })
+    try {
+      await waitForChildMessage(child, 5_000)
 
-    const startedAt = Date.now()
-    await withFileMutationLock(targetFile, async () => undefined)
-    const waitedMs = Date.now() - startedAt
+      const startedAt = Date.now()
+      await withFileMutationLock(targetFile, async () => undefined)
+      const waitedMs = Date.now() - startedAt
 
-    expect(waitedMs).toBeGreaterThanOrEqual(150)
+      expect(waitedMs).toBeGreaterThanOrEqual(150)
 
-    if (child.exitCode === null) {
-      await new Promise<void>((resolve, reject) => {
-        child.once('exit', (code) => {
-          if (code === 0) {
-            resolve()
-            return
-          }
-          reject(new Error(`Lock holder exited with code ${code}`))
-        })
-        child.once('error', reject)
-      })
-    } else {
-      expect(child.exitCode).toBe(0)
+      if (child.exitCode === null) {
+        await waitForChildExit(child, 5_000)
+      } else {
+        expect(child.exitCode).toBe(0)
+      }
+    } finally {
+      if (child.exitCode === null) {
+        child.kill()
+      }
+      await fsPromises.rm(targetDir, { recursive: true, force: true })
     }
-
-    await fsPromises.rm(targetDir, { recursive: true, force: true })
   })
 
   it('removes temporary files when atomic async writes fail after creating the temp file', async () => {

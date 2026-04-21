@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AnimatedBarFill } from '@/components/ui/animated-bar-fill'
+import { AnimatedBarFill } from '@/components/ui/AnimatedBarFill'
 import { useTranslation } from 'react-i18next'
 import { InfoHeading } from '@/components/ui/info-heading'
 import { FEATURE_HELP } from '@/lib/help-content'

@@ -49,7 +49,7 @@ export function buildSettingsModalProps(
     models: [],
     limits: {},
     defaultFilters: { viewMode: 'daily', datePreset: 'all', providers: [], models: [] },
-    sectionVisibility: defaultSectionVisibility,
+    sectionVisibility: { ...defaultSectionVisibility },
     sectionOrder: [...defaultSectionOrder],
     lastLoadedAt: null,
     lastLoadSource: null,
@@ -82,12 +82,19 @@ export function stubToktrackVersionStatus(
     lookupStatus: 'ok',
   },
 ) {
-  const fetchMock = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify(body), {
+  const fetchMock = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
+    const url =
+      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
+
+    if (url !== '/api/toktrack/version-status') {
+      throw new Error(`Unexpected fetch in settings-modal test: ${url}`)
+    }
+
+    return new Response(JSON.stringify(body), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
-    }),
-  )
+    })
+  })
 
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock

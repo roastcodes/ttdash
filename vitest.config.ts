@@ -74,7 +74,7 @@ export default defineConfig(async () => {
             extends: true,
             test: {
               name: 'frontend',
-              include: ['tests/frontend/**/*.test.tsx'],
+              include: ['tests/frontend/**/*.test.{ts,tsx}'],
               environment: 'jsdom',
               setupFiles: ['./vitest.setup.ts', './vitest.setup.frontend.ts'],
               maxWorkers: '50%',

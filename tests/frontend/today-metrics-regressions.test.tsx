@@ -64,6 +64,6 @@ describe('TodayMetrics regressions', () => {
     renderWithAppProviders(<TodayMetrics today={today} metrics={emptyMetrics} />)
 
     expect(screen.getByText('No request counters')).toBeInTheDocument()
-    expect(screen.getAllByText('0').length).toBeGreaterThan(0)
+    expect(screen.queryByText(/NaN|Infinity/)).not.toBeInTheDocument()
   })
 })

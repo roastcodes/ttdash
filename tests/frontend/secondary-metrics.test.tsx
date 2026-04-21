@@ -7,7 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 import type { DashboardMetrics } from '@/types'
 
-vi.mock('@/components/ui/info-button', () => ({
+vi.mock('@/components/ui/InfoButton', () => ({
   InfoButton: ({ text }: { text: string }) => <span data-testid="metric-info">{text}</span>,
 }))
 

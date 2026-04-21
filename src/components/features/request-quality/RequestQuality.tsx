@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AnimatedBarFill } from '@/components/ui/animated-bar-fill'
+import { AnimatedBarFill } from '@/components/ui/AnimatedBarFill'
 import { InfoHeading } from '@/components/ui/info-heading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatPercent, formatTokens } from '@/lib/formatters'

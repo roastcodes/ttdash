@@ -66,16 +66,18 @@ describe('SettingsModal language and motion settings', () => {
 
   it('renders natural German labels for the dashboard motion settings', async () => {
     await initI18n('de')
-    renderSettingsModal({
-      language: 'de',
-      reducedMotionPreference: 'always',
-    })
+    try {
+      renderSettingsModal({
+        language: 'de',
+        reducedMotionPreference: 'always',
+      })
 
-    expect(screen.getByText('Dashboard-Einstellungen')).toBeInTheDocument()
-    expect(screen.getByText(/Browsereinstellung/)).toBeInTheDocument()
-    expect(screen.getByText(/Toast-Benachrichtigungen/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Immer' })).toHaveAttribute('aria-pressed', 'true')
-
-    await initI18n('en')
+      expect(screen.getByText('Dashboard-Einstellungen')).toBeInTheDocument()
+      expect(screen.getByText(/Browsereinstellung/)).toBeInTheDocument()
+      expect(screen.getByText(/Toast-Benachrichtigungen/)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Immer' })).toHaveAttribute('aria-pressed', 'true')
+    } finally {
+      await initI18n('en')
+    }
   })
 })

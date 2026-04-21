@@ -5,7 +5,7 @@ describe('hook naming conventions', () => {
     const rule = projectFiles()
       .inFolder('src/hooks')
       .should()
-      .haveName(/^use-[a-z0-9-]+\.ts$/)
+      .haveName(/^use-(?:[a-z0-9]+(?:-[a-z0-9]+)*)\.ts$/)
 
     await expect(rule).toPassAsync()
   })

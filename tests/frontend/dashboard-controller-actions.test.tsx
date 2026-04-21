@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { waitFor } from '@testing-library/react'
 import { initI18n } from '@/lib/i18n'
 import { useDashboardControllerWithBootstrap } from '@/hooks/use-dashboard-controller'
 import { createTestQueryClient, renderHookWithQueryClient } from '../test-utils'
@@ -173,7 +172,7 @@ describe('useDashboardControllerWithBootstrap actions', () => {
     result.current.handleExportSettings()
     result.current.handleExportData()
 
-    await waitFor(() => expect(downloads).toHaveLength(2))
+    expect(downloads).toHaveLength(2)
     expect(downloads[0].filename).toMatch(/^ttdash-settings-backup-/)
     expect(downloads[0].text).toContain('"kind": "ttdash-settings-backup"')
     expect(downloads[1].filename).toMatch(/^ttdash-data-backup-/)

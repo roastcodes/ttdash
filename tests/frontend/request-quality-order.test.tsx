@@ -7,7 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 import type { DashboardMetrics } from '@/types'
 
-vi.mock('@/components/ui/animated-bar-fill', () => ({
+vi.mock('@/components/ui/AnimatedBarFill', () => ({
   AnimatedBarFill: ({ order }: { order?: number }) => (
     <div data-testid="quality-bar-fill" data-order={String(order ?? '')} />
   ),

@@ -13,7 +13,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { EXPAND_BUTTON_CLASSNAME } from '@/components/ui/expand-button-styles'
 import { Maximize2 } from 'lucide-react'
-import { InfoButton } from '@/components/ui/info-button'
+import { InfoButton } from '@/components/ui/InfoButton'
 import {
   DASHBOARD_MOTION,
   useDashboardElementMotion,

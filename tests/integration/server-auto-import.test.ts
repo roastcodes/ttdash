@@ -1,19 +1,10 @@
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import sampleUsage from '../../examples/sample-usage.json'
 import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
-import {
-  chmodSync,
-  fetchTrusted,
-  isPosix,
-  mkdtempSync,
-  path,
-  readFileSync,
-  rmSync,
-  startStandaloneServer,
-  stopProcess,
-  tmpdir,
-  writeFileSync,
-} from './server-test-helpers'
+import { fetchTrusted, isPosix, startStandaloneServer, stopProcess } from './server-test-helpers'
 
 const itIfPosix = isPosix ? it : it.skip
 
@@ -134,17 +125,26 @@ describe('local server auto-import integration', () => {
           },
         })
 
-        const firstResponse = await fetchTrusted(`${standaloneServer.url}/api/auto-import/stream`, {
-          method: 'POST',
-        })
-        expect(firstResponse.status).toBe(200)
-
-        const secondResponse = await fetchTrusted(
+        const firstResponsePromise = fetchTrusted(
           `${standaloneServer.url}/api/auto-import/stream`,
           {
             method: 'POST',
           },
         )
+        const secondResponsePromise = new Promise<Response>((resolve, reject) => {
+          setTimeout(() => {
+            fetchTrusted(`${standaloneServer.url}/api/auto-import/stream`, {
+              method: 'POST',
+            }).then(resolve, reject)
+          }, 50)
+        })
+
+        const [firstResponse, secondResponse] = await Promise.all([
+          firstResponsePromise,
+          secondResponsePromise,
+        ])
+
+        expect(firstResponse.status).toBe(200)
         expect(secondResponse.status).toBe(409)
         expect(await secondResponse.json()).toEqual({
           message: 'An auto-import is already running. Please wait.',

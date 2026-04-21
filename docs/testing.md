@@ -2,7 +2,7 @@
 
 TTDash uses four test layers. Add new coverage at the narrowest layer that can prove the behavior.
 
-Architecture constraints are documented separately in [`docs/architecture.md`](/Users/pascaltheiler/npm/ttdash/docs/architecture.md). Use that file as the source of truth for dependency rules, layer ownership, and architecture-specific gates.
+Architecture constraints are documented separately in [`docs/architecture.md`](./architecture.md). Use that file as the source of truth for dependency rules, layer ownership, and architecture-specific gates.
 
 ## Test Layers
 
@@ -21,12 +21,12 @@ Architecture constraints are documented separately in [`docs/architecture.md`](/
 
 ## Standard Helpers
 
-- Use `renderWithAppProviders(...)` from [tests/test-utils.tsx](/Users/pascaltheiler/npm/ttdash/tests/test-utils.tsx) for most frontend tests.
+- Use `renderWithAppProviders(...)` from [tests/test-utils.tsx](../tests/test-utils.tsx) for most frontend tests.
   - It provides the shared `TooltipProvider`.
   - Do not wrap `TooltipProvider` manually unless the test needs a special provider arrangement.
 - Use `renderHookWithQueryClient(...)` for React Query hook tests.
   - Do not create ad hoc `QueryClientProvider` wrappers in each file.
-- Use [tests/recharts-test-utils.tsx](/Users/pascaltheiler/npm/ttdash/tests/recharts-test-utils.tsx) for chart mocks.
+- Use [tests/recharts-test-utils.tsx](../tests/recharts-test-utils.tsx) for chart mocks.
   - Prefer valid `<svg>` / `<g>` containers over `<div>` placeholders when mocking Recharts internals.
 
 ## Frontend Defaults

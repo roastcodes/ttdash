@@ -19,12 +19,19 @@ describe('FilterBar accessibility', () => {
     vi.useRealTimers()
   })
 
-  it('localizes the calendar month navigation aria labels', () => {
-    renderFilterBar()
+  it('localizes the calendar month navigation aria labels', async () => {
+    const currentLanguage = document.documentElement.lang
 
-    fireEvent.click(screen.getByRole('button', { name: 'Start date' }))
-    expect(screen.getByRole('button', { name: 'Previous month' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Next month' })).toBeInTheDocument()
+    try {
+      await initI18n('de')
+      renderFilterBar()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Startdatum' }))
+      expect(screen.getByRole('button', { name: 'Vorheriger Monat' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Nächster Monat' })).toBeInTheDocument()
+    } finally {
+      await initI18n(currentLanguage || 'en')
+    }
   })
 
   it('exposes accessible names for the top-level filter comboboxes', () => {

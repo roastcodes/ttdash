@@ -1,26 +1,22 @@
 import { createServer } from 'node:net'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
-  chmodSync,
   createCliEnv,
   createSharedServerContext,
-  existsSync,
   getCliDataDir,
   getCliConfigDir,
   getFreePort,
   isPosix,
-  mkdirSync,
-  mkdtempSync,
-  path,
   permissionBits,
   readBackgroundRegistry,
   registerSharedServerLifecycle,
-  rmSync,
   runCli,
   startStandaloneServer,
   stopAllBackgroundServers,
   stopProcess,
-  tmpdir,
   waitForBackgroundRegistry,
   waitForHttpOk,
   waitForServerUnavailable,

@@ -7,7 +7,7 @@ import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
 import { renderWithTooltip } from '../test-utils'
 
-vi.mock('@/components/ui/animated-bar-fill', () => ({
+vi.mock('@/components/ui/AnimatedBarFill', () => ({
   AnimatedBarFill: ({
     width,
     className,

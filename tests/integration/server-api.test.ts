@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import sampleUsage from '../../examples/sample-usage.json'
 import {
@@ -15,12 +18,6 @@ import {
   sendRawHttpRequest,
   startStandaloneServer,
   stopProcess,
-  tmpdir,
-  mkdtempSync,
-  path,
-  rmSync,
-  mkdirSync,
-  writeFileSync,
 } from './server-test-helpers'
 
 const sharedServer = createSharedServerContext()

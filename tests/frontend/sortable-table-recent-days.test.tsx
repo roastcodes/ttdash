@@ -1,15 +1,10 @@
 // @vitest-environment jsdom
 
-import type { ReactNode } from 'react'
 import { fireEvent, screen, within } from '@testing-library/react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { RecentDays } from '@/components/tables/RecentDays'
 import { initI18n } from '@/lib/i18n'
 import { renderWithTooltip } from '../test-utils'
-
-function renderWithProviders(ui: ReactNode) {
-  return renderWithTooltip(<>{ui}</>)
-}
 
 describe('sortable recent-days table', () => {
   beforeAll(async () => {
@@ -17,7 +12,7 @@ describe('sortable recent-days table', () => {
   })
 
   it('updates aria-sort when recent days headers are toggled', () => {
-    renderWithProviders(
+    renderWithTooltip(
       <RecentDays
         data={[
           {
@@ -88,7 +83,7 @@ describe('sortable recent-days table', () => {
   it('supports keyboard row activation for clickable recent-days rows', () => {
     const onClickDay = vi.fn()
 
-    renderWithProviders(
+    renderWithTooltip(
       <RecentDays
         onClickDay={onClickDay}
         data={[
