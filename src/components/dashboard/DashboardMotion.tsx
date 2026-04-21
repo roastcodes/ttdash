@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/cn'
-import { useShouldReduceMotion } from '@/lib/motion'
+import { APP_MOTION, useShouldReduceMotion } from '@/lib/motion'
 
 /** Defines the shared dashboard motion timings for section reveal and child chart orchestration. */
 export const DASHBOARD_MOTION = {
@@ -19,15 +19,15 @@ export const DASHBOARD_MOTION = {
   sectionRevealAmount: 0.14,
   sectionRevealOffset: 12,
   sectionRevealDuration: 0.6,
-  sectionRevealEase: [0.22, 1, 0.36, 1] as const,
+  sectionRevealEase: APP_MOTION.ease,
   placeholderFadeDuration: 0.34,
   itemRevealAmount: 0.24,
   itemRevealOffset: 8,
   itemRevealDuration: 0.42,
-  itemStaggerMs: 105,
+  itemStaggerMs: APP_MOTION.staggerMs,
   chartStartDelayMs: 285,
   meterStartDelayMs: 375,
-  meterDurationMs: 960,
+  meterDurationMs: APP_MOTION.meterDurationMs,
 }
 
 interface DashboardSectionMotionState {

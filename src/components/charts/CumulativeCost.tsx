@@ -19,13 +19,13 @@ import {
   getLineAnimationProps,
 } from './chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
-import { computeCurrentMonthForecast } from '@/lib/calculations'
 import { CHART_HELP } from '@/lib/help-content'
-import type { ChartDataPoint, DailyUsage } from '@/types'
+import type { CurrentMonthForecast } from '@/lib/calculations'
+import type { ChartDataPoint } from '@/types'
 
 interface CumulativeCostProps {
   data: ChartDataPoint[]
-  rawData: DailyUsage[]
+  forecast: CurrentMonthForecast | null
 }
 
 type CumulativeChartPoint = ChartDataPoint & {
@@ -33,7 +33,7 @@ type CumulativeChartPoint = ChartDataPoint & {
 }
 
 /** Renders cumulative cost with the optional month-end projection. */
-export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
+export function CumulativeCost({ data, forecast }: CumulativeCostProps) {
   const { t } = useTranslation()
   const uid = useId().replace(/:/g, '')
 
@@ -42,22 +42,32 @@ export function CumulativeCost({ data, rawData }: CumulativeCostProps) {
     if (data.length < 3) return data
     const last = data[data.length - 1]
     if (!last?.date || last.cumulative == null) return data
-    const forecast = computeCurrentMonthForecast(rawData)
     if (!forecast) return data
 
-    const { currentMonth, daysInMonth, projectedDailyBurn } = forecast
-    const dayNum = forecast.elapsedDays
+    const { currentMonth, daysInMonth, forecastTotal } = forecast
+    if (last.date.length !== 10 || !last.date.startsWith(currentMonth)) return data
 
     // Only project if not already end of month
-    if (dayNum >= daysInMonth) return data
+    if (forecast.elapsedDays >= daysInMonth) return data
 
-    const projected = last.cumulative + projectedDailyBurn * (daysInMonth - dayNum)
+    const visibleCurrentMonthActual = data.reduce((sum, point) => {
+      if (point.date.length !== 10 || !point.date.startsWith(currentMonth)) return sum
+      return sum + point.cost
+    }, 0)
+    const projectedIncrement = Math.max(0, forecastTotal - visibleCurrentMonthActual)
+    if (projectedIncrement <= 0) return data
+
     const endDate = `${currentMonth}-${String(daysInMonth).padStart(2, '0')}`
     const bridgePoint: CumulativeChartPoint = { ...last, projected: last.cumulative }
-    const projectedPoint: CumulativeChartPoint = { date: endDate, projected, cost: 0, ma7: 0 }
+    const projectedPoint: CumulativeChartPoint = {
+      date: endDate,
+      projected: last.cumulative + projectedIncrement,
+      cost: 0,
+      ma7: 0,
+    }
 
     return [...data, bridgePoint, projectedPoint]
-  }, [data, rawData])
+  }, [data, forecast])
 
   const lastCumulative = data[data.length - 1]?.cumulative ?? 0
 

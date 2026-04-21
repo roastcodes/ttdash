@@ -7,9 +7,12 @@ import {
 } from '@testing-library/react'
 import type { ReactElement, ReactNode } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { AppMotionProvider } from '@/lib/motion'
+import type { ReducedMotionPreference } from '@/types'
 
 type RenderWithTooltipOptions = RenderOptions & {
   delayDuration?: number
+  motionPreference?: ReducedMotionPreference
 }
 
 type RenderHookWithQueryClientOptions<Props> = Omit<RenderHookOptions<Props>, 'wrapper'> & {
@@ -18,16 +21,35 @@ type RenderHookWithQueryClientOptions<Props> = Omit<RenderHookOptions<Props>, 'w
 
 export function renderWithAppProviders(
   ui: ReactElement,
-  { delayDuration = 0, ...options }: RenderWithTooltipOptions = {},
+  { delayDuration = 0, motionPreference, ...options }: RenderWithTooltipOptions = {},
 ) {
   function Wrapper({ children }: { children: ReactNode }) {
-    return <TooltipProvider delayDuration={delayDuration}>{children}</TooltipProvider>
+    const content = <TooltipProvider delayDuration={delayDuration}>{children}</TooltipProvider>
+
+    return motionPreference ? (
+      <AppMotionProvider preference={motionPreference}>{content}</AppMotionProvider>
+    ) : (
+      content
+    )
   }
 
   return render(ui, {
     wrapper: Wrapper,
     ...options,
   })
+}
+
+export function withAppProviders(
+  ui: ReactElement,
+  { delayDuration = 0, motionPreference }: Omit<RenderWithTooltipOptions, keyof RenderOptions> = {},
+) {
+  const content = <TooltipProvider delayDuration={delayDuration}>{ui}</TooltipProvider>
+
+  return motionPreference ? (
+    <AppMotionProvider preference={motionPreference}>{content}</AppMotionProvider>
+  ) : (
+    content
+  )
 }
 
 export function renderWithTooltip(ui: ReactElement, options: RenderWithTooltipOptions = {}) {

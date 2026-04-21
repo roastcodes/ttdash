@@ -1,9 +1,9 @@
 import type { CSSProperties } from 'react'
 import { useRef } from 'react'
 import { motion, type MotionStyle } from 'framer-motion'
-import { DASHBOARD_MOTION, useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
+import { useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
 import { cn } from '@/lib/cn'
-import { useShouldReduceMotion } from '@/lib/motion'
+import { APP_MOTION, useShouldReduceMotion } from '@/lib/motion'
 
 interface AnimatedBarFillProps {
   width: string
@@ -35,7 +35,7 @@ export function AnimatedBarFill({
   const shouldReduceMotion = useShouldReduceMotion()
   const isActive = active ?? elementMotion.active
   const resolvedDelayMs = delayMs ?? elementMotion.delayMs
-  const resolvedDurationMs = durationMs ?? DASHBOARD_MOTION.meterDurationMs
+  const resolvedDurationMs = durationMs ?? APP_MOTION.meterDurationMs
 
   if (shouldReduceMotion) {
     return (
@@ -60,7 +60,7 @@ export function AnimatedBarFill({
       transition={{
         duration: resolvedDurationMs / 1000,
         delay: isActive ? resolvedDelayMs / 1000 : 0,
-        ease: [0.22, 1, 0.36, 1],
+        ease: APP_MOTION.ease,
       }}
     />
   )

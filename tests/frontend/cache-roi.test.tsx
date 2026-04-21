@@ -129,4 +129,42 @@ describe('CacheROI', () => {
     expect(fills[2]).toHaveAttribute('data-order', '1')
     expect(paidWidth + savedWidth).toBeCloseTo(100, 5)
   })
+
+  it('renders the heuristic fallback notice with stronger contrast classes', () => {
+    const data: DailyUsage[] = [
+      {
+        date: '2026-04-07',
+        inputTokens: 100,
+        outputTokens: 0,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 1_000_000,
+        thinkingTokens: 0,
+        totalTokens: 1_000_100,
+        totalCost: 2,
+        requestCount: 2,
+        modelsUsed: ['mystery-model'],
+        modelBreakdowns: [
+          {
+            modelName: 'mystery-model',
+            inputTokens: 100,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 1_000_000,
+            thinkingTokens: 0,
+            cost: 2,
+            requestCount: 2,
+          },
+        ],
+      },
+    ]
+
+    renderWithTooltip(<CacheROI data={data} />)
+
+    const notice = screen.getByText(
+      'For 1 model without a configured price table, the ROI estimate uses a heuristic fallback.',
+    )
+    expect(notice).toHaveClass('font-medium')
+    expect(notice).toHaveClass('text-amber-800')
+    expect(notice).toHaveClass('dark:text-amber-50')
+  })
 })

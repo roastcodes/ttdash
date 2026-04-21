@@ -33,6 +33,7 @@ interface ChartCardProps {
   summary?: ReactNode
   info?: string
   expandable?: boolean
+  onExpand?: () => void
   children: ReactNode | ((expanded: boolean) => ReactNode)
   className?: string
   chartData?: Record<string, unknown>[]
@@ -141,6 +142,7 @@ export function ChartCard({
   summary,
   info,
   expandable = true,
+  onExpand,
   children,
   className,
   chartData,
@@ -204,6 +206,7 @@ export function ChartCard({
   const renderChildren = (isExpanded: boolean) =>
     typeof children === 'function' ? children(isExpanded) : children
   const isSectionVisible = sectionMotion?.sectionVisible ?? true
+  const selfExpandable = expandable && !onExpand
 
   const handleExport = useCallback(() => {
     if (!chartData || chartData.length === 0) return
@@ -217,6 +220,15 @@ export function ChartCard({
     a.click()
     URL.revokeObjectURL(url)
   }, [chartData, title])
+
+  const handleExpand = useCallback(() => {
+    if (onExpand) {
+      onExpand()
+      return
+    }
+
+    setExpanded(true)
+  }, [onExpand])
 
   const header = (
     <CardHeader className="pb-2">
@@ -244,7 +256,7 @@ export function ChartCard({
           {expandable && (
             <button
               type="button"
-              onClick={() => setExpanded(true)}
+              onClick={handleExpand}
               tabIndex={isSectionVisible ? undefined : -1}
               className={EXPAND_BUTTON_CLASSNAME}
               title={t('common.expand')}
@@ -256,7 +268,7 @@ export function ChartCard({
         </Card>
       </ChartAnimationContext.Provider>
 
-      {expandable && (
+      {selfExpandable && (
         <Dialog open={expanded} onOpenChange={setExpanded}>
           <DialogContent className="h-[92vh] max-h-[92vh] w-[96vw] max-w-[96vw] overflow-auto p-0 sm:h-[90vh] sm:max-h-[90vh] sm:w-[95vw] sm:max-w-[95vw]">
             <DialogTitle className="sr-only">{title}</DialogTitle>

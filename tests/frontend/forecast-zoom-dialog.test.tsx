@@ -5,6 +5,7 @@ import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ForecastZoomDialog } from '@/components/features/forecast/ForecastZoomDialog'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { computeDashboardForecastState } from '@/lib/calculations'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
 import { MockSvgContainer } from '../recharts-test-utils'
@@ -113,13 +114,19 @@ describe('ForecastZoomDialog', () => {
           open={true}
           onOpenChange={vi.fn()}
           data={data}
-          forecastData={data}
+          forecastState={computeDashboardForecastState(data)}
           viewMode="daily"
         />
       </TooltipProvider>,
     )
 
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByTestId('forecast-zoom-dialog-content')).toHaveClass('top-4')
+    expect(screen.getByTestId('forecast-zoom-dialog-content')).toHaveClass('translate-y-0')
+    expect(screen.getByTestId('forecast-zoom-dialog-shell')).toHaveClass('flex')
+    expect(screen.getByTestId('forecast-zoom-dialog-shell')).toHaveClass('flex-col')
+    expect(screen.getByTestId('forecast-zoom-dialog-body')).toHaveClass('overflow-y-auto')
+    expect(screen.getByTestId('forecast-zoom-dialog-body')).toHaveClass('flex-1')
     expect(screen.getByText('Forecast details')).toBeInTheDocument()
     expect(
       screen.getByText(

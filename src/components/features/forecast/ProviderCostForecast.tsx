@@ -22,14 +22,20 @@ import {
 } from '@/components/charts/chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
-import { computeCurrentMonthProviderForecasts } from '@/lib/calculations'
 import { getProviderBadgeStyle } from '@/lib/model-utils'
-import type { DailyUsage, ViewMode } from '@/types'
+import type { CurrentMonthProviderForecasts } from '@/lib/calculations'
+import type { ViewMode } from '@/types'
 
 interface ProviderCostForecastProps {
-  data: DailyUsage[]
+  forecast: CurrentMonthProviderForecasts | null
   viewMode?: ViewMode
   expandable?: boolean
+  onExpand?: () => void
+}
+
+function showProviderForecastLegendEntry(entry: { dataKey?: string | number }) {
+  const dataKey = typeof entry.dataKey === 'string' ? entry.dataKey : ''
+  return !dataKey.endsWith('Lower')
 }
 
 type SeriesMeta = {
@@ -38,6 +44,7 @@ type SeriesMeta = {
   forecastKey: string
   lowerKey: string
   bandKey: string
+  gradientId: string
   monthEndForecast: number
   color: string
   backgroundColor: string
@@ -48,6 +55,7 @@ type ProviderTooltipEntry = {
   provider: string
   actual: number | undefined
   forecast: number | undefined
+  lower: number | undefined
   monthEndForecast: number
   color: string
 }
@@ -91,10 +99,14 @@ function ProviderForecastTooltip({
       provider: series.provider,
       actual: payloadMap.get(series.actualKey),
       forecast: payloadMap.get(series.forecastKey),
+      lower: payloadMap.get(series.lowerKey),
       monthEndForecast: series.monthEndForecast,
       color: series.color,
     }))
-    .filter((entry) => entry.actual !== undefined || entry.forecast !== undefined)
+    .filter(
+      (entry) =>
+        entry.actual !== undefined || entry.forecast !== undefined || entry.lower !== undefined,
+    )
 
   if (entries.length === 0) return null
 
@@ -135,6 +147,18 @@ function ProviderForecastTooltip({
                 </span>
               </div>
             )}
+            {entry.lower !== undefined && (
+              <div className="flex items-center gap-2 pl-4">
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: entry.color, opacity: 0.5 }}
+                />
+                <span className="text-muted-foreground">{t('forecast.lowerBound')}:</span>
+                <span className="ml-auto font-mono font-medium text-foreground">
+                  {formatCurrency(entry.lower)}
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-2 pl-4">
               <span
                 className="h-2 w-2 shrink-0 rounded-full border"
@@ -154,9 +178,10 @@ function ProviderForecastTooltip({
 
 /** Renders the current-month forecast split by provider. */
 export function ProviderCostForecast({
-  data,
+  forecast,
   viewMode = 'daily',
   expandable = true,
+  onExpand,
 }: ProviderCostForecastProps) {
   const { t } = useTranslation()
 
@@ -170,7 +195,6 @@ export function ProviderCostForecast({
       }
     }
 
-    const forecast = computeCurrentMonthProviderForecasts(data)
     if (!forecast) {
       return {
         chartData: [],
@@ -192,6 +216,7 @@ export function ProviderCostForecast({
       const forecastKey = `${key}Forecast`
       const lowerKey = `${key}Lower`
       const bandKey = `${key}Band`
+      const gradientId = `${key}ForecastGrad`
 
       for (const point of entry.elapsedCalendarSeries) {
         const index = Number(point.date.slice(8, 10)) - 1
@@ -223,6 +248,7 @@ export function ProviderCostForecast({
         forecastKey,
         lowerKey,
         bandKey,
+        gradientId,
         monthEndForecast: entry.forecastTotal,
         color: style.color,
         backgroundColor: style.backgroundColor,
@@ -242,7 +268,7 @@ export function ProviderCostForecast({
       seriesMeta: nextSeriesMeta,
       providerCount: providers.length,
     }
-  }, [data, viewMode])
+  }, [forecast, viewMode])
 
   if (viewMode !== 'daily') {
     return (
@@ -308,12 +334,28 @@ export function ProviderCostForecast({
       expandable={expandable}
       chartData={chartData}
       valueFormatter={formatCurrency}
+      {...(onExpand ? { onExpand } : {})}
     >
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={320}>
               <ComposedChart data={chartData} margin={CHART_MARGIN}>
+                <defs>
+                  {seriesMeta.map((series) => (
+                    <linearGradient
+                      key={series.gradientId}
+                      id={series.gradientId}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor={series.color} stopOpacity={0.26} />
+                      <stop offset="100%" stopColor={series.color} stopOpacity={0} />
+                    </linearGradient>
+                  ))}
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
                 <XAxis
                   dataKey="date"
@@ -333,7 +375,7 @@ export function ProviderCostForecast({
                   axisLine={false}
                 />
                 <Tooltip content={<ProviderForecastTooltip seriesMeta={seriesMeta} />} />
-                <Legend content={<ChartLegend />} />
+                <Legend content={<ChartLegend filterEntry={showProviderForecastLegendEntry} />} />
                 {seriesMeta.map((series) => (
                   <Area
                     key={`${series.provider}-lower`}
@@ -354,23 +396,25 @@ export function ProviderCostForecast({
                     stackId={`provider-band-${series.provider}`}
                     stroke="none"
                     fill={series.backgroundColor}
-                    fillOpacity={0.22}
+                    fillOpacity={0.36}
                     legendType="none"
                     name={`${series.provider} ${t('forecast.uncertaintyBand')}`}
                     {...getAreaAnimationProps(animate, { order: index, role: 'stacked' })}
                   />
                 ))}
                 {seriesMeta.map((series, index) => (
-                  <Line
+                  <Area
                     key={`${series.provider}-actual`}
                     type="monotone"
                     dataKey={series.actualKey}
                     stroke={series.color}
+                    fill={`url(#${series.gradientId})`}
+                    fillOpacity={1}
                     name={series.provider}
                     dot={false}
                     strokeWidth={2}
                     connectNulls={false}
-                    {...getLineAnimationProps(animate, { order: index })}
+                    {...getAreaAnimationProps(animate, { order: index })}
                   />
                 ))}
                 {seriesMeta.map((series, index) => (

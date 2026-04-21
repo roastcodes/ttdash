@@ -28,6 +28,13 @@ export const CHART_ANIMATION = {
   revealDuration: 780,
 }
 
+/** Shared opacity stops for filled line/area gradients. */
+export const CHART_AREA_GRADIENT = {
+  topOpacity: 0.34,
+  middleOpacity: 0.1,
+  bottomOpacity: 0,
+}
+
 type SeriesRole = 'primary' | 'secondary' | 'stacked'
 
 /** Builds the shared animation props for line-like series. */
@@ -102,4 +109,20 @@ export function getScatterAnimationProps(active: boolean, delayOffsetMs = 0) {
 /** Generates a CSS-safe gradient id from an arbitrary name. */
 export function gradientId(name: string): string {
   return `grad-${name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`
+}
+
+function shortSeriesHash(value: string): string {
+  let hash = 2166136261
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  return (hash >>> 0).toString(36)
+}
+
+/** Generates a CSS-safe scoped gradient id for a chart series. */
+export function scopedGradientId(scope: string, series: string): string {
+  return gradientId(`${scope}-${series}-${shortSeriesHash(series)}`)
 }

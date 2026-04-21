@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { initI18n } from '@/lib/i18n'
 import { useDashboardControllerWithBootstrap } from '@/hooks/use-dashboard-controller'
+import { createDailyUsage } from '../factories'
 import { renderHookWithQueryClient } from '../test-utils'
 import {
   createComputedState,
@@ -169,5 +170,42 @@ describe('useDashboardControllerWithBootstrap state', () => {
 
     await waitFor(() => expect(result.current.fatalLoadState).toBeNull())
     expect(toastMocks.addToast).toHaveBeenCalledWith('Settings reset', 'success')
+  })
+
+  it('builds one shared forecast state from the month-to-date filtered data', async () => {
+    usageHookMocks.useUsageData.mockReturnValue({
+      data: createUsageData({
+        daily: [
+          createDailyUsage({ date: '2026-04-01', totalCost: 6, outputTokens: 40 }),
+          createDailyUsage({ date: '2026-04-05', totalCost: 12, outputTokens: 40 }),
+          createDailyUsage({ date: '2026-04-06', totalCost: 18, outputTokens: 40 }),
+        ],
+      }),
+      isLoading: false,
+      error: null,
+    })
+    filterHookMocks.useDashboardFilters.mockReturnValue(
+      createFilterState({
+        selectedProviders: [],
+        selectedModels: [],
+      }),
+    )
+
+    const { result } = renderHookWithQueryClient(() =>
+      useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
+    )
+
+    await waitFor(() =>
+      expect(result.current.forecastState.costForecast).toMatchObject({
+        currentMonth: '2026-04',
+        currentMonthTotal: 36,
+        elapsedDays: 6,
+      }),
+    )
+    expect(result.current.forecastState.providerForecast).toMatchObject({
+      currentMonth: '2026-04',
+      currentMonthTotal: 36,
+    })
+    expect(result.current.forecastState.providerForecast?.providers[0]?.provider).toBe('OpenAI')
   })
 })

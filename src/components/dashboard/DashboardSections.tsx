@@ -25,6 +25,7 @@ import { AnimatedDashboardSection } from './DashboardMotion'
 import { SECTION_HELP } from '@/lib/help-content'
 import { cn } from '@/lib/cn'
 import type { ModelCostChartPoint } from '@/lib/data-transforms'
+import type { DashboardForecastState } from '@/lib/calculations'
 import { formatCurrency, formatPercent, formatTokens, periodUnit } from '@/lib/formatters'
 import type {
   AggregateMetrics,
@@ -82,6 +83,11 @@ const CostByModelOverTime = lazyWithPreload(() =>
 const CumulativeCost = lazyWithPreload(() =>
   import('../charts/CumulativeCost').then((module) => ({
     default: module.CumulativeCost,
+  })),
+)
+const CumulativeCostPerProvider = lazyWithPreload(() =>
+  import('../charts/CumulativeCostPerProvider').then((module) => ({
+    default: module.CumulativeCostPerProvider,
   })),
 )
 const CostByWeekday = lazyWithPreload(() =>
@@ -176,7 +182,7 @@ interface DashboardSectionsProps {
   metrics: DashboardMetrics
   viewMode: ViewMode
   totalCalendarDays: number
-  forecastData: DailyUsage[]
+  forecastState: DashboardForecastState
   filteredData: DailyUsage[]
   filteredDailyData: DailyUsage[]
   todayData: DailyUsage | null
@@ -219,7 +225,7 @@ export function DashboardSections({
   metrics,
   viewMode,
   totalCalendarDays,
-  forecastData,
+  forecastState,
   filteredData,
   filteredDailyData,
   todayData,
@@ -425,17 +431,12 @@ export function DashboardSections({
                 />
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {renderLazySection(
-                    <ExpandableCard
-                      title={t('dashboard.cards.costForecast')}
+                    <CostForecast
+                      data={filteredData}
+                      forecast={forecastState.costForecast}
+                      viewMode={viewMode}
                       onExpand={() => setForecastZoomOpen(true)}
-                    >
-                      <CostForecast
-                        data={filteredData}
-                        forecastData={forecastData}
-                        viewMode={viewMode}
-                        expandable={false}
-                      />
-                    </ExpandableCard>,
+                    />,
                     'h-[360px]',
                   )}
                   {renderLazySection(
@@ -463,16 +464,11 @@ export function DashboardSections({
                 </div>
                 <div className="mt-4">
                   {renderLazySection(
-                    <ExpandableCard
-                      title={t('dashboard.cards.providerForecast')}
+                    <ProviderCostForecast
+                      forecast={forecastState.providerForecast}
+                      viewMode={viewMode}
                       onExpand={() => setForecastZoomOpen(true)}
-                    >
-                      <ProviderCostForecast
-                        data={forecastData}
-                        viewMode={viewMode}
-                        expandable={false}
-                      />
-                    </ExpandableCard>,
+                    />,
                     'h-[430px]',
                   )}
                 </div>
@@ -482,7 +478,7 @@ export function DashboardSections({
                       open={forecastZoomOpen}
                       onOpenChange={setForecastZoomOpen}
                       data={filteredData}
-                      forecastData={forecastData}
+                      forecastState={forecastState}
                       viewMode={viewMode}
                     />
                   </Suspense>
@@ -537,7 +533,14 @@ export function DashboardSections({
                   </div>
                   <CostByModel data={modelPieData} />
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {renderLazySection(
+                    <CumulativeCostPerProvider
+                      data={filteredData}
+                      forecast={forecastState.providerForecast}
+                    />,
+                    'h-[320px]',
+                  )}
                   {renderLazySection(
                     <CostByModelOverTime data={modelCostChartData} models={allModels} />,
                     'h-[320px]',
@@ -545,7 +548,7 @@ export function DashboardSections({
                 </div>
                 <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {renderLazySection(
-                    <CumulativeCost data={costChartData} rawData={filteredData} />,
+                    <CumulativeCost data={costChartData} forecast={forecastState.costForecast} />,
                     'h-[320px]',
                   )}
                   {renderLazySection(<CostByWeekday data={weekdayData} />, 'h-[320px]')}
@@ -558,6 +561,7 @@ export function DashboardSections({
               {
                 onPreload: () => {
                   return preloadComponents(
+                    CumulativeCostPerProvider,
                     CostByModelOverTime,
                     CumulativeCost,
                     CostByWeekday,

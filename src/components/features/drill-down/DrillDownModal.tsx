@@ -20,6 +20,7 @@ import {
   formatTokens,
 } from '@/lib/formatters'
 import { FormattedValue } from '@/components/ui/formatted-value'
+import { AnimatedSegmentedBar } from '@/components/ui/AnimatedSegmentedBar'
 import { normalizeModelName, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { useModelColorHelpers } from '@/lib/model-color-context'
 import { useShouldReduceMotion } from '@/lib/motion'
@@ -460,6 +461,18 @@ export function DrillDownModal({
     },
   ] as const
 
+  const tokenDistributionSegments = hasTokens
+    ? tokenSegments.map((segment) => {
+        const share = Number(((segment.value / tokensTotal) * 100).toFixed(3))
+        return {
+          id: segment.id,
+          width: share,
+          color: segment.color,
+          label: `${segment.label}: ${formatTokens(segment.value)} (${share.toFixed(1)}%)`,
+        }
+      })
+    : []
+
   const topModelCards = [
     {
       label: t('drillDown.topCostModel'),
@@ -532,6 +545,7 @@ export function DrillDownModal({
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent
+        data-testid="drilldown-dialog"
         className="data-[state=closed]:slide-out-to-top-[2rem] data-[state=open]:slide-in-from-top-[2rem] top-6 max-h-[calc(100vh-3rem)] max-w-5xl translate-y-0 overflow-y-auto sm:top-10 sm:max-h-[calc(100vh-5rem)]"
         onKeyDown={handleDialogKeyDown}
       >
@@ -844,26 +858,11 @@ export function DrillDownModal({
         <section className="space-y-3">
           <h3 className="text-sm font-semibold">{t('drillDown.tokenDistribution')}</h3>
           <div className="rounded-xl border border-border/50 bg-muted/10 p-3">
-            <div className="flex h-3 overflow-hidden rounded-full">
-              {hasTokens &&
-                tokenSegments.map((segment) => {
-                  const share = ((segment.value / tokensTotal) * 100).toFixed(1)
-                  const segmentLabel = `${segment.label}: ${formatTokens(segment.value)} (${share}%)`
-
-                  return (
-                    <div
-                      key={segment.id}
-                      className="h-full transition-all duration-500"
-                      style={{
-                        width: `${(segment.value / tokensTotal) * 100}%`,
-                        backgroundColor: segment.color,
-                      }}
-                      title={segmentLabel}
-                      aria-label={segmentLabel}
-                    />
-                  )
-                })}
-            </div>
+            <AnimatedSegmentedBar
+              className="h-3"
+              data-testid="drilldown-token-distribution"
+              segments={tokenDistributionSegments}
+            />
             <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2 lg:grid-cols-5">
               {tokenSegments.map((segment) => (
                 <div key={segment.id} className="rounded-lg bg-background/70 px-2.5 py-2">
