@@ -195,4 +195,29 @@ describe('ProviderCostForecast', () => {
     ).toBeInTheDocument()
     expect(screen.queryByTestId('provider-line')).not.toBeInTheDocument()
   })
+
+  it('renders the expand button on the visible provider forecast card title when expandable', () => {
+    const data: DailyUsage[] = [
+      buildDay('2026-04-01', [
+        { modelName: 'gpt-5.4', cost: 10 },
+        { modelName: 'claude-sonnet-4', cost: 4 },
+      ]),
+      buildDay('2026-04-02', [
+        { modelName: 'gpt-5.4', cost: 12 },
+        { modelName: 'claude-sonnet-4', cost: 5 },
+      ]),
+      buildDay('2026-04-04', [
+        { modelName: 'gpt-5.4', cost: 16 },
+        { modelName: 'claude-sonnet-4', cost: 6 },
+      ]),
+    ]
+
+    renderWithTooltip(
+      <ProviderCostForecast forecast={computeCurrentMonthProviderForecasts(data)} />,
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'Current month forecast by provider expand' }),
+    ).toBeInTheDocument()
+  })
 })

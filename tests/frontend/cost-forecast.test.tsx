@@ -202,4 +202,63 @@ describe('CostForecast', () => {
     expect(screen.getByText(/So far: \$36\.0/)).toBeInTheDocument()
     expect(screen.queryByText(/So far: \$30\.0/)).not.toBeInTheDocument()
   })
+
+  it('renders the expand button on the visible forecast card title when expandable', () => {
+    const data: DailyUsage[] = [
+      {
+        date: '2026-04-01',
+        inputTokens: 100,
+        outputTokens: 40,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        totalTokens: 140,
+        totalCost: 10,
+        requestCount: 2,
+        modelsUsed: ['gpt-5.4'],
+        modelBreakdowns: [
+          {
+            modelName: 'gpt-5.4',
+            inputTokens: 100,
+            outputTokens: 40,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            cost: 10,
+            requestCount: 2,
+          },
+        ],
+      },
+      {
+        date: '2026-04-02',
+        inputTokens: 120,
+        outputTokens: 50,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        totalTokens: 170,
+        totalCost: 18,
+        requestCount: 3,
+        modelsUsed: ['gpt-5.4'],
+        modelBreakdowns: [
+          {
+            modelName: 'gpt-5.4',
+            inputTokens: 120,
+            outputTokens: 50,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            cost: 18,
+            requestCount: 3,
+          },
+        ],
+      },
+    ]
+
+    renderWithTooltip(<CostForecast data={data} forecast={computeCurrentMonthForecast(data)} />)
+
+    expect(
+      screen.getByRole('button', { name: 'Current month cost forecast expand' }),
+    ).toBeInTheDocument()
+  })
 })

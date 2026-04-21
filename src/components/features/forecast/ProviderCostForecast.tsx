@@ -30,6 +30,7 @@ interface ProviderCostForecastProps {
   forecast: CurrentMonthProviderForecasts | null
   viewMode?: ViewMode
   expandable?: boolean
+  onExpand?: () => void
 }
 
 type SeriesMeta = {
@@ -157,6 +158,7 @@ export function ProviderCostForecast({
   forecast,
   viewMode = 'daily',
   expandable = true,
+  onExpand,
 }: ProviderCostForecastProps) {
   const { t } = useTranslation()
 
@@ -307,6 +309,7 @@ export function ProviderCostForecast({
       expandable={expandable}
       chartData={chartData}
       valueFormatter={formatCurrency}
+      {...(onExpand ? { onExpand } : {})}
     >
       <ChartAnimationAware>
         {(animate) => (

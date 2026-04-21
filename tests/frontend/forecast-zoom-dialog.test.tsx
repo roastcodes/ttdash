@@ -121,6 +121,12 @@ describe('ForecastZoomDialog', () => {
     )
 
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByTestId('forecast-zoom-dialog-content')).toHaveClass('top-4')
+    expect(screen.getByTestId('forecast-zoom-dialog-content')).toHaveClass('translate-y-0')
+    expect(screen.getByTestId('forecast-zoom-dialog-shell')).toHaveClass('flex')
+    expect(screen.getByTestId('forecast-zoom-dialog-shell')).toHaveClass('flex-col')
+    expect(screen.getByTestId('forecast-zoom-dialog-body')).toHaveClass('overflow-y-auto')
+    expect(screen.getByTestId('forecast-zoom-dialog-body')).toHaveClass('flex-1')
     expect(screen.getByText('Forecast details')).toBeInTheDocument()
     expect(
       screen.getByText(

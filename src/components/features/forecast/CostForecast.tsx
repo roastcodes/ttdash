@@ -33,6 +33,7 @@ interface CostForecastProps {
   forecast: CurrentMonthForecast | null
   viewMode?: ViewMode
   expandable?: boolean
+  onExpand?: () => void
 }
 
 /** Renders the current-month cost forecast card. */
@@ -41,6 +42,7 @@ export function CostForecast({
   forecast,
   viewMode = 'daily',
   expandable = true,
+  onExpand,
 }: CostForecastProps) {
   const { t } = useTranslation()
   const {
@@ -213,6 +215,7 @@ export function CostForecast({
         chartData={chartData}
         valueKey="cost"
         valueFormatter={formatCurrency}
+        {...(onExpand ? { onExpand } : {})}
       >
         <ChartAnimationAware>
           {(animate) => (

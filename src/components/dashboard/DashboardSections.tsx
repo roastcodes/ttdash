@@ -431,17 +431,12 @@ export function DashboardSections({
                 />
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {renderLazySection(
-                    <ExpandableCard
-                      title={t('dashboard.cards.costForecast')}
+                    <CostForecast
+                      data={filteredData}
+                      forecast={forecastState.costForecast}
+                      viewMode={viewMode}
                       onExpand={() => setForecastZoomOpen(true)}
-                    >
-                      <CostForecast
-                        data={filteredData}
-                        forecast={forecastState.costForecast}
-                        viewMode={viewMode}
-                        expandable={false}
-                      />
-                    </ExpandableCard>,
+                    />,
                     'h-[360px]',
                   )}
                   {renderLazySection(
@@ -469,16 +464,11 @@ export function DashboardSections({
                 </div>
                 <div className="mt-4">
                   {renderLazySection(
-                    <ExpandableCard
-                      title={t('dashboard.cards.providerForecast')}
+                    <ProviderCostForecast
+                      forecast={forecastState.providerForecast}
+                      viewMode={viewMode}
                       onExpand={() => setForecastZoomOpen(true)}
-                    >
-                      <ProviderCostForecast
-                        forecast={forecastState.providerForecast}
-                        viewMode={viewMode}
-                        expandable={false}
-                      />
-                    </ExpandableCard>,
+                    />,
                     'h-[430px]',
                   )}
                 </div>

@@ -21,8 +21,10 @@ const last30DaysPattern = /^(Letzte 30 Tage|Last 30 days)$/
 const defaultDailyPattern = /^(Täglich|Daily)$/
 const allDataPattern = /^(Alle Daten|All data)$/
 const viewModeComboboxPattern = /^(Ansichtsmodus|View mode)$/
-const costForecastExpandPattern = /^(Cost forecast expand|Kostenprognose vergrössern)$/
-const providerForecastExpandPattern = /^(Provider forecast expand|Anbieter-Prognose vergrössern)$/
+const costForecastExpandPattern =
+  /^(Current month cost forecast expand|Kostenprognose aktueller Monat vergrössern)$/
+const providerForecastExpandPattern =
+  /^(Current month forecast by provider expand|Monatsprognose nach Anbieter vergrössern)$/
 const forecastDialogTitlePattern = /^(Forecast details|Prognose-Details)$/
 const providersActivePattern = /^(1 providers active|1 Anbieter aktiv)$/
 const modelsActivePattern = /^(1 models active|1 Modelle aktiv)$/
@@ -123,6 +125,7 @@ test('opens one shared forecast zoom dialog from both forecast cards', async ({
 
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
+  await expect(page.getByTestId('forecast-zoom-dialog-body')).toBeVisible()
   await expect(dialog.getByText(forecastDialogTitlePattern)).toBeVisible()
   await expect(dialog.getByText(/Month-end forecast|Prognose Monatsende/)).toBeVisible()
   await expect(
@@ -140,6 +143,11 @@ test('opens one shared forecast zoom dialog from both forecast cards', async ({
   await expect(
     dialog.getByText(/Current month cost forecast|Kostenprognose aktueller Monat/),
   ).toHaveCount(1)
+  const dialogBox = await dialog.boundingBox()
+  const titleBox = await dialog.getByText(forecastDialogTitlePattern).boundingBox()
+  expect(dialogBox).not.toBeNull()
+  expect(titleBox).not.toBeNull()
+  expect((titleBox?.y ?? Infinity) - (dialogBox?.y ?? 0)).toBeLessThan(120)
   await dialog.getByRole('button', { name: /Close|Schliessen/ }).click()
   await expect(dialog).toBeHidden()
 
