@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { initI18n } from '@/lib/i18n'
 import { useDashboardControllerWithBootstrap } from '@/hooks/use-dashboard-controller'
+import { createDailyUsage } from '../factories'
 import { renderHookWithQueryClient } from '../test-utils'
 import {
   createComputedState,
@@ -175,9 +176,9 @@ describe('useDashboardControllerWithBootstrap state', () => {
     usageHookMocks.useUsageData.mockReturnValue({
       data: createUsageData({
         daily: [
-          createForecastDay('2026-04-01', 6),
-          createForecastDay('2026-04-05', 12),
-          createForecastDay('2026-04-06', 18),
+          createDailyUsage({ date: '2026-04-01', totalCost: 6, outputTokens: 40 }),
+          createDailyUsage({ date: '2026-04-05', totalCost: 12, outputTokens: 40 }),
+          createDailyUsage({ date: '2026-04-06', totalCost: 18, outputTokens: 40 }),
         ],
       }),
       isLoading: false,
@@ -208,30 +209,3 @@ describe('useDashboardControllerWithBootstrap state', () => {
     expect(result.current.forecastState.providerForecast?.providers[0]?.provider).toBe('OpenAI')
   })
 })
-
-function createForecastDay(date: string, totalCost: number) {
-  return {
-    date,
-    inputTokens: 100,
-    outputTokens: 40,
-    cacheCreationTokens: 0,
-    cacheReadTokens: 0,
-    thinkingTokens: 0,
-    totalTokens: 140,
-    totalCost,
-    requestCount: 1,
-    modelsUsed: ['gpt-5.4'],
-    modelBreakdowns: [
-      {
-        modelName: 'gpt-5.4',
-        inputTokens: 100,
-        outputTokens: 40,
-        cacheCreationTokens: 0,
-        cacheReadTokens: 0,
-        thinkingTokens: 0,
-        cost: totalCost,
-        requestCount: 1,
-      },
-    ],
-  }
-}

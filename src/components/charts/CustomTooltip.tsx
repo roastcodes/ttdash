@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next'
 /** Describes one Recharts tooltip payload entry consumed by the shared tooltip surface. */
 export interface TooltipPayloadEntry {
   name: string
-  value: number
+  value: number | string | null | undefined
   color: string
-  dataKey: string
+  dataKey: string | number
   payload?: Record<string, unknown>
 }
 
@@ -32,6 +32,29 @@ export function CustomTooltip({
   const { t } = useTranslation()
   if (!active || !payload?.length) return null
 
+  const getNumericValue = (value: TooltipPayloadEntry['value']) => {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null
+    }
+
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : null
+    }
+
+    return null
+  }
+
+  const formatEntryValue = (entry: TooltipPayloadEntry) => {
+    const numericValue = getNumericValue(entry.value)
+
+    if (numericValue !== null && formatter) {
+      return formatter(numericValue, entry.name)
+    }
+
+    return entry.value ?? ''
+  }
+
   // Separate actual values from moving average (Ø) lines
   const isMA = (entry: TooltipPayloadEntry) =>
     entry.name.includes('Ø') ||
@@ -40,25 +63,40 @@ export function CustomTooltip({
 
   const isPinned = (entry: TooltipPayloadEntry) => pinnedEntryNames.includes(entry.name)
   const hasNonZeroValue = (entry: TooltipPayloadEntry) =>
-    !hideZeroValues || Math.abs(entry.value ?? 0) > 0.0001
+    !hideZeroValues || Math.abs(getNumericValue(entry.value) ?? 0) > 0.0001
 
   const actualEntries = payload
     .filter((e) => !isMA(e) && !isPinned(e) && hasNonZeroValue(e))
-    .sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
+    .sort(
+      (a, b) =>
+        (getNumericValue(b.value) ?? Number.NEGATIVE_INFINITY) -
+        (getNumericValue(a.value) ?? Number.NEGATIVE_INFINITY),
+    )
   const pinnedEntries = payload.filter((e) => !isMA(e) && isPinned(e) && hasNonZeroValue(e))
   const maEntries = payload.filter((e) => isMA(e))
 
-  const total = actualEntries.reduce((sum, entry) => sum + (entry.value ?? 0), 0)
-  const showTotal = showComputedTotal && actualEntries.length >= 2
+  const numericActualEntries = actualEntries.filter(
+    (entry) => getNumericValue(entry.value) !== null,
+  )
+  const total = numericActualEntries.reduce(
+    (sum, entry) => sum + (getNumericValue(entry.value) ?? 0),
+    0,
+  )
+  const showTotal = showComputedTotal && numericActualEntries.length >= 2
   const point = payload[0]?.payload ?? {}
   const focusEntry =
-    actualEntries.length === 1
-      ? actualEntries[0]
-      : pinnedEntries.length === 1
-        ? pinnedEntries[0]
+    numericActualEntries.length === 1
+      ? numericActualEntries[0]
+      : pinnedEntries.filter((entry) => getNumericValue(entry.value) !== null).length === 1
+        ? pinnedEntries.filter((entry) => getNumericValue(entry.value) !== null)[0]
         : null
-  const prevValueRaw = focusEntry ? point[`${focusEntry.dataKey}Prev`] : undefined
-  const prevValue = typeof prevValueRaw === 'number' ? prevValueRaw : null
+  const prevValueRaw = focusEntry ? point[`${focusEntry.dataKey.toString()}Prev`] : undefined
+  const prevValue =
+    typeof prevValueRaw === 'number'
+      ? prevValueRaw
+      : typeof prevValueRaw === 'string' && prevValueRaw.trim() !== ''
+        ? Number(prevValueRaw)
+        : null
   const matchingMA = focusEntry
     ? (maEntries.find(
         (entry) =>
@@ -66,8 +104,14 @@ export function CustomTooltip({
           entry.dataKey === `${focusEntry.dataKey.toString().toLowerCase()}MA7`,
       ) ?? (maEntries.length === 1 ? maEntries[0] : null))
     : null
-  const deltaVsPrevious = focusEntry && prevValue !== null ? focusEntry.value - prevValue : null
-  const deltaVsAverage = focusEntry && matchingMA ? focusEntry.value - matchingMA.value : null
+  const focusEntryValue = focusEntry ? getNumericValue(focusEntry.value) : null
+  const matchingMAValue = matchingMA ? getNumericValue(matchingMA.value) : null
+  const deltaVsPrevious =
+    focusEntryValue !== null && prevValue !== null && Number.isFinite(prevValue)
+      ? focusEntryValue - prevValue
+      : null
+  const deltaVsAverage =
+    focusEntryValue !== null && matchingMAValue !== null ? focusEntryValue - matchingMAValue : null
   const totalLabel = t('customTooltip.total')
   const deltaLabel = t('customTooltip.delta')
 
@@ -76,7 +120,11 @@ export function CustomTooltip({
       <p className="mb-1.5 font-medium text-muted-foreground">{label}</p>
       <div className="space-y-1.5">
         {actualEntries.map((entry, i) => {
-          const pct = showTotal && total > 0 ? (entry.value / total) * 100 : null
+          const entryNumericValue = getNumericValue(entry.value)
+          const pct =
+            showTotal && total > 0 && entryNumericValue !== null
+              ? (entryNumericValue / total) * 100
+              : null
           return (
             <div key={i} className="flex items-center gap-2">
               <span
@@ -85,7 +133,7 @@ export function CustomTooltip({
               />
               <span className="text-muted-foreground">{entry.name}:</span>
               <span className="ml-auto font-mono font-medium text-foreground">
-                {formatter ? formatter(entry.value, entry.name) : entry.value}
+                {formatEntryValue(entry)}
               </span>
               {pct !== null && (
                 <span className="w-10 text-right font-mono text-muted-foreground/60">
@@ -119,7 +167,7 @@ export function CustomTooltip({
                 />
                 <span className="text-muted-foreground">{entry.name}:</span>
                 <span className="ml-auto font-mono font-medium text-foreground">
-                  {formatter ? formatter(entry.value, entry.name) : entry.value}
+                  {formatEntryValue(entry)}
                 </span>
               </div>
             ))}
@@ -136,7 +184,7 @@ export function CustomTooltip({
                 />
                 <span className="text-muted-foreground">{entry.name}:</span>
                 <span className="ml-auto font-mono font-medium text-foreground">
-                  {formatter ? formatter(entry.value, entry.name) : entry.value}
+                  {formatEntryValue(entry)}
                 </span>
               </div>
             ))}

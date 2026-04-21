@@ -1,13 +1,12 @@
 // @vitest-environment jsdom
 
 import type { ReactNode } from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DrillDownModal } from '@/components/features/drill-down/DrillDownModal'
-import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
-import { AppMotionProvider } from '@/lib/motion'
 import type { DailyUsage } from '@/types'
+import { renderWithAppProviders, withAppProviders } from '../test-utils'
 
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -43,11 +42,7 @@ function renderWithMotionPreference(
   ui: ReactNode,
   preference: 'system' | 'always' | 'never' = 'system',
 ) {
-  return render(
-    <AppMotionProvider preference={preference}>
-      <TooltipProvider>{ui}</TooltipProvider>
-    </AppMotionProvider>,
-  )
+  return renderWithAppProviders(<>{ui}</>, { motionPreference: preference })
 }
 
 function buildDay(): DailyUsage {
@@ -116,11 +111,9 @@ describe('DrillDownModal motion and positioning', () => {
     expect(screen.getByTestId('drilldown-cost-share-pie')).toHaveAttribute('data-animate', 'false')
 
     rerender(
-      <AppMotionProvider preference="never">
-        <TooltipProvider>
-          <DrillDownModal day={day} contextData={[day]} open onClose={() => {}} />
-        </TooltipProvider>
-      </AppMotionProvider>,
+      withAppProviders(<DrillDownModal day={day} contextData={[day]} open onClose={() => {}} />, {
+        motionPreference: 'never',
+      }),
     )
 
     const pie = screen.getByTestId('drilldown-cost-share-pie')
@@ -146,11 +139,9 @@ describe('DrillDownModal motion and positioning', () => {
     expect(inputSegment).toHaveAttribute('data-duration-ms', '0')
 
     rerender(
-      <AppMotionProvider preference="never">
-        <TooltipProvider>
-          <DrillDownModal day={day} contextData={[day]} open onClose={() => {}} />
-        </TooltipProvider>
-      </AppMotionProvider>,
+      withAppProviders(<DrillDownModal day={day} contextData={[day]} open onClose={() => {}} />, {
+        motionPreference: 'never',
+      }),
     )
 
     const animatedDistribution = screen.getByTestId('drilldown-token-distribution')

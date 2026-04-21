@@ -4,40 +4,13 @@ import {
   computeCurrentMonthForecast,
   computeCurrentMonthProviderForecasts,
 } from '@/lib/calculations'
-import type { DailyUsage } from '@/types'
-
-function createDailyUsage(date: string, totalCost: number): DailyUsage {
-  return {
-    date,
-    inputTokens: 100,
-    outputTokens: 50,
-    cacheCreationTokens: 0,
-    cacheReadTokens: 0,
-    thinkingTokens: 0,
-    totalTokens: 150,
-    totalCost,
-    requestCount: 1,
-    modelsUsed: ['gpt-5.4'],
-    modelBreakdowns: [
-      {
-        modelName: 'gpt-5.4',
-        inputTokens: 100,
-        outputTokens: 50,
-        cacheCreationTokens: 0,
-        cacheReadTokens: 0,
-        thinkingTokens: 0,
-        cost: totalCost,
-        requestCount: 1,
-      },
-    ],
-  }
-}
+import { createDailyUsage } from '../factories'
 
 describe('computeCurrentMonthForecast', () => {
   it('returns null when the current month has fewer than two days of data', () => {
     const forecast = computeCurrentMonthForecast([
-      createDailyUsage('2026-03-31', 4),
-      createDailyUsage('2026-04-01', 7),
+      createDailyUsage({ date: '2026-03-31', totalCost: 4 }),
+      createDailyUsage({ date: '2026-04-01', totalCost: 7 }),
     ])
 
     expect(forecast).toBeNull()
@@ -45,8 +18,8 @@ describe('computeCurrentMonthForecast', () => {
 
   it('fills missing elapsed calendar days with zero-cost gaps', () => {
     const forecast = computeCurrentMonthForecast([
-      createDailyUsage('2026-04-01', 10),
-      createDailyUsage('2026-04-03', 20),
+      createDailyUsage({ date: '2026-04-01', totalCost: 10 }),
+      createDailyUsage({ date: '2026-04-03', totalCost: 20 }),
     ])
 
     expect(forecast).not.toBeNull()
@@ -62,13 +35,13 @@ describe('computeCurrentMonthForecast', () => {
 
   it('dampens a large outlier instead of projecting the raw month-to-date average', () => {
     const forecast = computeCurrentMonthForecast([
-      createDailyUsage('2026-04-01', 10),
-      createDailyUsage('2026-04-02', 10),
-      createDailyUsage('2026-04-03', 10),
-      createDailyUsage('2026-04-04', 10),
-      createDailyUsage('2026-04-05', 10),
-      createDailyUsage('2026-04-06', 10),
-      createDailyUsage('2026-04-07', 1000),
+      createDailyUsage({ date: '2026-04-01', totalCost: 10 }),
+      createDailyUsage({ date: '2026-04-02', totalCost: 10 }),
+      createDailyUsage({ date: '2026-04-03', totalCost: 10 }),
+      createDailyUsage({ date: '2026-04-04', totalCost: 10 }),
+      createDailyUsage({ date: '2026-04-05', totalCost: 10 }),
+      createDailyUsage({ date: '2026-04-06', totalCost: 10 }),
+      createDailyUsage({ date: '2026-04-07', totalCost: 1000 }),
     ])
 
     expect(forecast).not.toBeNull()
@@ -80,12 +53,12 @@ describe('computeCurrentMonthForecast', () => {
   it('uses stable confidence thresholds for 7-day and 14-day histories', () => {
     const mediumConfidence = computeCurrentMonthForecast(
       Array.from({ length: 7 }, (_, index) =>
-        createDailyUsage(`2026-04-${String(index + 1).padStart(2, '0')}`, 5),
+        createDailyUsage({ date: `2026-04-${String(index + 1).padStart(2, '0')}`, totalCost: 5 }),
       ),
     )
     const highConfidence = computeCurrentMonthForecast(
       Array.from({ length: 14 }, (_, index) =>
-        createDailyUsage(`2026-04-${String(index + 1).padStart(2, '0')}`, 5),
+        createDailyUsage({ date: `2026-04-${String(index + 1).padStart(2, '0')}`, totalCost: 5 }),
       ),
     )
 
@@ -104,7 +77,7 @@ describe('computeCurrentMonthProviderForecasts', () => {
   it('builds separate provider forecasts on the shared month-to-date calendar', () => {
     const forecast = computeCurrentMonthProviderForecasts([
       {
-        ...createDailyUsage('2026-04-01', 10),
+        ...createDailyUsage({ date: '2026-04-01', totalCost: 10 }),
         modelBreakdowns: [
           {
             modelName: 'gpt-5.4',
@@ -120,7 +93,7 @@ describe('computeCurrentMonthProviderForecasts', () => {
         modelsUsed: ['gpt-5.4'],
       },
       {
-        ...createDailyUsage('2026-04-02', 20),
+        ...createDailyUsage({ date: '2026-04-02', totalCost: 20 }),
         modelBreakdowns: [
           {
             modelName: 'claude-sonnet-4-5',
@@ -136,7 +109,7 @@ describe('computeCurrentMonthProviderForecasts', () => {
         modelsUsed: ['claude-sonnet-4-5'],
       },
       {
-        ...createDailyUsage('2026-04-04', 30),
+        ...createDailyUsage({ date: '2026-04-04', totalCost: 30 }),
         modelBreakdowns: [
           {
             modelName: 'gpt-5.4',
@@ -180,7 +153,9 @@ describe('computeCurrentMonthProviderForecasts', () => {
   })
 
   it('returns null when no provider has enough current-month data to forecast', () => {
-    const forecast = computeCurrentMonthProviderForecasts([createDailyUsage('2026-04-01', 7)])
+    const forecast = computeCurrentMonthProviderForecasts([
+      createDailyUsage({ date: '2026-04-01', totalCost: 7 }),
+    ])
 
     expect(forecast).toBeNull()
   })
@@ -189,9 +164,9 @@ describe('computeCurrentMonthProviderForecasts', () => {
 describe('computeDashboardForecastState', () => {
   it('derives total and provider forecasts from one shared month-to-date input', () => {
     const data = [
-      createDailyUsage('2026-04-01', 10),
+      createDailyUsage({ date: '2026-04-01', totalCost: 10 }),
       {
-        ...createDailyUsage('2026-04-02', 20),
+        ...createDailyUsage({ date: '2026-04-02', totalCost: 20 }),
         modelBreakdowns: [
           {
             modelName: 'claude-sonnet-4-5',
@@ -206,7 +181,7 @@ describe('computeDashboardForecastState', () => {
         ],
         modelsUsed: ['claude-sonnet-4-5'],
       },
-      createDailyUsage('2026-04-04', 30),
+      createDailyUsage({ date: '2026-04-04', totalCost: 30 }),
     ]
 
     const forecastState = computeDashboardForecastState(data)

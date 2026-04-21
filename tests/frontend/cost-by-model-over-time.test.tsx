@@ -38,7 +38,7 @@ vi.mock('@/components/charts/ChartCard', () => ({
 vi.mock('@/lib/model-color-context', () => ({
   useModelColorHelpers: () => ({
     getModelColor: (name: string) =>
-      name === 'GPT-5.4' ? 'rgb(10 132 255)' : name === 'Sonnet 4.6' ? 'rgb(255 99 132)' : '#999',
+      name === 'gpt-4.1' ? 'rgb(10 132 255)' : name === 'gpt 4 1' ? 'rgb(255 99 132)' : '#999',
   }),
 }))
 
@@ -95,38 +95,40 @@ describe('CostByModelOverTime', () => {
   it('renders gradient-filled primary series while keeping moving averages dashed', () => {
     renderWithTooltip(
       <CostByModelOverTime
-        models={['GPT-5.4', 'Sonnet 4.6']}
+        models={['gpt-4.1', 'gpt 4 1']}
         data={[
           {
             date: '2026-04-01',
             cost: 5,
-            'GPT-5.4': 5,
-            'Sonnet 4.6': Number.NaN,
-            'GPT-5.4_ma7': 4,
-            'Sonnet 4.6_ma7': 2,
+            'gpt-4.1': 5,
+            'gpt 4 1': Number.NaN,
+            'gpt-4.1_ma7': 4,
+            'gpt 4 1_ma7': 2,
           },
           {
             date: '2026-04-02',
             cost: 4,
-            'GPT-5.4': 4,
-            'Sonnet 4.6': Number.POSITIVE_INFINITY,
-            'GPT-5.4_ma7': 4.5,
-            'Sonnet 4.6_ma7': 2.5,
+            'gpt-4.1': 4,
+            'gpt 4 1': Number.POSITIVE_INFINITY,
+            'gpt-4.1_ma7': 4.5,
+            'gpt 4 1_ma7': 2.5,
           },
         ]}
       />,
     )
 
-    expect(screen.getByText(/gpt-5\.4/i)).toBeInTheDocument()
+    expect(screen.getByText(/gpt-4\.1/i)).toBeInTheDocument()
     expect(screen.getByText(/\$9\.00/)).toBeInTheDocument()
     expect(screen.queryByText(/nan/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/infinity/i)).not.toBeInTheDocument()
 
     const mainAreas = screen.getAllByTestId('cost-by-model-area')
     expect(mainAreas).toHaveLength(2)
+    const gradientFills = new Set(mainAreas.map((area) => area.getAttribute('data-fill')))
     for (const area of mainAreas) {
       expect(area).toHaveAttribute('data-fill', expect.stringMatching(/^url\(#grad-/))
     }
+    expect(gradientFills.size).toBe(2)
 
     const maLines = screen.getAllByTestId('cost-by-model-line')
     expect(maLines).toHaveLength(2)

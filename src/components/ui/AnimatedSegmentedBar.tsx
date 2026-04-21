@@ -32,7 +32,8 @@ export function AnimatedSegmentedBar({
   return (
     <div className={cn('flex overflow-hidden rounded-full', className)} data-testid={dataTestId}>
       {segments.map((segment, index) => {
-        const width = `${segment.width}%`
+        const clampedWidth = Math.max(0, Math.min(100, segment.width))
+        const width = `${clampedWidth}%`
         const segmentTestId = dataTestId ? `${dataTestId}-${segment.id}` : undefined
 
         if (shouldReduceMotion) {
