@@ -2,15 +2,11 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import {
-  DEFAULT_DASHBOARD_FILTERS,
-  getDefaultDashboardSectionOrder,
-} from '@/lib/dashboard-preferences'
+import { createDefaultAppSettings } from '../../shared/app-settings.js'
 import { fetchTrusted, startStandaloneServer, stopProcess } from './server-test-helpers'
 import { createApiSharedServer, sampleUsage } from './server-api-test-helpers'
 
 const sharedServer = createApiSharedServer()
-const defaultSectionOrder = getDefaultDashboardSectionOrder()
 const emptyUsageResponse = {
   daily: [],
   totals: {
@@ -24,20 +20,7 @@ const emptyUsageResponse = {
     requestCount: 0,
   },
 }
-const defaultSettingsResponse = {
-  language: 'de',
-  theme: 'dark',
-  reducedMotionPreference: 'system',
-  providerLimits: {},
-  defaultFilters: DEFAULT_DASHBOARD_FILTERS,
-  sectionVisibility: Object.fromEntries(
-    defaultSectionOrder.map((sectionId) => [sectionId, true] as const),
-  ),
-  sectionOrder: defaultSectionOrder,
-  lastLoadedAt: null,
-  lastLoadSource: null,
-  cliAutoLoadActive: false,
-}
+const defaultSettingsResponse = createDefaultAppSettings()
 
 describe('local server API persistence', () => {
   it('starts with empty usage and default settings', async () => {

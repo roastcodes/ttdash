@@ -106,6 +106,18 @@ module.exports = {
       },
     },
     {
+      name: 'no-settings-contract-bypass',
+      severity: 'error',
+      comment:
+        'Settings defaults and normalization must flow through shared/app-settings.js instead of raw dashboard config or frontend-only helpers.',
+      from: {
+        path: '^(server\\.js$|server/data-runtime\\.js$|src/lib/app-settings\\.ts$)',
+      },
+      to: {
+        path: '^(shared/dashboard-preferences\\.json$|src/lib/dashboard-preferences\\.ts$|src/lib/provider-limits\\.ts$)',
+      },
+    },
+    {
       name: 'no-shared-to-runtime',
       severity: 'error',
       comment: 'Shared runtime modules must stay neutral and not depend on app-specific layers.',

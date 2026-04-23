@@ -32,6 +32,7 @@ export default defineConfig(async () => {
             'src/hooks/**/*.ts',
             'src/lib/**/*.ts',
             'src/components/Dashboard.tsx',
+            'shared/app-settings.js',
             'usage-normalizer.js',
           ],
           exclude: [

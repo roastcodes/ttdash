@@ -6,6 +6,15 @@ import type {
   DashboardSectionVisibility,
   ViewMode,
 } from '@/types'
+import {
+  getDefaultDashboardSectionOrder as getSharedDefaultDashboardSectionOrder,
+  getDefaultDashboardSectionVisibility as getSharedDefaultDashboardSectionVisibility,
+  normalizeDashboardDatePreset as normalizeSharedDashboardDatePreset,
+  normalizeDashboardDefaultFilters as normalizeSharedDashboardDefaultFilters,
+  normalizeDashboardSectionOrder as normalizeSharedDashboardSectionOrder,
+  normalizeDashboardSectionVisibility as normalizeSharedDashboardSectionVisibility,
+  normalizeDashboardViewMode as normalizeSharedDashboardViewMode,
+} from '../../shared/app-settings.js'
 import dashboardPreferences from '../../shared/dashboard-preferences.json'
 
 /** Describes one configurable dashboard section. */
@@ -122,99 +131,40 @@ export const DASHBOARD_SECTION_DEFINITION_MAP = Object.fromEntries(
 ) as Record<DashboardSectionId, DashboardSectionDefinition>
 
 /** Defines the default dashboard filter state. */
-export const DEFAULT_DASHBOARD_FILTERS: DashboardDefaultFilters = {
-  viewMode: 'daily',
-  datePreset: 'all',
-  providers: [],
-  models: [],
-}
+export const DEFAULT_DASHBOARD_FILTERS: DashboardDefaultFilters =
+  normalizeDashboardDefaultFilters(null)
 
 /** Returns the default visibility state for all dashboard sections. */
 export function getDefaultDashboardSectionVisibility(): DashboardSectionVisibility {
-  return DASHBOARD_SECTION_DEFINITIONS.reduce(
-    (visibility, section) => ({
-      ...visibility,
-      [section.id]: true,
-    }),
-    {} as DashboardSectionVisibility,
-  )
+  return getSharedDefaultDashboardSectionVisibility()
 }
 
 /** Returns the default dashboard section order. */
 export function getDefaultDashboardSectionOrder(): DashboardSectionOrder {
-  return DASHBOARD_SECTION_DEFINITIONS.map((section) => section.id)
-}
-
-function normalizeStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-
-  return [
-    ...new Set(
-      value
-        .filter((entry): entry is string => typeof entry === 'string')
-        .map((entry) => entry.trim())
-        .filter(Boolean),
-    ),
-  ]
+  return getSharedDefaultDashboardSectionOrder()
 }
 
 /** Normalizes an unknown value to a supported dashboard date preset. */
 export function normalizeDashboardDatePreset(value: unknown): DashboardDatePreset {
-  return DASHBOARD_DATE_PRESETS.includes(value as DashboardDatePreset)
-    ? (value as DashboardDatePreset)
-    : 'all'
+  return normalizeSharedDashboardDatePreset(value)
 }
 
 /** Normalizes an unknown value to a supported dashboard view mode. */
 export function normalizeDashboardViewMode(value: unknown): ViewMode {
-  return DASHBOARD_VIEW_MODES.includes(value as ViewMode) ? (value as ViewMode) : 'daily'
+  return normalizeSharedDashboardViewMode(value)
 }
 
 /** Normalizes persisted dashboard default filters. */
 export function normalizeDashboardDefaultFilters(value: unknown): DashboardDefaultFilters {
-  const source =
-    value && typeof value === 'object' ? (value as Partial<DashboardDefaultFilters>) : {}
-
-  return {
-    viewMode: normalizeDashboardViewMode(source.viewMode),
-    datePreset: normalizeDashboardDatePreset(source.datePreset),
-    providers: normalizeStringList(source.providers),
-    models: normalizeStringList(source.models),
-  }
+  return normalizeSharedDashboardDefaultFilters(value)
 }
 
 /** Normalizes persisted dashboard section visibility settings. */
 export function normalizeDashboardSectionVisibility(value: unknown): DashboardSectionVisibility {
-  const source =
-    value && typeof value === 'object' ? (value as Partial<DashboardSectionVisibility>) : {}
-  const defaults = getDefaultDashboardSectionVisibility()
-
-  return DASHBOARD_SECTION_DEFINITIONS.reduce(
-    (visibility, section) => ({
-      ...visibility,
-      [section.id]:
-        typeof source[section.id] === 'boolean'
-          ? Boolean(source[section.id])
-          : defaults[section.id],
-    }),
-    {} as DashboardSectionVisibility,
-  )
+  return normalizeSharedDashboardSectionVisibility(value)
 }
 
 /** Normalizes persisted dashboard section ordering. */
 export function normalizeDashboardSectionOrder(value: unknown): DashboardSectionOrder {
-  const defaults = getDefaultDashboardSectionOrder()
-
-  if (!Array.isArray(value)) {
-    return defaults
-  }
-
-  const incoming = value.filter(
-    (sectionId): sectionId is DashboardSectionId =>
-      typeof sectionId === 'string' && defaults.includes(sectionId as DashboardSectionId),
-  )
-  const uniqueIncoming = [...new Set(incoming)]
-  const missing = defaults.filter((sectionId) => !uniqueIncoming.includes(sectionId))
-
-  return [...uniqueIncoming, ...missing]
+  return normalizeSharedDashboardSectionOrder(value)
 }

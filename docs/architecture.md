@@ -31,6 +31,7 @@ TTDash uses three complementary architecture gates. Each tool owns a different s
   - must not depend on `src/**` or `server.js`
 - `shared/**`
   - neutral runtime/domain utilities and shared assets
+  - owns cross-runtime contracts such as `shared/app-settings.js` for persisted settings defaults and normalization
   - must not depend on `src/**`, `server/**`, `server.js`, or `usage-normalizer.js`
 - `usage-normalizer.js`
   - standalone normalization logic
@@ -41,7 +42,8 @@ TTDash uses three complementary architecture gates. Each tool owns a different s
 The server runtime is intentionally split so `server.js` stays an orchestration layer instead of a catch-all implementation module.
 
 - `server/data-runtime.js`
-  - owns app-path resolution, persisted usage/settings IO, migration, normalization, and file-mutation locks
+  - owns app-path resolution, persisted usage/settings IO, migration, and file-mutation locks
+  - consumes the shared settings contract instead of defining local settings defaults or normalizers
 - `server/background-runtime.js`
   - owns background instance registry, start/stop flows, and registry locking
 - `server/auto-import-runtime.js`
@@ -50,6 +52,20 @@ The server runtime is intentionally split so `server.js` stays an orchestration 
   - owns API routing, SSE wiring, and static asset dispatch with injected runtime dependencies
 - `server/http-utils.js`, `server/runtime.js`, `server/report/**`
   - shared support modules used by the composed runtimes
+
+## Shared Settings Contract
+
+Persisted settings are a shared contract across the frontend bootstrap path and the server persistence/runtime path.
+
+- `shared/app-settings.js`
+  - owns settings defaults, provider-limit normalization, dashboard filter/section normalization, and timestamp/load-source coercion
+  - is the only production module that should define persisted settings defaults or normalization rules
+- `src/lib/app-settings.ts`
+  - is a typed frontend adapter over `shared/app-settings.js`
+  - may keep DOM-only behavior such as `applyTheme`, but must not recompute settings defaults from local helpers
+- `server/data-runtime.js`
+  - must normalize and default persisted settings through `shared/app-settings.js`
+  - must not derive settings defaults from raw dashboard preference JSON
 
 ## Frontend Layer Model
 
@@ -103,5 +119,6 @@ Both `ci.yml` and `release.yml` run `check:deps` and `test:architecture` explici
   - use `eslint-plugin-boundaries` for frontend import discipline
   - use `archunit` for expressive architecture assertions and naming rules
 - Keep `server.js` small. New server behavior should usually land in `server/**` and be wired into the entrypoint via dependency injection.
+- Keep shared settings logic centralized. If a new persisted settings field, default, or normalization rule is added, update `shared/app-settings.js` first and adapt frontend/server wrappers afterward.
 - Do not add broad allowlists just to get green. Fix the code or scope the rule explicitly.
 - If a feature helper becomes cross-feature, move it out of `src/components/features/**` before adding more exceptions.

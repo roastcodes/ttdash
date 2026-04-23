@@ -1,3 +1,10 @@
+const {
+  createDefaultPersistedAppSettings,
+  normalizeIsoTimestamp: normalizeSharedIsoTimestamp,
+  normalizePersistedAppSettings,
+  normalizeProviderLimits: normalizeSharedProviderLimits,
+} = require('../shared/app-settings.js');
+
 function createDataRuntime({
   fs,
   fsPromises,
@@ -5,9 +12,6 @@ function createDataRuntime({
   path,
   processObject = process,
   normalizeIncomingData,
-  dashboardDatePresets,
-  dashboardSectionIds,
-  defaultSettings,
   runtimeInstanceId,
   appDirName,
   appDirNameLinux,
@@ -334,43 +338,9 @@ function createDataRuntime({
   async function withSettingsAndDataMutationLock(operation) {
     return withOrderedFileMutationLocks([settingsFile, dataFile], operation);
   }
-
-  function normalizeLanguage(value) {
-    return value === 'en' ? 'en' : 'de';
-  }
-
-  function normalizeTheme(value) {
-    return value === 'light' ? 'light' : 'dark';
-  }
-
-  function normalizeReducedMotionPreference(value) {
-    return value === 'always' || value === 'never' ? value : 'system';
-  }
-
-  function normalizeViewMode(value) {
-    return value === 'monthly' || value === 'yearly' ? value : 'daily';
-  }
-
-  function normalizeDashboardDatePreset(value) {
-    return dashboardDatePresets.includes(value) ? value : 'all';
-  }
-
-  function normalizeLastLoadSource(value) {
-    return value === 'file' || value === 'auto-import' || value === 'cli-auto-load' ? value : null;
-  }
-
-  function normalizeIsoTimestamp(value) {
-    if (typeof value !== 'string') {
-      return null;
-    }
-
-    const timestamp = Date.parse(value);
-    if (!Number.isFinite(timestamp)) {
-      return null;
-    }
-
-    return new Date(timestamp).toISOString();
-  }
+  const normalizeIsoTimestamp = normalizeSharedIsoTimestamp;
+  const normalizeProviderLimits = normalizeSharedProviderLimits;
+  const normalizeSettings = normalizePersistedAppSettings;
 
   function createPersistedStateError(kind, filePath, cause) {
     const label = kind === 'settings' ? 'Settings file' : 'Usage data file';
@@ -410,13 +380,6 @@ function createDataRuntime({
 
       throw createPersistedStateError(kind, filePath, error);
     }
-  }
-
-  function sanitizeCurrency(value) {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      return 0;
-    }
-    return Math.max(0, Number(value.toFixed(2)));
   }
 
   function isPlainObject(value) {
@@ -595,100 +558,6 @@ function createDataRuntime({
     };
   }
 
-  function normalizeProviderLimitConfig(value) {
-    if (!value || typeof value !== 'object') {
-      return {
-        hasSubscription: false,
-        subscriptionPrice: 0,
-        monthlyLimit: 0,
-      };
-    }
-
-    return {
-      hasSubscription: Boolean(value.hasSubscription),
-      subscriptionPrice: sanitizeCurrency(value.subscriptionPrice),
-      monthlyLimit: sanitizeCurrency(value.monthlyLimit),
-    };
-  }
-
-  function normalizeProviderLimits(value) {
-    if (!value || typeof value !== 'object') {
-      return {};
-    }
-
-    const next = {};
-    for (const [provider, config] of Object.entries(value)) {
-      next[provider] = normalizeProviderLimitConfig(config);
-    }
-    return next;
-  }
-
-  function normalizeStringList(value) {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return [
-      ...new Set(
-        value
-          .filter((entry) => typeof entry === 'string')
-          .map((entry) => entry.trim())
-          .filter(Boolean),
-      ),
-    ];
-  }
-
-  function normalizeDefaultFilters(value) {
-    const source = value && typeof value === 'object' ? value : {};
-
-    return {
-      viewMode: normalizeViewMode(source.viewMode),
-      datePreset: normalizeDashboardDatePreset(source.datePreset),
-      providers: normalizeStringList(source.providers),
-      models: normalizeStringList(source.models),
-    };
-  }
-
-  function normalizeSectionVisibility(value) {
-    const source = value && typeof value === 'object' ? value : {};
-    const next = {};
-
-    for (const sectionId of dashboardSectionIds) {
-      next[sectionId] = typeof source[sectionId] === 'boolean' ? source[sectionId] : true;
-    }
-
-    return next;
-  }
-
-  function normalizeSectionOrder(value) {
-    if (!Array.isArray(value)) {
-      return [...dashboardSectionIds];
-    }
-
-    const incoming = value.filter(
-      (sectionId) => typeof sectionId === 'string' && dashboardSectionIds.includes(sectionId),
-    );
-    const uniqueIncoming = [...new Set(incoming)];
-    const missing = dashboardSectionIds.filter((sectionId) => !uniqueIncoming.includes(sectionId));
-
-    return [...uniqueIncoming, ...missing];
-  }
-
-  function normalizeSettings(value) {
-    const source = value && typeof value === 'object' ? value : {};
-    return {
-      language: normalizeLanguage(source.language),
-      theme: normalizeTheme(source.theme),
-      reducedMotionPreference: normalizeReducedMotionPreference(source.reducedMotionPreference),
-      providerLimits: normalizeProviderLimits(source.providerLimits),
-      defaultFilters: normalizeDefaultFilters(source.defaultFilters),
-      sectionVisibility: normalizeSectionVisibility(source.sectionVisibility),
-      sectionOrder: normalizeSectionOrder(source.sectionOrder),
-      lastLoadedAt: normalizeIsoTimestamp(source.lastLoadedAt),
-      lastLoadSource: normalizeLastLoadSource(source.lastLoadSource),
-    };
-  }
-
   function toSettingsResponse(settings) {
     return {
       ...normalizeSettings(settings),
@@ -716,10 +585,7 @@ function createDataRuntime({
   function readSettings() {
     const file = readJsonFile(settingsFile, 'settings');
     if (file.status === 'missing') {
-      return toSettingsResponse({
-        ...defaultSettings,
-        providerLimits: {},
-      });
+      return toSettingsResponse(createDefaultPersistedAppSettings());
     }
 
     return toSettingsResponse(file.value);
@@ -730,10 +596,7 @@ function createDataRuntime({
       return readSettings();
     } catch (error) {
       if (isPersistedStateError(error, 'settings')) {
-        return toSettingsResponse({
-          ...defaultSettings,
-          providerLimits: {},
-        });
+        return toSettingsResponse(createDefaultPersistedAppSettings());
       }
 
       throw error;
@@ -762,16 +625,6 @@ function createDataRuntime({
         ...current,
         ...(patch && typeof patch === 'object' ? patch : {}),
       };
-
-      if (patch && Object.prototype.hasOwnProperty.call(patch, 'providerLimits')) {
-        next.providerLimits = normalizeProviderLimits(patch.providerLimits);
-      } else {
-        next.providerLimits = current.providerLimits;
-      }
-
-      next.language = normalizeLanguage(next.language);
-      next.theme = normalizeTheme(next.theme);
-      next.reducedMotionPreference = normalizeReducedMotionPreference(next.reducedMotionPreference);
 
       await writeSettings(next);
       return toSettingsResponse(next);

@@ -1,40 +1,9 @@
 import type { ComponentProps } from 'react'
 import { vi } from 'vitest'
 import { SettingsModal } from '@/components/features/settings/SettingsModal'
+import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 import { renderWithAppProviders } from '../test-utils'
-
-const defaultSectionVisibility = {
-  insights: true,
-  metrics: true,
-  today: true,
-  currentMonth: true,
-  activity: true,
-  forecastCache: true,
-  limits: true,
-  costAnalysis: true,
-  tokenAnalysis: true,
-  requestAnalysis: true,
-  advancedAnalysis: true,
-  comparisons: true,
-  tables: true,
-}
-
-const defaultSectionOrder = [
-  'insights',
-  'metrics',
-  'today',
-  'currentMonth',
-  'activity',
-  'forecastCache',
-  'limits',
-  'costAnalysis',
-  'tokenAnalysis',
-  'requestAnalysis',
-  'advancedAnalysis',
-  'comparisons',
-  'tables',
-] as const
 
 export function buildSettingsModalProps(
   overrides: Partial<ComponentProps<typeof SettingsModal>> = {},
@@ -48,9 +17,13 @@ export function buildSettingsModalProps(
     filterProviders: [],
     models: [],
     limits: {},
-    defaultFilters: { viewMode: 'daily', datePreset: 'all', providers: [], models: [] },
-    sectionVisibility: { ...defaultSectionVisibility },
-    sectionOrder: [...defaultSectionOrder],
+    defaultFilters: {
+      ...DEFAULT_APP_SETTINGS.defaultFilters,
+      providers: [...DEFAULT_APP_SETTINGS.defaultFilters.providers],
+      models: [...DEFAULT_APP_SETTINGS.defaultFilters.models],
+    },
+    sectionVisibility: { ...DEFAULT_APP_SETTINGS.sectionVisibility },
+    sectionOrder: [...DEFAULT_APP_SETTINGS.sectionOrder],
     lastLoadedAt: null,
     lastLoadSource: null,
     cliAutoLoadActive: false,

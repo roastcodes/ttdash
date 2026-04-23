@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { createRequire } from 'node:module'
+import type * as readlinePromisesModule from 'node:readline/promises'
 import { describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
@@ -18,7 +19,7 @@ const { createBackgroundRuntime } = require('../../server/background-runtime.js'
       json: () => Promise<{ id: string; port: number }>
     }>
     spawnImpl: typeof vi.fn
-    readlinePromises: typeof import('node:readline/promises')
+    readlinePromises: typeof readlinePromisesModule
     entrypointPath: string
     appPaths: { configDir: string; cacheDir: string }
     ensureAppDirs: () => void
@@ -96,7 +97,7 @@ describe('background runtime', () => {
       } as NodeJS.Process,
       fetchImpl,
       spawnImpl: vi.fn(),
-      readlinePromises: {} as typeof import('node:readline/promises'),
+      readlinePromises: {} as typeof readlinePromisesModule,
       entrypointPath: '/tmp/server.js',
       appPaths: {
         configDir: '/tmp/ttdash-config',

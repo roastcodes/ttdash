@@ -10,7 +10,6 @@ const { parseArgs } = require('util');
 const { normalizeIncomingData } = require('./usage-normalizer');
 const { generatePdfReport } = require('./server/report');
 const { version: APP_VERSION } = require('./package.json');
-const dashboardPreferences = require('./shared/dashboard-preferences.json');
 const {
   TOKTRACK_PACKAGE_NAME,
   TOKTRACK_PACKAGE_SPEC,
@@ -76,26 +75,6 @@ const TOKTRACK_LATEST_CACHE_FAILURE_TTL_MS = 60 * 1000;
 const PROCESS_TERMINATION_GRACE_MS = 1000;
 const FILE_MUTATION_LOCK_TIMEOUT_MS = 10000;
 const FILE_MUTATION_LOCK_STALE_MS = 30000;
-const DASHBOARD_DATE_PRESETS = dashboardPreferences.datePresets;
-const DASHBOARD_SECTION_IDS = dashboardPreferences.sectionDefinitions.map((section) => section.id);
-const DEFAULT_SETTINGS = {
-  language: 'de',
-  theme: 'dark',
-  reducedMotionPreference: 'system',
-  providerLimits: {},
-  defaultFilters: {
-    viewMode: 'daily',
-    datePreset: 'all',
-    providers: [],
-    models: [],
-  },
-  sectionVisibility: Object.fromEntries(
-    DASHBOARD_SECTION_IDS.map((sectionId) => [sectionId, true]),
-  ),
-  sectionOrder: DASHBOARD_SECTION_IDS,
-  lastLoadedAt: null,
-  lastLoadSource: null,
-};
 
 let startupAutoLoadCompleted = false;
 const RUNTIME_INSTANCE = {
@@ -263,9 +242,6 @@ const dataRuntime = createDataRuntime({
   path,
   processObject: process,
   normalizeIncomingData,
-  dashboardDatePresets: DASHBOARD_DATE_PRESETS,
-  dashboardSectionIds: DASHBOARD_SECTION_IDS,
-  defaultSettings: DEFAULT_SETTINGS,
   runtimeInstanceId: RUNTIME_INSTANCE.id,
   appDirName: APP_DIR_NAME,
   appDirNameLinux: APP_DIR_NAME_LINUX,
