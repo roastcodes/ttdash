@@ -7,12 +7,10 @@ const sampleUsagePath = path.join(process.cwd(), 'examples', 'sample-usage.json'
 const sampleUsage = JSON.parse(fs.readFileSync(sampleUsagePath, 'utf-8'))
 const uploadToastPattern =
   /^(Datei sample-usage\.json erfolgreich geladen|File sample-usage\.json loaded successfully)$/
-const autoImportButtonPattern = /^(Auto-Import|Auto import)$/
-const uploadFileButtonPattern = /^(Datei hochladen|Upload file)$/
+const importEntryButtonPattern = /^(Auto-Import|Auto import|Import)$/
+const uploadEntryButtonPattern = /^(Datei hochladen|Upload file|Upload)$/
 const exportSettingsButtonPattern = /^(Einstellungen exportieren|Export settings)$/
 const exportDataButtonPattern = /^(Daten exportieren|Export data)$/
-const dataImportToastPattern =
-  /^(Backup importiert: 1 neue Tage ergänzt, 1 Konflikttage lokal beibehalten|Backup imported: added 1 new days, kept 1 conflicting days local)$/
 const saveSettingsButtonPattern = /^(Speichern|Save)$/
 const monthlySettingsPattern = /^(Monatlich|Monthly)$/
 const monthlyViewPattern = /^(Monatsansicht|Monthly view)$/
@@ -68,8 +66,8 @@ test('uploads sample usage data and renders the dashboard without browser errors
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: 'TTDash' })).toBeVisible()
-  await expect(page.getByRole('button', { name: autoImportButtonPattern })).toBeVisible()
-  await expect(page.getByRole('button', { name: uploadFileButtonPattern })).toBeVisible()
+  await expect(page.getByRole('button', { name: importEntryButtonPattern })).toBeVisible()
+  await expect(page.getByRole('button', { name: uploadEntryButtonPattern })).toBeVisible()
 
   await uploadSampleUsage(page)
 
@@ -115,7 +113,7 @@ test('opens one shared forecast zoom dialog from both forecast cards', async ({
   await page.goto('/')
   await uploadSampleUsage(page)
 
-  const forecastSection = page.locator('#forecastCache')
+  const forecastSection = page.locator('#forecast-cache')
   await forecastSection.scrollIntoViewIfNeeded()
   await expect(forecastSection.getByText(/Forecast & Cache|Prognose & Cache/)).toBeVisible()
 
@@ -466,7 +464,14 @@ test('manages settings and backup imports through the settings dialog using isol
   )
 
   await page.locator('[data-testid="data-import-input"]').setInputFiles(importDataPath)
-  await expect(page.getByText(dataImportToastPattern)).toBeVisible()
+
+  await expect
+    .poll(async () => {
+      const response = await page.request.get('/api/usage')
+      const usage = await response.json()
+      return usage.daily[0]?.date
+    })
+    .toBe('2026-03-31')
 
   const mergedUsageResponse = await page.request.get('/api/usage')
   expect(mergedUsageResponse.ok()).toBe(true)

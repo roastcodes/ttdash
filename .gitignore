@@ -20,6 +20,7 @@ test-json/
 coverage/
 requirements/
 docs/security/
+docs/review/
 /activity-*.png
 /cache-hit-rate-*.png
 /request-*.png
@@ -34,3 +35,4 @@ docs/security/
 /settings-empty.png
 /tables-*-review.png
 /empty-state.png
+prompts.md

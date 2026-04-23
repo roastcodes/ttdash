@@ -296,6 +296,7 @@ export function DashboardSections({
   const sectionAnchorMap: Partial<Record<DashboardSectionId, string>> = {
     costAnalysis: 'charts',
     currentMonth: 'current-month',
+    forecastCache: 'forecast-cache',
     tokenAnalysis: 'token-analysis',
     requestAnalysis: 'request-analysis',
     advancedAnalysis: 'advanced-analysis',
