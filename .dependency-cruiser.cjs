@@ -131,6 +131,19 @@ module.exports = {
       },
     },
     {
+      name: 'no-raw-dashboard-preferences-imports',
+      severity: 'error',
+      comment:
+        'Production code must consume dashboard preference rules through shared/dashboard-preferences.js instead of the raw JSON file.',
+      from: {
+        path: productionPath,
+        pathNot: '^shared/dashboard-preferences\\.js$',
+      },
+      to: {
+        path: '^shared/dashboard-preferences\\.json$',
+      },
+    },
+    {
       name: 'no-shared-to-runtime',
       severity: 'error',
       comment: 'Shared runtime modules must stay neutral and not depend on app-specific layers.',

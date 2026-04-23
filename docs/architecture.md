@@ -58,7 +58,8 @@ The server runtime is intentionally split so `server.js` stays an orchestration 
 Persisted settings are a shared contract across the frontend bootstrap path and the server persistence/runtime path.
 
 - `shared/app-settings.js`
-  - owns settings defaults, provider-limit normalization, dashboard filter/section normalization, and timestamp/load-source coercion
+  - owns app-level settings defaults, provider-limit normalization, and timestamp/load-source coercion
+  - consumes `shared/dashboard-preferences.js` for dashboard-specific filter/section defaults and normalization
   - is the only production module that should define persisted settings defaults or normalization rules
 - `src/lib/app-settings.ts`
   - is a typed frontend adapter over `shared/app-settings.js`
@@ -66,6 +67,20 @@ Persisted settings are a shared contract across the frontend bootstrap path and 
 - `server/data-runtime.js`
   - must normalize and default persisted settings through `shared/app-settings.js`
   - must not derive settings defaults from raw dashboard preference JSON
+
+## Shared Dashboard Contract
+
+Dashboard-specific presets, static section metadata, and preset date semantics are shared domain rules across settings, filters, and command/navigation surfaces.
+
+- `shared/dashboard-preferences.js`
+  - owns validated dashboard preference config from `shared/dashboard-preferences.json`
+  - owns shared dashboard preset semantics such as preset-range resolution and active-preset detection
+  - is the only production module that should read the raw dashboard preferences JSON
+- `src/lib/dashboard-preferences.ts`
+  - is a thin frontend adapter over `shared/dashboard-preferences.js`
+  - may keep UI-specific rendering choices such as quick-select button order, but must not duplicate preset/filter semantics
+- `shared/app-settings.js`
+  - must consume dashboard defaults and normalization from `shared/dashboard-preferences.js` instead of re-declaring them locally
 
 ## Frontend Layer Model
 

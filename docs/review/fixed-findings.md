@@ -56,3 +56,23 @@
   - `npm run verify:package`
   - `PLAYWRIGHT_TEST_PORT=3016 npm_config_cache=/tmp/ttdash-npm-cache npm run test:e2e`
   - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 1: 0 issues, round 2: 0 issues
+
+### architecture-review.md / M-02
+
+- Status: fixed
+- Scope: dashboard preset, section, and settings-adjacent UI rules now flow through `shared/dashboard-preferences.js` with declarations in `shared/dashboard-preferences.d.ts`; `shared/app-settings.js` consumes that shared contract, `src/lib/dashboard-preferences.ts` was reduced to a thin adapter, and the duplicated preset semantics were removed from `src/hooks/use-dashboard-filters.ts` and `src/components/layout/FilterBar.tsx`.
+- Guardrails: `docs/architecture.md` now documents the shared dashboard contract separately from the app settings contract, `.dependency-cruiser.cjs` blocks production imports of `shared/dashboard-preferences.json` outside `shared/dashboard-preferences.js`, and `vitest.config.ts` now includes `shared/dashboard-preferences.js` in coverage.
+- Follow-up quality fixes during implementation:
+  - `tests/unit/dashboard-preferences.test.ts` now locks the shared/frontend adapter alignment for config parsing, section metadata, preset-range resolution, and active-preset detection.
+  - `tests/frontend/use-dashboard-filters.test.tsx` now asserts preset application and reset behavior against the shared preset resolver instead of re-hardcoding date ranges.
+  - `tests/frontend/filter-bar-presets.test.tsx` now seeds active-preset UI states from the shared resolver while preserving the existing visible quick-select order.
+  - `src/lib/dashboard-view-model.d.ts` and `src/hooks/use-dashboard-controller.ts` now type preset actions with `DashboardDatePreset` instead of broad strings.
+- Validation:
+  - `npm run check`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run test:unit:coverage`
+  - `npm run build:app`
+  - `npm run verify:package`
+  - `PLAYWRIGHT_TEST_PORT=3016 npm_config_cache=/tmp/ttdash-npm-cache npm run test:e2e`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 1: 0 issues, round 2: 0 issues

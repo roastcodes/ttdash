@@ -50,6 +50,7 @@ import { getUniqueModels, getUniqueProviders } from '@/lib/model-utils'
 import type {
   AppLanguage,
   AppSettings,
+  DashboardDatePreset,
   DashboardDefaultFilters,
   DashboardSectionOrder,
   DashboardSectionVisibility,
@@ -768,7 +769,7 @@ export function useDashboardControllerWithBootstrap(
   }, [setStartDate, setEndDate])
 
   const handleApplyPreset = useCallback(
-    (preset: string) => {
+    (preset: DashboardDatePreset) => {
       applyPreset(preset)
     },
     [applyPreset],

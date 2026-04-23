@@ -3,6 +3,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
+import { resolveDashboardPresetRange } from '@/lib/dashboard-preferences'
 import type { DashboardDefaultFilters } from '@/types'
 import { dashboardFixture } from '../fixtures/usage-data'
 
@@ -59,13 +60,16 @@ describe('useDashboardFilters', () => {
 
   it('applies rolling date presets relative to the local current day', () => {
     const { result } = renderHook(() => useDashboardFilters(dashboardFixture))
+    const sevenDayRange = resolveDashboardPresetRange('7d', new Date())
 
     act(() => {
       result.current.applyPreset('7d')
     })
 
-    expect(result.current.startDate).toBe('2026-03-31')
-    expect(result.current.endDate).toBe('2026-04-06')
+    expect({
+      startDate: result.current.startDate,
+      endDate: result.current.endDate,
+    }).toEqual(sevenDayRange)
   })
 
   it('hydrates from external default filters and restores them on reset', () => {
@@ -83,8 +87,10 @@ describe('useDashboardFilters', () => {
     expect(result.current.viewMode).toBe('monthly')
     expect(result.current.selectedProviders).toEqual(['OpenAI'])
     expect(result.current.selectedModels).toEqual(['GPT-5.4'])
-    expect(result.current.startDate).toBe('2026-03-08')
-    expect(result.current.endDate).toBe('2026-04-06')
+    expect({
+      startDate: result.current.startDate,
+      endDate: result.current.endDate,
+    }).toEqual(resolveDashboardPresetRange('30d', new Date()))
 
     act(() => {
       result.current.toggleProvider('Anthropic')
@@ -92,7 +98,7 @@ describe('useDashboardFilters', () => {
     })
 
     expect(result.current.selectedProviders).toEqual(['OpenAI', 'Anthropic'])
-    expect(result.current.startDate).toBe('2026-03-31')
+    expect(result.current.startDate).toBe(resolveDashboardPresetRange('7d', new Date()).startDate)
 
     act(() => {
       result.current.resetAll()
@@ -101,8 +107,10 @@ describe('useDashboardFilters', () => {
     expect(result.current.viewMode).toBe('monthly')
     expect(result.current.selectedProviders).toEqual(['OpenAI'])
     expect(result.current.selectedModels).toEqual(['GPT-5.4'])
-    expect(result.current.startDate).toBe('2026-03-08')
-    expect(result.current.endDate).toBe('2026-04-06')
+    expect({
+      startDate: result.current.startDate,
+      endDate: result.current.endDate,
+    }).toEqual(resolveDashboardPresetRange('30d', new Date()))
   })
 
   it('applies persisted defaults when matching data becomes available later', () => {

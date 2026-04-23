@@ -17,6 +17,7 @@ import {
   SelectItem,
 } from '@/components/ui/select'
 import { cn } from '@/lib/cn'
+import { resolveDashboardActivePreset } from '@/lib/dashboard-preferences'
 import { getProviderBadgeClasses, getProviderBadgeStyle } from '@/lib/model-utils'
 import type { DashboardFilterBarViewModel } from '@/lib/dashboard-view-model'
 import { useModelColorHelpers } from '@/lib/model-color-context'
@@ -47,54 +48,6 @@ function buildCalendarDays(displayMonth: Date) {
 
   while (cells.length % 7 !== 0) cells.push(null)
   return cells
-}
-
-function resolveActivePreset(
-  selectedMonth: string | null,
-  startDate?: string,
-  endDate?: string,
-): DashboardDatePreset | null {
-  if (selectedMonth) return null
-  if (!startDate && !endDate) return 'all'
-  if (!startDate || !endDate) return null
-
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const fmt = toLocalDateStr
-
-  const matchesPreset = (preset: DashboardDatePreset) => {
-    switch (preset) {
-      case '7d': {
-        const start = new Date(today)
-        start.setDate(today.getDate() - 6)
-        return startDate === fmt(start) && endDate === fmt(today)
-      }
-      case '30d': {
-        const start = new Date(today)
-        start.setDate(today.getDate() - 29)
-        return startDate === fmt(start) && endDate === fmt(today)
-      }
-      case 'month': {
-        const start = new Date(today.getFullYear(), today.getMonth(), 1)
-        return startDate === fmt(start) && endDate === fmt(today)
-      }
-      case 'year': {
-        const start = new Date(today.getFullYear(), 0, 1)
-        return startDate === fmt(start) && endDate === fmt(today)
-      }
-      case 'all':
-      default:
-        return false
-    }
-  }
-
-  for (const preset of ['7d', '30d', 'month', 'year'] as DashboardDatePreset[]) {
-    if (matchesPreset(preset)) {
-      return preset
-    }
-  }
-
-  return null
 }
 
 interface DatePickerFieldProps {
@@ -561,7 +514,7 @@ export function FilterBar({
   const { t } = useTranslation()
   const { getModelColor, getModelColorAlpha } = useModelColorHelpers()
   const activePreset = useMemo(
-    () => resolveActivePreset(selectedMonth, startDate, endDate),
+    () => resolveDashboardActivePreset({ selectedMonth, startDate, endDate }),
     [selectedMonth, startDate, endDate],
   )
 
@@ -634,26 +587,28 @@ export function FilterBar({
           </Select>
 
           <div className="flex flex-wrap gap-1.5">
-            {[
-              { key: '7d', label: t('filterBar.presets.7d') },
-              { key: '30d', label: t('filterBar.presets.30d') },
-              { key: 'month', label: t('filterBar.presets.month') },
-              { key: 'year', label: t('filterBar.presets.year') },
-              { key: 'all', label: t('filterBar.presets.all') },
-            ].map((p) => (
+            {(
+              [
+                { key: '7d', label: t('filterBar.presets.7d') },
+                { key: '30d', label: t('filterBar.presets.30d') },
+                { key: 'month', label: t('filterBar.presets.month') },
+                { key: 'year', label: t('filterBar.presets.year') },
+                { key: 'all', label: t('filterBar.presets.all') },
+              ] satisfies Array<{ key: DashboardDatePreset; label: string }>
+            ).map((preset) => (
               <button
-                key={p.key}
+                key={preset.key}
                 type="button"
-                aria-pressed={activePreset === p.key}
-                onClick={() => onApplyPreset(p.key)}
+                aria-pressed={activePreset === preset.key}
+                onClick={() => onApplyPreset(preset.key)}
                 className={cn(
                   'min-w-[48px] rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200',
-                  activePreset === p.key
+                  activePreset === preset.key
                     ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.06)]'
                     : 'border-border hover:border-accent hover:bg-accent',
                 )}
               >
-                {p.label}
+                {preset.label}
               </button>
             ))}
           </div>

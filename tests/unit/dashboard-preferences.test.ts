@@ -1,17 +1,29 @@
 import { describe, expect, it } from 'vitest'
 import dashboardPreferences from '../../shared/dashboard-preferences.json'
 import {
+  DASHBOARD_DATE_PRESETS,
   DASHBOARD_SECTION_DEFINITIONS,
+  DASHBOARD_SECTION_DEFINITION_MAP,
+  DASHBOARD_VIEW_MODES,
   parseDashboardPreferencesConfig,
+  resolveDashboardActivePreset,
+  resolveDashboardPresetRange,
 } from '@/lib/dashboard-preferences'
+import {
+  parseDashboardPreferencesConfig as parseSharedDashboardPreferencesConfig,
+  resolveDashboardActivePreset as resolveSharedDashboardActivePreset,
+  resolveDashboardPresetRange as resolveSharedDashboardPresetRange,
+} from '../../shared/dashboard-preferences.js'
 
 describe('dashboard preferences config', () => {
   it('parses the shared dashboard preferences JSON into a validated config', () => {
     const parsed = parseDashboardPreferencesConfig(dashboardPreferences)
 
+    expect(parsed).toEqual(parseSharedDashboardPreferencesConfig(dashboardPreferences))
     expect(parsed.sectionDefinitions).toEqual(DASHBOARD_SECTION_DEFINITIONS)
-    expect(parsed.viewModes).toEqual(dashboardPreferences.viewModes)
-    expect(parsed.datePresets).toEqual(dashboardPreferences.datePresets)
+    expect(parsed.viewModes).toEqual(DASHBOARD_VIEW_MODES)
+    expect(parsed.datePresets).toEqual(DASHBOARD_DATE_PRESETS)
+    expect(DASHBOARD_SECTION_DEFINITION_MAP.forecastCache.domId).toBe('forecast-cache')
   })
 
   it('fails fast when datePresets contain unsupported values', () => {
@@ -42,5 +54,45 @@ describe('dashboard preferences config', () => {
         sectionDefinitions: [{ id: 'metrics', domId: 'metrics' }],
       }),
     ).toThrow('Invalid dashboard preferences')
+  })
+
+  it('resolves preset ranges through the same shared contract used by runtime consumers', () => {
+    const referenceDate = new Date('2026-04-06T12:00:00Z')
+
+    expect(resolveDashboardPresetRange('7d', referenceDate)).toEqual(
+      resolveSharedDashboardPresetRange('7d', referenceDate),
+    )
+    expect(resolveDashboardPresetRange('30d', referenceDate)).toEqual({
+      startDate: '2026-03-08',
+      endDate: '2026-04-06',
+    })
+    expect(resolveDashboardPresetRange('year', referenceDate)).toEqual({
+      startDate: '2026-01-01',
+      endDate: '2026-04-06',
+    })
+    expect(resolveDashboardPresetRange('all', referenceDate)).toEqual({
+      startDate: undefined,
+      endDate: undefined,
+    })
+  })
+
+  it('resolves the active preset through the shared contract', () => {
+    const referenceDate = new Date('2026-04-06T12:00:00Z')
+    const monthRange = resolveDashboardPresetRange('month', referenceDate)
+
+    expect(
+      resolveDashboardActivePreset({
+        referenceDate,
+        ...monthRange,
+      }),
+    ).toBe(resolveSharedDashboardActivePreset({ referenceDate, ...monthRange }))
+    expect(resolveDashboardActivePreset({ referenceDate })).toBe('all')
+    expect(resolveDashboardActivePreset({ selectedMonth: '2026-04', ...monthRange })).toBeNull()
+    expect(
+      resolveDashboardActivePreset({
+        referenceDate,
+        startDate: monthRange.startDate,
+      }),
+    ).toBeNull()
   })
 })

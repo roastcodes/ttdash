@@ -5,6 +5,7 @@ import type {
   AppLanguage,
   ChartDataPoint,
   DailyUsage,
+  DashboardDatePreset,
   DashboardDefaultFilters,
   DashboardMetrics,
   DashboardSectionOrder,
@@ -91,7 +92,7 @@ export interface DashboardFilterBarViewModel {
   endDate?: string
   onStartDateChange: (date: string | undefined) => void
   onEndDateChange: (date: string | undefined) => void
-  onApplyPreset: (preset: string) => void
+  onApplyPreset: (preset: DashboardDatePreset) => void
   onResetAll: () => void
 }
 
@@ -180,7 +181,7 @@ export interface DashboardCommandPaletteViewModel {
   onOpenSettings: () => void
   onScrollTo: (section: string) => void
   onViewModeChange: (mode: ViewMode) => void
-  onApplyPreset: (preset: string) => void
+  onApplyPreset: (preset: DashboardDatePreset) => void
   onToggleProvider: (provider: string) => void
   onToggleModel: (model: string) => void
   onClearProviders: () => void
