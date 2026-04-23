@@ -20,7 +20,8 @@ test-json/
 coverage/
 requirements/
 docs/security/
-docs/review/
+docs/review/*
+!docs/review/*.md
 /activity-*.png
 /cache-hit-rate-*.png
 /request-*.png

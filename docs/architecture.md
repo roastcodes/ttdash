@@ -21,16 +21,35 @@ TTDash uses three complementary architecture gates. Each tool owns a different s
   - frontend-only code
   - may depend on `shared/**`
   - must not depend on `server/**` or `server.js`
-- `server/**` and `server.js`
-  - local API, reporting, background process, and package runtime
+- `server.js`
+  - CLI entrypoint, bootstrap, and composition root for the local server runtime
+  - may depend on `server/**` and `shared/**`
+  - should compose injected runtime modules instead of owning subsystem internals directly
+- `server/**`
+  - local API, reporting, background process, persistence, auto-import, and package runtime modules
   - may depend on `shared/**`
-  - must not depend on `src/**`
+  - must not depend on `src/**` or `server.js`
 - `shared/**`
   - neutral runtime/domain utilities and shared assets
   - must not depend on `src/**`, `server/**`, `server.js`, or `usage-normalizer.js`
 - `usage-normalizer.js`
   - standalone normalization logic
   - must stay independent from frontend and server modules
+
+## Server Composition
+
+The server runtime is intentionally split so `server.js` stays an orchestration layer instead of a catch-all implementation module.
+
+- `server/data-runtime.js`
+  - owns app-path resolution, persisted usage/settings IO, migration, normalization, and file-mutation locks
+- `server/background-runtime.js`
+  - owns background instance registry, start/stop flows, and registry locking
+- `server/auto-import-runtime.js`
+  - owns toktrack runner resolution, subprocess execution, version lookup, and auto-import execution
+- `server/http-router.js`
+  - owns API routing, SSE wiring, and static asset dispatch with injected runtime dependencies
+- `server/http-utils.js`, `server/runtime.js`, `server/report/**`
+  - shared support modules used by the composed runtimes
 
 ## Frontend Layer Model
 
@@ -83,5 +102,6 @@ Both `ci.yml` and `release.yml` run `check:deps` and `test:architecture` explici
   - use `dependency-cruiser` for whole-repo dependency graph boundaries
   - use `eslint-plugin-boundaries` for frontend import discipline
   - use `archunit` for expressive architecture assertions and naming rules
+- Keep `server.js` small. New server behavior should usually land in `server/**` and be wired into the entrypoint via dependency injection.
 - Do not add broad allowlists just to get green. Fix the code or scope the rule explicitly.
 - If a feature helper becomes cross-feature, move it out of `src/components/features/**` before adding more exceptions.

@@ -60,6 +60,52 @@ module.exports = {
       },
     },
     {
+      name: 'no-server-module-to-entrypoint',
+      severity: 'error',
+      comment: 'Server implementation modules must stay independent from the bootstrap entrypoint.',
+      from: {
+        path: '^server/',
+      },
+      to: {
+        path: '^server\\.js$',
+      },
+    },
+    {
+      name: 'no-server-runtime-cross-imports',
+      severity: 'error',
+      comment:
+        'Data, background, and auto-import runtimes must stay decoupled and be composed through dependency injection.',
+      from: {
+        path: '^server/(?:data|background|auto-import)-runtime\\.js$',
+      },
+      to: {
+        path: '^server/(?:data|background|auto-import)-runtime\\.js$',
+      },
+    },
+    {
+      name: 'no-router-to-server-runtimes',
+      severity: 'error',
+      comment:
+        'The HTTP router should depend on injected runtime APIs, not runtime implementations.',
+      from: {
+        path: '^server/http-router\\.js$',
+      },
+      to: {
+        path: '^server/(?:data|background|auto-import)-runtime\\.js$',
+      },
+    },
+    {
+      name: 'no-server-runtimes-to-router',
+      severity: 'error',
+      comment: 'Server runtime modules must not depend back on the HTTP router.',
+      from: {
+        path: '^server/(?:data|background|auto-import)-runtime\\.js$',
+      },
+      to: {
+        path: '^server/http-router\\.js$',
+      },
+    },
+    {
       name: 'no-shared-to-runtime',
       severity: 'error',
       comment: 'Shared runtime modules must stay neutral and not depend on app-specific layers.',

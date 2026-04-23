@@ -132,6 +132,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const overlayRef = useRef<HTMLDivElement | null>(null)
   const dayButtonRefs = useRef(new Map<string, HTMLButtonElement>())
+  const scheduledFocusRef = useRef<{ kind: 'raf' | 'timeout'; id: number } | null>(null)
   const [overlayStyle, setOverlayStyle] = useState<{ top: number; left: number; width: number }>({
     top: 0,
     left: 0,
@@ -165,13 +166,45 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   )
   const today = localToday()
   const [focusedDate, setFocusedDate] = useState<string | null>(value ?? today)
-  const scheduleFocus = useCallback((callback: () => void) => {
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(callback)
-      return
+  const clearScheduledFocus = useCallback(() => {
+    const scheduledFocus = scheduledFocusRef.current
+    if (!scheduledFocus) return
+
+    if (
+      scheduledFocus.kind === 'raf' &&
+      typeof window !== 'undefined' &&
+      typeof window.cancelAnimationFrame === 'function'
+    ) {
+      window.cancelAnimationFrame(scheduledFocus.id)
+    } else {
+      clearTimeout(scheduledFocus.id)
     }
-    setTimeout(callback, 0)
+
+    scheduledFocusRef.current = null
   }, [])
+  const scheduleFocus = useCallback(
+    (callback: () => void) => {
+      clearScheduledFocus()
+
+      if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        const id = window.requestAnimationFrame(() => {
+          scheduledFocusRef.current = null
+          callback()
+        })
+        scheduledFocusRef.current = { kind: 'raf', id }
+        return
+      }
+
+      const id = (typeof window !== 'undefined' ? window.setTimeout : setTimeout)(() => {
+        scheduledFocusRef.current = null
+        callback()
+      }, 0)
+      scheduledFocusRef.current = { kind: 'timeout', id }
+    },
+    [clearScheduledFocus],
+  )
+
+  useEffect(() => clearScheduledFocus, [clearScheduledFocus])
 
   const clampToMonth = useCallback((date: Date) => {
     const year = date.getFullYear()

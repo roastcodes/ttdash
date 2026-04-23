@@ -1,0 +1,46 @@
+# Server Review
+
+## Kurzfazit
+
+Der Server ist funktional erstaunlich robust fuer eine lokale Single-Binary-Node-Runtime. Seine groesste Staerke ist derselbe Punkt wie seine groesste Schwachstelle: fast alles ist an einer Stelle sichtbar. Das hilft beim Verstehen kleiner Projekte, skaliert aber schlecht fuer Wartung und Risikoisolation.
+
+## Was bereits gut ist
+
+- Host-, Origin- und Payload-Grenzen sind aktiv und getestet
+- Persistenz nutzt atomische Schreibpfade und Cross-Process-Locks
+- Background-Instanzen, Logfiles und Dateirechte sind nicht nur "best effort", sondern explizit mitgedacht
+- Reporting, Auto-Import und Background-Betrieb haben klare Fehler- und Timeout-Strategien
+
+## Findings
+
+### H-01 - Zu viele Server-Subsysteme leben im Entrypoint
+
+**Referenzen:** `server.js` insgesamt, besonders `322-542`, `655-940`, `1665-1765`, `1784-2451`, `2482-2975`
+
+Das Entrypoint-Modul traegt Persistenz, File Locks, Background-Registry, CLI, Auto-Import, Runner-Diagnostik, HTTP-Router, Static Serving und Shutdown in einem Kontext. Diese Kopplung verlangsamt Reviews und macht lokale Refactors teuer.
+
+**Empfehlung:** innere Runtime-Helfer in eigene Module verschieben und `server.js` auf Komposition reduzieren.
+
+### M-01 - Der produktive Entrypoint exportiert einen breiten `__test__`-API-Schatten
+
+**Referenzen:** `server.js:2935-2962`
+
+Fuer Tests werden viele interne Helfer direkt aus `server.js` exportiert. Das ist pragmatisch, macht das Produktionsmodul aber implizit zu einer halb-oeffentlichen Utility-Sammlung. Mit wachsender Codebasis entsteht daraus schnell eine "nicht offiziell oeffentliche, aber faktisch stabile" API.
+
+**Empfehlung:** Testziele aus `server.js` in importierbare Runtime-Module verschieben und dort direkt testen.
+
+### M-02 - Globale Runtime-Flags und Caches erschweren lokale Isolation
+
+**Referenzen:** `server.js:93-101`, `1759-1774`, `2208-2247`, `2271-2451`
+
+Zustaende wie `startupAutoLoadCompleted`, `runtimePort`, `runtimeUrl`, `autoImportRunning`, `autoImportStreamRunning`, `latestToktrackVersionCache` und `latestToktrackVersionLookupPromise` sind zentral und mutable. Fuer die aktuelle App ist das noch beherrschbar, aber es koppelt Nebenwirkungen ueber mehrere Funktionsbereiche.
+
+**Empfehlung:** zumindest die Toktrack- und Auto-Import-Laufzeit in dedizierte Service-Objekte kapseln.
+
+### N-01 - Die Serverbasis ist strukturell staerker als es ihre Dateiform vermuten laesst
+
+**Referenzen:** `server/runtime.js`, `server/http-utils.js`, `tests/integration/server-api-guards.test.ts`, `tests/integration/server-background.test.ts`
+
+Positiv auffaellig ist, dass wesentliche Sicherheits- und Runtime-Helfer bereits aus `server.js` herausgezogen wurden. Diese Richtung ist richtig und sollte konsequent weitergefuehrt werden.
+
+**Empfehlung:** `server/runtime.js` und `server/http-utils.js` als Muster fuer weitere Extraktionen verwenden.
