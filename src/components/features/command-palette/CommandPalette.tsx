@@ -27,45 +27,10 @@ import {
   Languages,
 } from 'lucide-react'
 import { DASHBOARD_SECTION_DEFINITION_MAP } from '@/lib/dashboard-preferences'
-import type {
-  AppLanguage,
-  DashboardSectionId,
-  DashboardSectionOrder,
-  DashboardSectionVisibility,
-  ViewMode,
-} from '@/types'
+import type { DashboardCommandPaletteViewModel } from '@/lib/dashboard-view-model'
+import type { DashboardSectionId } from '@/types'
 
-interface CommandPaletteProps {
-  isDark: boolean
-  availableProviders: string[]
-  selectedProviders: string[]
-  availableModels: string[]
-  selectedModels: string[]
-  hasTodaySection: boolean
-  hasMonthSection: boolean
-  hasRequestSection: boolean
-  sectionVisibility: DashboardSectionVisibility
-  sectionOrder: DashboardSectionOrder
-  reportGenerating: boolean
-  onToggleTheme: () => void
-  onExportCSV: () => void
-  onGenerateReport: () => void
-  onDelete: () => void
-  onUpload: () => void
-  onAutoImport: () => void
-  onOpenSettings: () => void
-  onScrollTo: (section: string) => void
-  onViewModeChange: (mode: ViewMode) => void
-  onApplyPreset: (preset: string) => void
-  onToggleProvider: (provider: string) => void
-  onToggleModel: (model: string) => void
-  onClearProviders: () => void
-  onClearModels: () => void
-  onClearDateRange: () => void
-  onResetAll: () => void
-  onHelp: () => void
-  onLanguageChange: (language: AppLanguage) => void
-}
+type CommandPaletteProps = DashboardCommandPaletteViewModel
 
 interface CommandItem {
   id: string

@@ -1,5 +1,7 @@
 import { vi } from 'vitest'
+import type { DashboardControllerViewModel } from '@/hooks/use-dashboard-controller'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
+import type { DashboardSectionsViewModel } from '@/lib/dashboard-view-model'
 import type { AppSettings, UsageData } from '@/types'
 
 export function createUsageData(overrides: Partial<UsageData> = {}): UsageData {
@@ -103,5 +105,265 @@ export function createComputedState(overrides: Record<string, unknown> = {}) {
     modelPieData: [],
     tokenPieData: [],
     ...overrides,
+  }
+}
+
+export function createDashboardSectionsViewModel(
+  overrides: Partial<DashboardSectionsViewModel> = {},
+): DashboardSectionsViewModel {
+  const base: DashboardSectionsViewModel = {
+    layout: {
+      sectionOrder: [...DEFAULT_APP_SETTINGS.sectionOrder],
+      sectionVisibility: { ...DEFAULT_APP_SETTINGS.sectionVisibility },
+    },
+    overview: {
+      metrics: createComputedState().metrics,
+      viewMode: 'daily',
+      totalCalendarDays: 0,
+      filteredData: [],
+      filteredDailyData: [],
+      todayData: null,
+      hasCurrentMonthData: false,
+      isDark: false,
+    },
+    forecast: {
+      filteredData: [],
+      forecastState: {
+        costForecast: null,
+        providerForecast: null,
+      },
+      metrics: createComputedState().metrics,
+      viewMode: 'daily',
+    },
+    limits: {
+      filteredDailyData: [],
+      visibleLimitProviders: [],
+      providerLimits: {},
+      selectedMonth: null,
+    },
+    costAnalysis: {
+      filteredData: [],
+      forecastState: {
+        costForecast: null,
+        providerForecast: null,
+      },
+      allModels: [],
+      costChartData: [],
+      modelPieData: [],
+      modelCostChartData: [],
+      weekdayData: [],
+    },
+    tokenAnalysis: {
+      tokenChartData: [],
+      tokenPieData: [],
+    },
+    requestAnalysis: {
+      metrics: createComputedState().metrics,
+      requestChartData: [],
+      filteredData: [],
+      filteredDailyData: [],
+      viewMode: 'daily',
+    },
+    advancedAnalysis: {
+      metrics: createComputedState().metrics,
+      filteredData: [],
+      viewMode: 'daily',
+    },
+    comparisons: {
+      metrics: createComputedState().metrics,
+      filteredData: [],
+      comparisonData: [],
+      viewMode: 'daily',
+    },
+    tables: {
+      metrics: createComputedState().metrics,
+      filteredData: [],
+      modelCosts: new Map(),
+      providerMetrics: new Map(),
+      viewMode: 'daily',
+    },
+    interactions: {
+      onDrillDownDateChange: vi.fn(),
+    },
+  }
+
+  return {
+    ...base,
+    ...overrides,
+    layout: { ...base.layout, ...overrides.layout },
+    overview: { ...base.overview, ...overrides.overview },
+    forecast: { ...base.forecast, ...overrides.forecast },
+    limits: { ...base.limits, ...overrides.limits },
+    costAnalysis: { ...base.costAnalysis, ...overrides.costAnalysis },
+    tokenAnalysis: { ...base.tokenAnalysis, ...overrides.tokenAnalysis },
+    requestAnalysis: { ...base.requestAnalysis, ...overrides.requestAnalysis },
+    advancedAnalysis: { ...base.advancedAnalysis, ...overrides.advancedAnalysis },
+    comparisons: { ...base.comparisons, ...overrides.comparisons },
+    tables: { ...base.tables, ...overrides.tables },
+    interactions: { ...base.interactions, ...overrides.interactions },
+  }
+}
+
+export function createDashboardControllerViewModel(
+  overrides: Partial<DashboardControllerViewModel> = {},
+): DashboardControllerViewModel {
+  const sections = createDashboardSectionsViewModel(overrides.sections)
+  const base: DashboardControllerViewModel = {
+    fileInputs: {
+      usageUploadRef: { current: null },
+      settingsImportRef: { current: null },
+      dataImportRef: { current: null },
+      onUsageUploadChange: vi.fn(),
+      onSettingsImportChange: vi.fn(),
+      onDataImportChange: vi.fn(),
+    },
+    shell: {
+      isLoading: false,
+      settingsLoading: false,
+      hasData: true,
+      isDark: false,
+      animationKey: 1,
+      modelPaletteModelNames: ['Claude Sonnet 4.5', 'GPT-5.4'],
+    },
+    loadError: null,
+    emptyState: {
+      onUpload: vi.fn(),
+      onAutoImport: vi.fn(),
+      onOpenSettings: vi.fn(),
+    },
+    header: {
+      dateRange: null,
+      isDark: false,
+      currentLanguage: 'en',
+      streak: 0,
+      dataSource: null,
+      startupAutoLoad: null,
+      onHelpOpenChange: vi.fn(),
+      onLanguageChange: vi.fn(),
+      onToggleTheme: vi.fn(),
+      onExportCSV: vi.fn(),
+      onDelete: vi.fn(),
+      onUpload: vi.fn(),
+      onAutoImport: vi.fn(),
+    },
+    report: {
+      generating: false,
+      onGenerate: vi.fn(),
+    },
+    filterBar: {
+      ...createFilterState({
+        selectedProviders: [],
+        selectedModels: ['GPT-5.4'],
+        availableProviders: [],
+        availableModels: ['Claude Sonnet 4.5'],
+        availableMonths: [],
+        selectedMonth: null,
+        dateRange: null,
+        startDate: undefined,
+        endDate: undefined,
+      }),
+      allModels: ['Claude Sonnet 4.5', 'GPT-5.4'],
+      onApplyPreset: vi.fn(),
+    },
+    sections,
+    settingsModal: {
+      open: false,
+      onOpenChange: vi.fn(),
+      language: 'en',
+      reducedMotionPreference: DEFAULT_APP_SETTINGS.reducedMotionPreference,
+      limitProviders: [],
+      filterProviders: [],
+      models: [],
+      limits: {},
+      defaultFilters: { ...DEFAULT_APP_SETTINGS.defaultFilters },
+      sectionVisibility: { ...DEFAULT_APP_SETTINGS.sectionVisibility },
+      sectionOrder: [...DEFAULT_APP_SETTINGS.sectionOrder],
+      lastLoadedAt: null,
+      lastLoadSource: null,
+      cliAutoLoadActive: false,
+      hasData: true,
+      onSaveSettings: vi.fn(),
+      onExportSettings: vi.fn(),
+      onImportSettings: vi.fn(),
+      onExportData: vi.fn(),
+      onImportData: vi.fn(),
+      settingsBusy: false,
+      dataBusy: false,
+    },
+    dialogs: {
+      helpPanel: {
+        open: false,
+        onOpenChange: vi.fn(),
+      },
+      autoImport: {
+        open: false,
+        onOpenChange: vi.fn(),
+        onSuccess: vi.fn(),
+      },
+      drillDown: {
+        day: null,
+        contextData: [],
+        open: false,
+        hasPrevious: false,
+        hasNext: false,
+        currentIndex: 0,
+        totalCount: 0,
+        onPrevious: vi.fn(),
+        onNext: vi.fn(),
+        onClose: vi.fn(),
+      },
+    },
+    commandPalette: {
+      isDark: false,
+      availableProviders: [],
+      selectedProviders: [],
+      availableModels: ['Claude Sonnet 4.5'],
+      selectedModels: ['GPT-5.4'],
+      hasTodaySection: false,
+      hasMonthSection: false,
+      hasRequestSection: false,
+      sectionVisibility: { ...DEFAULT_APP_SETTINGS.sectionVisibility },
+      sectionOrder: [...DEFAULT_APP_SETTINGS.sectionOrder],
+      reportGenerating: false,
+      onToggleTheme: vi.fn(),
+      onExportCSV: vi.fn(),
+      onGenerateReport: vi.fn(),
+      onDelete: vi.fn(),
+      onUpload: vi.fn(),
+      onAutoImport: vi.fn(),
+      onOpenSettings: vi.fn(),
+      onScrollTo: vi.fn(),
+      onViewModeChange: vi.fn(),
+      onApplyPreset: vi.fn(),
+      onToggleProvider: vi.fn(),
+      onToggleModel: vi.fn(),
+      onClearProviders: vi.fn(),
+      onClearModels: vi.fn(),
+      onClearDateRange: vi.fn(),
+      onResetAll: vi.fn(),
+      onHelp: vi.fn(),
+      onLanguageChange: vi.fn(),
+    },
+  }
+
+  return {
+    ...base,
+    ...overrides,
+    fileInputs: { ...base.fileInputs, ...overrides.fileInputs },
+    shell: { ...base.shell, ...overrides.shell },
+    emptyState: { ...base.emptyState, ...overrides.emptyState },
+    header: { ...base.header, ...overrides.header },
+    report: { ...base.report, ...overrides.report },
+    filterBar: { ...base.filterBar, ...overrides.filterBar },
+    sections,
+    settingsModal: { ...base.settingsModal, ...overrides.settingsModal },
+    dialogs: {
+      ...base.dialogs,
+      ...overrides.dialogs,
+      helpPanel: { ...base.dialogs.helpPanel, ...overrides.dialogs?.helpPanel },
+      autoImport: { ...base.dialogs.autoImport, ...overrides.dialogs?.autoImport },
+      drillDown: { ...base.dialogs.drillDown, ...overrides.dialogs?.drillDown },
+    },
+    commandPalette: { ...base.commandPalette, ...overrides.commandPalette },
   }
 }

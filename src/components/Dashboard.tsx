@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo } from 'react'
+import { lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SlidersHorizontal } from 'lucide-react'
 import { Header } from './layout/Header'
@@ -56,257 +56,72 @@ export function Dashboard({
     initialSettingsFetchedAt,
     initialSettingsError,
   )
-  const {
-    fileInputRef,
-    settingsImportInputRef,
-    dataImportInputRef,
-    settings,
-    providerLimits,
-    isLoading,
-    settingsLoading,
-    isSaving,
-    isDark,
-    hasData,
-    helpOpen,
-    setHelpOpen,
-    autoImportOpen,
-    setAutoImportOpen,
-    settingsOpen,
-    setSettingsOpen,
-    drillDownDate,
-    setDrillDownDate,
-    drillDownDay,
-    reportGenerating,
-    settingsTransferBusy,
-    dataTransferBusy,
-    headerDataSource,
-    startupAutoLoadBadge,
-    animationSeed,
-    allProviders,
-    allModelsFromData,
-    settingsProviderOptions,
-    settingsModelOptions,
-    viewMode,
-    setViewMode,
-    selectedMonth,
-    setSelectedMonth,
-    selectedProviders,
-    toggleProvider,
-    clearProviders,
-    selectedModels,
-    toggleModel,
-    clearModels,
-    startDate,
-    setStartDate,
-    endDate,
-    setEndDate,
-    resetAll,
-    applyPreset,
-    forecastState,
-    filteredDailyData,
-    filteredData,
-    availableMonths,
-    availableProviders,
-    availableModels,
-    dateRange,
-    metrics,
-    modelCosts,
-    providerMetrics,
-    costChartData,
-    modelCostChartData,
-    tokenChartData,
-    requestChartData,
-    weekdayData,
-    allModels,
-    modelPieData,
-    tokenPieData,
-    comparisonData,
-    totalCalendarDays,
-    todayData,
-    hasCurrentMonthData,
-    visibleLimitProviders,
-    sectionVisibility,
-    sectionOrder,
-    streak,
-    fatalLoadState,
-    handleUpload,
-    handleOpenSettings,
-    handleRetryLoad,
-    handleResetSettings,
-    handleToggleTheme,
-    handleSaveSettings,
-    handleLanguageChange,
-    handleFileChange,
-    handleDelete,
-    handleExportCSV,
-    handleGenerateReport,
-    handleAutoImport,
-    handleAutoImportSuccess,
-    handleExportSettings,
-    handleExportData,
-    handleImportSettings,
-    handleImportData,
-    handleSettingsImportChange,
-    handleDataImportChange,
-    handleScrollTo,
-  } = controller
 
   const fileInputs = (
     <>
       <input
-        ref={fileInputRef}
+        ref={controller.fileInputs.usageUploadRef}
         type="file"
         accept=".json"
         className="hidden"
-        onChange={handleFileChange}
+        onChange={controller.fileInputs.onUsageUploadChange}
         data-testid="usage-upload-input"
       />
       <input
-        ref={settingsImportInputRef}
+        ref={controller.fileInputs.settingsImportRef}
         type="file"
         accept=".json,application/json"
         className="hidden"
-        onChange={handleSettingsImportChange}
+        onChange={controller.fileInputs.onSettingsImportChange}
         data-testid="settings-import-input"
       />
       <input
-        ref={dataImportInputRef}
+        ref={controller.fileInputs.dataImportRef}
         type="file"
         accept=".json,application/json"
         className="hidden"
-        onChange={handleDataImportChange}
+        onChange={controller.fileInputs.onDataImportChange}
         data-testid="data-import-input"
       />
     </>
   )
 
-  const drillDownSequence = useMemo(
-    () => [...filteredData].sort((a, b) => a.date.localeCompare(b.date)),
-    [filteredData],
-  )
-
-  const drillDownIndex = useMemo(
-    () =>
-      drillDownDate !== null
-        ? drillDownSequence.findIndex((entry) => entry.date === drillDownDate)
-        : -1,
-    [drillDownDate, drillDownSequence],
-  )
-
-  const hasPreviousDrillDown = drillDownIndex > 0
-  const hasNextDrillDown = drillDownIndex >= 0 && drillDownIndex < drillDownSequence.length - 1
-
-  const handleDrillDownPrevious = useCallback(() => {
-    if (!hasPreviousDrillDown) return
-    setDrillDownDate(drillDownSequence[drillDownIndex - 1]?.date ?? null)
-  }, [drillDownIndex, drillDownSequence, hasPreviousDrillDown, setDrillDownDate])
-
-  const handleDrillDownNext = useCallback(() => {
-    if (!hasNextDrillDown) return
-    setDrillDownDate(drillDownSequence[drillDownIndex + 1]?.date ?? null)
-  }, [drillDownIndex, drillDownSequence, hasNextDrillDown, setDrillDownDate])
-
-  const handleClearDateRange = useCallback(() => {
-    setStartDate(undefined)
-    setEndDate(undefined)
-  }, [setStartDate, setEndDate])
-
-  const filterBarModels = useMemo(
-    () => Array.from(new Set([...availableModels, ...selectedModels])),
-    [availableModels, selectedModels],
-  )
-
   const autoImportDialog = (
     <Suspense fallback={null}>
-      {autoImportOpen && (
-        <AutoImportModal
-          open={autoImportOpen}
-          onOpenChange={setAutoImportOpen}
-          onSuccess={handleAutoImportSuccess}
-        />
-      )}
+      {controller.dialogs.autoImport.open && <AutoImportModal {...controller.dialogs.autoImport} />}
     </Suspense>
   )
 
   const settingsDialog = (
     <Suspense fallback={null}>
-      {settingsOpen && (
-        <SettingsModal
-          open={settingsOpen}
-          onOpenChange={setSettingsOpen}
-          language={settings.language}
-          reducedMotionPreference={settings.reducedMotionPreference}
-          limitProviders={allProviders}
-          filterProviders={settingsProviderOptions}
-          models={settingsModelOptions}
-          limits={settings.providerLimits}
-          defaultFilters={settings.defaultFilters}
-          sectionVisibility={settings.sectionVisibility}
-          sectionOrder={settings.sectionOrder}
-          lastLoadedAt={settings.lastLoadedAt}
-          lastLoadSource={settings.lastLoadSource}
-          cliAutoLoadActive={settings.cliAutoLoadActive}
-          hasData={hasData}
-          onSaveSettings={handleSaveSettings}
-          onExportSettings={handleExportSettings}
-          onImportSettings={handleImportSettings}
-          onExportData={handleExportData}
-          onImportData={handleImportData}
-          settingsBusy={settingsTransferBusy || isSaving}
-          dataBusy={dataTransferBusy}
-        />
-      )}
+      {controller.settingsModal.open && <SettingsModal {...controller.settingsModal} />}
     </Suspense>
   )
 
   const helpDialog = (
     <Suspense fallback={null}>
-      {helpOpen && <HelpPanel open={helpOpen} onOpenChange={setHelpOpen} />}
+      {controller.dialogs.helpPanel.open && <HelpPanel {...controller.dialogs.helpPanel} />}
     </Suspense>
   )
 
-  if (!fatalLoadState && (isLoading || settingsLoading)) {
+  if (!controller.loadError && (controller.shell.isLoading || controller.shell.settingsLoading)) {
     return <DashboardSkeleton />
   }
 
-  if (fatalLoadState) {
-    const actions = [
-      {
-        label: t('loadError.retry'),
-        onClick: () => void handleRetryLoad(),
-        variant: 'default' as const,
-      },
-      ...(fatalLoadState.canResetSettings
-        ? [{ label: t('loadError.resetSettings'), onClick: () => void handleResetSettings() }]
-        : []),
-      ...(fatalLoadState.canResetUsage
-        ? [{ label: t('loadError.deleteData'), onClick: () => void handleDelete() }]
-        : []),
-    ]
-
+  if (controller.loadError) {
     return (
       <>
-        <LoadErrorState
-          title={fatalLoadState.title}
-          description={fatalLoadState.description}
-          details={fatalLoadState.details}
-          detailLabel={t('loadError.details')}
-          actions={actions}
-        />
+        <LoadErrorState {...controller.loadError} />
         {fileInputs}
         {helpDialog}
       </>
     )
   }
 
-  if (!hasData) {
+  if (!controller.shell.hasData) {
     return (
       <>
-        <EmptyState
-          onUpload={handleUpload}
-          onAutoImport={handleAutoImport}
-          onOpenSettings={handleOpenSettings}
-        />
+        <EmptyState {...controller.emptyState} />
         {fileInputs}
         {autoImportDialog}
         {settingsDialog}
@@ -316,7 +131,7 @@ export function Dashboard({
   }
 
   return (
-    <ModelColorPaletteProvider modelNames={allModelsFromData}>
+    <ModelColorPaletteProvider modelNames={controller.shell.modelPaletteModelNames}>
       <div className="mx-auto min-h-screen max-w-7xl px-4 pb-8">
         {fileInputs}
         {autoImportDialog}
@@ -324,24 +139,12 @@ export function Dashboard({
         {helpDialog}
 
         <Header
-          dateRange={dateRange}
-          isDark={isDark}
-          currentLanguage={settings.language}
-          streak={streak}
-          dataSource={headerDataSource}
-          startupAutoLoad={startupAutoLoadBadge}
-          onHelpOpenChange={setHelpOpen}
-          onLanguageChange={handleLanguageChange}
-          onToggleTheme={handleToggleTheme}
-          onExportCSV={handleExportCSV}
-          onDelete={handleDelete}
-          onUpload={handleUpload}
-          onAutoImport={handleAutoImport}
+          {...controller.header}
           settingsButton={
             <Button
               variant="outline"
               size="sm"
-              onClick={handleOpenSettings}
+              onClick={controller.emptyState.onOpenSettings}
               title={t('header.settings')}
               className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
             >
@@ -350,112 +153,27 @@ export function Dashboard({
             </Button>
           }
           pdfButton={
-            <PDFReportButton generating={reportGenerating} onGenerate={handleGenerateReport} />
+            <PDFReportButton
+              generating={controller.report.generating}
+              onGenerate={controller.report.onGenerate}
+            />
           }
         />
 
         <div id="filters">
-          <FilterBar
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
-            availableMonths={availableMonths}
-            availableProviders={availableProviders}
-            selectedProviders={selectedProviders}
-            onToggleProvider={toggleProvider}
-            onClearProviders={clearProviders}
-            allModels={filterBarModels}
-            selectedModels={selectedModels}
-            onToggleModel={toggleModel}
-            onClearModels={clearModels}
-            {...(startDate ? { startDate } : {})}
-            {...(endDate ? { endDate } : {})}
-            onStartDateChange={setStartDate}
-            onEndDateChange={setEndDate}
-            onApplyPreset={applyPreset}
-            onResetAll={resetAll}
-          />
+          <FilterBar {...controller.filterBar} />
         </div>
 
-        <div key={animationSeed} className="mt-4 space-y-4">
-          <DashboardSections
-            sectionOrder={sectionOrder}
-            sectionVisibility={sectionVisibility}
-            metrics={metrics}
-            viewMode={viewMode}
-            totalCalendarDays={totalCalendarDays}
-            forecastState={forecastState}
-            filteredData={filteredData}
-            filteredDailyData={filteredDailyData}
-            todayData={todayData}
-            hasCurrentMonthData={hasCurrentMonthData}
-            visibleLimitProviders={visibleLimitProviders}
-            providerLimits={providerLimits}
-            selectedMonth={selectedMonth}
-            allModels={allModels}
-            costChartData={costChartData}
-            modelPieData={modelPieData}
-            modelCostChartData={modelCostChartData}
-            weekdayData={weekdayData}
-            tokenChartData={tokenChartData}
-            tokenPieData={tokenPieData}
-            requestChartData={requestChartData}
-            comparisonData={comparisonData}
-            modelCosts={modelCosts}
-            providerMetrics={providerMetrics}
-            isDark={isDark}
-            onDrillDownDateChange={setDrillDownDate}
-          />
+        <div key={controller.shell.animationKey} className="mt-4 space-y-4">
+          <DashboardSections viewModel={controller.sections} />
         </div>
 
         <Suspense fallback={null}>
-          {drillDownDate !== null && (
-            <DrillDownModal
-              day={drillDownDay}
-              contextData={filteredData}
-              open={true}
-              hasPrevious={hasPreviousDrillDown}
-              hasNext={hasNextDrillDown}
-              currentIndex={drillDownIndex >= 0 ? drillDownIndex + 1 : 0}
-              totalCount={drillDownSequence.length}
-              onPrevious={handleDrillDownPrevious}
-              onNext={handleDrillDownNext}
-              onClose={() => setDrillDownDate(null)}
-            />
+          {controller.dialogs.drillDown.open && (
+            <DrillDownModal {...controller.dialogs.drillDown} />
           )}
         </Suspense>
-        <CommandPalette
-          isDark={isDark}
-          availableProviders={availableProviders}
-          selectedProviders={selectedProviders}
-          availableModels={availableModels}
-          selectedModels={selectedModels}
-          hasTodaySection={Boolean(todayData)}
-          hasMonthSection={hasCurrentMonthData}
-          hasRequestSection={metrics.hasRequestData}
-          sectionVisibility={sectionVisibility}
-          sectionOrder={sectionOrder}
-          reportGenerating={reportGenerating}
-          onToggleTheme={handleToggleTheme}
-          onExportCSV={handleExportCSV}
-          onGenerateReport={handleGenerateReport}
-          onDelete={handleDelete}
-          onUpload={handleUpload}
-          onAutoImport={handleAutoImport}
-          onOpenSettings={handleOpenSettings}
-          onScrollTo={handleScrollTo}
-          onViewModeChange={setViewMode}
-          onApplyPreset={applyPreset}
-          onToggleProvider={toggleProvider}
-          onToggleModel={toggleModel}
-          onClearProviders={clearProviders}
-          onClearModels={clearModels}
-          onClearDateRange={handleClearDateRange}
-          onResetAll={resetAll}
-          onHelp={() => setHelpOpen(true)}
-          onLanguageChange={handleLanguageChange}
-        />
+        <CommandPalette {...controller.commandPalette} />
       </div>
     </ModelColorPaletteProvider>
   )

@@ -18,33 +18,14 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/cn'
 import { getProviderBadgeClasses, getProviderBadgeStyle } from '@/lib/model-utils'
+import type { DashboardFilterBarViewModel } from '@/lib/dashboard-view-model'
 import { useModelColorHelpers } from '@/lib/model-color-context'
 import { formatDate, formatMonthYear, localToday, toLocalDateStr } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
 import { CalendarDays, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { DashboardDatePreset, ViewMode } from '@/types'
 
-interface FilterBarProps {
-  viewMode: ViewMode
-  onViewModeChange: (mode: ViewMode) => void
-  selectedMonth: string | null
-  onMonthChange: (month: string | null) => void
-  availableMonths: string[]
-  availableProviders: string[]
-  selectedProviders: string[]
-  onToggleProvider: (provider: string) => void
-  onClearProviders: () => void
-  allModels: string[]
-  selectedModels: string[]
-  onToggleModel: (model: string) => void
-  onClearModels: () => void
-  startDate?: string
-  endDate?: string
-  onStartDateChange: (date: string | undefined) => void
-  onEndDateChange: (date: string | undefined) => void
-  onApplyPreset: (preset: string) => void
-  onResetAll: () => void
-}
+type FilterBarProps = DashboardFilterBarViewModel
 
 function parseLocalDate(value?: string) {
   if (!value) return null

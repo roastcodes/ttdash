@@ -60,6 +60,19 @@ module.exports = {
       },
     },
     {
+      name: 'no-dashboard-controller-fanout',
+      severity: 'error',
+      comment:
+        'The dashboard controller should stay owned by the dashboard composition root instead of being consumed across component subtrees.',
+      from: {
+        path: '^src/components/',
+        pathNot: '^src/components/Dashboard\\.tsx$',
+      },
+      to: {
+        path: '^src/hooks/use-dashboard-controller\\.ts$',
+      },
+    },
+    {
       name: 'no-server-module-to-entrypoint',
       severity: 'error',
       comment: 'Server implementation modules must stay independent from the bootstrap entrypoint.',

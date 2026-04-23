@@ -13,40 +13,18 @@ import {
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { NPM_PACKAGE_URL, VERSION } from '@/lib/constants'
-import type { AppLanguage } from '@/types'
+import type {
+  DashboardDataSource,
+  DashboardHeaderViewModel,
+  DashboardStartupAutoLoadBadge,
+} from '@/lib/dashboard-view-model'
 
-interface DataSource {
-  type: 'stored' | 'auto-import' | 'file'
-  label?: string
-  time?: string
-  title?: string
-}
-
-interface StartupAutoLoad {
-  active: boolean
-  time?: string
-  title?: string
-}
-
-interface HeaderProps {
-  dateRange: { start: string; end: string } | null
-  isDark: boolean
-  currentLanguage: AppLanguage
-  streak?: number
-  dataSource?: DataSource | null
-  startupAutoLoad?: StartupAutoLoad | null
-  onHelpOpenChange: (open: boolean) => void
-  onLanguageChange: (language: AppLanguage) => void
-  onToggleTheme: () => void
-  onExportCSV: () => void
-  onDelete: () => void
-  onUpload: () => void
-  onAutoImport: () => void
+interface HeaderProps extends DashboardHeaderViewModel {
   settingsButton?: React.ReactNode
   pdfButton?: React.ReactNode
 }
 
-function DataSourceBadge({ source }: { source: DataSource }) {
+function DataSourceBadge({ source }: { source: DashboardDataSource }) {
   const { t } = useTranslation()
 
   if (source.type === 'auto-import') {
@@ -87,7 +65,7 @@ function DataSourceBadge({ source }: { source: DataSource }) {
   )
 }
 
-function StartupAutoLoadBadge({ badge }: { badge: StartupAutoLoad }) {
+function StartupAutoLoadBadge({ badge }: { badge: DashboardStartupAutoLoadBadge }) {
   const { t } = useTranslation()
 
   if (!badge.active) return null

@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type RefObject,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUsageData, useUploadData, useDeleteData } from '@/hooks/use-usage-data'
@@ -25,6 +33,19 @@ import {
 import { getCurrentLocale } from '@/lib/i18n'
 import { getCurrentMonthForecastData } from '@/lib/data-transforms'
 import { computeDashboardForecastState } from '@/lib/calculations'
+import type {
+  DashboardAutoImportDialogViewModel,
+  DashboardCommandPaletteViewModel,
+  DashboardDialogViewModel,
+  DashboardDrillDownViewModel,
+  DashboardEmptyStateViewModel,
+  DashboardFilterBarViewModel,
+  DashboardHeaderViewModel,
+  DashboardLoadErrorViewModel,
+  DashboardReportViewModel,
+  DashboardSectionsViewModel,
+  DashboardSettingsModalViewModel,
+} from '@/lib/dashboard-view-model'
 import { getUniqueModels, getUniqueProviders } from '@/lib/model-utils'
 import type {
   AppLanguage,
@@ -54,6 +75,48 @@ export type JsonDownloadRecord = {
 export type DashboardTestHooks = {
   onJsonDownload?: (record: JsonDownloadRecord) => void
   openSettings?: () => void
+}
+
+/** Describes the hidden file inputs that back upload and import actions. */
+export interface DashboardFileInputsViewModel {
+  usageUploadRef: RefObject<HTMLInputElement | null>
+  settingsImportRef: RefObject<HTMLInputElement | null>
+  dataImportRef: RefObject<HTMLInputElement | null>
+  onUsageUploadChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void> | void
+  onSettingsImportChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void> | void
+  onDataImportChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void> | void
+}
+
+/** Describes the shell state that wraps the dashboard composition. */
+export interface DashboardShellViewModel {
+  isLoading: boolean
+  settingsLoading: boolean
+  hasData: boolean
+  isDark: boolean
+  animationKey: number
+  modelPaletteModelNames: string[]
+}
+
+/** Groups the dashboard-owned modal and panel states. */
+export interface DashboardDialogsViewModel {
+  helpPanel: DashboardDialogViewModel
+  autoImport: DashboardAutoImportDialogViewModel
+  drillDown: DashboardDrillDownViewModel
+}
+
+/** Describes the full dashboard composition contract returned by the controller. */
+export interface DashboardControllerViewModel {
+  fileInputs: DashboardFileInputsViewModel
+  shell: DashboardShellViewModel
+  loadError: DashboardLoadErrorViewModel | null
+  emptyState: DashboardEmptyStateViewModel
+  header: DashboardHeaderViewModel
+  report: DashboardReportViewModel
+  filterBar: DashboardFilterBarViewModel
+  sections: DashboardSectionsViewModel
+  settingsModal: DashboardSettingsModalViewModel
+  dialogs: DashboardDialogsViewModel
+  commandPalette: DashboardCommandPaletteViewModel
 }
 
 function normalizeErrorMessage(error: unknown): string | null {
@@ -89,7 +152,9 @@ function downloadJsonFile(filename: string, data: unknown) {
 }
 
 /** Creates the dashboard controller with default bootstrap settings. */
-export function useDashboardController(initialSettingsError: string | null = null) {
+export function useDashboardController(
+  initialSettingsError: string | null = null,
+): DashboardControllerViewModel {
   return useDashboardControllerWithBootstrap(
     DEFAULT_APP_SETTINGS,
     false,
@@ -104,7 +169,7 @@ export function useDashboardControllerWithBootstrap(
   initialSettingsLoadedFromServer = false,
   initialSettingsFetchedAt: number | null = null,
   initialSettingsError: string | null = null,
-) {
+): DashboardControllerViewModel {
   const { t, i18n } = useTranslation()
   const { data: usageData, isLoading, error: usageError } = useUsageData()
   const uploadMutation = useUploadData()
@@ -330,6 +395,23 @@ export function useDashboardControllerWithBootstrap(
     if (!drillDownDate) return null
     return filteredData.find((entry) => entry.date === drillDownDate) ?? null
   }, [drillDownDate, filteredData])
+  const drillDownSequence = useMemo(
+    () => [...filteredData].sort((left, right) => left.date.localeCompare(right.date)),
+    [filteredData],
+  )
+  const drillDownIndex = useMemo(
+    () =>
+      drillDownDate !== null
+        ? drillDownSequence.findIndex((entry) => entry.date === drillDownDate)
+        : -1,
+    [drillDownDate, drillDownSequence],
+  )
+  const hasPreviousDrillDown = drillDownIndex > 0
+  const hasNextDrillDown = drillDownIndex >= 0 && drillDownIndex < drillDownSequence.length - 1
+  const filterBarModels = useMemo(
+    () => Array.from(new Set([...availableModels, ...selectedModels])),
+    [availableModels, selectedModels],
+  )
 
   const handleUpload = useCallback(() => {
     fileInputRef.current?.click()
@@ -337,6 +419,10 @@ export function useDashboardControllerWithBootstrap(
 
   const handleOpenSettings = useCallback(() => {
     setSettingsOpen(true)
+  }, [])
+
+  const handleOpenHelp = useCallback(() => {
+    setHelpOpen(true)
   }, [])
 
   const handleRetryLoad = useCallback(async () => {
@@ -476,6 +562,20 @@ export function useDashboardControllerWithBootstrap(
     downloadCSV(filteredData)
     addToast(t('toasts.csvExported'), 'success')
   }, [filteredData, addToast, t])
+
+  const handleDrillDownPrevious = useCallback(() => {
+    if (!hasPreviousDrillDown) return
+    setDrillDownDate(drillDownSequence[drillDownIndex - 1]?.date ?? null)
+  }, [drillDownIndex, drillDownSequence, hasPreviousDrillDown])
+
+  const handleDrillDownNext = useCallback(() => {
+    if (!hasNextDrillDown) return
+    setDrillDownDate(drillDownSequence[drillDownIndex + 1]?.date ?? null)
+  }, [drillDownIndex, drillDownSequence, hasNextDrillDown])
+
+  const handleDrillDownClose = useCallback(() => {
+    setDrillDownDate(null)
+  }, [])
 
   const handleGenerateReport = useCallback(async () => {
     if (reportGenerating) return
@@ -662,102 +762,251 @@ export function useDashboardControllerWithBootstrap(
     element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
+  const handleClearDateRange = useCallback(() => {
+    setStartDate(undefined)
+    setEndDate(undefined)
+  }, [setStartDate, setEndDate])
+
+  const handleApplyPreset = useCallback(
+    (preset: string) => {
+      applyPreset(preset)
+    },
+    [applyPreset],
+  )
+
+  const loadError = useMemo<DashboardLoadErrorViewModel | null>(() => {
+    if (!fatalLoadState) return null
+
+    return {
+      title: fatalLoadState.title,
+      description: fatalLoadState.description,
+      details: fatalLoadState.details,
+      detailLabel: t('loadError.details'),
+      actions: [
+        {
+          label: t('loadError.retry'),
+          onClick: () => void handleRetryLoad(),
+          variant: 'default',
+        },
+        ...(fatalLoadState.canResetSettings
+          ? [{ label: t('loadError.resetSettings'), onClick: () => void handleResetSettings() }]
+          : []),
+        ...(fatalLoadState.canResetUsage
+          ? [{ label: t('loadError.deleteData'), onClick: () => void handleDelete() }]
+          : []),
+      ],
+    }
+  }, [fatalLoadState, handleDelete, handleResetSettings, handleRetryLoad, t])
+
   return {
-    fileInputRef,
-    settingsImportInputRef,
-    dataImportInputRef,
-    settings,
-    providerLimits,
-    isLoading,
-    settingsLoading,
-    isSaving,
-    isDark,
-    hasData,
-    helpOpen,
-    setHelpOpen,
-    autoImportOpen,
-    setAutoImportOpen,
-    settingsOpen,
-    setSettingsOpen,
-    drillDownDate,
-    setDrillDownDate,
-    drillDownDay,
-    reportGenerating,
-    settingsTransferBusy,
-    dataTransferBusy,
-    dataSource,
-    headerDataSource,
-    startupAutoLoadBadge,
-    animationSeed,
-    daily,
-    usageData,
-    allProviders,
-    allModelsFromData,
-    settingsProviderOptions,
-    settingsModelOptions,
-    viewMode,
-    setViewMode,
-    selectedMonth,
-    setSelectedMonth,
-    selectedProviders,
-    toggleProvider,
-    clearProviders,
-    selectedModels,
-    toggleModel,
-    clearModels,
-    startDate,
-    setStartDate,
-    endDate,
-    setEndDate,
-    resetAll,
-    applyPreset,
-    forecastData,
-    forecastState,
-    filteredDailyData,
-    filteredData,
-    availableMonths,
-    availableProviders,
-    availableModels,
-    dateRange,
-    metrics,
-    modelCosts,
-    providerMetrics,
-    costChartData,
-    modelCostChartData,
-    tokenChartData,
-    requestChartData,
-    weekdayData,
-    allModels,
-    modelPieData,
-    tokenPieData,
-    comparisonData,
-    totalCalendarDays,
-    todayData,
-    hasCurrentMonthData,
-    visibleLimitProviders,
-    sectionVisibility,
-    sectionOrder,
-    streak,
-    fatalLoadState,
-    handleUpload,
-    handleOpenSettings,
-    handleRetryLoad,
-    handleResetSettings,
-    handleToggleTheme,
-    handleSaveSettings,
-    handleLanguageChange,
-    handleFileChange,
-    handleDelete,
-    handleExportCSV,
-    handleGenerateReport,
-    handleAutoImport,
-    handleAutoImportSuccess,
-    handleExportSettings,
-    handleExportData,
-    handleImportSettings,
-    handleImportData,
-    handleSettingsImportChange,
-    handleDataImportChange,
-    handleScrollTo,
+    fileInputs: {
+      usageUploadRef: fileInputRef,
+      settingsImportRef: settingsImportInputRef,
+      dataImportRef: dataImportInputRef,
+      onUsageUploadChange: handleFileChange,
+      onSettingsImportChange: handleSettingsImportChange,
+      onDataImportChange: handleDataImportChange,
+    },
+    shell: {
+      isLoading,
+      settingsLoading,
+      hasData,
+      isDark,
+      animationKey: animationSeed,
+      modelPaletteModelNames: allModelsFromData,
+    },
+    loadError,
+    emptyState: {
+      onUpload: handleUpload,
+      onAutoImport: handleAutoImport,
+      onOpenSettings: handleOpenSettings,
+    },
+    header: {
+      dateRange,
+      isDark,
+      currentLanguage: settings.language,
+      streak,
+      dataSource: headerDataSource,
+      startupAutoLoad: startupAutoLoadBadge,
+      onHelpOpenChange: setHelpOpen,
+      onLanguageChange: handleLanguageChange,
+      onToggleTheme: handleToggleTheme,
+      onExportCSV: handleExportCSV,
+      onDelete: () => void handleDelete(),
+      onUpload: handleUpload,
+      onAutoImport: handleAutoImport,
+    },
+    report: {
+      generating: reportGenerating,
+      onGenerate: handleGenerateReport,
+    },
+    filterBar: {
+      viewMode,
+      onViewModeChange: setViewMode,
+      selectedMonth,
+      onMonthChange: setSelectedMonth,
+      availableMonths,
+      availableProviders,
+      selectedProviders,
+      onToggleProvider: toggleProvider,
+      onClearProviders: clearProviders,
+      allModels: filterBarModels,
+      selectedModels,
+      onToggleModel: toggleModel,
+      onClearModels: clearModels,
+      ...(startDate ? { startDate } : {}),
+      ...(endDate ? { endDate } : {}),
+      onStartDateChange: setStartDate,
+      onEndDateChange: setEndDate,
+      onApplyPreset: handleApplyPreset,
+      onResetAll: resetAll,
+    },
+    sections: {
+      layout: {
+        sectionOrder,
+        sectionVisibility,
+      },
+      overview: {
+        metrics,
+        viewMode,
+        totalCalendarDays,
+        filteredData,
+        filteredDailyData,
+        todayData,
+        hasCurrentMonthData,
+        isDark,
+      },
+      forecast: {
+        filteredData,
+        forecastState,
+        metrics,
+        viewMode,
+      },
+      limits: {
+        filteredDailyData,
+        visibleLimitProviders,
+        providerLimits,
+        selectedMonth,
+      },
+      costAnalysis: {
+        filteredData,
+        forecastState,
+        allModels,
+        costChartData,
+        modelPieData,
+        modelCostChartData,
+        weekdayData,
+      },
+      tokenAnalysis: {
+        tokenChartData,
+        tokenPieData,
+      },
+      requestAnalysis: {
+        metrics,
+        requestChartData,
+        filteredData,
+        filteredDailyData,
+        viewMode,
+      },
+      advancedAnalysis: {
+        metrics,
+        filteredData,
+        viewMode,
+      },
+      comparisons: {
+        metrics,
+        filteredData,
+        comparisonData,
+        viewMode,
+      },
+      tables: {
+        metrics,
+        filteredData,
+        modelCosts,
+        providerMetrics,
+        viewMode,
+      },
+      interactions: {
+        onDrillDownDateChange: setDrillDownDate,
+      },
+    },
+    settingsModal: {
+      open: settingsOpen,
+      onOpenChange: setSettingsOpen,
+      language: settings.language,
+      reducedMotionPreference: settings.reducedMotionPreference,
+      limitProviders: allProviders,
+      filterProviders: settingsProviderOptions,
+      models: settingsModelOptions,
+      limits: settings.providerLimits,
+      defaultFilters: settings.defaultFilters,
+      sectionVisibility: settings.sectionVisibility,
+      sectionOrder: settings.sectionOrder,
+      lastLoadedAt: settings.lastLoadedAt,
+      lastLoadSource: settings.lastLoadSource,
+      cliAutoLoadActive: settings.cliAutoLoadActive,
+      hasData,
+      onSaveSettings: handleSaveSettings,
+      onExportSettings: handleExportSettings,
+      onImportSettings: handleImportSettings,
+      onExportData: handleExportData,
+      onImportData: handleImportData,
+      settingsBusy: settingsTransferBusy || isSaving,
+      dataBusy: dataTransferBusy,
+    },
+    dialogs: {
+      helpPanel: {
+        open: helpOpen,
+        onOpenChange: setHelpOpen,
+      },
+      autoImport: {
+        open: autoImportOpen,
+        onOpenChange: setAutoImportOpen,
+        onSuccess: handleAutoImportSuccess,
+      },
+      drillDown: {
+        day: drillDownDay,
+        contextData: filteredData,
+        open: drillDownDate !== null,
+        hasPrevious: hasPreviousDrillDown,
+        hasNext: hasNextDrillDown,
+        currentIndex: drillDownIndex >= 0 ? drillDownIndex + 1 : 0,
+        totalCount: drillDownSequence.length,
+        onPrevious: handleDrillDownPrevious,
+        onNext: handleDrillDownNext,
+        onClose: handleDrillDownClose,
+      },
+    },
+    commandPalette: {
+      isDark,
+      availableProviders,
+      selectedProviders,
+      availableModels,
+      selectedModels,
+      hasTodaySection: Boolean(todayData),
+      hasMonthSection: hasCurrentMonthData,
+      hasRequestSection: metrics.hasRequestData,
+      sectionVisibility,
+      sectionOrder,
+      reportGenerating,
+      onToggleTheme: handleToggleTheme,
+      onExportCSV: handleExportCSV,
+      onGenerateReport: () => void handleGenerateReport(),
+      onDelete: () => void handleDelete(),
+      onUpload: handleUpload,
+      onAutoImport: handleAutoImport,
+      onOpenSettings: handleOpenSettings,
+      onScrollTo: handleScrollTo,
+      onViewModeChange: setViewMode,
+      onApplyPreset: handleApplyPreset,
+      onToggleProvider: toggleProvider,
+      onToggleModel: toggleModel,
+      onClearProviders: clearProviders,
+      onClearModels: clearModels,
+      onClearDateRange: handleClearDateRange,
+      onResetAll: resetAll,
+      onHelp: handleOpenHelp,
+      onLanguageChange: handleLanguageChange,
+    },
   }
 }

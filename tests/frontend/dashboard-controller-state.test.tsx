@@ -123,7 +123,7 @@ describe('useDashboardControllerWithBootstrap state', () => {
     )
 
     await waitFor(() =>
-      expect(result.current.startupAutoLoadBadge).toMatchObject({
+      expect(result.current.header.startupAutoLoad).toMatchObject({
         active: true,
         time: expect.any(String),
         title: expect.stringContaining('Automatically loaded on start'),
@@ -143,11 +143,13 @@ describe('useDashboardControllerWithBootstrap state', () => {
     )
 
     await waitFor(() =>
-      expect(result.current.fatalLoadState).toMatchObject({
+      expect(result.current.loadError).toMatchObject({
         title: 'Could not load local app state',
         details: ['The local usage data file is unreadable or corrupted.'],
-        canResetUsage: true,
-        canResetSettings: false,
+        actions: expect.arrayContaining([
+          expect.objectContaining({ label: 'Retry load' }),
+          expect.objectContaining({ label: 'Delete stored data' }),
+        ]),
       }),
     )
   })
@@ -164,11 +166,16 @@ describe('useDashboardControllerWithBootstrap state', () => {
       ),
     )
 
-    expect(result.current.fatalLoadState?.canResetSettings).toBe(true)
+    expect(
+      result.current.loadError?.actions.some((action) => action.label === 'Reset settings'),
+    ).toBe(true)
 
-    await result.current.handleResetSettings()
+    const resetAction = result.current.loadError?.actions.find(
+      (action) => action.label === 'Reset settings',
+    )
+    await resetAction?.onClick()
 
-    await waitFor(() => expect(result.current.fatalLoadState).toBeNull())
+    await waitFor(() => expect(result.current.loadError).toBeNull())
     expect(toastMocks.addToast).toHaveBeenCalledWith('Settings reset', 'success')
   })
 
@@ -196,16 +203,18 @@ describe('useDashboardControllerWithBootstrap state', () => {
     )
 
     await waitFor(() =>
-      expect(result.current.forecastState.costForecast).toMatchObject({
+      expect(result.current.sections.forecast.forecastState.costForecast).toMatchObject({
         currentMonth: '2026-04',
         currentMonthTotal: 36,
         elapsedDays: 6,
       }),
     )
-    expect(result.current.forecastState.providerForecast).toMatchObject({
+    expect(result.current.sections.forecast.forecastState.providerForecast).toMatchObject({
       currentMonth: '2026-04',
       currentMonthTotal: 36,
     })
-    expect(result.current.forecastState.providerForecast?.providers[0]?.provider).toBe('OpenAI')
+    expect(
+      result.current.sections.forecast.forecastState.providerForecast?.providers[0]?.provider,
+    ).toBe('OpenAI')
   })
 })

@@ -24,6 +24,7 @@ import {
 } from '@/lib/dashboard-preferences'
 import { cn } from '@/lib/cn'
 import { fetchToktrackVersionStatus } from '@/lib/api'
+import type { DashboardSettingsModalViewModel } from '@/lib/dashboard-view-model'
 import {
   ArrowDown,
   ArrowUp,
@@ -42,7 +43,6 @@ import type {
   DashboardDefaultFilters,
   DashboardSectionOrder,
   DashboardSectionVisibility,
-  DataLoadSource,
   ProviderLimits,
   ReducedMotionPreference,
   ToktrackVersionStatus,
@@ -50,37 +50,7 @@ import type {
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { TOKTRACK_VERSION } from '@/lib/toktrack-version'
 
-interface SettingsModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  language: AppLanguage
-  reducedMotionPreference: ReducedMotionPreference
-  limitProviders: string[]
-  filterProviders: string[]
-  models: string[]
-  limits: ProviderLimits
-  defaultFilters: DashboardDefaultFilters
-  sectionVisibility: DashboardSectionVisibility
-  sectionOrder: DashboardSectionOrder
-  lastLoadedAt?: string | null
-  lastLoadSource?: DataLoadSource
-  cliAutoLoadActive?: boolean
-  hasData: boolean
-  onSaveSettings: (settings: {
-    language: AppLanguage
-    reducedMotionPreference: ReducedMotionPreference
-    providerLimits: ProviderLimits
-    defaultFilters: DashboardDefaultFilters
-    sectionVisibility: DashboardSectionVisibility
-    sectionOrder: DashboardSectionOrder
-  }) => Promise<void> | void
-  onExportSettings: () => void
-  onImportSettings: () => void
-  onExportData: () => void
-  onImportData: () => void
-  settingsBusy?: boolean
-  dataBusy?: boolean
-}
+type SettingsModalProps = DashboardSettingsModalViewModel
 
 type ToktrackVersionState = ToktrackVersionStatus & {
   isLoading: boolean

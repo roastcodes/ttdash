@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act } from '@testing-library/react'
 import { initI18n } from '@/lib/i18n'
 import { useDashboardControllerWithBootstrap } from '@/hooks/use-dashboard-controller'
+import { createDailyUsage } from '../factories'
 import { createTestQueryClient, renderHookWithQueryClient } from '../test-utils'
 import {
   createComputedState,
@@ -128,7 +130,7 @@ describe('useDashboardControllerWithBootstrap actions', () => {
       { client },
     )
 
-    await result.current.handleGenerateReport()
+    await result.current.report.onGenerate()
 
     expect(apiMocks.generatePdfReport).toHaveBeenCalledWith({
       viewMode: 'daily',
@@ -169,8 +171,8 @@ describe('useDashboardControllerWithBootstrap actions', () => {
       useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
     )
 
-    result.current.handleExportSettings()
-    result.current.handleExportData()
+    result.current.settingsModal.onExportSettings()
+    result.current.settingsModal.onExportData()
 
     expect(downloads).toHaveLength(2)
     expect(downloads[0].filename).toMatch(/^ttdash-settings-backup-/)
@@ -203,12 +205,47 @@ describe('useDashboardControllerWithBootstrap actions', () => {
       },
     )
 
-    await result.current.handleDataImportChange({
+    await result.current.fileInputs.onDataImportChange({
       target: { files: [file], value: 'backup.json' },
     } as never)
 
     expect(apiMocks.importUsageData).toHaveBeenCalledTimes(1)
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['usage'] })
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings'] })
+  })
+
+  it('drives drill-down navigation from the controller view-model bundle', () => {
+    filterHookMocks.useDashboardFilters.mockReturnValue(
+      createFilterState({
+        filteredData: [
+          createDailyUsage({ date: '2026-04-01', totalCost: 1 }),
+          createDailyUsage({ date: '2026-04-02', totalCost: 2 }),
+          createDailyUsage({ date: '2026-04-03', totalCost: 3 }),
+        ],
+      }),
+    )
+
+    const { result } = renderHookWithQueryClient(() =>
+      useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
+    )
+
+    act(() => {
+      result.current.sections.interactions.onDrillDownDateChange('2026-04-02')
+    })
+
+    expect(result.current.dialogs.drillDown).toMatchObject({
+      open: true,
+      hasPrevious: true,
+      hasNext: true,
+      currentIndex: 2,
+      totalCount: 3,
+    })
+    expect(result.current.dialogs.drillDown.day?.date).toBe('2026-04-02')
+
+    act(() => {
+      result.current.dialogs.drillDown.onNext?.()
+    })
+
+    expect(result.current.dialogs.drillDown.day?.date).toBe('2026-04-03')
   })
 })

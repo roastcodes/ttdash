@@ -83,6 +83,19 @@ Persisted settings are a shared contract across the frontend bootstrap path and 
 - `types`
   - `src/types/**`
 
+## Dashboard Composition
+
+- `src/hooks/use-dashboard-controller.ts`
+  - owns the dashboard orchestration and returns focused UI-facing bundles instead of a broad flat surface
+- `src/components/Dashboard.tsx`
+  - is the only production composition root that should consume `use-dashboard-controller.ts`
+  - wires the controller bundles into `Header`, `FilterBar`, dialogs, `CommandPalette`, and `DashboardSections`
+- `src/lib/dashboard-view-model.d.ts`
+  - owns the shared frontend-only view-model contracts for the dashboard shell and sections
+- `src/components/dashboard/DashboardSections.tsx`
+  - consumes a single `DashboardSectionsViewModel`
+  - should keep section ownership grouped by section bundle instead of reintroducing broad prop lists
+
 Important expectations:
 
 - generic UI primitives belong in `src/components/ui/**`, not inside feature folders
@@ -120,5 +133,6 @@ Both `ci.yml` and `release.yml` run `check:deps` and `test:architecture` explici
   - use `archunit` for expressive architecture assertions and naming rules
 - Keep `server.js` small. New server behavior should usually land in `server/**` and be wired into the entrypoint via dependency injection.
 - Keep shared settings logic centralized. If a new persisted settings field, default, or normalization rule is added, update `shared/app-settings.js` first and adapt frontend/server wrappers afterward.
+- Keep dashboard orchestration bundled. New dashboard shell behavior should usually extend the controller/view-model contracts instead of adding new flat props to `Dashboard.tsx` or `DashboardSections.tsx`.
 - Do not add broad allowlists just to get green. Fix the code or scope the rule explicitly.
 - If a feature helper becomes cross-feature, move it out of `src/components/features/**` before adding more exceptions.
