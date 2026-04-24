@@ -24,6 +24,8 @@ interface HeaderProps extends DashboardHeaderViewModel {
   pdfButton?: React.ReactNode
 }
 
+const headerActionButtonClass = 'h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm'
+
 function DataSourceBadge({ source }: { source: DashboardDataSource }) {
   const { t } = useTranslation()
 
@@ -79,6 +81,88 @@ function StartupAutoLoadBadge({ badge }: { badge: DashboardStartupAutoLoadBadge 
       {t('header.autoLoadActive')}
       {badge.time && <span className="text-amber-400/70">· {badge.time}</span>}
     </span>
+  )
+}
+
+function HeaderActionGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="rounded-xl border border-border/50 bg-muted/15 p-2"
+    >
+      <div className="mb-1.5 text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+        {label}
+      </div>
+      <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap">{children}</div>
+    </div>
+  )
+}
+
+function HeaderActions({
+  onAutoImport,
+  onUpload,
+  onExportCSV,
+  onDelete,
+  settingsButton,
+  pdfButton,
+}: Pick<DashboardHeaderViewModel, 'onAutoImport' | 'onUpload' | 'onExportCSV' | 'onDelete'> &
+  Pick<HeaderProps, 'settingsButton' | 'pdfButton'>) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="grid grid-cols-1 gap-2 lg:grid-cols-[auto_auto_auto] lg:items-start">
+      <HeaderActionGroup label={t('header.actionGroups.loadData')}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onAutoImport}
+          title={t('emptyState.autoImport')}
+          className={headerActionButtonClass}
+        >
+          <Zap className="h-4 w-4" />
+          <span>{t('header.import')}</span>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onUpload}
+          title={t('emptyState.uploadFile')}
+          className={headerActionButtonClass}
+        >
+          <Upload className="h-4 w-4" />
+          <span>{t('header.upload')}</span>
+        </Button>
+      </HeaderActionGroup>
+
+      <HeaderActionGroup label={t('header.actionGroups.useExport')}>
+        {settingsButton}
+        {pdfButton}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onExportCSV}
+          title={t('commandPalette.commands.exportCsv.label')}
+          className={headerActionButtonClass}
+        >
+          <Download className="h-4 w-4" />
+          <span>{t('header.csv')}</span>
+        </Button>
+      </HeaderActionGroup>
+
+      <HeaderActionGroup label={t('header.actionGroups.maintenance')}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onDelete}
+          title={t('commandPalette.commands.delete.label')}
+          className={`${headerActionButtonClass} text-muted-foreground hover:bg-destructive/10 hover:text-destructive`}
+        >
+          <Trash2 className="h-4 w-4" />
+          <span>{t('header.delete')}</span>
+        </Button>
+      </HeaderActionGroup>
+    </div>
   )
 }
 
@@ -203,52 +287,14 @@ export function Header({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onAutoImport}
-          title={t('emptyState.autoImport')}
-          className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
-        >
-          <Zap className="h-4 w-4" />
-          <span>{t('header.import')}</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onUpload}
-          title={t('emptyState.uploadFile')}
-          className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
-        >
-          <Upload className="h-4 w-4" />
-          <span>{t('header.upload')}</span>
-        </Button>
-        <div className="contents sm:block sm:h-5 sm:w-px sm:bg-border/50" />
-        <div className="contents sm:block">{settingsButton}</div>
-        <div className="contents sm:block">{pdfButton}</div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onExportCSV}
-          title={t('commandPalette.commands.exportCsv.label')}
-          className="h-11 justify-start gap-2 px-3 text-xs sm:h-9 sm:text-sm"
-        >
-          <Download className="h-4 w-4" />
-          <span>{t('header.csv')}</span>
-        </Button>
-        <div className="contents sm:block sm:h-5 sm:w-px sm:bg-border/50" />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onDelete}
-          title={t('commandPalette.commands.delete.label')}
-          className="h-11 justify-start gap-2 px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:h-9 sm:text-sm"
-        >
-          <Trash2 className="h-4 w-4" />
-          <span>{t('header.delete')}</span>
-        </Button>
-      </div>
+      <HeaderActions
+        onAutoImport={onAutoImport}
+        onUpload={onUpload}
+        onExportCSV={onExportCSV}
+        onDelete={onDelete}
+        settingsButton={settingsButton}
+        pdfButton={pdfButton}
+      />
     </header>
   )
 }

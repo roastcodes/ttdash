@@ -2,6 +2,30 @@
 
 ## 2026-04-24
 
+### dashboard-review.md / N-01
+
+- Status: fixed
+- Scope: the dashboard action landscape now separates everyday data loading, export/use actions, and maintenance actions in the header, while the Command Palette mirrors the same intent split for load data, exports, and maintenance. Existing actions and command IDs remain available.
+- Guardrails: `tests/frontend/header-links.test.tsx` covers localized header action groups and preserved button access, while `tests/frontend/command-palette-action-groups.test.tsx` covers localized Command Palette groups and stable command IDs.
+- Follow-up quality fixes during implementation:
+  - Header action rendering is now owned by a private `HeaderActions` composition inside `Header.tsx`, keeping the global header shell separate from action information architecture.
+  - Command Palette action commands are grouped by intent instead of sharing one broad `Actions` bucket, without changing command handlers or `data-testid` contracts.
+- Validation:
+  - `npm run test:unit -- tests/frontend/header-links.test.tsx tests/frontend/command-palette-action-groups.test.tsx`
+  - `npx playwright test tests/e2e/command-palette.spec.ts`
+  - `tsc --noEmit`
+  - `npm run lint`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md -f ...` -> only reported unrelated untracked `docs/application-stack-reference.md`; the file was not changed
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --dir src/components` -> 0 issues
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --dir tests/frontend` -> 0 issues
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --dir shared/locales` -> 0 issues
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --dir docs/review` -> 0 issues
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files docs/architecture.md` -> 0 issues
+
 ### dashboard-review.md / M-02
 
 - Status: fixed

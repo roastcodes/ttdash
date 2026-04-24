@@ -21,7 +21,12 @@
     "autoLoadActive": "Auto-Load beim Start",
     "autoLoadAt": "Beim Start automatisch geladen: {{time}}",
     "versionLinkTitle": "TTDash v{{version}} auf npm öffnen",
-    "streak": "{{count}} Tage in Folge"
+    "streak": "{{count}} Tage in Folge",
+    "actionGroups": {
+      "loadData": "Daten laden",
+      "useExport": "Nutzen & exportieren",
+      "maintenance": "Wartung"
+    }
   },
   "emptyState": {
     "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx {{toktrackSpec}} daily --json` oder `npx --yes {{toktrackSpec}} daily --json`.",
@@ -753,6 +758,9 @@
     "empty": "Kein Befehl gefunden.",
     "groups": {
       "actions": "Aktionen",
+      "loadData": "Daten laden",
+      "exports": "Exporte",
+      "maintenance": "Wartung",
       "filters": "Filter & Ansicht",
       "navigation": "Navigation",
       "view": "Ansicht",

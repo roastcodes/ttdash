@@ -109,6 +109,8 @@ Dashboard-specific presets, static section metadata, and preset date semantics a
 - `src/components/Dashboard.tsx`
   - is the only production composition root that should consume `use-dashboard-controller.ts`
   - wires the controller bundles into `Header`, `FilterBar`, dialogs, `CommandPalette`, and `DashboardSections`
+- `src/components/layout/Header.tsx` and `src/components/features/command-palette/CommandPalette.tsx`
+  - group dashboard actions by user intent so data loading, exports, maintenance, filters, navigation, and view actions stay discoverable without collapsing into one undifferentiated action surface
 - `src/lib/dashboard-view-model.d.ts`
   - owns the shared frontend-only view-model contracts for the dashboard shell and sections
 - `src/hooks/use-dashboard-controller-browser.ts`
