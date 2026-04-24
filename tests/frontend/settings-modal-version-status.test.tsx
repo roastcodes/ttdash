@@ -7,6 +7,7 @@ import { initI18n } from '@/lib/i18n'
 import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 import {
   buildSettingsModalProps,
+  openSettingsTab,
   renderSettingsModal,
   stubToktrackVersionStatus,
 } from './settings-modal-test-helpers'
@@ -31,6 +32,7 @@ describe('SettingsModal toktrack version status', () => {
     })
 
     renderSettingsModal()
+    openSettingsTab('Maintenance')
 
     expect(screen.getByTestId('settings-toktrack-version')).toHaveTextContent(TOKTRACK_VERSION)
     expect(await screen.findByTestId('settings-toktrack-status')).toHaveTextContent(
@@ -46,6 +48,7 @@ describe('SettingsModal toktrack version status', () => {
     expect(fetchMock).not.toHaveBeenCalled()
 
     rerender(<SettingsModal {...buildSettingsModalProps({ open: true })} />)
+    openSettingsTab('Maintenance')
 
     expect(await screen.findByTestId('settings-toktrack-status')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
@@ -55,6 +58,7 @@ describe('SettingsModal toktrack version status', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')))
 
     renderSettingsModal()
+    openSettingsTab('Maintenance')
 
     expect(await screen.findByTestId('settings-toktrack-status')).toHaveTextContent(
       'Latest version could not be checked',

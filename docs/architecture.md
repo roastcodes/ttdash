@@ -121,9 +121,10 @@ Dashboard-specific presets, static section metadata, and preset date semantics a
 ## Settings Modal Composition
 
 - `src/components/features/settings/SettingsModal.tsx`
-  - owns the dialog shell and composes the internal settings sections and draft/version hooks
+  - owns the tabbed dialog shell and composes the internal settings sections and draft/version hooks
+  - groups settings by user intent: basics, layout, limits, and maintenance
 - `src/components/features/settings/SettingsModalSections.tsx`
-  - owns the extracted section subviews for status, language, defaults, dashboard motion/version, backups, section layout, and provider limits
+  - owns the extracted section subviews for status, language, defaults, dashboard motion, toktrack version, backups, section layout, and provider limits
 - `src/components/features/settings/use-settings-modal-draft.ts`
   - owns the editable settings draft state, reset behavior, and save orchestration for the modal
 - `src/components/features/settings/use-settings-modal-version-status.ts`

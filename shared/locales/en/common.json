@@ -919,6 +919,25 @@
     "modal": {
       "title": "Settings",
       "description": "Manage app backups, stored data, and provider limits in one place.",
+      "tabs": {
+        "label": "Settings areas",
+        "basics": {
+          "label": "Basics",
+          "description": "Language, motion, and default filters for everyday dashboard use."
+        },
+        "layout": {
+          "label": "Layout",
+          "description": "Control which dashboard sections are visible and how they are ordered."
+        },
+        "limits": {
+          "label": "Limits",
+          "description": "Configure provider subscriptions and monthly budget limits."
+        },
+        "maintenance": {
+          "label": "Maintenance",
+          "description": "Check data status, backups, imports, exports, and toktrack version state."
+        }
+      },
       "languageTitle": "Dashboard language",
       "languageDescription": "Choose the language used in the dashboard UI, dialogs, and reports.",
       "dataStatus": "Data status",

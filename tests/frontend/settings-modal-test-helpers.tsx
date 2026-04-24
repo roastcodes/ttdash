@@ -1,4 +1,5 @@
 import type { ComponentProps } from 'react'
+import { fireEvent, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 import { SettingsModal } from '@/components/features/settings/SettingsModal'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
@@ -45,6 +46,15 @@ export function renderSettingsModal(overrides: Partial<ComponentProps<typeof Set
     props,
     onSaveSettings: props.onSaveSettings,
   }
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+export function openSettingsTab(name: RegExp | string) {
+  const tabName = typeof name === 'string' ? new RegExp(escapeRegExp(name)) : name
+  fireEvent.click(screen.getByRole('tab', { name: tabName }))
 }
 
 export function stubToktrackVersionStatus(

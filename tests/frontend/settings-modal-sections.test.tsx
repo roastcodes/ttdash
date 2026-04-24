@@ -4,7 +4,11 @@ import { fireEvent, screen } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { initI18n } from '@/lib/i18n'
-import { renderSettingsModal, stubToktrackVersionStatus } from './settings-modal-test-helpers'
+import {
+  openSettingsTab,
+  renderSettingsModal,
+  stubToktrackVersionStatus,
+} from './settings-modal-test-helpers'
 
 describe('SettingsModal sections controls', () => {
   beforeAll(async () => {
@@ -17,6 +21,7 @@ describe('SettingsModal sections controls', () => {
 
   it('saves the edited section order and visibility', () => {
     const { onSaveSettings } = renderSettingsModal()
+    openSettingsTab('Layout')
     const expectedSectionOrder = [...DEFAULT_APP_SETTINGS.sectionOrder]
     const metricsIndex = expectedSectionOrder.indexOf('metrics')
     const nextSection = expectedSectionOrder[metricsIndex + 1]
@@ -52,6 +57,7 @@ describe('SettingsModal sections controls', () => {
       },
       sectionOrder: [...DEFAULT_APP_SETTINGS.sectionOrder].reverse(),
     })
+    openSettingsTab('Layout')
 
     fireEvent.click(screen.getByTestId('reset-section-visibility'))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))

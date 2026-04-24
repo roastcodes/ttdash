@@ -919,6 +919,25 @@
     "modal": {
       "title": "Einstellungen",
       "description": "Verwalte App-Backups, gespeicherte Daten und Anbieterlimits an einem Ort.",
+      "tabs": {
+        "label": "Einstellungsbereiche",
+        "basics": {
+          "label": "Basis",
+          "description": "Sprache, Bewegung und Standardfilter für die tägliche Dashboard-Nutzung."
+        },
+        "layout": {
+          "label": "Layout",
+          "description": "Steuere, welche Dashboard-Sektionen sichtbar sind und in welcher Reihenfolge sie erscheinen."
+        },
+        "limits": {
+          "label": "Limits",
+          "description": "Konfiguriere Anbieter-Abos und monatliche Budgetlimits."
+        },
+        "maintenance": {
+          "label": "Wartung",
+          "description": "Prüfe Datenstatus, Backups, Importe, Exporte und den Toktrack-Versionsstatus."
+        }
+      },
       "languageTitle": "Dashboard-Sprache",
       "languageDescription": "Lege fest, welche Sprache im Dashboard, in Dialogen und in Reports verwendet wird.",
       "dataStatus": "Datenstatus",

@@ -3,7 +3,11 @@
 import { fireEvent, screen } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { initI18n } from '@/lib/i18n'
-import { renderSettingsModal, stubToktrackVersionStatus } from './settings-modal-test-helpers'
+import {
+  openSettingsTab,
+  renderSettingsModal,
+  stubToktrackVersionStatus,
+} from './settings-modal-test-helpers'
 
 describe('SettingsModal backup actions', () => {
   beforeAll(async () => {
@@ -27,6 +31,7 @@ describe('SettingsModal backup actions', () => {
       onExportData,
       onImportData,
     })
+    openSettingsTab('Maintenance')
 
     fireEvent.click(screen.getByRole('button', { name: 'Export settings' }))
     fireEvent.click(screen.getByRole('button', { name: 'Import settings' }))
@@ -45,6 +50,7 @@ describe('SettingsModal backup actions', () => {
       settingsBusy: true,
       dataBusy: true,
     })
+    openSettingsTab('Maintenance')
 
     expect(screen.getByRole('button', { name: 'Export settings' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Import settings' })).toBeDisabled()

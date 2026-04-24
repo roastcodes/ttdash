@@ -180,6 +180,19 @@ async function waitForSectionNearTop(page: Page, selector: string) {
     .toBeLessThan(220)
 }
 
+async function runSectionNavigationCommands(
+  page: Page,
+  commands: readonly (typeof sectionCommands)[number][],
+) {
+  for (const section of commands) {
+    await test.step(`${section.testId} scrolls to the expected section`, async () => {
+      await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight }))
+      await runPaletteCommand(page, section.testId)
+      await waitForSectionNearTop(page, section.selector)
+    })
+  }
+}
+
 async function readDownloadText(download: Download) {
   const downloadPath = await download.path()
   expect(downloadPath).not.toBeNull()
@@ -446,7 +459,9 @@ test('executes dynamic provider and model commands from the command palette', as
   }
 })
 
-test('executes navigation and section commands from the command palette', async ({ page }) => {
+test('executes scroll and filter navigation commands from the command palette', async ({
+  page,
+}) => {
   await test.step('scroll commands reach the bottom and top of the dashboard', async () => {
     await runPaletteCommand(page, 'command-bottom')
     await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBeGreaterThan(400)
@@ -460,14 +475,22 @@ test('executes navigation and section commands from the command palette', async 
     await runPaletteCommand(page, 'command-filters')
     await waitForSectionNearTop(page, '#filters')
   })
+})
 
-  for (const section of sectionCommands) {
-    await test.step(`${section.testId} scrolls to the expected section`, async () => {
-      await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight }))
-      await runPaletteCommand(page, section.testId)
-      await waitForSectionNearTop(page, section.selector)
-    })
-  }
+test('executes dashboard section navigation commands from the command palette', async ({
+  page,
+}) => {
+  const dashboardCommands = sectionCommands.slice(0, 7)
+
+  await runSectionNavigationCommands(page, dashboardCommands)
+  await expect(page.locator(dashboardCommands.at(-1)!.selector)).toBeVisible()
+})
+
+test('executes analysis section navigation commands from the command palette', async ({ page }) => {
+  const analysisCommands = sectionCommands.slice(7)
+
+  await runSectionNavigationCommands(page, analysisCommands)
+  await expect(page.locator(analysisCommands.at(-1)!.selector)).toBeVisible()
 })
 
 test('executes theme, language, help, and quick-select interactions from the command palette', async ({

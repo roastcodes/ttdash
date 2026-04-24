@@ -448,22 +448,18 @@ export function SettingsSectionsSection({ viewModel, settingsBusy }: SettingsSec
   )
 }
 
-interface SettingsDashboardSectionProps {
+interface SettingsMotionSectionProps {
   viewModel: SettingsModalGeneralDraftViewModel
-  versionStatus: SettingsVersionStatusViewModel
 }
 
-/** Renders motion settings and the toktrack version status inside the settings modal. */
-export function SettingsDashboardSection({
-  viewModel,
-  versionStatus,
-}: SettingsDashboardSectionProps) {
+/** Renders motion settings inside the settings modal. */
+export function SettingsMotionSection({ viewModel }: SettingsMotionSectionProps) {
   const { t } = useTranslation()
 
   return (
     <div
       className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl"
-      data-testid="settings-dashboard-section"
+      data-testid="settings-motion-section"
     >
       <div className="flex items-start gap-3">
         <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
@@ -507,12 +503,41 @@ export function SettingsDashboardSection({
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+interface SettingsToktrackVersionSectionProps {
+  versionStatus: SettingsVersionStatusViewModel
+}
+
+/** Renders the toktrack version status inside the settings modal. */
+export function SettingsToktrackVersionSection({
+  versionStatus,
+}: SettingsToktrackVersionSectionProps) {
+  const { t } = useTranslation()
+
+  return (
+    <div
+      className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl"
+      data-testid="settings-toktrack-section"
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
+          <Settings2 className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 space-y-1">
+          <div className="text-sm font-medium text-foreground">
+            {t('settings.modal.toktrackVersionTitle')}
+          </div>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {t('settings.modal.toktrackVersionDescription')}
+          </p>
+        </div>
+      </div>
 
       <div className="mt-4 rounded-xl border border-border/50 bg-muted/20 px-3 py-3">
-        <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          {t('settings.modal.toktrackVersionTitle')}
-        </div>
-        <div className="mt-1 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span
             className="font-mono text-sm font-medium text-foreground"
             data-testid="settings-toktrack-version"
@@ -526,9 +551,6 @@ export function SettingsDashboardSection({
             {versionStatus.statusLabel}
           </span>
         </div>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {t('settings.modal.toktrackVersionDescription')}
-        </p>
       </div>
     </div>
   )

@@ -19,6 +19,9 @@ const last30DaysPattern = /^(Letzte 30 Tage|Last 30 days)$/
 const defaultDailyPattern = /^(Täglich|Daily)$/
 const allDataPattern = /^(Alle Daten|All data)$/
 const viewModeComboboxPattern = /^(Ansichtsmodus|View mode)$/
+const settingsBasicsTabPattern = /Basis|Basics/
+const settingsLayoutTabPattern = /Layout/
+const settingsMaintenanceTabPattern = /Wartung|Maintenance/
 const costForecastExpandPattern =
   /^(Current month cost forecast expand|Kostenprognose aktueller Monat vergrössern)$/
 const providerForecastExpandPattern =
@@ -263,13 +266,17 @@ test('manages settings and backup imports through the settings dialog using isol
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
   await expect(page.getByRole('tooltip')).toHaveCount(0)
+  await dialog.getByRole('tab', { name: settingsLayoutTabPattern }).click()
   await expect(dialog.locator('[data-section-id="insights"]')).toContainText(/Insights|Einblicke/)
 
+  await dialog.getByRole('tab', { name: settingsBasicsTabPattern }).click()
   await dialog.getByRole('button', { name: monthlySettingsPattern }).click()
   await dialog.getByRole('button', { name: last30DaysPattern }).click()
+  await dialog.getByRole('tab', { name: settingsLayoutTabPattern }).click()
   await dialog.getByTestId('move-section-up-tokenAnalysis').click()
   await dialog.getByTestId('toggle-section-visibility-tokenAnalysis').click()
   await dialog.getByTestId('reset-all-settings-drafts').click()
+  await dialog.getByRole('tab', { name: settingsBasicsTabPattern }).click()
   await expect(dialog.getByRole('button', { name: defaultDailyPattern })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -278,6 +285,7 @@ test('manages settings and backup imports through the settings dialog using isol
     'aria-pressed',
     'true',
   )
+  await dialog.getByRole('tab', { name: settingsLayoutTabPattern }).click()
   await expect(dialog.locator('[data-section-id="tokenAnalysis"]')).toContainText(
     /Sichtbar|Visible/,
   )
@@ -331,6 +339,7 @@ test('manages settings and backup imports through the settings dialog using isol
   await dialog.getByRole('button', { name: monthlySettingsPattern }).click()
   await dialog.getByRole('button', { name: last30DaysPattern }).click()
   await dialog.getByTestId('settings-reduced-motion-always').click()
+  await dialog.getByRole('tab', { name: settingsLayoutTabPattern }).click()
   await dialog.getByTestId('reset-section-visibility').click()
   await expect(dialog.locator('[data-section-id="tokenAnalysis"]')).toContainText(
     /Sichtbar|Visible/,
@@ -361,6 +370,7 @@ test('manages settings and backup imports through the settings dialog using isol
   })
   await expect(dialog).toBeVisible()
 
+  await dialog.getByRole('tab', { name: settingsMaintenanceTabPattern }).click()
   await page.getByRole('button', { name: exportSettingsButtonPattern }).click()
   await expect
     .poll(async () => {
@@ -671,8 +681,9 @@ test('loads persisted settings on a fresh browser start and applies them immedia
 
     const dialog = freshPage.getByRole('dialog')
     await expect(dialog).toBeVisible()
+    await dialog.getByRole('tab', { name: settingsMaintenanceTabPattern }).click()
     await expect(dialog.getByRole('button', { name: 'Export settings' })).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'OpenAI', exact: true })).toBeVisible()
+    await dialog.getByRole('tab', { name: settingsBasicsTabPattern }).click()
     await expect(dialog.getByTestId('settings-reduced-motion-always')).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -685,6 +696,7 @@ test('loads persisted settings on a fresh browser start and applies them immedia
       'aria-pressed',
       'true',
     )
+    await dialog.getByRole('tab', { name: settingsLayoutTabPattern }).click()
     await expect(dialog.locator('[data-section-id="advancedAnalysis"]')).toContainText(
       'Distributions & Risk',
     )
@@ -699,7 +711,9 @@ test('loads persisted settings on a fresh browser start and applies them immedia
       'metrics',
       'insights',
     ])
+    await dialog.getByRole('tab', { name: /Limits/ }).click()
     const openAiCard = dialog.locator('[data-provider-id="OpenAI"]')
+    await expect(openAiCard).toBeVisible()
     await expect(openAiCard.locator('input[type="number"]').nth(0)).toHaveValue('20')
     await expect(openAiCard.locator('input[type="number"]').nth(1)).toHaveValue('400')
     await dialog.getByTestId('reset-provider-limits').click()

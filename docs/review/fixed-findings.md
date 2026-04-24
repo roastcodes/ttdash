@@ -2,6 +2,24 @@
 
 ## 2026-04-24
 
+### dashboard-review.md / M-01
+
+- Status: fixed
+- Scope: `src/components/features/settings/SettingsModal.tsx` was changed from one long settings surface into a tabbed workspace with Basics, Layout, Limits, and Maintenance areas. Existing settings capabilities remain available, but day-to-day preferences are separated from section layout, provider limits, and backup/version-maintenance actions.
+- Guardrails: `tests/frontend/settings-modal-tabs.test.tsx` covers default tab state, section grouping, and keyboard navigation, while the existing focused settings suites now exercise their sections through the relevant tab. `docs/architecture.md` documents the tabbed settings shell and split motion/toktrack version ownership.
+- Follow-up quality fixes during implementation:
+  - `SettingsModalSections.tsx` now separates the reduced-motion card from the toktrack version-status card so Maintenance can own diagnostic/version information without mixing it into daily dashboard behavior settings.
+  - `SettingsModal.tsx` now resets the active settings tab while the dialog is closed, so reopening the dialog always starts from Basics without a transient stale tab render.
+  - `tests/e2e/command-palette.spec.ts` now splits the formerly near-timeout section-navigation coverage into smaller scroll, dashboard-section, and analysis-section tests after the full gate exposed the old monolithic test as a reliability/performance risk.
+- Validation:
+  - `npm run test:unit -- tests/frontend/settings-modal-tabs.test.tsx tests/frontend/settings-modal-language.test.tsx tests/frontend/settings-modal-version-status.test.tsx tests/frontend/settings-modal-defaults.test.tsx tests/frontend/settings-modal-sections.test.tsx tests/frontend/settings-modal-backups.test.tsx tests/frontend/settings-modal-provider-limits.test.tsx tests/frontend/settings-modal-draft-state.test.tsx`
+  - `npx playwright test tests/e2e/command-palette.spec.ts`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 1: 0 issues, round 2: 0 issues, round 3: 0 issues
+
 ### code-review.md / N-01
 
 - Status: fixed

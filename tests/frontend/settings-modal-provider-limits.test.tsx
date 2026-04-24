@@ -4,7 +4,11 @@ import { fireEvent, screen, within } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { DEFAULT_PROVIDER_LIMIT_CONFIG } from '@/lib/provider-limits'
 import { initI18n } from '@/lib/i18n'
-import { renderSettingsModal, stubToktrackVersionStatus } from './settings-modal-test-helpers'
+import {
+  openSettingsTab,
+  renderSettingsModal,
+  stubToktrackVersionStatus,
+} from './settings-modal-test-helpers'
 
 describe('SettingsModal provider limits', () => {
   beforeAll(async () => {
@@ -20,6 +24,7 @@ describe('SettingsModal provider limits', () => {
       limitProviders: ['OpenAI'],
       limits: {},
     })
+    openSettingsTab('Limits')
 
     const providerCard = screen
       .getByTestId('settings-provider-subscription-OpenAI')
@@ -74,6 +79,7 @@ describe('SettingsModal provider limits', () => {
         },
       },
     })
+    openSettingsTab('Limits')
 
     fireEvent.click(screen.getByTestId('reset-provider-limits'))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
