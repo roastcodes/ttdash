@@ -2,6 +2,22 @@
 
 ## 2026-04-24
 
+### code-review.md / M-01
+
+- Status: fixed
+- Scope: dashboard date preset behavior is centralized in the shared dashboard preferences contract. `src/hooks/use-dashboard-filters.ts` applies presets through `resolveDashboardPresetRange`, and `src/components/layout/FilterBar.tsx` derives the active UI state through `resolveDashboardActivePreset`; both flow through `src/lib/dashboard-preferences.ts` to `shared/dashboard-preferences.js`, so applying and displaying presets no longer duplicate the `7d`, `30d`, `month`, `year`, and `all` rules.
+- Guardrails: `tests/unit/dashboard-preferences.test.ts` locks the shared/frontend preset contract, while `tests/frontend/use-dashboard-filters.test.tsx` and `tests/frontend/filter-bar-presets.test.tsx` cover applying presets in the hook and highlighting them in the filter bar.
+- Follow-up quality fixes during implementation:
+  - No production or test changes were needed for this finding because the shared preset contract and focused regression coverage already existed; the fix was to document the concrete `code-review.md / M-01` reference as closed.
+- Validation:
+  - `npm run test:unit -- tests/unit/dashboard-preferences.test.ts tests/frontend/use-dashboard-filters.test.tsx tests/frontend/filter-bar-presets.test.tsx`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 1: 2 minor documentation issues, fixed
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 2: blocked by CodeRabbit rate limit (`Rate limit exceeded`, retry window reported by the CLI: `57 minutes and 23 seconds`)
+
 ### code-review.md / M-02
 
 - Status: fixed
