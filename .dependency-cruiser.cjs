@@ -22,7 +22,13 @@ module.exports = {
       from: {
         orphan: true,
         path: '^src/',
-        pathNot: ['^src/main\\.ts$', '^src/App\\.tsx$', '^src/types/index\\.ts$', '\\.d\\.ts$'],
+        pathNot: [
+          '^src/main\\.ts$',
+          '^src/App\\.tsx$',
+          '^src/types/index\\.ts$',
+          '^src/hooks/use-dashboard-controller-types\\.ts$',
+          '\\.d\\.ts$',
+        ],
       },
       to: {},
     },
@@ -70,6 +76,18 @@ module.exports = {
       },
       to: {
         path: '^src/hooks/use-dashboard-controller\\.ts$',
+      },
+    },
+    {
+      name: 'no-dashboard-controller-internals-fanout',
+      severity: 'error',
+      comment:
+        'Internal dashboard controller slices should stay behind the public controller hook instead of leaking into component code.',
+      from: {
+        path: '^src/components/',
+      },
+      to: {
+        path: '^src/hooks/use-dashboard-controller-(?:actions|browser|derived-state|dialogs|drill-down|effects|shell-state|types)\\.ts$',
       },
     },
     {

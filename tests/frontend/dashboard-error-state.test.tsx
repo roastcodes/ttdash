@@ -188,6 +188,34 @@ describe('Dashboard fatal load state', () => {
     expect(screen.queryByText('Could not read file')).not.toBeInTheDocument()
   })
 
+  it('uses the upload fallback toast when the backend rejects without an Error instance', async () => {
+    const mutateAsync = vi.fn().mockRejectedValue('upload rejected')
+
+    usageHookMocks.useUsageData.mockReturnValue({
+      data: makeEmptyUsageData(),
+      isLoading: false,
+      error: null,
+    })
+    usageHookMocks.useUploadData.mockReturnValue({
+      mutateAsync,
+    })
+
+    render(<Dashboard />, {
+      wrapper: createWrapper(),
+    })
+
+    const input = screen.getByTestId('usage-upload-input') as HTMLInputElement
+    const file = new File([JSON.stringify({ daily: [] })], 'usage.json', {
+      type: 'application/json',
+    })
+
+    fireEvent.change(input, { target: { files: [file] } })
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('Upload failed')).toBeInTheDocument()
+    expect(screen.queryByText('Could not read file')).not.toBeInTheDocument()
+  })
+
   it('keeps the file-read toast for malformed JSON uploads', async () => {
     const mutateAsync = vi.fn()
 

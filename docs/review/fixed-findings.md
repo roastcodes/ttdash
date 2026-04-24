@@ -1,5 +1,28 @@
 # Fixed Findings
 
+## 2026-04-24
+
+### code-review.md / H-01
+
+- Status: fixed
+- Scope: `src/hooks/use-dashboard-controller.ts` was reduced from the remaining god-hook into a composition root over focused internal controller slices. The heavy derived state, browser IO, dialog ownership, drill-down navigation, shell/load state, and imperative dashboard actions now live in `src/hooks/use-dashboard-controller-actions.ts`, `use-dashboard-controller-browser.ts`, `use-dashboard-controller-derived-state.ts`, `use-dashboard-controller-dialogs.ts`, `use-dashboard-controller-drill-down.ts`, `use-dashboard-controller-effects.ts`, and `use-dashboard-controller-shell-state.ts`, while the public controller contract stayed stable through `src/hooks/use-dashboard-controller.ts`.
+- Guardrails: `docs/architecture.md` now documents the internal dashboard controller slices and the browser-IO helper as private implementation details behind the public controller hook, and `.dependency-cruiser.cjs` now blocks component-level fanout to the internal `use-dashboard-controller-*.ts` slices while keeping the intentional type-only controller contract out of the orphan warning path.
+- Follow-up quality fixes during implementation:
+  - `tests/frontend/dashboard-controller-browser.test.tsx` now locks the extracted browser helper responsibilities for JSON downloads, section scrolling, and the test-only `openSettings` bridge.
+  - `tests/frontend/dashboard-controller-drill-down.test.tsx` now covers the extracted drill-down slice directly, including the edge case where the selected day disappears after filtering changes.
+  - `src/hooks/use-dashboard-controller-actions.ts` now uses the upload-specific fallback toast (`api.uploadFailed`) after a successful JSON parse when the backend rejects a usage upload without an `Error` instance, and `tests/frontend/dashboard-error-state.test.tsx` covers that regression explicitly.
+  - `npm run test:timings` showed no new performance hotspot in the touched dashboard/controller suites; the new slice tests stay sub-100ms and the existing dashboard controller/public-shell tests remained fast.
+- Validation:
+  - `npm run check`
+  - `npm run test:architecture`
+  - `npm run test:timings`
+  - `npm run test:unit -- tests/frontend/dashboard-controller-browser.test.tsx tests/frontend/dashboard-controller-drill-down.test.tsx tests/frontend/dashboard-controller-state.test.tsx tests/frontend/dashboard-controller-actions.test.tsx tests/frontend/dashboard-filter-visibility.test.tsx tests/frontend/dashboard-error-state.test.tsx`
+  - `npm run test:unit -- tests/frontend/dashboard-error-state.test.tsx tests/frontend/dashboard-controller-actions.test.tsx tests/frontend/dashboard-controller-browser.test.tsx`
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run verify:release`
+  - `PLAYWRIGHT_TEST_PORT=3016 npm_config_cache=/tmp/ttdash-npm-cache npm run test:e2e`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 1: 1 minor issue, fixed (`api.uploadFailed` fallback for backend upload rejection after successful JSON parse)
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 2: blocked by CodeRabbit rate limit (`Rate limit exceeded`, retry window reported by the CLI: `52 minutes and 50 seconds`)
+
 ## 2026-04-23
 
 ### architecture-review.md / H-01
