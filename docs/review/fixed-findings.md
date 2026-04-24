@@ -2,6 +2,27 @@
 
 ## 2026-04-24
 
+### code-review.md / M-02
+
+- Status: fixed
+- Scope: `src/components/features/settings/SettingsModal.tsx` was reduced from the former 1000+ line all-in-one dialog into a shell/composition root over extracted settings sections, a draft-state hook, a version-status hook, and modal-local helper logic. The visible settings areas now live behind `src/components/features/settings/SettingsModalSections.tsx`, while the draft/save/reset behavior moved into `use-settings-modal-draft.ts` and the toktrack lookup behavior moved into `use-settings-modal-version-status.ts`.
+- Guardrails: `docs/architecture.md` now documents the settings modal shell, internal section bundle, and private helper hooks as a feature-internal composition boundary, and `.dependency-cruiser.cjs` now blocks unrelated frontend modules from importing `SettingsModalSections.tsx`, `use-settings-modal-draft.ts`, `use-settings-modal-version-status.ts`, or `settings-modal-helpers.ts` directly.
+- Follow-up quality fixes during implementation:
+  - `src/components/features/settings/settings-modal-helpers.ts` now owns the extracted number parsing, selection normalization, provider-limit draft building/patching, and section reorder helpers so tests no longer import utility behavior through the UI shell.
+  - `use-settings-modal-draft.ts` now clones incoming section drafts and patches empty provider configs from `DEFAULT_PROVIDER_LIMIT_CONFIG`, preserving the previous provider-limit safety behavior after the refactor.
+  - `use-settings-modal-draft.ts` now initializes modal drafts once per open session and resets that guard on close, so external prop churn can no longer overwrite in-progress edits while the dialog remains open.
+  - `tests/unit/settings-modal-helpers.test.ts` now covers the extracted settings helpers directly, and `tests/unit/code-rabbit-phase1.test.ts` was narrowed back to the unrelated chart/auto-import helpers it actually owns.
+  - `tests/frontend/settings-modal-defaults.test.tsx`, `settings-modal-sections.test.tsx`, `settings-modal-backups.test.tsx`, `settings-modal-provider-limits.test.tsx`, and `settings-modal-draft-state.test.tsx` now split the modal coverage by responsibility instead of adding another broad catch-all dialog suite.
+- Validation:
+  - `npm run test:unit -- tests/unit/settings-modal-helpers.test.ts tests/unit/code-rabbit-phase1.test.ts tests/frontend/settings-modal-language.test.tsx tests/frontend/settings-modal-version-status.test.tsx tests/frontend/settings-modal-defaults.test.tsx tests/frontend/settings-modal-sections.test.tsx tests/frontend/settings-modal-backups.test.tsx tests/frontend/settings-modal-provider-limits.test.tsx`
+  - `npm run check`
+  - `npm run test:architecture`
+  - `npm run test:timings`
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run verify:release`
+  - `PLAYWRIGHT_TEST_PORT=3016 npm_config_cache=/tmp/ttdash-npm-cache npm run test:e2e`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 1: 1 minor issue, fixed (draft state no longer reinitializes while the modal stays open; `tests/frontend/settings-modal-draft-state.test.tsx` added)
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 2: blocked by CodeRabbit rate limit (`Rate limit exceeded`, retry window reported by the CLI: `54 minutes and 32 seconds`)
+
 ### code-review.md / H-01
 
 - Status: fixed

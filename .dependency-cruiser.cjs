@@ -91,6 +91,20 @@ module.exports = {
       },
     },
     {
+      name: 'no-settings-modal-internals-fanout',
+      severity: 'error',
+      comment:
+        'Settings modal internals should stay behind the settings feature shell instead of being reused across unrelated frontend modules.',
+      from: {
+        path: '^src/',
+        pathNot:
+          '^src/components/features/settings/(?:SettingsModal|SettingsModalSections|use-settings-modal-(?:draft|version-status)|settings-modal-helpers)\\.(?:ts|tsx)$',
+      },
+      to: {
+        path: '^src/components/features/settings/(?:SettingsModalSections|use-settings-modal-(?:draft|version-status)|settings-modal-helpers)\\.(?:ts|tsx)$',
+      },
+    },
+    {
       name: 'no-server-module-to-entrypoint',
       severity: 'error',
       comment: 'Server implementation modules must stay independent from the bootstrap entrypoint.',

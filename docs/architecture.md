@@ -117,6 +117,21 @@ Dashboard-specific presets, static section metadata, and preset date semantics a
   - consumes a single `DashboardSectionsViewModel`
   - should keep section ownership grouped by section bundle instead of reintroducing broad prop lists
 
+## Settings Modal Composition
+
+- `src/components/features/settings/SettingsModal.tsx`
+  - owns the dialog shell and composes the internal settings sections and draft/version hooks
+- `src/components/features/settings/SettingsModalSections.tsx`
+  - owns the extracted section subviews for status, language, defaults, dashboard motion/version, backups, section layout, and provider limits
+- `src/components/features/settings/use-settings-modal-draft.ts`
+  - owns the editable settings draft state, reset behavior, and save orchestration for the modal
+- `src/components/features/settings/use-settings-modal-version-status.ts`
+  - owns the async toktrack version lookup state shown in the modal
+- `src/components/features/settings/settings-modal-helpers.ts`
+  - owns modal-specific draft helpers such as provider-limit patching, selection normalization, and section reordering
+- these settings-modal internals are private to the settings feature
+  - other frontend modules should consume `SettingsModal.tsx`, not its internal helper files directly
+
 Important expectations:
 
 - generic UI primitives belong in `src/components/ui/**`, not inside feature folders
@@ -156,5 +171,6 @@ Both `ci.yml` and `release.yml` run `check:deps` and `test:architecture` explici
 - Keep shared settings logic centralized. If a new persisted settings field, default, or normalization rule is added, update `shared/app-settings.js` first and adapt frontend/server wrappers afterward.
 - Keep dashboard orchestration bundled. New dashboard shell behavior should usually extend the controller/view-model contracts instead of adding new flat props to `Dashboard.tsx` or `DashboardSections.tsx`.
 - Keep dashboard controller internals private. New browser-side dashboard IO or orchestration helpers should usually live in `use-dashboard-controller-*.ts` and be composed by `use-dashboard-controller.ts`, not imported directly by components.
+- Keep settings modal internals private. New settings-modal sections, draft helpers, or version-status logic should stay under `src/components/features/settings/**` and be composed by `SettingsModal.tsx`, not imported directly by unrelated features.
 - Do not add broad allowlists just to get green. Fix the code or scope the rule explicitly.
 - If a feature helper becomes cross-feature, move it out of `src/components/features/**` before adding more exceptions.
