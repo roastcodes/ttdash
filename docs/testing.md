@@ -113,6 +113,10 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 - Dependency graph gate: `npm run check:deps`
 - Coverage-only unit/integration gate: `npm run test:unit:coverage`
 - Playwright only: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`
+
+## Architecture Guardrails
+
+- Keep hook files under `src/hooks/` wired into production code; `npm run test:architecture` fails on unused production hooks so dead hook helpers do not silently remain at `0%` coverage.
 - Timing diagnostics: `npm run test:timings`
 
 `npm run test:timings` generates a fresh Vitest JUnit report and prints the slowest suites and tests. Use it after larger test additions or refactors to catch new hotspots early.

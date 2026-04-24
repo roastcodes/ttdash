@@ -2,6 +2,21 @@
 
 ## 2026-04-24
 
+### code-review.md / N-01
+
+- Status: fixed
+- Scope: removed the unused `src/hooks/use-theme.ts` and `src/hooks/use-provider-limits.ts` files. Their active responsibilities already live in the persisted settings flow: theme application goes through `applyTheme` and dashboard controller effects, while provider-limit synchronization goes through `useAppSettings` and `syncProviderLimits`.
+- Guardrails: `tests/architecture/unused-hooks.test.ts` now fails when a production hook file under `src/hooks/` has no production import, and `docs/architecture.md` plus `docs/testing.md` document that unused hook helpers should be removed instead of retained as speculative code.
+- Follow-up quality fixes during implementation:
+  - The guardrail covers the same dead-hook visibility gap that made the original `0%` coverage files easy to miss, so future unused hook files are caught by `npm run test:architecture`.
+- Validation:
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run test:unit -- tests/frontend/react-query-hooks.test.tsx tests/frontend/dashboard-controller-state.test.tsx tests/frontend/dashboard-controller-actions.test.tsx`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 1: blocked by CodeRabbit rate limit (`Rate limit exceeded`, retry window reported by the CLI: `47 minutes and 10 seconds`)
+
 ### code-review.md / M-01
 
 - Status: fixed
