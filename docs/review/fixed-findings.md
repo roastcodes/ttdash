@@ -1,5 +1,25 @@
 # Fixed Findings
 
+## 2026-04-25
+
+### dashboard-review.md / N-02
+
+- Status: fixed
+- Scope: `src/components/dashboard/DashboardSections.tsx` already consumes a single structured `DashboardSectionsViewModel`, and `src/lib/dashboard-view-model.d.ts` keeps the section data split into named section bundles instead of flat dashboard props. This closes the original broad `DashboardSectionsProps` concern without changing visible dashboard functionality, content, UI, or animations.
+- Guardrails: `tests/architecture/dashboard-sections-contract.test.ts` now locks the public `DashboardSections` prop contract to one `viewModel` prop and keeps `DashboardSectionsViewModel` split into the intended layout, analysis, table, comparison, and interaction bundles.
+- Follow-up quality fixes during implementation:
+  - No production refactor was needed because the broader view-model boundary had already been introduced by `architecture-review.md / M-01`; this change adds a targeted regression guardrail so future section work does not reintroduce wide flat props.
+  - `docs/architecture.md` already documents the intended DashboardSections boundary, so no duplicate architecture text was added.
+- Validation:
+  - `npm run test:architecture`
+  - `npm run test:unit -- tests/frontend/dashboard-filter-visibility.test.tsx`
+  - `tsc --noEmit`
+  - `npm run lint`
+  - `npm run check:deps`
+  - `npm run verify:full`
+  - `npm run test:timings` -> attempted twice; both runs failed under external CPU pressure with migrating 5s timeouts in existing unrelated frontend suites, while `npm run verify:full` had just completed the same coverage test set successfully; the new architecture guardrail itself stayed below 100ms in `npm run test:architecture`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files docs/review/fixed-findings.md tests/architecture/dashboard-sections-contract.test.ts` -> 0 issues
+
 ## 2026-04-24
 
 ### dashboard-review.md / N-01
