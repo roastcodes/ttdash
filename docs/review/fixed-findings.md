@@ -2,6 +2,32 @@
 
 ## 2026-04-24
 
+### dashboard-review.md / M-02
+
+- Status: fixed
+- Scope: `src/components/layout/FilterBar.tsx` was reduced to a composition shell over private filter groups for status, time presets, date range, and provider/model chips. The visible dashboard filtering capabilities remain intact while the bar now shows lightly grouped Time, Date range, Providers, and Models areas.
+- Guardrails: `tests/frontend/filter-bar-accessibility.test.tsx` covers localized filter groups, while the existing date-picker and preset/chip suites continue to lock keyboard focus, date clearing, preset highlighting, and chip `aria-pressed`/visual states. `.dependency-cruiser.cjs` now keeps the new FilterBar internals private to the FilterBar shell.
+- Follow-up quality fixes during implementation:
+  - The custom date picker logic now lives in `FilterBarDateRange.tsx`, isolating its portal, overlay positioning, keyboard navigation, and focus restoration from the main filter shell.
+  - Provider and model chip rendering now lives in `FilterBarChipFilters.tsx`, keeping provider badge styling and model color state local to chip filters.
+  - Provider badge alpha variants now flow through `getProviderBadgeStyle(...)`, so included provider chips no longer parse or mutate CSS strings in the UI.
+  - Date-picker calendar labels now recompute from the active locale while the picker is open, and weekday cells use stable keys.
+- Validation:
+  - `npm run test:unit -- tests/frontend/filter-bar-accessibility.test.tsx tests/frontend/filter-bar-date-picker.test.tsx tests/frontend/filter-bar-presets.test.tsx tests/unit/model-colors.test.ts`
+  - `tsc --noEmit`
+  - `npm run lint`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md -f ...` -> fixed relevant minor findings for weekday keys, provider badge alpha handling, locale-reactive calendar labels, and included-chip style collisions; remaining global uncommitted finding is isolated to unrelated untracked `docs/application-stack-reference.md`.
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --dir src/components/layout` -> 0 issues
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --dir src/lib` -> 0 issues
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --dir tests` -> 0 issues
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --dir shared` -> 0 issues
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --dir docs/review` -> 0 issues
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files .dependency-cruiser.cjs` -> 0 issues
+
 ### dashboard-review.md / M-01
 
 - Status: fixed

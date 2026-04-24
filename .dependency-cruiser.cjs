@@ -105,6 +105,20 @@ module.exports = {
       },
     },
     {
+      name: 'no-filterbar-internals-fanout',
+      severity: 'error',
+      comment:
+        'FilterBar internals should stay behind the layout FilterBar shell instead of being reused across unrelated frontend modules.',
+      from: {
+        path: '^src/',
+        pathNot:
+          '^src/components/layout/(?:FilterBar|FilterBar(?:ChipFilters|DateRange|QuickControls|Status))\\.tsx$',
+      },
+      to: {
+        path: '^src/components/layout/FilterBar(?:ChipFilters|DateRange|QuickControls|Status)\\.tsx$',
+      },
+    },
+    {
       name: 'no-server-module-to-entrypoint',
       severity: 'error',
       comment: 'Server implementation modules must stay independent from the bootstrap entrypoint.',

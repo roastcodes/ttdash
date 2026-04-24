@@ -119,6 +119,12 @@
     "modelsActive": "{{count}} models active",
     "dateFilterActive": "Date filter active",
     "clearDate": "Clear {{label}}",
+    "groups": {
+      "time": "Time",
+      "dateRange": "Date range",
+      "providers": "Providers",
+      "models": "Models"
+    },
     "presets": {
       "7d": "7D",
       "30d": "30D",

@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module'
 import { afterEach, describe, expect, it } from 'vitest'
-import { getModelColor, getModelColorAlpha } from '@/lib/model-utils'
+import { getModelColor, getModelColorAlpha, getProviderBadgeStyle } from '@/lib/model-utils'
 
 const require = createRequire(import.meta.url)
 const {
@@ -150,6 +150,24 @@ describe('model colors', () => {
     expect(palette.getColor('Claude Sonnet 4.5', { theme: 'light', alpha: 0.16 })).toBe(
       'hsla(214, 70%, 50%, 0.16)',
     )
+  })
+
+  it('creates provider badge variants without mutating the default alpha values', () => {
+    expect(getProviderBadgeStyle('OpenAI')).toEqual({
+      color: 'rgb(52, 211, 153)',
+      backgroundColor: 'rgba(16, 185, 129, 0.10)',
+      borderColor: 'rgba(16, 185, 129, 0.20)',
+    })
+    expect(
+      getProviderBadgeStyle('OpenAI', {
+        backgroundAlpha: 0.05,
+        borderAlpha: 0.14,
+      }),
+    ).toEqual({
+      color: 'rgb(52, 211, 153)',
+      backgroundColor: 'rgba(16, 185, 129, 0.05)',
+      borderColor: 'rgba(16, 185, 129, 0.14)',
+    })
   })
 
   it('uses the light palette consistently in report output', () => {

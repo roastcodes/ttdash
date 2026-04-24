@@ -117,6 +117,10 @@ Dashboard-specific presets, static section metadata, and preset date semantics a
 - `src/components/dashboard/DashboardSections.tsx`
   - consumes a single `DashboardSectionsViewModel`
   - should keep section ownership grouped by section bundle instead of reintroducing broad prop lists
+- `src/components/layout/FilterBar.tsx`
+  - owns the public filter bar shell and composes private layout filter groups for status, time presets, date range, and provider/model chips
+- `src/components/layout/FilterBar*.tsx`
+  - are private FilterBar internals, not shared UI primitives; unrelated modules should consume `FilterBar.tsx` only
 
 ## Settings Modal Composition
 

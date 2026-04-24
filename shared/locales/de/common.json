@@ -119,6 +119,12 @@
     "modelsActive": "{{count}} Modelle aktiv",
     "dateFilterActive": "Datumsfilter aktiv",
     "clearDate": "{{label}} zurücksetzen",
+    "groups": {
+      "time": "Zeit",
+      "dateRange": "Zeitraum",
+      "providers": "Anbieter",
+      "models": "Modelle"
+    },
     "presets": {
       "7d": "7T",
       "30d": "30T",
