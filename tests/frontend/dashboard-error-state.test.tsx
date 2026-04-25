@@ -26,9 +26,14 @@ const apiMocks = vi.hoisted(() => ({
   importUsageData: vi.fn(),
 }))
 
+const toktrackVersionStatusMocks = vi.hoisted(() => ({
+  scheduleToktrackVersionStatusWarmup: vi.fn(() => ({ cancel: vi.fn() })),
+}))
+
 vi.mock('@/hooks/use-usage-data', () => usageHookMocks)
 vi.mock('@/hooks/use-app-settings', () => settingsHookMocks)
 vi.mock('@/lib/api', () => apiMocks)
+vi.mock('@/lib/toktrack-version-status', () => toktrackVersionStatusMocks)
 
 function makeEmptyUsageData() {
   return {
@@ -106,6 +111,7 @@ describe('Dashboard fatal load state', () => {
       conflictingDays: 0,
       totalDays: 0,
     })
+    toktrackVersionStatusMocks.scheduleToktrackVersionStatusWarmup.mockClear()
   })
 
   it('renders a fatal settings error state instead of the normal empty state and resets settings', async () => {

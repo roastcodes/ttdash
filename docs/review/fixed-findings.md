@@ -45,6 +45,26 @@
   - `npm run test:timings` -> completed after the CodeRabbit follow-up fix
   - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 1 minor issue fixed, round 3: 0 issues, round 4: 0 issues
 
+### performance-review.md / M-02
+
+- Status: fixed
+- Scope: the Settings dialog no longer starts `/api/toktrack/version-status` when it opens. The dashboard shell now schedules one cancellable, idle-friendly toktrack latest-version warmup per browser session through `src/lib/toktrack-version-status.ts`, and the settings version hook only formats the shared session snapshot for the Maintenance tab.
+- Guardrails: `tests/unit/toktrack-version-status.test.ts` covers the pinned initial snapshot, concurrent warmup deduplication, cached failure behavior, scheduled fallback warmup, and cancellation. `tests/frontend/settings-modal-version-status.test.tsx` covers warmed status rendering without a dialog-open fetch, the no-fetch dialog-open path, and cached failure reuse across reopen. `tests/frontend/dashboard-filter-visibility.test.tsx` covers that the dashboard shell wires the session warmup scheduler.
+- Follow-up quality fixes during implementation:
+  - `docs/architecture.md` now documents the session-wide toktrack version status cache as the owner of lookup state, while the settings modal hook is only the presentation adapter.
+  - Dashboard tests mock the warmup scheduler explicitly so future dashboard renders cannot accidentally perform real toktrack version network work during component tests.
+  - The server `/api/toktrack/version-status` contract and existing server-side success/failure TTL cache remain unchanged, so the fix changes when the UI asks for the status, not how the status is resolved.
+- Validation:
+  - `npm run test:unit -- tests/unit/toktrack-version-status.test.ts tests/frontend/settings-modal-version-status.test.tsx tests/frontend/settings-modal-tabs.test.tsx tests/frontend/dashboard-filter-visibility.test.tsx tests/frontend/dashboard-error-state.test.tsx tests/unit/api.test.ts`
+  - `npm run format:check`
+  - `npm run lint`
+  - `tsc --noEmit`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues, round 3: 0 issues
+
 ### dashboard-review.md / N-02
 
 - Status: fixed

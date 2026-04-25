@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Dashboard } from '@/components/Dashboard'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
@@ -11,7 +11,12 @@ const dashboardControllerMocks = vi.hoisted(() => ({
   useDashboardControllerWithBootstrap: vi.fn(),
 }))
 
+const toktrackVersionStatusMocks = vi.hoisted(() => ({
+  scheduleToktrackVersionStatusWarmup: vi.fn(() => ({ cancel: vi.fn() })),
+}))
+
 vi.mock('@/hooks/use-dashboard-controller', () => dashboardControllerMocks)
+vi.mock('@/lib/toktrack-version-status', () => toktrackVersionStatusMocks)
 vi.mock('@/components/layout/Header', () => ({
   Header: () => <div data-testid="header" />,
 }))
@@ -52,6 +57,7 @@ vi.mock('@/components/features/pdf-report/PDFReport', () => ({
 describe('Dashboard model filter visibility', () => {
   beforeEach(async () => {
     await initI18n('en')
+    toktrackVersionStatusMocks.scheduleToktrackVersionStatusWarmup.mockClear()
   })
 
   it('keeps selected models visible in the FilterBar when they are filtered out of availableModels', () => {
@@ -86,5 +92,19 @@ describe('Dashboard model filter visibility', () => {
 
     expect(props.sectionOrder).toEqual(DEFAULT_APP_SETTINGS.sectionOrder)
     expect(props.hasDrillDownHandler).toBe(true)
+  })
+
+  it('starts the toktrack version status warmup from the dashboard shell', async () => {
+    dashboardControllerMocks.useDashboardControllerWithBootstrap.mockReturnValue(
+      createDashboardControllerViewModel(),
+    )
+
+    render(<Dashboard initialSettings={DEFAULT_APP_SETTINGS} />)
+
+    await waitFor(() =>
+      expect(toktrackVersionStatusMocks.scheduleToktrackVersionStatusWarmup).toHaveBeenCalledTimes(
+        1,
+      ),
+    )
   })
 })

@@ -113,6 +113,8 @@ Dashboard-specific presets, static section metadata, and preset date semantics a
   - group dashboard actions by user intent so data loading, exports, maintenance, filters, navigation, and view actions stay discoverable without collapsing into one undifferentiated action surface
 - `src/lib/dashboard-view-model.d.ts`
   - owns the shared frontend-only view-model contracts for the dashboard shell and sections
+- `src/lib/toktrack-version-status.ts`
+  - owns the session-wide toktrack latest-version warmup cache so settings can render status without coupling dialog opening to the registry lookup
 - `src/hooks/use-dashboard-controller-browser.ts`
   - owns dashboard-specific browser IO such as download anchors, section scrolling, and the test-only `openSettings` bridge
   - keeps DOM concerns out of the main controller orchestration file
@@ -134,7 +136,7 @@ Dashboard-specific presets, static section metadata, and preset date semantics a
 - `src/components/features/settings/use-settings-modal-draft.ts`
   - owns the editable settings draft state, reset behavior, and save orchestration for the modal
 - `src/components/features/settings/use-settings-modal-version-status.ts`
-  - owns the async toktrack version lookup state shown in the modal
+  - formats the session-wide toktrack version status shown in the modal
 - `src/components/features/settings/settings-modal-helpers.ts`
   - owns modal-specific draft helpers such as provider-limit patching, selection normalization, and section reordering
 - these settings-modal internals are private to the settings feature

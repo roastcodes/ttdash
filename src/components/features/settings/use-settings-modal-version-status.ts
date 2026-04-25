@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
-import { fetchToktrackVersionStatus } from '@/lib/api'
-import { TOKTRACK_VERSION } from '@/lib/toktrack-version'
-import type { ToktrackVersionStatus } from '@/types'
+import {
+  getToktrackVersionStatusSnapshot,
+  subscribeToktrackVersionStatus,
+  type ToktrackVersionStatusSnapshot,
+} from '@/lib/toktrack-version-status'
 
 /** Describes the toktrack version state owned by the settings modal. */
-export type SettingsToktrackVersionState = ToktrackVersionStatus & {
-  isLoading: boolean
-}
+export type SettingsToktrackVersionState = ToktrackVersionStatusSnapshot
 
 /** Describes the toktrack version data rendered inside the settings modal. */
 export interface SettingsVersionStatusViewModel {
@@ -17,52 +17,14 @@ export interface SettingsVersionStatusViewModel {
   state: SettingsToktrackVersionState
 }
 
-const DEFAULT_TOKTRACK_VERSION_STATE: SettingsToktrackVersionState = {
-  configuredVersion: TOKTRACK_VERSION,
-  latestVersion: null,
-  isLatest: null,
-  lookupStatus: 'ok',
-  isLoading: true,
-}
-
-/** Loads and formats the toktrack version status shown in the settings modal. */
-export function useSettingsModalVersionStatus(open: boolean): SettingsVersionStatusViewModel {
+/** Formats the session-wide toktrack version status shown in the settings modal. */
+export function useSettingsModalVersionStatus(): SettingsVersionStatusViewModel {
   const { t } = useTranslation()
-  const [state, setState] = useState<SettingsToktrackVersionState>(DEFAULT_TOKTRACK_VERSION_STATE)
-
-  useEffect(() => {
-    if (!open) return
-
-    let cancelled = false
-    setState(DEFAULT_TOKTRACK_VERSION_STATE)
-
-    void fetchToktrackVersionStatus()
-      .then((status) => {
-        if (cancelled) return
-
-        setState({
-          ...status,
-          configuredVersion: status.configuredVersion || TOKTRACK_VERSION,
-          isLoading: false,
-        })
-      })
-      .catch(() => {
-        if (cancelled) return
-
-        setState({
-          configuredVersion: TOKTRACK_VERSION,
-          latestVersion: null,
-          isLatest: null,
-          lookupStatus: 'failed',
-          message: t('settings.modal.toktrackLatestCheckFailed'),
-          isLoading: false,
-        })
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [open, t])
+  const state = useSyncExternalStore(
+    subscribeToktrackVersionStatus,
+    getToktrackVersionStatusSnapshot,
+    getToktrackVersionStatusSnapshot,
+  )
 
   const statusToneClass = useMemo(() => {
     if (state.isLoading) return 'text-muted-foreground'

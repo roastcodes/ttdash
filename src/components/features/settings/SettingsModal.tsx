@@ -90,7 +90,7 @@ export function SettingsModal(props: SettingsModalProps) {
   })
   const [activeTab, setActiveTab] = useState<SettingsModalTabId>('basics')
   const draft = useSettingsModalDraft(props)
-  const versionStatus = useSettingsModalVersionStatus(open)
+  const versionStatus = useSettingsModalVersionStatus()
   const activeTabDefinition =
     SETTINGS_MODAL_TABS.find((tab) => tab.id === activeTab) ?? SETTINGS_MODAL_TABS[0]!
 

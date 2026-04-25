@@ -4,6 +4,7 @@ import { screen } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsModal } from '@/components/features/settings/SettingsModal'
 import { initI18n } from '@/lib/i18n'
+import { warmupToktrackVersionStatus } from '@/lib/toktrack-version-status'
 import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 import {
   buildSettingsModalProps,
@@ -23,7 +24,7 @@ describe('SettingsModal toktrack version status', () => {
     stubToktrackVersionStatus()
   })
 
-  it('loads and displays the pinned toktrack version state when the dialog opens', async () => {
+  it('displays the warmed toktrack version state without fetching on dialog open', async () => {
     const fetchMock = stubToktrackVersionStatus({
       configuredVersion: TOKTRACK_VERSION,
       latestVersion: MOCK_NEWER_VERSION,
@@ -31,17 +32,18 @@ describe('SettingsModal toktrack version status', () => {
       lookupStatus: 'ok',
     })
 
+    await warmupToktrackVersionStatus()
     renderSettingsModal()
     openSettingsTab('Maintenance')
 
     expect(screen.getByTestId('settings-toktrack-version')).toHaveTextContent(TOKTRACK_VERSION)
-    expect(await screen.findByTestId('settings-toktrack-status')).toHaveTextContent(
+    expect(screen.getByTestId('settings-toktrack-status')).toHaveTextContent(
       `Update available: ${MOCK_NEWER_VERSION}`,
     )
-    expect(fetchMock).toHaveBeenCalledWith('/api/toktrack/version-status')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
-  it('only checks the latest toktrack version after the dialog becomes visible', async () => {
+  it('does not start the latest-version check when the dialog becomes visible', () => {
     const fetchMock = stubToktrackVersionStatus()
     const { rerender } = renderSettingsModal({ open: false })
 
@@ -50,18 +52,26 @@ describe('SettingsModal toktrack version status', () => {
     rerender(<SettingsModal {...buildSettingsModalProps({ open: true })} />)
     openSettingsTab('Maintenance')
 
-    expect(await screen.findByTestId('settings-toktrack-status')).toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('settings-toktrack-status')).toHaveTextContent('Checking latest')
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('shows a warning when the latest toktrack version check fails', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')))
+  it('shows a cached warning when the session latest-version check fails', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('network'))
+    vi.stubGlobal('fetch', fetchMock)
 
-    renderSettingsModal()
+    await warmupToktrackVersionStatus()
+    const { props, rerender } = renderSettingsModal()
     openSettingsTab('Maintenance')
 
-    expect(await screen.findByTestId('settings-toktrack-status')).toHaveTextContent(
+    expect(screen.getByTestId('settings-toktrack-status')).toHaveTextContent(
       'Latest version could not be checked',
     )
-  }, 10_000)
+
+    rerender(<SettingsModal {...props} open={false} />)
+    rerender(<SettingsModal {...props} open />)
+    openSettingsTab('Maintenance')
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
 })

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SlidersHorizontal } from 'lucide-react'
 import { Header } from './layout/Header'
@@ -12,6 +12,7 @@ import { DashboardSkeleton } from './ui/skeleton'
 import { Button } from './ui/button'
 import { useDashboardControllerWithBootstrap } from '@/hooks/use-dashboard-controller'
 import { ModelColorPaletteProvider } from '@/lib/model-color-context'
+import { scheduleToktrackVersionStatusWarmup } from '@/lib/toktrack-version-status'
 import type { AppSettings } from '@/types'
 
 const DrillDownModal = lazy(() =>
@@ -56,6 +57,13 @@ export function Dashboard({
     initialSettingsFetchedAt,
     initialSettingsError,
   )
+
+  useEffect(() => {
+    const warmupHandle = scheduleToktrackVersionStatusWarmup()
+    return () => {
+      warmupHandle.cancel()
+    }
+  }, [])
 
   const fileInputs = (
     <>
