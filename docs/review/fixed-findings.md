@@ -23,6 +23,28 @@
   - `npm run test:timings`
   - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues
 
+### performance-review.md / M-01
+
+- Status: fixed
+- Scope: dashboard filter changes now flow through a centralized `deriveDashboardFilterData(...)` pass that derives date/month filtering, provider/model filtering, available filter options, date range, and view-mode aggregation behind the stable `useDashboardFilters` contract. Computed dashboard summaries now share one normalized breakdown aggregation for model costs, provider metrics, and model options behind the stable `useComputedMetrics` contract.
+- Guardrails: `tests/unit/dashboard-filter-data.test.ts` compares the new filter derivation with the previous staged semantics across representative filter combinations and empty states. `tests/unit/dashboard-aggregation.test.ts` locks normalized model/provider aggregation and day counting. `tests/frontend/use-computed-metrics.test.tsx` covers the public computed-metrics hook boundary.
+- Follow-up quality fixes during implementation:
+  - `src/lib/dashboard-filter-data.ts` imports directly from the shared dashboard-domain contract instead of routing through broader frontend transform helpers, keeping the hook dependency graph smaller and the architecture layer test below its timeout budget.
+  - `src/lib/data-transforms.ts` now fills scalar chart arrays and model-name discovery in one sorted-data pass instead of separate `map(...)` and `flatMap(...)` passes.
+  - `computeModelCosts(...)` and `computeProviderMetrics(...)` now delegate to the shared breakdown summary, so standalone calculation callers and dashboard hook callers use the same aggregation path.
+  - After CodeRabbit review, computed `allModels` now unions `modelsUsed` and `modelBreakdowns`, so inconsistent imported data can no longer hide a breakdown-backed model from the model-over-time chart while existing modelsUsed-only behavior remains preserved.
+- Validation:
+  - `npm run test:unit -- tests/unit/dashboard-filter-data.test.ts tests/unit/dashboard-aggregation.test.ts tests/frontend/use-computed-metrics.test.tsx tests/frontend/use-dashboard-filters.test.tsx tests/unit/analytics.test.ts tests/unit/data-transforms.test.ts tests/unit/code-rabbit-phase4.test.ts`
+  - `npm run test:unit -- tests/unit/dashboard-aggregation.test.ts tests/frontend/use-computed-metrics.test.tsx tests/unit/analytics.test.ts`
+  - `npm run format:check`
+  - `npm run lint`
+  - `tsc --noEmit`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:full` -> completed after the CodeRabbit follow-up fix
+  - `npm run test:timings` -> completed after the CodeRabbit follow-up fix
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 1 minor issue fixed, round 3: 0 issues, round 4: 0 issues
+
 ### dashboard-review.md / N-02
 
 - Status: fixed
