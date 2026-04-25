@@ -80,10 +80,11 @@ function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders, bindHost }) 
     });
   }
 
-  function json(res, status, data) {
+  function json(res, status, data, headers = {}) {
     res.writeHead(status, {
       'Content-Type': 'application/json; charset=utf-8',
       ...securityHeaders,
+      ...headers,
     });
     res.end(JSON.stringify(data));
   }

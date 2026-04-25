@@ -14,7 +14,10 @@ const { createBackgroundRuntime } = require('../../server/background-runtime.js'
     }
     path: typeof path
     processObject: NodeJS.Process
-    fetchImpl: (input: URL) => Promise<{
+    fetchImpl: (
+      input: URL,
+      init?: { headers?: Record<string, string>; signal?: AbortSignal },
+    ) => Promise<{
       ok: boolean
       json: () => Promise<{ id: string; port: number }>
     }>
@@ -28,6 +31,7 @@ const { createBackgroundRuntime } = require('../../server/background-runtime.js'
     normalizeIsoTimestamp: (value: string) => string
     bindHost: string
     apiPrefix: string
+    remoteAuthHeader?: string | null
     runtimeInstance: { id: string; pid: number; startedAt: string }
     normalizedCliArgs: string[]
     cliOptions: { noOpen: boolean; port?: number }

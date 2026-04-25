@@ -20,6 +20,7 @@ const { createDataRuntime } = require('./server/data-runtime');
 const { createBackgroundRuntime } = require('./server/background-runtime');
 const { createAutoImportRuntime } = require('./server/auto-import-runtime');
 const { createHttpRouter } = require('./server/http-router');
+const { createRemoteAuth } = require('./server/remote-auth');
 const {
   ensureBindHostAllowed,
   isLoopbackHost,
@@ -39,6 +40,7 @@ const START_PORT = CLI_OPTIONS.port ?? (Number.isFinite(ENV_START_PORT) ? ENV_ST
 const MAX_PORT = Math.min(START_PORT + 100, 65535);
 const BIND_HOST = process.env.HOST || '127.0.0.1';
 const ALLOW_REMOTE_BIND = process.env.TTDASH_ALLOW_REMOTE === '1';
+const REMOTE_AUTH_TOKEN = process.env.TTDASH_REMOTE_TOKEN || '';
 const API_PREFIX = process.env.API_PREFIX || '/api';
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const IS_WINDOWS = process.platform === 'win32';
@@ -126,7 +128,9 @@ function printHelp() {
   console.log('  PORT=3010 ttdash');
   console.log('  NO_OPEN_BROWSER=1 ttdash');
   console.log('  HOST=127.0.0.1 ttdash');
-  console.log('  TTDASH_ALLOW_REMOTE=1 HOST=0.0.0.0 ttdash');
+  console.log(
+    '  TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=0.0.0.0 ttdash',
+  );
 }
 
 function parseCliArgs(rawArgs) {
@@ -235,6 +239,12 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+const remoteAuth = createRemoteAuth({
+  bindHost: BIND_HOST,
+  allowRemoteBind: ALLOW_REMOTE_BIND,
+  token: REMOTE_AUTH_TOKEN,
+});
+
 const dataRuntime = createDataRuntime({
   fs,
   fsPromises: require('fs/promises'),
@@ -271,6 +281,7 @@ const backgroundRuntime = createBackgroundRuntime({
   normalizeIsoTimestamp: dataRuntime.normalizeIsoTimestamp,
   bindHost: BIND_HOST,
   apiPrefix: API_PREFIX,
+  remoteAuthHeader: remoteAuth.getAuthorizationHeader(),
   runtimeInstance: RUNTIME_INSTANCE,
   normalizedCliArgs: NORMALIZED_CLI_ARGS,
   cliOptions: CLI_OPTIONS,
@@ -325,6 +336,7 @@ const router = createHttpRouter({
   staticRoot: STATIC_ROOT,
   securityHeaders: SECURITY_HEADERS,
   httpUtils,
+  remoteAuth,
   dataRuntime,
   autoImportRuntime,
   generatePdfReport,
@@ -412,6 +424,7 @@ function printStartupSummary(url, port) {
   console.log(`  Host:           ${BIND_HOST}`);
   if (remoteBind) {
     console.log(`  Exposure:       network-accessible via ${BIND_HOST}`);
+    console.log('  Remote Auth:    required');
   }
   console.log(`  Mode:           ${runtimeMode}`);
   console.log(`  Static Root:    ${STATIC_ROOT}`);
@@ -425,10 +438,11 @@ function printStartupSummary(url, port) {
   console.log(`  Auto-Load:      ${autoLoadMode}`);
   if (remoteBind) {
     console.log('');
+    console.log('Security warning: this bind host exposes the dashboard to the network.');
     console.log(
-      'Security warning: this bind host can expose local data and destructive API routes.',
+      'Use non-loopback hosts only on trusted networks and keep TTDASH_REMOTE_TOKEN secret.',
     );
-    console.log('Use non-loopback hosts only on trusted networks.');
+    console.log('Open remote browsers once with ?ttdash_token=<TTDASH_REMOTE_TOKEN>.');
   }
   console.log('');
   console.log('Available ways to load data:');
@@ -441,8 +455,14 @@ function printStartupSummary(url, port) {
   console.log('  ttdash --background');
   console.log('  ttdash stop');
   console.log(`  NO_OPEN_BROWSER=1 PORT=${port} node server.js`);
-  console.log(`  TTDASH_ALLOW_REMOTE=1 HOST=${BIND_HOST} PORT=${port} node server.js`);
-  console.log(`  curl ${url}/api/usage`);
+  console.log(
+    `  TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=${BIND_HOST} PORT=${port} node server.js`,
+  );
+  if (remoteBind) {
+    console.log(`  curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" ${url}/api/usage`);
+  } else {
+    console.log(`  curl ${url}/api/usage`);
+  }
   console.log('');
 }
 
@@ -504,8 +524,13 @@ function tryListen(port) {
   return listenOnAvailablePort(server, port, MAX_PORT, BIND_HOST, console.log, START_PORT);
 }
 
-async function start() {
+function ensureServerSecurityAllowed() {
   ensureBindHostAllowed(BIND_HOST, ALLOW_REMOTE_BIND);
+  remoteAuth.ensureConfigured();
+}
+
+async function start() {
+  ensureServerSecurityAllowed();
   dataRuntime.ensureAppDirs([backgroundRuntime.paths.backgroundLogDir]);
   dataRuntime.migrateLegacyDataFile();
 
@@ -528,7 +553,7 @@ async function start() {
   }
 
   printStartupSummary(url, port);
-  openBrowser(url);
+  openBrowser(remoteAuth.createBootstrapUrl(url));
 }
 
 async function runCli() {
@@ -538,7 +563,7 @@ async function runCli() {
   }
 
   if (CLI_OPTIONS.background && !IS_BACKGROUND_CHILD) {
-    ensureBindHostAllowed(BIND_HOST, ALLOW_REMOTE_BIND);
+    ensureServerSecurityAllowed();
     await backgroundRuntime.startInBackground();
     return;
   }

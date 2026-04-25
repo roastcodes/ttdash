@@ -218,6 +218,10 @@ describe('local server background and CLI integration', () => {
           HOST: '0.0.0.0',
           NO_OPEN_BROWSER: '1',
           TTDASH_ALLOW_REMOTE: '1',
+          TTDASH_REMOTE_TOKEN: 'remote-token-123456789012345',
+        },
+        readinessHeaders: {
+          Authorization: 'Bearer remote-token-123456789012345',
         },
       })
 
@@ -225,6 +229,7 @@ describe('local server background and CLI integration', () => {
       expect(standaloneServer.getOutput()).toContain(
         'Exposure:       network-accessible via 0.0.0.0',
       )
+      expect(standaloneServer.getOutput()).toContain('Remote Auth:    required')
     } finally {
       if (standaloneServer) await stopProcess(standaloneServer.child)
       rmSync(runtimeRoot, { recursive: true, force: true })

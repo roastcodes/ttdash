@@ -13,6 +13,7 @@ function createBackgroundRuntime({
   normalizeIsoTimestamp,
   bindHost,
   apiPrefix,
+  remoteAuthHeader,
   runtimeInstance,
   normalizedCliArgs,
   cliOptions,
@@ -42,6 +43,7 @@ function createBackgroundRuntime({
 
     try {
       const response = await fetchImpl(new URL(runtimePath, `${url}/`), {
+        headers: remoteAuthHeader ? { Authorization: remoteAuthHeader } : undefined,
         signal: controller.signal,
       });
 

@@ -4,6 +4,7 @@ function createHttpRouter({
   staticRoot,
   securityHeaders,
   httpUtils,
+  remoteAuth,
   dataRuntime,
   autoImportRuntime,
   generatePdfReport,
@@ -147,6 +148,13 @@ function createHttpRouter({
     }
 
     const apiPath = resolveApiPath(pathname);
+
+    if (apiPath !== null) {
+      const authError = remoteAuth?.validateApiRequest(req);
+      if (authError) {
+        return json(res, authError.status, { message: authError.message }, authError.headers);
+      }
+    }
 
     if (apiPath === null && (pathname === '/api' || pathname.startsWith('/api/'))) {
       return json(res, 404, { message: 'Not Found' });
@@ -482,6 +490,16 @@ function createHttpRouter({
 
     if (apiPath !== null) {
       return json(res, 404, { message: 'API endpoint not found' });
+    }
+
+    const bootstrapResponse = remoteAuth?.resolveBootstrapResponse(url);
+    if (bootstrapResponse) {
+      res.writeHead(bootstrapResponse.status, {
+        ...securityHeaders,
+        ...bootstrapResponse.headers,
+      });
+      res.end(bootstrapResponse.body);
+      return;
     }
 
     const safePath = pathname === '/' ? '/index.html' : pathname;

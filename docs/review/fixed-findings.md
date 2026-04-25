@@ -2,6 +2,29 @@
 
 ## 2026-04-25
 
+### security-review.md / H-01
+
+- Status: fixed
+- Scope: explicit non-loopback binding now requires `TTDASH_REMOTE_TOKEN` in addition to `TTDASH_ALLOW_REMOTE=1`. Remote API requests are authenticated centrally before route handling through Bearer auth, `X-TTDash-Remote-Token`, or an HttpOnly same-site cookie; default loopback operation remains unchanged.
+- Guardrails: `tests/unit/remote-auth.test.ts` covers remote-mode configuration, accepted credential forms, generic rejection paths, timing-safe length-independent comparison behavior, and the browser bootstrap redirect/cookie contract. `tests/integration/server-remote-auth.test.ts` covers failed startup without a token, protected remote API reads, cookie bootstrap, and preserved Origin mutation guards. Existing server guard tests continue to cover host validation, malformed paths, oversized payloads, and cross-site rejection.
+- Follow-up quality fixes during implementation:
+  - Remote authentication lives in `server/remote-auth.js` as a focused server boundary, while `server/http-router.js` only applies the injected gate before API routing and static bootstrap handling.
+  - Remote browser access is supported without frontend changes by visiting `?ttdash_token=<TTDASH_REMOTE_TOKEN>` once; the token is moved to an HttpOnly cookie and removed from the redirected URL.
+  - Background runtime identity checks now send the remote Bearer header when the parent process is running in authenticated remote mode, so remote background management keeps working.
+  - Startup help and remote warnings now mention the additional token requirement without logging the token value.
+- Validation:
+  - `npx vitest run --project unit tests/unit/remote-auth.test.ts tests/unit/http-utils.test.ts tests/unit/background-runtime.test.ts --reporter=verbose`
+  - `npx vitest run --project integration tests/integration/server-remote-auth.test.ts tests/integration/server-api-guards.test.ts --reporter=verbose`
+  - `npx vitest run --project integration-background tests/integration/server-background.test.ts --reporter=verbose`
+  - `npm run format:check`
+  - `npm run lint`
+  - `tsc --noEmit`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues, round 3: 0 issues, round 4: 0 issues
+
 ### performance-review.md / H-01
 
 - Status: fixed

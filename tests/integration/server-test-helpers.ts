@@ -71,11 +71,13 @@ async function waitForServerReady(
     child,
     getOutput,
     readinessPath = '/api/usage',
+    readinessHeaders,
     timeoutMs = 15_000,
   }: {
     child?: ChildProcessWithoutNullStreams | null
     getOutput?: () => string
     readinessPath?: string
+    readinessHeaders?: Record<string, string>
     timeoutMs?: number
   } = {},
 ) {
@@ -87,7 +89,9 @@ async function waitForServerReady(
     }
 
     try {
-      const response = await fetch(`${url}${readinessPath}`)
+      const response = await fetch(`${url}${readinessPath}`, {
+        headers: readinessHeaders,
+      })
       if (response.ok) {
         return
       }
@@ -136,11 +140,13 @@ export async function waitForProcessServer(
   url: string,
   getOutput: () => string,
   readinessPath = '/api/usage',
+  readinessHeaders?: Record<string, string>,
 ) {
   await waitForServerReady(url, {
     child: currentChild,
     getOutput,
     readinessPath,
+    readinessHeaders,
   })
 }
 
@@ -173,11 +179,13 @@ export async function startStandaloneServer({
   args = [],
   envOverrides = {},
   readinessPath = '/api/usage',
+  readinessHeaders,
 }: {
   root: string
   args?: string[]
   envOverrides?: NodeJS.ProcessEnv
   readinessPath?: string
+  readinessHeaders?: Record<string, string>
 }) {
   const port = Number(envOverrides.PORT) || (await getFreePort())
   const url = `http://127.0.0.1:${port}`
@@ -201,7 +209,7 @@ export async function startStandaloneServer({
     serverOutput += chunk.toString()
   })
 
-  await waitForProcessServer(currentChild, url, () => serverOutput, readinessPath)
+  await waitForProcessServer(currentChild, url, () => serverOutput, readinessPath, readinessHeaders)
 
   return {
     child: currentChild,

@@ -50,6 +50,9 @@ The server runtime is intentionally split so `server.js` stays an orchestration 
   - owns toktrack runner resolution, subprocess execution, version lookup, and auto-import execution
 - `server/http-router.js`
   - owns API routing, SSE wiring, and static asset dispatch with injected runtime dependencies
+- `server/remote-auth.js`
+  - owns token-based authentication for explicitly enabled non-loopback binds
+  - keeps browser bootstrap and non-browser Bearer/header auth outside the route handlers
 - `server/http-utils.js`, `server/runtime.js`, `server/report/**`
   - shared support modules used by the composed runtimes
 
