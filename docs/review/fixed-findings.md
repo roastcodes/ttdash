@@ -2,6 +2,27 @@
 
 ## 2026-04-25
 
+### performance-review.md / H-01
+
+- Status: fixed
+- Scope: secondary cost-analysis charts now leave the initial dashboard bundle and load through the section warmup path. Dashboard sections also get an adaptive, deduplicated preload scheduler that starts visible lazy section chunks shortly after the first render and keeps IntersectionObserver preloading far enough ahead of the viewport to avoid visible lazy-loading gaps while scrolling.
+- Guardrails: `tests/frontend/dashboard-motion.test.tsx` covers idle/fallback scheduling, deduplication, cancellation, early preloading, and inert hidden content. `tests/unit/dashboard-section-preloading.test.ts` covers visible-section queue ordering, hidden/request-data gating, and duplicate task removal.
+- Follow-up quality fixes during implementation:
+  - Cost-analysis entry charts (`CostOverTime`, `CostByModel`) were moved from static dashboard imports to lazy chunks, reducing the built main `index` chunk from roughly `212 kB` raw / `57 kB` gzip to roughly `198 kB` raw / `53 kB` gzip.
+  - The warmup scheduler now uses a short idle timeout with bounded parallelism so deeper sections are warmed without waiting for late viewport proximity.
+  - Section placeholders for deeper analysis/table areas now better match final section heights, preventing scroll-command layout shift while lazy chunks complete above the target section.
+- Validation:
+  - `npm run test:unit -- tests/frontend/dashboard-motion.test.tsx tests/unit/dashboard-section-preloading.test.ts`
+  - `npx playwright test tests/e2e/command-palette.spec.ts -g "executes analysis section navigation commands"`
+  - `npm run lint`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `tsc --noEmit`
+  - `npm run build:app`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues
+
 ### dashboard-review.md / N-02
 
 - Status: fixed
