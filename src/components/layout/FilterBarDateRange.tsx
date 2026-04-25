@@ -13,6 +13,16 @@ import { CalendarDays, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatDate, localToday, toLocalDateStr } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
+import {
+  buildCalendarDayMap,
+  buildCalendarDays,
+  buildWeekdayLabels,
+  clampDateToTargetMonth,
+  getSelectableDates,
+  parseLocalDate,
+  resolveDatePickerKeyboardAction,
+  resolveFocusableDate as resolveDatePickerFocusableDate,
+} from '@/lib/filter-date-picker-data'
 
 interface FilterBarDateRangeProps {
   startDate: string | undefined
@@ -25,28 +35,6 @@ interface DatePickerFieldProps {
   label: string
   value?: string
   onChange: (date: string | undefined) => void
-}
-
-function parseLocalDate(value?: string) {
-  if (!value) return null
-  const [year, month, day] = value.split('-').map(Number)
-  if (!year || !month || !day) return null
-  return new Date(year, month - 1, day)
-}
-
-function buildCalendarDays(displayMonth: Date) {
-  const year = displayMonth.getFullYear()
-  const month = displayMonth.getMonth()
-  const firstDay = new Date(year, month, 1)
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const startOffset = (firstDay.getDay() + 6) % 7
-  const cells: Array<Date | null> = []
-
-  for (let i = 0; i < startOffset; i++) cells.push(null)
-  for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(year, month, day))
-
-  while (cells.length % 7 !== 0) cells.push(null)
-  return cells
 }
 
 function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
@@ -71,16 +59,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
     () => selectedDate ?? parseLocalDate(localToday()) ?? new Date(),
   )
 
-  const weekdayLabels = useMemo(
-    () =>
-      Array.from({ length: 7 }, (_, index) =>
-        new Intl.DateTimeFormat(locale, { weekday: 'short' })
-          .format(new Date(Date.UTC(2024, 0, 1 + index)))
-          .replace('.', '')
-          .slice(0, 2),
-      ),
-    [locale],
-  )
+  const weekdayLabels = useMemo(() => buildWeekdayLabels(locale), [locale])
 
   const monthLabel = useMemo(
     () => displayMonth.toLocaleDateString(locale, { month: 'long', year: 'numeric' }),
@@ -88,10 +67,8 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   )
 
   const calendarDays = useMemo(() => buildCalendarDays(displayMonth), [displayMonth])
-  const selectableDates = useMemo(
-    () => calendarDays.filter((day): day is Date => day !== null).map((day) => toLocalDateStr(day)),
-    [calendarDays],
-  )
+  const selectableDates = useMemo(() => getSelectableDates(calendarDays), [calendarDays])
+  const calendarDayByIso = useMemo(() => buildCalendarDayMap(calendarDays), [calendarDays])
   const today = localToday()
   const [focusedDate, setFocusedDate] = useState<string | null>(value ?? today)
   const clearScheduledFocus = useCallback(() => {
@@ -134,14 +111,6 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
 
   useEffect(() => clearScheduledFocus, [clearScheduledFocus])
 
-  const clampToMonth = useCallback((date: Date) => {
-    const year = date.getFullYear()
-    const month = date.getMonth()
-    const day = date.getDate()
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    return new Date(year, month, Math.min(day, daysInMonth))
-  }, [])
-
   const closePicker = useCallback(
     (restoreFocus = true) => {
       setOpen(false)
@@ -156,10 +125,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
 
   const resolveFocusableDate = useCallback(
     (preferred?: string | null) => {
-      if (preferred && selectableDates.includes(preferred)) return preferred
-      if (value && selectableDates.includes(value)) return value
-      if (selectableDates.includes(today)) return today
-      return selectableDates[0] ?? null
+      return resolveDatePickerFocusableDate({ preferred, value, selectableDates, today })
     },
     [selectableDates, today, value],
   )
@@ -178,13 +144,11 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   const shiftDisplayMonth = useCallback(
     (offset: number) => {
       const baseDate = parseLocalDate(focusedDate ?? value ?? today) ?? new Date()
-      const targetDate = clampToMonth(
-        new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, baseDate.getDate()),
-      )
+      const targetDate = clampDateToTargetMonth(baseDate, offset)
       setDisplayMonth(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1))
       setFocusedDate(toLocalDateStr(targetDate))
     },
-    [clampToMonth, focusedDate, today, value],
+    [focusedDate, today, value],
   )
 
   const selectDate = useCallback(
@@ -263,61 +227,24 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
 
   const handleDayKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLButtonElement>, currentDate: string) => {
-      const currentIndex = selectableDates.indexOf(currentDate)
-      if (currentIndex < 0) return
+      const action = resolveDatePickerKeyboardAction({
+        key: event.key,
+        currentDate,
+        selectableDates,
+        calendarDayByIso,
+      })
+      if (action.kind === 'none') return
 
-      const currentCell = calendarDays.find((day) => day && toLocalDateStr(day) === currentDate)
-      const moveToIndex = (nextIndex: number) => {
-        const nextDate =
-          selectableDates[Math.max(0, Math.min(nextIndex, selectableDates.length - 1))]
-        focusDate(nextDate ?? null)
-      }
-
-      switch (event.key) {
-        case 'ArrowLeft':
-          event.preventDefault()
-          moveToIndex(currentIndex - 1)
-          break
-        case 'ArrowRight':
-          event.preventDefault()
-          moveToIndex(currentIndex + 1)
-          break
-        case 'ArrowUp':
-          event.preventDefault()
-          moveToIndex(currentIndex - 7)
-          break
-        case 'ArrowDown':
-          event.preventDefault()
-          moveToIndex(currentIndex + 7)
-          break
-        case 'Home':
-          if (!currentCell) return
-          event.preventDefault()
-          moveToIndex(currentIndex - ((currentCell.getDay() + 6) % 7))
-          break
-        case 'End':
-          if (!currentCell) return
-          event.preventDefault()
-          moveToIndex(currentIndex + (6 - ((currentCell.getDay() + 6) % 7)))
-          break
-        case 'PageUp':
-          event.preventDefault()
-          shiftDisplayMonth(-1)
-          break
-        case 'PageDown':
-          event.preventDefault()
-          shiftDisplayMonth(1)
-          break
-        case 'Enter':
-        case ' ':
-          event.preventDefault()
-          selectDate(currentDate)
-          break
-        default:
-          break
+      event.preventDefault()
+      if (action.kind === 'focus') {
+        focusDate(action.date)
+      } else if (action.kind === 'shift-month') {
+        shiftDisplayMonth(action.offset)
+      } else {
+        selectDate(action.date)
       }
     },
-    [calendarDays, focusDate, selectDate, selectableDates, shiftDisplayMonth],
+    [calendarDayByIso, focusDate, selectDate, selectableDates, shiftDisplayMonth],
   )
 
   return (

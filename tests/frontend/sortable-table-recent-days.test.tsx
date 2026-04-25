@@ -78,7 +78,7 @@ describe('sortable recent-days table', () => {
 
     fireEvent.click(within(costHeader).getByRole('button', { name: /^cost$/i }))
     expect(costHeader).toHaveAttribute('aria-sort', 'ascending')
-  }, 15_000)
+  })
 
   it('supports keyboard row activation for clickable recent-days rows', () => {
     const onClickDay = vi.fn()

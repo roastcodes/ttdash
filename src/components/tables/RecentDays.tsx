@@ -1,9 +1,7 @@
 import {
-  type Dispatch,
   useCallback,
   useEffect,
   useMemo,
-  type SetStateAction,
   useState,
   useTransition,
   type CSSProperties,
@@ -24,8 +22,20 @@ import {
   periodLabel,
 } from '@/lib/formatters'
 import { useModelColorHelpers } from '@/lib/model-color-context'
-import { normalizeModelName, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
+import { getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
+import {
+  buildRecentDayRows,
+  buildRecentDaysBenchmarkMap,
+  getAriaSort as getSortAria,
+  getRecentDaysMaxCost,
+  RECENT_DAYS_DEFAULT_VISIBLE_ROWS as DEFAULT_VISIBLE_ROWS,
+  resolveNextSortState,
+  scheduleProgressiveRowReveal,
+  sortRecentDays,
+  summarizeRecentDays,
+  type RecentDaysSortKey,
+} from '@/lib/sortable-table-data'
 import { ArrowUpDown } from 'lucide-react'
 import type { DailyUsage, ViewMode } from '@/types'
 
@@ -33,100 +43,6 @@ interface RecentDaysProps {
   data: DailyUsage[]
   onClickDay?: (date: string) => void
   viewMode?: ViewMode
-}
-
-type SortKey = 'date' | 'cost' | 'tokens' | 'costPerM'
-const DEFAULT_VISIBLE_ROWS = 30
-const SHOW_ALL_BATCH_SIZE = 120
-
-/** Returns the first visible row count after enabling the show-all mode. */
-export function getShowAllInitialVisibleCount(totalRows: number): number {
-  return Math.min(DEFAULT_VISIBLE_ROWS + SHOW_ALL_BATCH_SIZE, totalRows)
-}
-
-/** Schedules progressive row reveal batches until all rows are visible. */
-export function scheduleProgressiveRowReveal(
-  totalRows: number,
-  setVisibleCount: Dispatch<SetStateAction<number>>,
-  scheduleFrame: (callback: FrameRequestCallback) => number,
-): number | null {
-  const initialVisibleCount = getShowAllInitialVisibleCount(totalRows)
-  setVisibleCount(initialVisibleCount)
-
-  if (initialVisibleCount >= totalRows) {
-    return null
-  }
-
-  const revealMore = () => {
-    setVisibleCount((previous) => {
-      if (previous >= totalRows) return previous
-      const next = Math.min(previous + SHOW_ALL_BATCH_SIZE, totalRows)
-      if (next < totalRows) {
-        scheduleFrame(revealMore)
-      }
-      return next
-    })
-  }
-
-  return scheduleFrame(revealMore)
-}
-
-function getUniqueModelsForDay(day: DailyUsage) {
-  return day.modelBreakdowns
-    .map((mb) => ({
-      name: normalizeModelName(mb.modelName),
-      provider: getModelProvider(mb.modelName),
-    }))
-    .filter(
-      (entry, index, values) =>
-        values.findIndex((item) => item.name === entry.name && item.provider === entry.provider) ===
-        index,
-    )
-}
-
-function buildBenchmarkMap(data: DailyUsage[]) {
-  const map = new Map<
-    string,
-    { prevCostDelta?: number; avgCost7?: number; avgRequests7?: number }
-  >()
-  let rollingCost = 0
-  let rollingRequests = 0
-
-  for (let index = 0; index < data.length; index += 1) {
-    const current = data[index]
-    if (!current) continue
-
-    if (index > 7) {
-      const outgoing = data[index - 8]
-      if (outgoing) {
-        rollingCost -= outgoing.totalCost
-        rollingRequests -= outgoing.requestCount
-      }
-    }
-
-    if (index > 0) {
-      const previousForWindow = data[index - 1]
-      if (previousForWindow) {
-        rollingCost += previousForWindow.totalCost
-        rollingRequests += previousForWindow.requestCount
-      }
-    }
-
-    const previous = index > 0 ? data[index - 1] : null
-    const windowSize = Math.min(index, 7)
-    const prevCostDelta =
-      previous && previous.totalCost > 0
-        ? ((current.totalCost - previous.totalCost) / previous.totalCost) * 100
-        : null
-
-    map.set(current.date, {
-      ...(prevCostDelta !== null ? { prevCostDelta } : {}),
-      ...(windowSize > 0 ? { avgCost7: rollingCost / windowSize } : {}),
-      ...(windowSize > 0 ? { avgRequests7: rollingRequests / windowSize } : {}),
-    })
-  }
-
-  return map
 }
 
 function getDeferredRowStyle(showAll: boolean, intrinsicSize: string): CSSProperties | undefined {
@@ -143,30 +59,12 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
   const { t } = useTranslation()
   const { getModelColor, getModelColorAlpha } = useModelColorHelpers()
   const [showAll, setShowAll] = useState(false)
-  const [sortKey, setSortKey] = useState<SortKey>('date')
+  const [sortKey, setSortKey] = useState<RecentDaysSortKey>('date')
   const [sortAsc, setSortAsc] = useState(false)
   const [visibleCount, setVisibleCount] = useState(DEFAULT_VISIBLE_ROWS)
   const [, startTransition] = useTransition()
 
-  const sorted = useMemo(() => {
-    const items = [...data]
-    items.sort((a, b) => {
-      switch (sortKey) {
-        case 'date':
-          return sortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)
-        case 'cost':
-          return sortAsc ? a.totalCost - b.totalCost : b.totalCost - a.totalCost
-        case 'tokens':
-          return sortAsc ? a.totalTokens - b.totalTokens : b.totalTokens - a.totalTokens
-        case 'costPerM': {
-          const aPerM = a.totalTokens > 0 ? a.totalCost / (a.totalTokens / 1e6) : 0
-          const bPerM = b.totalTokens > 0 ? b.totalCost / (b.totalTokens / 1e6) : 0
-          return sortAsc ? aPerM - bPerM : bPerM - aPerM
-        }
-      }
-    })
-    return items
-  }, [data, sortKey, sortAsc])
+  const sorted = useMemo(() => sortRecentDays(data, sortKey, sortAsc), [data, sortKey, sortAsc])
 
   useEffect(() => {
     if (!showAll) {
@@ -200,55 +98,26 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
     () => [...data].sort((a, b) => a.date.localeCompare(b.date)),
     [data],
   )
-  const benchmarkMap = useMemo(() => buildBenchmarkMap(chronological), [chronological])
+  const benchmarkMap = useMemo(() => buildRecentDaysBenchmarkMap(chronological), [chronological])
 
-  const maxCost = useMemo(() => Math.max(...data.map((d) => d.totalCost), 0), [data])
+  const maxCost = useMemo(() => getRecentDaysMaxCost(data), [data])
 
-  const summary = useMemo(() => {
-    if (data.length === 0) return null
-    let totalCost = 0
-    let totalTokens = 0
-    let totalRequests = 0
-    let totalCacheRead = 0
-    let top: DailyUsage | null = null
-
-    for (const day of data) {
-      totalCost += day.totalCost
-      totalTokens += day.totalTokens
-      totalRequests += day.requestCount
-      totalCacheRead += day.cacheReadTokens
-      if (!top || day.totalCost > top.totalCost) {
-        top = day
-      }
-    }
-
-    const cacheShare = totalTokens > 0 ? (totalCacheRead / totalTokens) * 100 : 0
-    return { totalCost, totalTokens, totalRequests, cacheShare, top }
-  }, [data])
+  const summary = useMemo(() => summarizeRecentDays(data), [data])
 
   const rowData = useMemo(
-    () =>
-      displayed.map((day) => ({
-        day,
-        benchmark: benchmarkMap.get(day.date),
-        costPerM: day.totalTokens > 0 ? day.totalCost / (day.totalTokens / 1_000_000) : 0,
-        uniqueModels: getUniqueModelsForDay(day),
-      })),
+    () => buildRecentDayRows(displayed, benchmarkMap),
     [benchmarkMap, displayed],
   )
 
-  const handleSort = (key: SortKey) => {
+  const handleSort = (key: RecentDaysSortKey) => {
     startTransition(() => {
-      if (key === sortKey) setSortAsc(!sortAsc)
-      else {
-        setSortKey(key)
-        setSortAsc(false)
-      }
+      const next = resolveNextSortState({ sortKey, sortAsc }, key)
+      setSortKey(next.sortKey)
+      setSortAsc(next.sortAsc)
     })
   }
 
-  const getAriaSort = (field: SortKey): 'ascending' | 'descending' | 'none' =>
-    sortKey === field ? (sortAsc ? 'ascending' : 'descending') : 'none'
+  const getAriaSort = (field: RecentDaysSortKey) => getSortAria(field, { sortKey, sortAsc })
 
   const handleRowKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLTableRowElement>, date: string) => {

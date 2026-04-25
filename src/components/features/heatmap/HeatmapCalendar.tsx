@@ -12,14 +12,24 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { DASHBOARD_MOTION, useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
 import { InfoHeading } from '@/components/ui/info-heading'
 import { CHART_HELP } from '@/lib/help-content'
-import {
-  formatCurrency,
-  formatNumber,
-  formatTokens,
-  localToday,
-  toLocalDateStr,
-} from '@/lib/formatters'
+import { formatCurrency, formatNumber, formatTokens, localToday } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
+import {
+  buildHeatmapCellMap,
+  buildHeatmapCellRows,
+  buildHeatmapDayLabels,
+  buildHeatmapGrid,
+  getHeatmapColor as getColor,
+  HEATMAP_CELL_SIZE as CELL_SIZE,
+  HEATMAP_CELL_STAGGER_DAY_OFFSET_MS as CELL_STAGGER_DAY_OFFSET_MS,
+  HEATMAP_CELL_STAGGER_WEEK_OFFSET_MS as CELL_STAGGER_WEEK_OFFSET_MS,
+  HEATMAP_LEFT_GUTTER as LEFT_GUTTER,
+  HEATMAP_TODAY_OUTLINE_EXTRA_DELAY_MS as TODAY_OUTLINE_EXTRA_DELAY_MS,
+  HEATMAP_TOP_GUTTER as TOP_GUTTER,
+  HEATMAP_TOTAL_CELL_SIZE as TOTAL,
+  resolveHeatmapDefaultFocusedDate,
+  resolveHeatmapKeyboardTarget,
+} from '@/lib/heatmap-calendar-data'
 import type { DailyUsage, ViewMode } from '@/types'
 
 interface HeatmapCalendarProps {
@@ -27,33 +37,6 @@ interface HeatmapCalendarProps {
   viewMode?: ViewMode
   metric?: 'cost' | 'requests' | 'tokens'
   isDark?: boolean
-}
-
-const CELL_SIZE = 14
-const CELL_GAP = 2
-const TOTAL = CELL_SIZE + CELL_GAP
-const LEFT_GUTTER = 30
-const TOP_GUTTER = 26
-const CELL_STAGGER_WEEK_OFFSET_MS = 12
-const CELL_STAGGER_DAY_OFFSET_MS = 6
-const TODAY_OUTLINE_EXTRA_DELAY_MS = 90
-
-function resolveHeatmapLightness(intensity: number, isDarkTheme: boolean) {
-  if (intensity < 0.15) return isDarkTheme ? 28 : 88
-  if (intensity < 0.3) return isDarkTheme ? 36 : 80
-  if (intensity < 0.45) return isDarkTheme ? 44 : 72
-  if (intensity < 0.6) return isDarkTheme ? 52 : 64
-  if (intensity < 0.75) return isDarkTheme ? 60 : 56
-  if (intensity < 0.9) return isDarkTheme ? 68 : 48
-  return isDarkTheme ? 76 : 40
-}
-
-function getColor(value: number, maxValue: number, hue: number, isDarkTheme: boolean): string {
-  if (value === 0 || maxValue <= 0) return 'hsl(var(--muted))'
-  const intensity = Math.min(value / maxValue, 1)
-  const saturation = isDarkTheme ? 68 : 78
-  const lightness = resolveHeatmapLightness(intensity, isDarkTheme)
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`
 }
 
 /** Renders a calendar heatmap for daily cost, request, or token activity. */
@@ -78,17 +61,7 @@ export function HeatmapCalendar({
     kind: 'chart',
     amount: 0.32,
   })
-  const dayLabels = useMemo(
-    () =>
-      Array.from({ length: 7 }, (_, index) => index).map((index) =>
-        index % 2 === 1
-          ? ''
-          : new Intl.DateTimeFormat(locale, { weekday: 'short' })
-              .format(new Date(Date.UTC(2024, 0, 1 + index)))
-              .slice(0, 2),
-      ),
-    [locale],
-  )
+  const dayLabels = useMemo(() => buildHeatmapDayLabels(locale), [locale])
   const fullDateFormatter = useMemo(
     () =>
       new Intl.DateTimeFormat(locale, {
@@ -103,21 +76,18 @@ export function HeatmapCalendar({
       title: t('charts.heatmap.costTitle'),
       empty: t('charts.heatmap.costEmpty'),
       formatter: formatCurrency,
-      accessor: (entry: DailyUsage) => entry.totalCost,
       hue: 215,
     },
     requests: {
       title: t('charts.heatmap.requestsTitle'),
       empty: t('charts.heatmap.requestsEmpty'),
       formatter: formatNumber,
-      accessor: (entry: DailyUsage) => entry.requestCount,
       hue: 160,
     },
     tokens: {
       title: t('charts.heatmap.tokensTitle'),
       empty: t('charts.heatmap.tokensEmpty'),
       formatter: formatTokens,
-      accessor: (entry: DailyUsage) => entry.totalTokens,
       hue: 35,
     },
   }[metric]
@@ -128,61 +98,10 @@ export function HeatmapCalendar({
         ? CHART_HELP.requestHeatmap
         : CHART_HELP.tokenHeatmap
 
-  const { cells, weeks, months, maxValue } = useMemo(() => {
-    if (data.length === 0) return { cells: [], weeks: 0, months: [], maxValue: 0 }
-
-    const valueMap = new Map<string, number>()
-    let max = 0
-    for (const d of data) {
-      const value = config.accessor(d)
-      valueMap.set(d.date, value)
-      if (value > max) max = value
-    }
-
-    const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
-    const firstEntry = sorted[0]
-    const lastEntry = sorted[sorted.length - 1]
-    if (!firstEntry || !lastEntry) return { cells: [], weeks: 0, months: [], maxValue: 0 }
-
-    const startDate = new Date(firstEntry.date + 'T00:00:00')
-    const endDate = new Date(lastEntry.date + 'T00:00:00')
-
-    // Align to Monday
-    const startDow = (startDate.getDay() + 6) % 7
-    const alignedStart = new Date(startDate)
-    alignedStart.setDate(alignedStart.getDate() - startDow)
-
-    const result: { date: string; value: number; week: number; day: number }[] = []
-    const monthLabels: { label: string; week: number }[] = []
-    const currentDate = new Date(alignedStart)
-    let week = 0
-    let lastMonth = -1
-
-    while (currentDate <= endDate || week === 0) {
-      const dateStr = toLocalDateStr(currentDate)
-      const dow = (currentDate.getDay() + 6) % 7
-      const value = valueMap.get(dateStr) ?? 0
-
-      if (dow === 0) {
-        const m = currentDate.getMonth()
-        if (m !== lastMonth) {
-          monthLabels.push({
-            label: currentDate.toLocaleDateString(locale, { month: 'short' }),
-            week,
-          })
-          lastMonth = m
-        }
-      }
-
-      result.push({ date: dateStr, value, week, day: dow })
-
-      currentDate.setDate(currentDate.getDate() + 1)
-      if (dow === 6) week++
-      if (currentDate > endDate && dow === 6) break
-    }
-
-    return { cells: result, weeks: week + 1, months: monthLabels, maxValue: max }
-  }, [config, data, locale])
+  const { cells, weeks, months, maxValue } = useMemo(
+    () => buildHeatmapGrid(data, metric, locale),
+    [data, locale, metric],
+  )
 
   const todayStr = localToday()
   const shouldReduceMotion = heatmapMotion.shouldReduceMotion
@@ -199,17 +118,11 @@ export function HeatmapCalendar({
     setTimeout(callback, 0)
   }, [])
   const availableDates = useMemo(() => cells.map((cell) => cell.date), [cells])
-  const cellRows = useMemo(
-    () => Array.from({ length: 7 }, (_, day) => cells.filter((cell) => cell.day === day)),
-    [cells],
-  )
+  const cellRows = useMemo(() => buildHeatmapCellRows(cells), [cells])
+  const cellByDate = useMemo(() => buildHeatmapCellMap(cells), [cells])
   const defaultFocusedDate = useMemo(
-    () =>
-      (availableDates.includes(todayStr) ? todayStr : undefined) ??
-      cells.find((cell) => cell.value > 0)?.date ??
-      availableDates[0] ??
-      null,
-    [availableDates, cells, todayStr],
+    () => resolveHeatmapDefaultFocusedDate(cells, todayStr),
+    [cells, todayStr],
   )
 
   const focusDate = useCallback(
@@ -232,57 +145,13 @@ export function HeatmapCalendar({
 
   const handleCellKeyDown = useCallback(
     (event: ReactKeyboardEvent<SVGRectElement>, currentDate: string) => {
-      const currentCell = cells.find((cell) => cell.date === currentDate)
-      if (!currentCell) return
+      const nextDate = resolveHeatmapKeyboardTarget(event.key, currentDate, cellRows, cellByDate)
+      if (!nextDate) return
 
-      const currentRow = currentCell.day
-      const currentColumn = currentCell.week
-
-      const moveToCell = (rowIndex: number, columnIndex: number) => {
-        const targetRow = cellRows[Math.max(0, Math.min(rowIndex, cellRows.length - 1))]
-        if (!targetRow || targetRow.length === 0) return
-
-        const nextCell = targetRow[Math.max(0, Math.min(columnIndex, targetRow.length - 1))]
-        focusDate(nextCell?.date ?? null)
-      }
-
-      const moveToRowBoundary = (targetColumn: 0 | 'end') => {
-        const row = cellRows[currentRow]
-        if (!row || row.length === 0) return
-        const nextCell = targetColumn === 0 ? row[0] : row[row.length - 1]
-        focusDate(nextCell?.date ?? null)
-      }
-
-      switch (event.key) {
-        case 'ArrowLeft':
-          event.preventDefault()
-          moveToCell(currentRow, currentColumn - 1)
-          break
-        case 'ArrowRight':
-          event.preventDefault()
-          moveToCell(currentRow, currentColumn + 1)
-          break
-        case 'ArrowUp':
-          event.preventDefault()
-          moveToCell(currentRow - 1, currentColumn)
-          break
-        case 'ArrowDown':
-          event.preventDefault()
-          moveToCell(currentRow + 1, currentColumn)
-          break
-        case 'Home':
-          event.preventDefault()
-          moveToRowBoundary(0)
-          break
-        case 'End':
-          event.preventDefault()
-          moveToRowBoundary('end')
-          break
-        default:
-          break
-      }
+      event.preventDefault()
+      focusDate(nextDate)
     },
-    [cellRows, cells, focusDate],
+    [cellByDate, cellRows, focusDate],
   )
 
   // Heatmap only makes sense for daily view

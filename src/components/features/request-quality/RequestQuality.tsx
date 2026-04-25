@@ -4,6 +4,7 @@ import { AnimatedBarFill } from '@/components/ui/AnimatedBarFill'
 import { InfoHeading } from '@/components/ui/info-heading'
 import { FEATURE_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatPercent, formatTokens } from '@/lib/formatters'
+import { deriveRequestQualityData } from '@/lib/request-quality-data'
 import type { DashboardMetrics, ViewMode } from '@/types'
 
 interface RequestQualityProps {
@@ -14,47 +15,40 @@ interface RequestQualityProps {
 /** Renders request-efficiency summary cards for the current slice. */
 export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
   const { t } = useTranslation()
-  const cachePerRequest =
-    metrics.totalRequests > 0 ? metrics.totalCacheRead / metrics.totalRequests : 0
-  const thinkingPerRequest =
-    metrics.totalRequests > 0 ? metrics.totalThinking / metrics.totalRequests : 0
-  const inputOutputRatio = metrics.totalOutput > 0 ? metrics.totalInput / metrics.totalOutput : 0
-  const requestDensity = metrics.activeDays > 0 ? metrics.totalRequests / metrics.activeDays : 0
+  const requestQualityData = deriveRequestQualityData(metrics, viewMode)
 
-  const qualityMetrics = [
-    {
-      label: t('requestQuality.tokensPerRequest'),
-      value: metrics.hasRequestData
-        ? formatTokens(metrics.avgTokensPerRequest)
-        : t('common.notAvailable'),
-      accent: 'var(--chart-2)',
-      hint: t('requestQuality.tokensHint'),
-      progress: Math.min(metrics.avgTokensPerRequest / 200_000, 1),
-    },
-    {
-      label: t('requestQuality.costPerRequest'),
-      value: metrics.hasRequestData
-        ? formatCurrency(metrics.avgCostPerRequest)
-        : t('common.notAvailable'),
-      accent: 'var(--chart-4)',
-      hint: t('requestQuality.costHint'),
-      progress: Math.min(metrics.avgCostPerRequest / 0.25, 1),
-    },
-    {
-      label: t('requestQuality.cachePerRequest'),
-      value: metrics.hasRequestData ? formatTokens(cachePerRequest) : t('common.notAvailable'),
-      accent: 'var(--chart-1)',
-      hint: t('requestQuality.cacheHint'),
-      progress: Math.min(cachePerRequest / 200_000, 1),
-    },
-    {
-      label: t('requestQuality.thinkingPerRequest'),
-      value: metrics.hasRequestData ? formatTokens(thinkingPerRequest) : t('common.notAvailable'),
-      accent: 'var(--chart-5)',
-      hint: t('requestQuality.thinkingHint'),
-      progress: Math.min(thinkingPerRequest / 10_000, 1),
-    },
-  ]
+  const qualityMetrics = requestQualityData.qualityMetrics.map((item) => {
+    switch (item.id) {
+      case 'tokensPerRequest':
+        return {
+          ...item,
+          label: t('requestQuality.tokensPerRequest'),
+          value: metrics.hasRequestData ? formatTokens(item.value) : t('common.notAvailable'),
+          hint: t('requestQuality.tokensHint'),
+        }
+      case 'costPerRequest':
+        return {
+          ...item,
+          label: t('requestQuality.costPerRequest'),
+          value: metrics.hasRequestData ? formatCurrency(item.value) : t('common.notAvailable'),
+          hint: t('requestQuality.costHint'),
+        }
+      case 'cachePerRequest':
+        return {
+          ...item,
+          label: t('requestQuality.cachePerRequest'),
+          value: metrics.hasRequestData ? formatTokens(item.value) : t('common.notAvailable'),
+          hint: t('requestQuality.cacheHint'),
+        }
+      case 'thinkingPerRequest':
+        return {
+          ...item,
+          label: t('requestQuality.thinkingPerRequest'),
+          value: metrics.hasRequestData ? formatTokens(item.value) : t('common.notAvailable'),
+          hint: t('requestQuality.thinkingHint'),
+        }
+    }
+  })
 
   return (
     <Card className="overflow-visible">
@@ -100,16 +94,11 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
               {t('requestQuality.requestDensity')}
             </div>
             <div className="mt-1 text-xl font-semibold tabular-nums">
-              {formatNumber(Math.round(requestDensity))}
+              {formatNumber(Math.round(requestQualityData.requestDensity))}
             </div>
             <div className="text-xs text-muted-foreground">
               {t('requestQuality.averagePerActiveUnit', {
-                unit:
-                  viewMode === 'yearly'
-                    ? t('periods.year')
-                    : viewMode === 'monthly'
-                      ? t('periods.month')
-                      : t('periods.day'),
+                unit: t(`periods.${requestQualityData.averageUnit}`),
               })}
             </div>
           </div>
@@ -127,7 +116,7 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
               {t('requestQuality.inputOutput')}
             </div>
             <div className="mt-1 text-xl font-semibold tabular-nums">
-              {inputOutputRatio.toFixed(2)}:1
+              {requestQualityData.inputOutputRatio.toFixed(2)}:1
             </div>
             <div className="text-xs text-muted-foreground">
               {t('requestQuality.inputOutputHint')}

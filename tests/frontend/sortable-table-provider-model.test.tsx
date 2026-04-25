@@ -44,7 +44,7 @@ describe('sortable provider and model tables', () => {
       'aria-sort',
       'descending',
     )
-  }, 15_000)
+  })
 
   it('renders model efficiency sort controls as buttons inside column headers', () => {
     renderWithProviders(

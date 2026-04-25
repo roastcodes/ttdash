@@ -115,6 +115,8 @@ Dashboard-specific presets, static section metadata, and preset date semantics a
   - owns the shared frontend-only view-model contracts for the dashboard shell and sections
 - `src/lib/toktrack-version-status.ts`
   - owns the session-wide toktrack latest-version warmup cache so settings can render status without coupling dialog opening to the registry lookup
+- `src/lib/drill-down-data.ts`, `src/lib/heatmap-calendar-data.ts`, `src/lib/request-quality-data.ts`, `src/lib/sortable-table-data.ts`, and `src/lib/filter-date-picker-data.ts`
+  - own non-presentational data derivation for complex dashboard UI islands so components can keep rendering, accessibility, and motion concerns separate from calculation-heavy view data
 - `src/hooks/use-dashboard-controller-browser.ts`
   - owns dashboard-specific browser IO such as download anchors, section scrolling, and the test-only `openSettings` bridge
   - keeps DOM concerns out of the main controller orchestration file

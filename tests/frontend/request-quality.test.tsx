@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RequestQuality } from '@/components/features/request-quality/RequestQuality'
 import { initI18n } from '@/lib/i18n'
@@ -127,7 +127,9 @@ describe('RequestQuality', () => {
       false,
     )
 
-    MockIntersectionObserver.instances.forEach((observer) => observer.trigger(true))
+    act(() => {
+      MockIntersectionObserver.instances.forEach((observer) => observer.trigger(true))
+    })
 
     await waitFor(() => {
       expect(

@@ -14,24 +14,17 @@ import {
 } from '@/lib/formatters'
 import { getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
+import {
+  deriveModelEfficiencyRows,
+  findMostEfficientModel,
+  getAriaSort as getSortAria,
+  getModelTotalRequests,
+  resolveNextSortState,
+  sortModelEfficiencyRows,
+  type ModelEfficiencySortKey,
+} from '@/lib/sortable-table-data'
 import { ArrowUpDown } from 'lucide-react'
 import type { ViewMode } from '@/types'
-
-interface ModelData {
-  name: string
-  cost: number
-  tokens: number
-  costPerMillion: number
-  costPerRequest: number
-  tokensPerRequest: number
-  share: number
-  requestShare: number
-  cacheShare: number
-  thinkingShare: number
-  days: number
-  requests: number
-  costPerDay: number
-}
 
 interface ModelEfficiencyProps {
   modelCosts: Map<
@@ -53,20 +46,6 @@ interface ModelEfficiencyProps {
   viewMode?: ViewMode
 }
 
-type SortKey =
-  | 'cost'
-  | 'tokens'
-  | 'costPerMillion'
-  | 'costPerRequest'
-  | 'tokensPerRequest'
-  | 'share'
-  | 'requestShare'
-  | 'cacheShare'
-  | 'thinkingShare'
-  | 'days'
-  | 'requests'
-  | 'costPerDay'
-
 /** Renders the sortable model efficiency table. */
 export function ModelEfficiency({
   modelCosts,
@@ -75,73 +54,32 @@ export function ModelEfficiency({
 }: ModelEfficiencyProps) {
   const { t } = useTranslation()
   const { getModelColor, getModelColorAlpha } = useModelColorHelpers()
-  const [sortKey, setSortKey] = useState<SortKey>('cost')
+  const [sortKey, setSortKey] = useState<ModelEfficiencySortKey>('cost')
   const [sortAsc, setSortAsc] = useState(false)
 
-  const models = useMemo<ModelData[]>(
-    () =>
-      Array.from(modelCosts.entries()).map(([name, v]) => ({
-        name,
-        cost: v.cost,
-        tokens: v.tokens,
-        costPerMillion: v.tokens > 0 ? v.cost / (v.tokens / 1_000_000) : 0,
-        costPerRequest: v.requests > 0 ? v.cost / v.requests : 0,
-        tokensPerRequest: v.requests > 0 ? v.tokens / v.requests : 0,
-        share: totalCost > 0 ? (v.cost / totalCost) * 100 : 0,
-        requestShare: 0,
-        cacheShare: v.tokens > 0 ? ((v.cacheRead ?? 0) / v.tokens) * 100 : 0,
-        thinkingShare: v.tokens > 0 ? ((v.thinking ?? 0) / v.tokens) * 100 : 0,
-        days: v.days,
-        requests: v.requests,
-        costPerDay: v.days > 0 ? v.cost / v.days : 0,
-      })),
+  const models = useMemo(
+    () => deriveModelEfficiencyRows(modelCosts, totalCost),
     [modelCosts, totalCost],
   )
-
-  const totalRequests = useMemo(
-    () => models.reduce((sum, model) => sum + model.requests, 0),
-    [models],
-  )
-  const enrichedModels = useMemo(
-    () =>
-      models.map((model) => ({
-        ...model,
-        requestShare: totalRequests > 0 ? (model.requests / totalRequests) * 100 : 0,
-      })),
-    [models, totalRequests],
-  )
+  const totalRequests = useMemo(() => getModelTotalRequests(models), [models])
 
   const sorted = useMemo(
-    () =>
-      [...enrichedModels].sort((a, b) => {
-        const diff = a[sortKey] - b[sortKey]
-        return sortAsc ? diff : -diff
-      }),
-    [enrichedModels, sortAsc, sortKey],
+    () => sortModelEfficiencyRows(models, sortKey, sortAsc),
+    [models, sortAsc, sortKey],
   )
 
   const topModel = sorted[0] ?? null
-  const mostEfficient = useMemo(
-    () =>
-      [...models]
-        .filter((model) => model.tokens > 0)
-        .sort((a, b) => a.costPerMillion - b.costPerMillion)[0] ?? null,
-    [models],
-  )
+  const mostEfficient = useMemo(() => findMostEfficientModel(models), [models])
 
-  const handleSort = (key: SortKey) => {
-    if (key === sortKey) {
-      setSortAsc(!sortAsc)
-    } else {
-      setSortKey(key)
-      setSortAsc(false)
-    }
+  const handleSort = (key: ModelEfficiencySortKey) => {
+    const next = resolveNextSortState({ sortKey, sortAsc }, key)
+    setSortKey(next.sortKey)
+    setSortAsc(next.sortAsc)
   }
 
-  const getAriaSort = (field: SortKey): 'ascending' | 'descending' | 'none' =>
-    sortKey === field ? (sortAsc ? 'ascending' : 'descending') : 'none'
+  const getAriaSort = (field: ModelEfficiencySortKey) => getSortAria(field, { sortKey, sortAsc })
 
-  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
+  const SortHeader = ({ label, field }: { label: string; field: ModelEfficiencySortKey }) => (
     <th
       aria-sort={getAriaSort(field)}
       className={cn(

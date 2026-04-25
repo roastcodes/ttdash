@@ -21,7 +21,7 @@
   - `npm run build:app`
   - `npm run verify:full`
   - `npm run test:timings`
-  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues, round 3: 0 issues
 
 ### performance-review.md / M-01
 
@@ -64,6 +64,27 @@
   - `npm run verify:full`
   - `npm run test:timings`
   - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues, round 3: 0 issues
+
+### performance-review.md / N-01
+
+- Status: fixed
+- Scope: complex dashboard UI islands now separate calculation-heavy view data from rendering, accessibility, and motion. Drilldown details, heatmap grids, request-quality ratios, sortable table rows, recent-day benchmarks, and date-picker calendar navigation are derived through focused `src/lib/*-data.ts` helpers while the existing frontend functionality, visual structure, and animations stay unchanged.
+- Guardrails: new unit suites cover drilldown aggregation/rankings/token segments, heatmap grid and keyboard target derivation, request-quality ratios/progress, table sort/row derivation, and date-picker calendar actions. Existing frontend suites still cover the DOM, ARIA, keyboard, and motion contracts for the touched components.
+- Follow-up quality fixes during implementation:
+  - React component tests for heatmap and drilldown were narrowed to visible UI/A11y contracts after the derived branches moved to fast unit coverage, and over-broad timeout overrides were removed from sortable table tests.
+  - `docs/architecture.md` now documents the non-presentational data-derivation helpers as the boundary for complex dashboard UI islands.
+  - `npm run test:timings` shows the new helper suites stay out of the slowest-suite list; the remaining slow entries are existing integration, motion, settings, and broad table/UI interaction paths.
+- Validation:
+  - `npx vitest run --project unit tests/unit/drill-down-data.test.ts tests/unit/heatmap-calendar-data.test.ts tests/unit/request-quality-data.test.ts tests/unit/sortable-table-data.test.ts tests/unit/filter-date-picker-data.test.ts tests/unit/recent-days-reveal.test.ts --reporter=verbose`
+  - `npx vitest run --project frontend tests/frontend/drill-down-modal-content.test.tsx tests/frontend/drill-down-modal-motion.test.tsx tests/frontend/heatmap-calendar-accessibility.test.tsx tests/frontend/request-quality.test.tsx tests/frontend/sortable-table-provider-model.test.tsx tests/frontend/sortable-table-recent-days.test.tsx tests/frontend/filter-bar-date-picker.test.tsx --reporter=verbose`
+  - `npm run format:check`
+  - `npm run lint`
+  - `tsc --noEmit`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues
 
 ### dashboard-review.md / N-02
 
