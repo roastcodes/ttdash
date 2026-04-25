@@ -15,18 +15,37 @@ import { afterAll, beforeAll } from 'vitest'
 
 export type BackgroundRegistryEntry = {
   url: string
+  bootstrapUrl?: string | null
   port: number
   pid: number
   apiPrefix?: string
+  authHeader?: string | null
   logFile?: string | null
 }
 
 export type SharedServerContext = {
   child: ChildProcessWithoutNullStreams | null
   baseUrl: string
+  authHeader: string | null
+  authHeaders: Record<string, string>
+  bootstrapUrl: string | null
   tempRoot: string
   output: string
 }
+
+export type LocalAuthSession = {
+  version: number
+  mode: string
+  instanceId: string
+  pid: number
+  url: string
+  apiPrefix: string
+  authorizationHeader: string
+  bootstrapUrl: string
+  createdAt: string
+}
+
+const authHeadersByOrigin = new Map<string, string>()
 
 export const hasTypst = (() => {
   const result = spawnSync('typst', ['--version'], { stdio: 'ignore' })
@@ -116,7 +135,7 @@ export async function waitForServer(
 }
 
 export async function waitForUrlAvailable(url: string) {
-  await waitForServerReady(url)
+  await waitForServerReady(url, { readinessHeaders: getRegisteredAuthHeaders(url) })
 }
 
 export async function waitForServerUnavailable(url: string) {
@@ -124,7 +143,7 @@ export async function waitForServerUnavailable(url: string) {
 
   while (Date.now() - startedAt < 15_000) {
     try {
-      await fetch(`${url}/api/usage`)
+      await fetchWithAuth(`${url}/api/usage`)
     } catch {
       return
     }
@@ -209,12 +228,31 @@ export async function startStandaloneServer({
     serverOutput += chunk.toString()
   })
 
-  await waitForProcessServer(currentChild, url, () => serverOutput, readinessPath, readinessHeaders)
+  const localAuthSession = readinessHeaders
+    ? null
+    : await waitForLocalAuthSession(root, currentChild, () => serverOutput)
+  const effectiveReadinessHeaders =
+    readinessHeaders ?? authHeadersFromSession(localAuthSession) ?? undefined
+
+  if (effectiveReadinessHeaders?.Authorization) {
+    registerAuthHeader(url, effectiveReadinessHeaders.Authorization)
+  }
+
+  await waitForProcessServer(
+    currentChild,
+    url,
+    () => serverOutput,
+    readinessPath,
+    effectiveReadinessHeaders,
+  )
 
   return {
     child: currentChild,
     url,
     port,
+    authHeader: effectiveReadinessHeaders?.Authorization ?? null,
+    authHeaders: effectiveReadinessHeaders ?? {},
+    bootstrapUrl: localAuthSession?.bootstrapUrl ?? null,
     getOutput: () => serverOutput,
   }
 }
@@ -243,6 +281,111 @@ export function getCliDataDir(root: string) {
   return path.join(root, 'data', 'ttdash')
 }
 
+export function getLocalAuthSessionPath(root: string) {
+  return path.join(getCliConfigDir(root), 'session-auth.json')
+}
+
+export function tryReadLocalAuthSession(root: string) {
+  const sessionPath = getLocalAuthSessionPath(root)
+  if (!existsSync(sessionPath)) {
+    return null
+  }
+
+  try {
+    return JSON.parse(readFileSync(sessionPath, 'utf-8')) as LocalAuthSession
+  } catch {
+    return null
+  }
+}
+
+function tryReadLocalAuthSessionFromOutput(output: string) {
+  const match = output.match(/Local Auth URL:\s+(http:\/\/[^\s]+)/)
+  if (!match?.[1]) {
+    return null
+  }
+
+  try {
+    const bootstrapUrl = match[1]
+    const parsedUrl = new URL(bootstrapUrl)
+    const token = parsedUrl.searchParams.get('ttdash_token')
+    if (!token) {
+      return null
+    }
+
+    return {
+      version: 1,
+      mode: 'local',
+      instanceId: '',
+      pid: 0,
+      url: parsedUrl.origin,
+      apiPrefix: '/api',
+      authorizationHeader: `Bearer ${token}`,
+      bootstrapUrl,
+      createdAt: '',
+    } satisfies LocalAuthSession
+  } catch {
+    return null
+  }
+}
+
+export async function waitForLocalAuthSession(
+  root: string,
+  child?: ChildProcessWithoutNullStreams | null,
+  getOutput?: () => string,
+  timeoutMs = 15_000,
+) {
+  const startedAt = Date.now()
+  let lastSession = tryReadLocalAuthSession(root)
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (child && child.exitCode !== null) {
+      throw new Error(`Server exited before writing local auth session:\n${getOutput?.() ?? ''}`)
+    }
+
+    lastSession =
+      tryReadLocalAuthSession(root) ?? tryReadLocalAuthSessionFromOutput(getOutput?.() ?? '')
+    if (lastSession?.authorizationHeader) {
+      return lastSession
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+
+  throw new Error(
+    `Timed out waiting for local auth session: ${JSON.stringify(lastSession, null, 2)}\n${
+      getOutput?.() ?? ''
+    }`,
+  )
+}
+
+function authHeadersFromSession(session: LocalAuthSession | null) {
+  return session?.authorizationHeader ? { Authorization: session.authorizationHeader } : null
+}
+
+export function registerAuthHeader(url: string, authorizationHeader: string | null | undefined) {
+  if (!authorizationHeader) {
+    return
+  }
+
+  authHeadersByOrigin.set(new URL(url).origin, authorizationHeader)
+}
+
+export function getRegisteredAuthHeaders(url: string) {
+  const authorizationHeader = authHeadersByOrigin.get(new URL(url).origin)
+  return authorizationHeader ? { Authorization: authorizationHeader } : undefined
+}
+
+function applyRegisteredAuthHeader(url: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers)
+  const registeredAuthHeader = authHeadersByOrigin.get(new URL(url).origin)
+
+  if (registeredAuthHeader && !headers.has('Authorization')) {
+    headers.set('Authorization', registeredAuthHeader)
+  }
+
+  return headers
+}
+
 export async function sendRawHttpRequest(port: number, request: string) {
   return await new Promise<string>((resolve, reject) => {
     const socket = createConnection(port, '127.0.0.1')
@@ -263,16 +406,27 @@ export async function sendRawHttpRequest(port: number, request: string) {
 
 export async function fetchTrusted(url: string, init: RequestInit = {}) {
   const method = (init.method || 'GET').toUpperCase()
+  const headers = applyRegisteredAuthHeader(url, init)
+
   if (method === 'GET' || method === 'HEAD') {
-    return await fetch(url, init)
+    return await fetch(url, {
+      ...init,
+      headers,
+    })
   }
 
-  const headers = new Headers(init.headers)
   headers.set('Origin', new URL(url).origin)
 
   return await fetch(url, {
     ...init,
     headers,
+  })
+}
+
+export async function fetchWithAuth(url: string, init: RequestInit = {}) {
+  return await fetch(url, {
+    ...init,
+    headers: applyRegisteredAuthHeader(url, init),
   })
 }
 
@@ -311,6 +465,7 @@ export async function waitForBackgroundRegistry(
   while (Date.now() - startedAt < timeoutMs) {
     lastEntries = tryReadBackgroundRegistry(root)
     if (predicate(lastEntries)) {
+      lastEntries.forEach((entry) => registerAuthHeader(entry.url, entry.authHeader))
       return lastEntries
     }
 
@@ -327,7 +482,7 @@ export async function waitForHttpOk(url: string, timeoutMs = 15_000) {
 
   while (Date.now() - startedAt < timeoutMs) {
     try {
-      const response = await fetch(url)
+      const response = await fetchWithAuth(url)
       if (response.ok) {
         return
       }
@@ -402,6 +557,9 @@ export function createSharedServerContext(): SharedServerContext {
   return {
     child: null,
     baseUrl: '',
+    authHeader: null,
+    authHeaders: {},
+    bootstrapUrl: null,
     tempRoot: '',
     output: '',
   }
@@ -436,7 +594,23 @@ export function registerSharedServerLifecycle(context: SharedServerContext) {
       context.output += chunk.toString()
     })
 
-    await waitForServer(context.baseUrl, () => context.output, context.child)
+    const localAuthSession = await waitForLocalAuthSession(
+      context.tempRoot,
+      context.child,
+      () => context.output,
+    )
+    context.authHeader = localAuthSession.authorizationHeader
+    context.authHeaders = { Authorization: localAuthSession.authorizationHeader }
+    context.bootstrapUrl = localAuthSession.bootstrapUrl
+    registerAuthHeader(context.baseUrl, localAuthSession.authorizationHeader)
+
+    await waitForProcessServer(
+      context.child,
+      context.baseUrl,
+      () => context.output,
+      '/api/usage',
+      context.authHeaders,
+    )
   }, 20_000)
 
   afterAll(() => {

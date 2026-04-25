@@ -21,7 +21,7 @@ Der Codebase-Stand ist insgesamt solide: die wichtigsten Qualitaetsgates laufen 
 
 1. Die groessten Wartbarkeitsrisiken sitzen in wenigen Mega-Modulen: `server.js`, `use-dashboard-controller.ts`, `SettingsModal.tsx`, `DashboardSections.tsx`, `FilterBar.tsx`.
 2. Die Architektur-Grenzen sind auf Repo-Ebene gut abgesichert, aber die Anwendungslogik ist intern noch zu stark zentralisiert und ueber breite Props- und Return-Surfaces gekoppelt.
-3. Die Security-Hardening-Basis ist fuer den Default-Loopback-Betrieb gut; `TTDASH_ALLOW_REMOTE=1` ist als separater Betriebsmodus zu behandeln und wird in den fixed findings token-basiert nachgeschaerft.
+3. Die Security-Hardening-Basis ist fuer den Default-Loopback-Betrieb gut; lokale Read-APIs sind inzwischen per per-start Session-Token geschuetzt, und `TTDASH_ALLOW_REMOTE=1` bleibt ein separater token-gesicherter Betriebsmodus.
 4. Die Testbasis ist breit, aber die gemeldete Coverage unterschaetzt nicht nur Luecken, sondern blendet ganze produktive Runtime-Bereiche aus.
 5. Die Dashboard-Oberflaeche ist funktional stark und accessibility-bewusst, wirkt aber an mehreren Stellen ueberladen und pflegt zu viele Interaktionsmuster in zu wenigen Komponenten.
 

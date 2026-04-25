@@ -4,6 +4,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   fetchTrusted,
+  fetchWithAuth,
   getCliConfigDir,
   getCliDataDir,
   startStandaloneServer,
@@ -24,7 +25,7 @@ describe('local server API recovery', () => {
         readinessPath: '/api/runtime',
       })
 
-      const corruptResponse = await fetch(`${standaloneServer.url}/api/usage`)
+      const corruptResponse = await fetchWithAuth(`${standaloneServer.url}/api/usage`)
       expect(corruptResponse.status).toBe(500)
 
       const deleteResponse = await fetchTrusted(`${standaloneServer.url}/api/usage`, {
@@ -32,7 +33,7 @@ describe('local server API recovery', () => {
       })
       expect(deleteResponse.status).toBe(200)
 
-      const recoveredResponse = await fetch(`${standaloneServer.url}/api/usage`)
+      const recoveredResponse = await fetchWithAuth(`${standaloneServer.url}/api/usage`)
       expect(recoveredResponse.status).toBe(200)
       expect(await recoveredResponse.json()).toEqual({
         daily: [],
@@ -62,7 +63,7 @@ describe('local server API recovery', () => {
 
     try {
       standaloneServer = await startStandaloneServer({ root: runtimeRoot })
-      const corruptResponse = await fetch(`${standaloneServer.url}/api/settings`)
+      const corruptResponse = await fetchWithAuth(`${standaloneServer.url}/api/settings`)
       expect(corruptResponse.status).toBe(500)
 
       const deleteResponse = await fetchTrusted(`${standaloneServer.url}/api/settings`, {
@@ -70,7 +71,7 @@ describe('local server API recovery', () => {
       })
       expect(deleteResponse.status).toBe(200)
 
-      const recoveredResponse = await fetch(`${standaloneServer.url}/api/settings`)
+      const recoveredResponse = await fetchWithAuth(`${standaloneServer.url}/api/settings`)
       expect(recoveredResponse.status).toBe(200)
       expect(await recoveredResponse.json()).toMatchObject({
         language: 'de',

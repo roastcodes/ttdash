@@ -5,7 +5,7 @@
 ### security-review.md / H-01
 
 - Status: fixed
-- Scope: explicit non-loopback binding now requires `TTDASH_REMOTE_TOKEN` in addition to `TTDASH_ALLOW_REMOTE=1`. Remote API requests are authenticated centrally before route handling through Bearer auth, `X-TTDash-Remote-Token`, or an HttpOnly same-site cookie; default loopback operation remains unchanged.
+- Scope: explicit non-loopback binding now requires `TTDASH_REMOTE_TOKEN` in addition to `TTDASH_ALLOW_REMOTE=1`. Remote API requests are authenticated centrally before route handling through Bearer auth, `X-TTDash-Remote-Token`, or an HttpOnly same-site cookie; the later `security-review.md / M-01` fix extends the same auth boundary to default loopback sessions.
 - Guardrails: `tests/unit/remote-auth.test.ts` covers remote-mode configuration, accepted credential forms, generic rejection paths, timing-safe length-independent comparison behavior, and the browser bootstrap redirect/cookie contract. `tests/integration/server-remote-auth.test.ts` covers failed startup without a token, protected remote API reads, cookie bootstrap, and preserved Origin mutation guards. Existing server guard tests continue to cover host validation, malformed paths, oversized payloads, and cross-site rejection.
 - Follow-up quality fixes during implementation:
   - Remote authentication lives in `server/remote-auth.js` as a focused server boundary, while `server/http-router.js` only applies the injected gate before API routing and static bootstrap handling.
@@ -24,6 +24,33 @@
   - `npm run verify:full`
   - `npm run test:timings`
   - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues, round 3: 0 issues, round 4: 0 issues
+
+### security-review.md / M-01
+
+- Status: fixed
+- Scope: default loopback servers now generate a per-start local session token and require authentication for every API endpoint, including `/api/usage`, `/api/settings`, `/api/runtime`, and `/api/toktrack/version-status`. Normal dashboard startup stays frictionless because the auto-open URL carries the one-time bootstrap token, which is exchanged for an HttpOnly/SameSite cookie and stripped from the redirected URL.
+- Guardrails: `tests/unit/remote-auth.test.ts` covers default local session auth, generated local tokens, explicit test opt-out, shared credential parsing, bootstrap redirects, and generic rejection paths. `tests/integration/server-local-auth.test.ts` covers protected loopback reads, Bearer and cookie access, preserved mutation Origin guards, and restrictive auth-session file permissions. Existing remote, background, persistence, recovery, routing, and E2E tests were updated to authenticate through the same boundary.
+- Follow-up quality fixes during implementation:
+  - The existing `server/remote-auth.js` boundary now owns both local session auth and remote auth so API route handlers stay unaware of the source of the credential.
+  - `server.js` writes the local session metadata to restrictive user config state and prints a `Local Auth URL` only when browser auto-open is disabled.
+  - Background instance registry entries now carry per-instance auth headers and bootstrap URLs so `ttdash stop`, registry pruning, and no-open background starts remain usable.
+  - Playwright and integration test helpers bootstrap through the same local session file instead of bypassing the production auth path.
+- Residual risk:
+  - This protects the local HTTP API from unauthenticated loopback access, browser/DNS-rebinding-style access, and other OS users. It does not fully isolate against malware already running as the same OS user, which can target user config files, terminal output, or browser state.
+- Validation:
+  - `npx vitest run --project unit tests/unit/remote-auth.test.ts tests/unit/background-runtime.test.ts --reporter=verbose`
+  - `npx vitest run --project integration tests/integration/server-local-auth.test.ts tests/integration/server-api-guards.test.ts tests/integration/server-api-persistence.test.ts tests/integration/server-api-routing-runtime.test.ts tests/integration/server-api-recovery.test.ts tests/integration/server-remote-auth.test.ts --reporter=verbose`
+  - `npx vitest run --project integration-background tests/integration/server-background.test.ts --reporter=verbose`
+  - `PLAYWRIGHT_TEST_PORT=3020 npm_config_cache=/tmp/ttdash-npm-cache npm run test:e2e`
+  - `npm run format:check`
+  - `npm run lint`
+  - `tsc --noEmit`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:package`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues, round 3: 2 minor documentation issues fixed, round 4: 0 issues
 
 ### performance-review.md / H-01
 

@@ -51,8 +51,12 @@ The server runtime is intentionally split so `server.js` stays an orchestration 
 - `server/http-router.js`
   - owns API routing, SSE wiring, and static asset dispatch with injected runtime dependencies
 - `server/remote-auth.js`
-  - owns token-based authentication for explicitly enabled non-loopback binds
-  - keeps browser bootstrap and non-browser Bearer/header auth outside the route handlers
+  - owns token-based authentication for both default loopback sessions and explicitly enabled non-loopback binds
+  - keeps browser bootstrap, HttpOnly cookie setup, and non-browser Bearer/header auth outside the route handlers
+  - uses a generated per-start local session token for loopback and `TTDASH_REMOTE_TOKEN` for remote binds
+- Local auth session state
+  - `server.js` writes the current local session metadata to a restrictive `session-auth.json` file in the user config dir
+  - `server/background-runtime.js` stores per-instance auth headers and bootstrap URLs in the restrictive background registry so `ttdash stop` and no-open background starts stay usable
 - `server/http-utils.js`, `server/runtime.js`, `server/report/**`
   - shared support modules used by the composed runtimes
 

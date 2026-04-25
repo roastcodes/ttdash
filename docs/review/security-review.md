@@ -2,11 +2,13 @@
 
 ## Kurzfazit
 
-Der aktuelle Stand ist fuer den Default-Loopback-Betrieb deutlich staerker als es die aeltere Pen-Test-Doku vermuten laesst: Host-Checks, Origin-Pruefung, Payload-Grenzen, Null-Byte-Abwehr und restriktive Datei-Permissions sind vorhanden und getestet. Die verbleibenden Risiken sind vor allem Betriebsmodus- und Dokumentationsrisiken.
+Der aktuelle Stand ist fuer den Default-Loopback-Betrieb deutlich staerker als es die aeltere Pen-Test-Doku vermuten laesst: Host-Checks, Origin-Pruefung, Payload-Grenzen, Null-Byte-Abwehr, token-basierte API-Auth und restriktive Datei-Permissions sind vorhanden und getestet. Die verbleibenden Risiken liegen vor allem bei kompromittierten Prozessen desselben OS-Users und bei mittelfristiger CSP-Haertung.
 
 ## Was bereits gut ist
 
 - Nicht-loopback Bind braucht explizites Opt-in ueber `TTDASH_ALLOW_REMOTE=1`
+- Nicht-loopback Bind braucht zusaetzlich `TTDASH_REMOTE_TOKEN`
+- Loopback-API-Requests brauchen einen per Start generierten lokalen Session-Token
 - Mutation-Requests werden ueber Host- und Origin-Validierung abgesichert
 - Null-Byte-Pfade werden abgefangen, ohne den Server zu beenden
 - Oversized Upload- und Report-Requests werden sauber mit `413` behandelt
@@ -25,15 +27,17 @@ Das ist fuer den Default-Modus kein akuter Bug, aber ein klares Security-Design-
 
 **Empfehlung:** Remote-Bind nur mit Token-basierter Auth oder einem separaten abgesicherten Mode erlauben.
 
+**Aktueller Stand:** In `docs/review/fixed-findings.md` als `security-review.md / H-01` geschlossen. Remote-Bind verlangt `TTDASH_REMOTE_TOKEN`, und Remote-API-Requests laufen durch die zentrale Token-Auth.
+
 ### M-01 - Lokale Read-Endpoints sind im gleichen Host-Kontext offen
 
 **Referenzen:** `server.js:2503-2588`, `server.js:2769-2777`
 
-`/api/usage`, `/api/settings`, `/api/runtime` und `/api/toktrack/version-status` sind fuer jeden Prozess erreichbar, der den Loopback-Server ansprechen kann. Fuer eine lokale Single-User-App ist das ein verstaendlicher Tradeoff, aber die Bedrohungsannahme ist stark: "andere lokale Prozesse sind vertrauenswuerdig".
+`/api/usage`, `/api/settings`, `/api/runtime` und `/api/toktrack/version-status` waren fuer jeden Prozess erreichbar, der den Loopback-Server ansprechen konnte. Fuer eine lokale Single-User-App war das ein verstaendlicher Tradeoff, aber die Bedrohungsannahme war stark: "andere lokale Prozesse sind vertrauenswuerdig".
 
-Wenn dieses Threat Model gewollt ist, sollte es klar dokumentiert werden. Wenn nicht, fehlt ein Schutz gegen lokale Malware, Browser-Extensions oder andere User-Kontexte auf demselben Host.
+**Aktueller Stand:** In `docs/review/fixed-findings.md` als `security-review.md / M-01` geschlossen. Der Loopback-Server generiert pro Start einen lokalen Session-Token, oeffnet bzw. dokumentiert eine einmalige Bootstrap-URL, setzt daraus ein HttpOnly/SameSite-Cookie und verlangt danach Auth fuer alle API-Endpoints. Background-Registry und Testserver speichern die notwendige Session-Metadaten nur in restriktiven User-Config-Dateien.
 
-**Empfehlung:** Sicherheitsdokumentation explizit um dieses lokale Threat Model erweitern; fuer spaetere Haertung waeren Token oder ein Unix-Socket-Mode die naheliegendsten Optionen.
+**Restrisiko:** Ein kompromittierter Prozess mit denselben OS-User-Rechten kann weiterhin Terminalausgaben, User-Config-Dateien oder Browserprofile angreifen. Vollstaendige Isolation gegen diesen Angreifertyp wuerde einen OS-naeheren Transport wie Unix Domain Sockets, Named Pipes mit ACLs oder eine native Desktop-Shell erfordern.
 
 ### N-01 - Die CSP erlaubt weiterhin Inline-Styles
 

@@ -3,7 +3,12 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { createDefaultAppSettings } from '../../shared/app-settings.js'
-import { fetchTrusted, startStandaloneServer, stopProcess } from './server-test-helpers'
+import {
+  fetchTrusted,
+  fetchWithAuth,
+  startStandaloneServer,
+  stopProcess,
+} from './server-test-helpers'
 import { createApiSharedServer, sampleUsage } from './server-api-test-helpers'
 
 const sharedServer = createApiSharedServer()
@@ -24,11 +29,11 @@ const defaultSettingsResponse = createDefaultAppSettings()
 
 describe('local server API persistence', () => {
   it('starts with empty usage and default settings', async () => {
-    const initialUsageResponse = await fetch(`${sharedServer.baseUrl}/api/usage`)
+    const initialUsageResponse = await fetchWithAuth(`${sharedServer.baseUrl}/api/usage`)
     expect(initialUsageResponse.status).toBe(200)
     expect(await initialUsageResponse.json()).toEqual(emptyUsageResponse)
 
-    const initialSettingsResponse = await fetch(`${sharedServer.baseUrl}/api/settings`)
+    const initialSettingsResponse = await fetchWithAuth(`${sharedServer.baseUrl}/api/settings`)
     expect(initialSettingsResponse.status).toBe(200)
     expect(await initialSettingsResponse.json()).toMatchObject(defaultSettingsResponse)
   })
@@ -45,7 +50,7 @@ describe('local server API persistence', () => {
     expect(uploadBody.days).toBe(5)
     expect(uploadBody.totalCost).toBeCloseTo(19.87, 6)
 
-    const usageResponse = await fetch(`${sharedServer.baseUrl}/api/usage`)
+    const usageResponse = await fetchWithAuth(`${sharedServer.baseUrl}/api/usage`)
     const usageBody = await usageResponse.json()
     expect(usageResponse.status).toBe(200)
     expect(usageBody.daily).toHaveLength(5)
@@ -60,7 +65,7 @@ describe('local server API persistence', () => {
     })
     expect(uploadResponse.status).toBe(200)
 
-    const afterUploadSettingsResponse = await fetch(`${sharedServer.baseUrl}/api/settings`)
+    const afterUploadSettingsResponse = await fetchWithAuth(`${sharedServer.baseUrl}/api/settings`)
     const afterUploadSettings = await afterUploadSettingsResponse.json()
     expect(afterUploadSettingsResponse.status).toBe(200)
     expect(afterUploadSettings.lastLoadSource).toBe('file')
@@ -152,7 +157,7 @@ describe('local server API persistence', () => {
     expect(deleteResponse.status).toBe(200)
     expect(await deleteResponse.json()).toEqual({ success: true })
 
-    const finalUsageResponse = await fetch(`${sharedServer.baseUrl}/api/usage`)
+    const finalUsageResponse = await fetchWithAuth(`${sharedServer.baseUrl}/api/usage`)
     expect(finalUsageResponse.status).toBe(200)
     const finalUsage = await finalUsageResponse.json()
     expect(finalUsage).toEqual(emptyUsageResponse)

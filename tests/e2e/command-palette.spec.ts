@@ -4,6 +4,13 @@ import path from 'node:path'
 import { expect, test, type Download, type Page } from '@playwright/test'
 
 const sampleUsagePath = path.join(process.cwd(), 'examples', 'sample-usage.json')
+const localAuthSessionPath = path.join(
+  process.cwd(),
+  '.tmp-playwright',
+  'app',
+  'config',
+  'session-auth.json',
+)
 const sampleUsage = JSON.parse(fs.readFileSync(sampleUsagePath, 'utf-8')) as {
   daily: Array<Record<string, unknown> & { date: string }>
   totals: Record<string, unknown>
@@ -79,12 +86,28 @@ const expectedCommandTestIds = [
   ...modelLabels.map((model) => `command-model-${model}`),
 ].sort()
 
+type LocalAuthSession = {
+  authorizationHeader: string
+  bootstrapUrl: string
+}
+
+function readLocalAuthSession() {
+  return JSON.parse(fs.readFileSync(localAuthSessionPath, 'utf-8')) as LocalAuthSession
+}
+
+function createApiAuthHeaders() {
+  return {
+    Authorization: readLocalAuthSession().authorizationHeader,
+  }
+}
+
 function createTrustedMutationHeaders(baseURL?: string) {
   if (!baseURL) {
     throw new Error('Playwright baseURL is required for trusted mutation headers')
   }
 
   return {
+    ...createApiAuthHeaders(),
     Origin: new URL(baseURL).origin,
   }
 }
@@ -133,7 +156,7 @@ async function seedUsage(page: Page, baseURL?: string, usageData = buildRelative
 }
 
 async function loadDashboard(page: Page) {
-  await page.goto('/')
+  await page.goto(readLocalAuthSession().bootstrapUrl)
   await expect(page.getByRole('heading', { name: 'TTDash' })).toBeVisible()
   await expect(page.locator('#filters').getByText(filterStatusPattern)).toBeVisible()
   await expect(page.locator('#token-analysis')).toBeVisible()

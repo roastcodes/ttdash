@@ -1,11 +1,17 @@
 const crypto = require('crypto');
 const { isLoopbackHost } = require('./runtime.js');
 
-const REMOTE_AUTH_COOKIE_NAME = 'ttdash_remote_auth';
-const REMOTE_AUTH_QUERY_PARAM = 'ttdash_token';
-const REMOTE_AUTH_TOKEN_MIN_LENGTH = 24;
-const REMOTE_AUTH_COOKIE_MAX_AGE_SECONDS = 12 * 60 * 60;
-const REMOTE_AUTH_REALM = 'TTDash Remote API';
+const AUTH_COOKIE_NAME = 'ttdash_auth';
+const AUTH_QUERY_PARAM = 'ttdash_token';
+const AUTH_TOKEN_MIN_LENGTH = 24;
+const AUTH_COOKIE_MAX_AGE_SECONDS = 12 * 60 * 60;
+const AUTH_REALM = 'TTDash API';
+const LOCAL_SESSION_TOKEN_BYTES = 32;
+
+// Backward-compatible names for the existing remote-auth tests and imports.
+const REMOTE_AUTH_COOKIE_NAME = AUTH_COOKIE_NAME;
+const REMOTE_AUTH_QUERY_PARAM = AUTH_QUERY_PARAM;
+const REMOTE_AUTH_TOKEN_MIN_LENGTH = AUTH_TOKEN_MIN_LENGTH;
 
 function normalizeToken(value) {
   return String(value || '').trim();
@@ -88,7 +94,7 @@ function buildCookieHeader(token) {
     'Path=/',
     'HttpOnly',
     'SameSite=Strict',
-    `Max-Age=${REMOTE_AUTH_COOKIE_MAX_AGE_SECONDS}`,
+    `Max-Age=${AUTH_COOKIE_MAX_AGE_SECONDS}`,
   ].join('; ');
 }
 
@@ -104,28 +110,62 @@ function createConfigurationError(message, code) {
   return error;
 }
 
-function createRemoteAuth({ bindHost, allowRemoteBind, token }) {
+function createSessionToken() {
+  return crypto.randomBytes(LOCAL_SESSION_TOKEN_BYTES).toString('base64url');
+}
+
+function createServerAuth({
+  bindHost,
+  allowRemoteBind,
+  remoteToken,
+  localToken,
+  token,
+  requireLocalAuth = true,
+  tokenFactory = createSessionToken,
+}) {
   const remoteAuthRequired = !isLoopbackHost(bindHost) && allowRemoteBind;
-  const normalizedToken = normalizeToken(token);
+  const localAuthRequired = !remoteAuthRequired && requireLocalAuth;
+  const authRequired = remoteAuthRequired || localAuthRequired;
+  const mode = remoteAuthRequired ? 'remote' : localAuthRequired ? 'local' : 'none';
+  const configuredToken = remoteAuthRequired
+    ? (remoteToken ?? token)
+    : localAuthRequired
+      ? (localToken ?? token ?? tokenFactory())
+      : '';
+  const normalizedToken = normalizeToken(configuredToken);
   const expectedDigest =
-    normalizedToken.length >= REMOTE_AUTH_TOKEN_MIN_LENGTH ? hashToken(normalizedToken) : null;
+    normalizedToken.length >= AUTH_TOKEN_MIN_LENGTH ? hashToken(normalizedToken) : null;
 
   function getConfigurationError() {
-    if (!remoteAuthRequired) {
+    if (!authRequired) {
       return null;
     }
 
     if (!normalizedToken) {
+      if (remoteAuthRequired) {
+        return createConfigurationError(
+          'Remote binding requires TTDASH_REMOTE_TOKEN when TTDASH_ALLOW_REMOTE=1 is used.',
+          'REMOTE_BIND_REQUIRES_TOKEN',
+        );
+      }
+
       return createConfigurationError(
-        'Remote binding requires TTDASH_REMOTE_TOKEN when TTDASH_ALLOW_REMOTE=1 is used.',
-        'REMOTE_BIND_REQUIRES_TOKEN',
+        'Local session authentication requires a generated session token.',
+        'LOCAL_AUTH_TOKEN_MISSING',
       );
     }
 
-    if (normalizedToken.length < REMOTE_AUTH_TOKEN_MIN_LENGTH) {
+    if (normalizedToken.length < AUTH_TOKEN_MIN_LENGTH) {
+      if (remoteAuthRequired) {
+        return createConfigurationError(
+          `TTDASH_REMOTE_TOKEN must be at least ${AUTH_TOKEN_MIN_LENGTH} characters long for remote binding.`,
+          'REMOTE_BIND_TOKEN_TOO_SHORT',
+        );
+      }
+
       return createConfigurationError(
-        `TTDASH_REMOTE_TOKEN must be at least ${REMOTE_AUTH_TOKEN_MIN_LENGTH} characters long for remote binding.`,
-        'REMOTE_BIND_TOKEN_TOO_SHORT',
+        `Local session authentication token must be at least ${AUTH_TOKEN_MIN_LENGTH} characters long.`,
+        'LOCAL_AUTH_TOKEN_TOO_SHORT',
       );
     }
 
@@ -144,7 +184,7 @@ function createRemoteAuth({ bindHost, allowRemoteBind, token }) {
   }
 
   function validateApiRequest(req) {
-    if (!remoteAuthRequired) {
+    if (!authRequired) {
       return null;
     }
 
@@ -161,24 +201,24 @@ function createRemoteAuth({ bindHost, allowRemoteBind, token }) {
       message: 'Authentication required',
       headers: {
         'Cache-Control': 'no-store',
-        'WWW-Authenticate': `Bearer realm="${REMOTE_AUTH_REALM}"`,
+        'WWW-Authenticate': `Bearer realm="${AUTH_REALM}"`,
       },
     };
   }
 
   function resolveBootstrapResponse(url) {
-    if (!remoteAuthRequired || !url.searchParams.has(REMOTE_AUTH_QUERY_PARAM)) {
+    if (!authRequired || !url.searchParams.has(AUTH_QUERY_PARAM)) {
       return null;
     }
 
-    const bootstrapToken = url.searchParams.get(REMOTE_AUTH_QUERY_PARAM) || '';
+    const bootstrapToken = url.searchParams.get(AUTH_QUERY_PARAM) || '';
     if (!matchesToken(bootstrapToken)) {
       return {
         status: 401,
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
           'Cache-Control': 'no-store',
-          'WWW-Authenticate': `Bearer realm="${REMOTE_AUTH_REALM}"`,
+          'WWW-Authenticate': `Bearer realm="${AUTH_REALM}"`,
         },
         body: JSON.stringify({ message: 'Authentication required' }),
       };
@@ -196,17 +236,17 @@ function createRemoteAuth({ bindHost, allowRemoteBind, token }) {
   }
 
   function createBootstrapUrl(url) {
-    if (!remoteAuthRequired || getConfigurationError()) {
+    if (!authRequired || getConfigurationError()) {
       return url;
     }
 
     const nextUrl = new URL(url);
-    nextUrl.searchParams.set(REMOTE_AUTH_QUERY_PARAM, normalizedToken);
+    nextUrl.searchParams.set(AUTH_QUERY_PARAM, normalizedToken);
     return nextUrl.toString();
   }
 
   function getAuthorizationHeader() {
-    if (!remoteAuthRequired || getConfigurationError()) {
+    if (!authRequired || getConfigurationError()) {
       return null;
     }
 
@@ -214,9 +254,12 @@ function createRemoteAuth({ bindHost, allowRemoteBind, token }) {
   }
 
   return {
-    cookieName: REMOTE_AUTH_COOKIE_NAME,
-    queryParam: REMOTE_AUTH_QUERY_PARAM,
-    isRequired: () => remoteAuthRequired,
+    cookieName: AUTH_COOKIE_NAME,
+    queryParam: AUTH_QUERY_PARAM,
+    mode,
+    isRequired: () => authRequired,
+    isLocalRequired: () => localAuthRequired,
+    isRemoteRequired: () => remoteAuthRequired,
     ensureConfigured,
     getConfigurationError,
     validateApiRequest,
@@ -226,9 +269,17 @@ function createRemoteAuth({ bindHost, allowRemoteBind, token }) {
   };
 }
 
+function createRemoteAuth(options) {
+  return createServerAuth(options);
+}
+
 module.exports = {
+  AUTH_COOKIE_NAME,
+  AUTH_QUERY_PARAM,
+  AUTH_TOKEN_MIN_LENGTH,
   REMOTE_AUTH_COOKIE_NAME,
   REMOTE_AUTH_QUERY_PARAM,
   REMOTE_AUTH_TOKEN_MIN_LENGTH,
+  createServerAuth,
   createRemoteAuth,
 };

@@ -71,7 +71,7 @@ describe('remote server authentication', () => {
     expect(bootstrapResponse.status).toBe(303)
     expect(bootstrapResponse.headers.get('location')).toBe('/')
     const cookieHeader = bootstrapResponse.headers.get('set-cookie')?.split(';', 1)[0]
-    expect(cookieHeader).toContain('ttdash_remote_auth=')
+    expect(cookieHeader).toContain('ttdash_auth=')
 
     const cookieResponse = await fetch(`${standaloneServer.url}/api/usage`, {
       headers: { Cookie: cookieHeader || '' },

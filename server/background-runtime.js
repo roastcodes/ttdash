@@ -13,6 +13,7 @@ function createBackgroundRuntime({
   normalizeIsoTimestamp,
   bindHost,
   apiPrefix,
+  authHeader,
   remoteAuthHeader,
   runtimeInstance,
   normalizedCliArgs,
@@ -32,7 +33,12 @@ function createBackgroundRuntime({
   const backgroundLogDir = path.join(appPaths.cacheDir, 'background');
   const backgroundInstancesLockDir = path.join(appPaths.configDir, 'background-instances.lock');
 
-  async function fetchRuntimeIdentity(url, requestApiPrefix = apiPrefix, timeoutMs = 1000) {
+  async function fetchRuntimeIdentity(
+    url,
+    requestApiPrefix = apiPrefix,
+    timeoutMs = 1000,
+    requestAuthHeader = authHeader || remoteAuthHeader,
+  ) {
     if (typeof url !== 'string' || !url.trim()) {
       return null;
     }
@@ -43,7 +49,7 @@ function createBackgroundRuntime({
 
     try {
       const response = await fetchImpl(new URL(runtimePath, `${url}/`), {
-        headers: remoteAuthHeader ? { Authorization: remoteAuthHeader } : undefined,
+        headers: requestAuthHeader ? { Authorization: requestAuthHeader } : undefined,
         signal: controller.signal,
       });
 
@@ -73,7 +79,12 @@ function createBackgroundRuntime({
       return false;
     }
 
-    const runtime = await fetchRuntimeIdentity(instance.url, instance.apiPrefix);
+    const runtime = await fetchRuntimeIdentity(
+      instance.url,
+      instance.apiPrefix,
+      1000,
+      instance.authHeader || authHeader || remoteAuthHeader,
+    );
     if (!runtime || typeof runtime.id !== 'string') {
       return false;
     }
@@ -91,6 +102,10 @@ function createBackgroundRuntime({
     const startedAt = normalizeIsoTimestamp(value.startedAt);
     const id = typeof value.id === 'string' && value.id.trim() ? value.id.trim() : null;
     const url = typeof value.url === 'string' && value.url.trim() ? value.url.trim() : null;
+    const bootstrapUrl =
+      typeof value.bootstrapUrl === 'string' && value.bootstrapUrl.trim()
+        ? value.bootstrapUrl.trim()
+        : null;
     const host = typeof value.host === 'string' && value.host.trim() ? value.host.trim() : bindHost;
     const normalizedApiPrefix =
       typeof value.apiPrefix === 'string' && value.apiPrefix.trim()
@@ -114,8 +129,13 @@ function createBackgroundRuntime({
       pid,
       port,
       url,
+      bootstrapUrl,
       host,
       apiPrefix: normalizedApiPrefix,
+      authHeader:
+        typeof value.authHeader === 'string' && value.authHeader.trim()
+          ? value.authHeader.trim()
+          : null,
       startedAt,
       logFile:
         typeof value.logFile === 'string' && value.logFile.trim() ? value.logFile.trim() : null,
@@ -263,14 +283,16 @@ function createBackgroundRuntime({
     });
   }
 
-  function createBackgroundInstance({ port, url }) {
+  function createBackgroundInstance({ port, url, bootstrapUrl }) {
     return {
       id: runtimeInstance.id,
       pid: runtimeInstance.pid,
       port,
       url,
+      bootstrapUrl: typeof bootstrapUrl === 'string' && bootstrapUrl.trim() ? bootstrapUrl : null,
       host: bindHost,
       apiPrefix,
+      authHeader: authHeader || remoteAuthHeader || null,
       startedAt: runtimeInstance.startedAt,
       logFile: processObject.env.TTDASH_BACKGROUND_LOG_FILE || null,
     };
@@ -506,6 +528,9 @@ function createBackgroundRuntime({
 
     console.log('TTDash is running in the background.');
     console.log(`  URL:  ${instance.url}`);
+    if (instance.bootstrapUrl) {
+      console.log(`  Local Auth URL: ${instance.bootstrapUrl}`);
+    }
     console.log(`  PID:  ${instance.pid}`);
     console.log(`  Log:  ${logFile}`);
     console.log('');

@@ -100,18 +100,37 @@ function getFreePort() {
   });
 }
 
-async function waitForServer(url, child) {
+function getLocalAuthHeaderFromOutput(output) {
+  const match = output.match(/Local Auth URL:\s+(http:\/\/[^\s]+)/);
+  if (!match || !match[1]) {
+    return null;
+  }
+
+  try {
+    const bootstrapUrl = new URL(match[1]);
+    const token = bootstrapUrl.searchParams.get('ttdash_token');
+    return token ? `Bearer ${token}` : null;
+  } catch {
+    return null;
+  }
+}
+
+async function waitForServer(url, child, getOutput) {
   const startedAt = Date.now();
+  let authHeader = null;
 
   while (Date.now() - startedAt < 15000) {
     if (child.exitCode !== null) {
       throw new Error(`Packaged TTDash exited before startup completed (exit ${child.exitCode}).`);
     }
 
+    authHeader = authHeader || getLocalAuthHeaderFromOutput(getOutput());
     try {
-      const response = await fetch(`${url}/api/usage`);
+      const response = await fetch(`${url}/api/usage`, {
+        headers: authHeader ? { Authorization: authHeader } : undefined,
+      });
       if (response.ok) {
-        return;
+        return authHeader;
       }
     } catch {
       // Ignore transient startup failures while the server is still booting.
@@ -275,8 +294,10 @@ async function main() {
   });
 
   try {
-    await waitForServer(url, child);
-    const usageResponse = await fetch(`${url}/api/usage`);
+    const authHeader = await waitForServer(url, child, () => output);
+    const usageResponse = await fetch(`${url}/api/usage`, {
+      headers: authHeader ? { Authorization: authHeader } : undefined,
+    });
     if (!usageResponse.ok) {
       throw new Error(`Packaged server returned ${usageResponse.status} from /api/usage.`);
     }

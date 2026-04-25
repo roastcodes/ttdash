@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createCliEnv,
   createSharedServerContext,
+  fetchWithAuth,
   getCliDataDir,
   getCliConfigDir,
   isPosix,
@@ -51,6 +52,8 @@ describe('local server background and CLI integration', () => {
         const backgroundUrl = instance!.url
         await waitForHttpOk(`${backgroundUrl}/custom-api/usage`)
         expect(instance?.apiPrefix).toBe('/custom-api')
+        expect(instance?.bootstrapUrl).toContain('ttdash_token=')
+        expect(startResult.output).toContain('Local Auth URL:')
         expect(instance?.logFile).toBeTruthy()
         expect(permissionBits(instance!.logFile!)).toBe(0o600)
 
@@ -149,7 +152,7 @@ describe('local server background and CLI integration', () => {
     const backgroundEnv = createCliEnv(backgroundRoot)
 
     try {
-      const runtimeResponse = await fetch(`${sharedServer.baseUrl}/api/runtime`)
+      const runtimeResponse = await fetchWithAuth(`${sharedServer.baseUrl}/api/runtime`)
       const runtime = await runtimeResponse.json()
 
       writeBackgroundRegistry(backgroundRoot, [
@@ -159,6 +162,7 @@ describe('local server background and CLI integration', () => {
           port: runtime.port,
           url: sharedServer.baseUrl,
           host: '127.0.0.1',
+          authHeader: sharedServer.authHeader,
           startedAt: new Date().toISOString(),
           logFile: null,
         },

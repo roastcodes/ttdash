@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { startStandaloneServer, stopProcess } from './server-test-helpers'
+import { fetchWithAuth, startStandaloneServer, stopProcess } from './server-test-helpers'
 import { createApiSharedServer } from './server-api-test-helpers'
 
 const sharedServer = createApiSharedServer()
@@ -19,7 +19,13 @@ describe('local server API routing and runtime metadata', () => {
         readinessPath: '/custom-api/usage',
       })
 
-      expect((await fetch(`${standaloneServer.url}/custom-api/usage`)).status).toBe(200)
+      expect(
+        (
+          await fetch(`${standaloneServer.url}/custom-api/usage`, {
+            headers: standaloneServer.authHeaders,
+          })
+        ).status,
+      ).toBe(200)
       expect((await fetch(`${standaloneServer.url}/api/usage`)).status).toBe(404)
     } finally {
       if (standaloneServer) await stopProcess(standaloneServer.child)
@@ -28,7 +34,7 @@ describe('local server API routing and runtime metadata', () => {
   })
 
   it('returns only the runtime metadata that the app still needs', async () => {
-    const runtimeResponse = await fetch(`${sharedServer.baseUrl}/api/runtime`)
+    const runtimeResponse = await fetchWithAuth(`${sharedServer.baseUrl}/api/runtime`)
     expect(runtimeResponse.status).toBe(200)
     expect(await runtimeResponse.json()).toEqual({
       id: expect.any(String),

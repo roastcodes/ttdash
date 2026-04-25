@@ -4,6 +4,13 @@ import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 
 const sampleUsagePath = path.join(process.cwd(), 'examples', 'sample-usage.json')
+const localAuthSessionPath = path.join(
+  process.cwd(),
+  '.tmp-playwright',
+  'app',
+  'config',
+  'session-auth.json',
+)
 const sampleUsage = JSON.parse(fs.readFileSync(sampleUsagePath, 'utf-8'))
 const uploadToastPattern =
   /^(Datei sample-usage\.json erfolgreich geladen|File sample-usage\.json loaded successfully)$/
@@ -31,14 +38,34 @@ const providersActivePattern = /^(1 providers active|1 Anbieter aktiv)$/
 const modelsActivePattern = /^(1 models active|1 Modelle aktiv)$/
 const dateFilterActivePattern = /^(Date filter active|Datumsfilter aktiv)$/
 
+type LocalAuthSession = {
+  authorizationHeader: string
+  bootstrapUrl: string
+}
+
+function readLocalAuthSession() {
+  return JSON.parse(fs.readFileSync(localAuthSessionPath, 'utf-8')) as LocalAuthSession
+}
+
+function createApiAuthHeaders() {
+  return {
+    Authorization: readLocalAuthSession().authorizationHeader,
+  }
+}
+
 function createTrustedMutationHeaders(baseURL?: string) {
   if (!baseURL) {
     throw new Error('Playwright baseURL is required for trusted mutation headers')
   }
 
   return {
+    ...createApiAuthHeaders(),
     Origin: new URL(baseURL).origin,
   }
+}
+
+async function gotoDashboard(page: Page) {
+  await page.goto(readLocalAuthSession().bootstrapUrl)
 }
 
 async function uploadSampleUsage(page: Page) {
@@ -66,7 +93,7 @@ test('uploads sample usage data and renders the dashboard without browser errors
   await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
   await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
 
-  await page.goto('/')
+  await gotoDashboard(page)
 
   await expect(page.getByRole('heading', { name: 'TTDash' })).toBeVisible()
   await expect(page.getByRole('button', { name: importEntryButtonPattern })).toBeVisible()
@@ -90,7 +117,7 @@ test('shows cumulative provider cost next to model cost trends in cost analysis'
   await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
   await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
 
-  await page.goto('/')
+  await gotoDashboard(page)
   await uploadSampleUsage(page)
 
   const costAnalysisSection = page.locator('#charts')
@@ -113,7 +140,7 @@ test('opens one shared forecast zoom dialog from both forecast cards', async ({
   await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
   await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
 
-  await page.goto('/')
+  await gotoDashboard(page)
   await uploadSampleUsage(page)
 
   const forecastSection = page.locator('#forecast-cache')
@@ -171,7 +198,7 @@ test('exposes pressed filter state and supports keyboard date selection in the d
   await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
   await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
 
-  await page.goto('/')
+  await gotoDashboard(page)
   await uploadSampleUsage(page)
 
   const filters = page.locator('#filters')
@@ -251,7 +278,7 @@ test('manages settings and backup imports through the settings dialog using isol
       },
     }
   })
-  await page.goto('/')
+  await gotoDashboard(page)
   await uploadSampleUsage(page)
   await expect(page.locator('#token-analysis')).toBeVisible()
 
@@ -477,13 +504,15 @@ test('manages settings and backup imports through the settings dialog using isol
 
   await expect
     .poll(async () => {
-      const response = await page.request.get('/api/usage')
+      const response = await page.request.get('/api/usage', { headers: createApiAuthHeaders() })
       const usage = await response.json()
       return usage.daily[0]?.date
     })
     .toBe('2026-03-31')
 
-  const mergedUsageResponse = await page.request.get('/api/usage')
+  const mergedUsageResponse = await page.request.get('/api/usage', {
+    headers: createApiAuthHeaders(),
+  })
   expect(mergedUsageResponse.ok()).toBe(true)
   const mergedUsage = await mergedUsageResponse.json()
   expect(mergedUsage.daily).toHaveLength(6)
@@ -533,7 +562,9 @@ test('manages settings and backup imports through the settings dialog using isol
   await page.locator('[data-testid="settings-import-input"]').setInputFiles(importSettingsPath)
   await expect(page.getByRole('button', { name: 'Export settings' })).toBeVisible()
 
-  const importedSettingsResponse = await page.request.get('/api/settings')
+  const importedSettingsResponse = await page.request.get('/api/settings', {
+    headers: createApiAuthHeaders(),
+  })
   expect(importedSettingsResponse.ok()).toBe(true)
   const importedSettings = await importedSettingsResponse.json()
   expect(importedSettings.language).toBe('en')
@@ -612,7 +643,7 @@ test('loads persisted settings on a fresh browser start and applies them immedia
   const freshPage = await context.newPage()
 
   try {
-    await freshPage.goto('/')
+    await gotoDashboard(freshPage)
     await expect(freshPage.locator('#token-analysis')).toHaveCount(0)
     await expect(freshPage.locator('#comparisons')).toHaveCount(0)
     await expect
@@ -742,7 +773,7 @@ test('uses the current UI language when generating a PDF report after switching 
     })
   })
 
-  await page.goto('/')
+  await gotoDashboard(page)
   await uploadSampleUsage(page)
   await page.getByTitle(/English|Englisch/).click()
   await expect(page.locator('#filters').getByText('Filter status')).toBeVisible()

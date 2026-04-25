@@ -7,8 +7,17 @@ const { REMOTE_AUTH_COOKIE_NAME, REMOTE_AUTH_QUERY_PARAM, createRemoteAuth } =
   require('../../server/remote-auth.js') as {
     REMOTE_AUTH_COOKIE_NAME: string
     REMOTE_AUTH_QUERY_PARAM: string
-    createRemoteAuth: (args: { bindHost: string; allowRemoteBind: boolean; token?: string }) => {
+    createRemoteAuth: (args: {
+      bindHost: string
+      allowRemoteBind: boolean
+      token?: string
+      localToken?: string
+      requireLocalAuth?: boolean
+      tokenFactory?: () => string
+    }) => {
       isRequired: () => boolean
+      isLocalRequired: () => boolean
+      isRemoteRequired: () => boolean
       ensureConfigured: () => void
       validateApiRequest: (
         req: EventEmitter & { headers?: Record<string, string> },
@@ -24,6 +33,7 @@ const { REMOTE_AUTH_COOKIE_NAME, REMOTE_AUTH_QUERY_PARAM, createRemoteAuth } =
   }
 
 const remoteToken = 'remote-token-123456789012345'
+const localToken = 'local-token-1234567890123456'
 
 class MockRequest extends EventEmitter {
   headers: Record<string, string> = {}
@@ -38,17 +48,50 @@ function createRemoteRequiredAuth() {
 }
 
 describe('remote auth', () => {
-  it('does not require authentication for loopback-only servers', () => {
+  it('requires local session authentication for loopback-only servers by default', () => {
     const auth = createRemoteAuth({
       bindHost: '127.0.0.1',
       allowRemoteBind: false,
-      token: '',
+      localToken,
     })
     const req = new MockRequest()
+    const authorizedRequest = new MockRequest()
+    authorizedRequest.headers.authorization = `Bearer ${localToken}`
+
+    expect(auth.isRequired()).toBe(true)
+    expect(auth.isLocalRequired()).toBe(true)
+    expect(auth.isRemoteRequired()).toBe(false)
+    expect(auth.validateApiRequest(req)).toMatchObject({ status: 401 })
+    expect(auth.validateApiRequest(authorizedRequest)).toBeNull()
+    expect(auth.createBootstrapUrl('http://127.0.0.1:3000')).toBe(
+      `http://127.0.0.1:3000/?${REMOTE_AUTH_QUERY_PARAM}=${localToken}`,
+    )
+  })
+
+  it('can disable local authentication only for explicit test harnesses', () => {
+    const auth = createRemoteAuth({
+      bindHost: '127.0.0.1',
+      allowRemoteBind: false,
+      requireLocalAuth: false,
+    })
 
     expect(auth.isRequired()).toBe(false)
+    expect(auth.validateApiRequest(new MockRequest())).toBeNull()
+  })
+
+  it('generates a local session token when none is provided', () => {
+    const generatedToken = 'generated-local-token-123456789'
+    const auth = createRemoteAuth({
+      bindHost: '127.0.0.1',
+      allowRemoteBind: false,
+      tokenFactory: () => generatedToken,
+    })
+    const req = new MockRequest()
+    req.headers.authorization = `Bearer ${generatedToken}`
+
+    expect(auth.isLocalRequired()).toBe(true)
     expect(auth.validateApiRequest(req)).toBeNull()
-    expect(auth.createBootstrapUrl('http://127.0.0.1:3000')).toBe('http://127.0.0.1:3000')
+    expect(auth.getAuthorizationHeader()).toBe(`Bearer ${generatedToken}`)
   })
 
   it('requires a long token when remote binding is explicitly enabled', () => {
@@ -132,7 +175,7 @@ describe('remote auth', () => {
     expect(response?.headers['Set-Cookie']).toBeUndefined()
   })
 
-  it('provides token bootstrap and background API header helpers only in remote mode', () => {
+  it('provides token bootstrap and background API header helpers for authenticated modes', () => {
     const auth = createRemoteRequiredAuth()
 
     expect(auth.createBootstrapUrl('http://192.168.1.10:3000')).toBe(

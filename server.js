@@ -20,7 +20,7 @@ const { createDataRuntime } = require('./server/data-runtime');
 const { createBackgroundRuntime } = require('./server/background-runtime');
 const { createAutoImportRuntime } = require('./server/auto-import-runtime');
 const { createHttpRouter } = require('./server/http-router');
-const { createRemoteAuth } = require('./server/remote-auth');
+const { createServerAuth } = require('./server/remote-auth');
 const {
   ensureBindHostAllowed,
   isLoopbackHost,
@@ -239,12 +239,6 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
-const remoteAuth = createRemoteAuth({
-  bindHost: BIND_HOST,
-  allowRemoteBind: ALLOW_REMOTE_BIND,
-  token: REMOTE_AUTH_TOKEN,
-});
-
 const dataRuntime = createDataRuntime({
   fs,
   fsPromises: require('fs/promises'),
@@ -265,6 +259,12 @@ const dataRuntime = createDataRuntime({
   fileMutationLockStaleMs: FILE_MUTATION_LOCK_STALE_MS,
   getCliAutoLoadActive: () => startupAutoLoadCompleted,
 });
+const LOCAL_AUTH_SESSION_FILE = path.join(dataRuntime.appPaths.configDir, 'session-auth.json');
+const serverAuth = createServerAuth({
+  bindHost: BIND_HOST,
+  allowRemoteBind: ALLOW_REMOTE_BIND,
+  remoteToken: REMOTE_AUTH_TOKEN,
+});
 
 const backgroundRuntime = createBackgroundRuntime({
   fs,
@@ -281,7 +281,7 @@ const backgroundRuntime = createBackgroundRuntime({
   normalizeIsoTimestamp: dataRuntime.normalizeIsoTimestamp,
   bindHost: BIND_HOST,
   apiPrefix: API_PREFIX,
-  remoteAuthHeader: remoteAuth.getAuthorizationHeader(),
+  authHeader: serverAuth.getAuthorizationHeader(),
   runtimeInstance: RUNTIME_INSTANCE,
   normalizedCliArgs: NORMALIZED_CLI_ARGS,
   cliOptions: CLI_OPTIONS,
@@ -336,7 +336,7 @@ const router = createHttpRouter({
   staticRoot: STATIC_ROOT,
   securityHeaders: SECURITY_HEADERS,
   httpUtils,
-  remoteAuth,
+  remoteAuth: serverAuth,
   dataRuntime,
   autoImportRuntime,
   generatePdfReport,
@@ -415,6 +415,7 @@ function printStartupSummary(url, port) {
   const autoLoadMode = CLI_OPTIONS.autoLoad ? 'enabled' : 'disabled';
   const runtimeMode = IS_BACKGROUND_CHILD ? 'background' : 'foreground';
   const remoteBind = !isLoopbackHost(BIND_HOST);
+  const bootstrapUrl = serverAuth.createBootstrapUrl(url);
 
   console.log('');
   console.log(`${APP_LABEL} v${APP_VERSION} is ready`);
@@ -425,6 +426,8 @@ function printStartupSummary(url, port) {
   if (remoteBind) {
     console.log(`  Exposure:       network-accessible via ${BIND_HOST}`);
     console.log('  Remote Auth:    required');
+  } else {
+    console.log('  Local Auth:     required');
   }
   console.log(`  Mode:           ${runtimeMode}`);
   console.log(`  Static Root:    ${STATIC_ROOT}`);
@@ -436,6 +439,9 @@ function printStartupSummary(url, port) {
   console.log(`  Data Status:    ${describeDataFile()}`);
   console.log(`  Browser Open:   ${browserMode}`);
   console.log(`  Auto-Load:      ${autoLoadMode}`);
+  if (!remoteBind && !shouldOpenBrowser()) {
+    console.log(`  Local Auth URL: ${bootstrapUrl}`);
+  }
   if (remoteBind) {
     console.log('');
     console.log('Security warning: this bind host exposes the dashboard to the network.');
@@ -461,9 +467,34 @@ function printStartupSummary(url, port) {
   if (remoteBind) {
     console.log(`  curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" ${url}/api/usage`);
   } else {
-    console.log(`  curl ${url}/api/usage`);
+    console.log(
+      `  curl -H "Authorization: Bearer <session-token-from-local-auth-url>" ${url}/api/usage`,
+    );
   }
   console.log('');
+}
+
+function writeLocalAuthSessionFile(url) {
+  if (!serverAuth.isLocalRequired()) {
+    return;
+  }
+
+  const authorizationHeader = serverAuth.getAuthorizationHeader();
+  if (!authorizationHeader) {
+    return;
+  }
+
+  dataRuntime.writeJsonAtomic(LOCAL_AUTH_SESSION_FILE, {
+    version: 1,
+    mode: serverAuth.mode,
+    instanceId: RUNTIME_INSTANCE.id,
+    pid: process.pid,
+    url,
+    apiPrefix: API_PREFIX,
+    authorizationHeader,
+    bootstrapUrl: serverAuth.createBootstrapUrl(url),
+    createdAt: new Date().toISOString(),
+  });
 }
 
 async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {
@@ -526,7 +557,7 @@ function tryListen(port) {
 
 function ensureServerSecurityAllowed() {
   ensureBindHostAllowed(BIND_HOST, ALLOW_REMOTE_BIND);
-  remoteAuth.ensureConfigured();
+  serverAuth.ensureConfigured();
 }
 
 async function start() {
@@ -539,10 +570,15 @@ async function start() {
   const url = `http://${browserHost}:${port}`;
   runtimePort = port;
   runtimeUrl = url;
+  writeLocalAuthSessionFile(url);
 
   if (IS_BACKGROUND_CHILD) {
     await backgroundRuntime.registerBackgroundInstance(
-      backgroundRuntime.createBackgroundInstance({ port, url }),
+      backgroundRuntime.createBackgroundInstance({
+        port,
+        url,
+        bootstrapUrl: serverAuth.createBootstrapUrl(url),
+      }),
     );
   }
 
@@ -553,7 +589,7 @@ async function start() {
   }
 
   printStartupSummary(url, port);
-  openBrowser(remoteAuth.createBootstrapUrl(url));
+  openBrowser(serverAuth.createBootstrapUrl(url));
 }
 
 async function runCli() {

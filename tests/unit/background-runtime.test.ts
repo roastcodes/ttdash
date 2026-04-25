@@ -31,6 +31,7 @@ const { createBackgroundRuntime } = require('../../server/background-runtime.js'
     normalizeIsoTimestamp: (value: string) => string
     bindHost: string
     apiPrefix: string
+    authHeader?: string | null
     remoteAuthHeader?: string | null
     runtimeInstance: { id: string; pid: number; startedAt: string }
     normalizedCliArgs: string[]
