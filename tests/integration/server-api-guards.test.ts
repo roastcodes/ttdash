@@ -14,6 +14,17 @@ describe('local server API guards', () => {
     expect(wrongContentTypeResponse.status).toBe(415)
   })
 
+  it('sends a strict style CSP on API responses', async () => {
+    const response = await fetchTrusted(`${sharedServer.baseUrl}/api/usage`)
+    const csp = response.headers.get('content-security-policy') || ''
+
+    expect(response.status).toBe(200)
+    expect(csp).toContain("style-src 'self'")
+    expect(csp).toContain("style-src-elem 'self'")
+    expect(csp).toContain("style-src-attr 'none'")
+    expect(csp).not.toContain("'unsafe-inline'")
+  })
+
   it('blocks cross-site upload requests', async () => {
     const crossSiteUploadResponse = await fetch(`${sharedServer.baseUrl}/api/upload`, {
       method: 'POST',

@@ -65,7 +65,7 @@ function createTrustedMutationHeaders(baseURL?: string) {
 }
 
 async function gotoDashboard(page: Page) {
-  await page.goto(readLocalAuthSession().bootstrapUrl)
+  return await page.goto(readLocalAuthSession().bootstrapUrl)
 }
 
 async function uploadSampleUsage(page: Page) {
@@ -93,9 +93,15 @@ test('uploads sample usage data and renders the dashboard without browser errors
   await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
   await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
 
-  await gotoDashboard(page)
+  const dashboardResponse = await gotoDashboard(page)
+  const csp = dashboardResponse?.headers()['content-security-policy'] || ''
 
   await expect(page.getByRole('heading', { name: 'TTDash' })).toBeVisible()
+  const cspNonce = await page.locator('meta[name="ttdash-csp-nonce"]').getAttribute('content')
+  expect(cspNonce).toMatch(/^[A-Za-z0-9_-]{24}$/)
+  expect(csp).toContain(`'nonce-${cspNonce}'`)
+  expect(csp).toContain("style-src-attr 'none'")
+  expect(csp).not.toContain("'unsafe-inline'")
   await expect(page.getByRole('button', { name: importEntryButtonPattern })).toBeVisible()
   await expect(page.getByRole('button', { name: uploadEntryButtonPattern })).toBeVisible()
 

@@ -3,6 +3,7 @@ function createHttpRouter({
   path,
   staticRoot,
   securityHeaders,
+  prepareHtmlResponse = (html) => ({ body: html, headers: securityHeaders }),
   httpUtils,
   remoteAuth,
   dataRuntime,
@@ -84,10 +85,23 @@ function createHttpRouter({
     res.end(JSON.stringify({ message }));
   }
 
-  function serveFile(res, reqPath) {
+  function sendStaticFile(res, reqPath, data) {
     const ext = path.extname(reqPath).toLowerCase();
     const contentType = mimeTypes[ext] || 'application/octet-stream';
+    const isHtml = ext === '.html';
+    const htmlResponse = isHtml ? prepareHtmlResponse(data.toString('utf8')) : null;
+    const responseBody = htmlResponse ? htmlResponse.body : data;
+    const responseSecurityHeaders = htmlResponse ? htmlResponse.headers : securityHeaders;
 
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Cache-Control': getCacheControl(reqPath),
+      ...responseSecurityHeaders,
+    });
+    res.end(responseBody);
+  }
+
+  function serveFile(res, reqPath) {
     try {
       fs.readFile(reqPath, (err, data) => {
         if (err) {
@@ -97,12 +111,7 @@ function createHttpRouter({
                 writeStaticErrorResponse(res, 500, 'Internal Server Error');
                 return;
               }
-              res.writeHead(200, {
-                'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-cache',
-                ...securityHeaders,
-              });
-              res.end(html);
+              sendStaticFile(res, path.join(staticRoot, 'index.html'), html);
             });
             return;
           }
@@ -113,12 +122,7 @@ function createHttpRouter({
           );
           return;
         }
-        res.writeHead(200, {
-          'Content-Type': contentType,
-          'Cache-Control': getCacheControl(reqPath),
-          ...securityHeaders,
-        });
-        res.end(data);
+        sendStaticFile(res, reqPath, data);
       });
     } catch (error) {
       writeStaticErrorResponse(

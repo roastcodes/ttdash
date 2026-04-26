@@ -52,6 +52,27 @@
   - `npm run test:timings`
   - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues, round 3: 2 minor documentation issues fixed, round 4: 0 issues
 
+### security-review.md / N-01
+
+- Status: fixed
+- Scope: the server CSP no longer allows `unsafe-inline` styles. Shared security headers now live in `server/security-headers.js`, HTML responses get a per-response CSP nonce plus a matching `ttdash-csp-nonce` meta tag, `style-src-elem` is limited to `self` and the nonce, and `style-src-attr 'none'` blocks literal inline style attributes.
+- Guardrails: `tests/unit/security-headers.test.ts` covers CSP construction, nonce shape, nonce meta injection, HTML response preparation, and non-HTML header behavior. `tests/integration/server-api-guards.test.ts` checks the strict CSP on authenticated API responses. `tests/e2e/dashboard.spec.ts` verifies that the loaded dashboard HTML carries the nonce-backed CSP and that the browser reports no CSP errors while the main dashboard journey runs.
+- Follow-up quality fixes during implementation:
+  - CSP generation moved out of `server.js`, so future header changes have a focused unit-testable boundary.
+  - `server/http-router.js` now treats HTML static responses separately from other assets, allowing nonce-specific headers without weakening API, JSON, CSS, or JS asset responses.
+  - React/Recharts/Motion JS-driven style property updates remain allowed because the browser-enforced risk path for this finding is literal inline style attributes or inline style elements; preserving those runtime style properties avoids UI and animation regressions without reintroducing `unsafe-inline`.
+- Validation:
+  - `npx vitest run --project unit tests/unit/security-headers.test.ts --reporter=verbose`
+  - `npx vitest run --project integration tests/integration/server-api-guards.test.ts --reporter=verbose`
+  - `npm run format:check`
+  - `npm run lint`
+  - `tsc --noEmit`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 1 minor grammar issue in `docs/application-stack-reference.md` fixed, round 3: 0 issues
+
 ### performance-review.md / H-01
 
 - Status: fixed

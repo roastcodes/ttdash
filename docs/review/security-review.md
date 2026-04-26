@@ -2,7 +2,7 @@
 
 ## Kurzfazit
 
-Der aktuelle Stand ist fuer den Default-Loopback-Betrieb deutlich staerker als es die aeltere Pen-Test-Doku vermuten laesst: Host-Checks, Origin-Pruefung, Payload-Grenzen, Null-Byte-Abwehr, token-basierte API-Auth und restriktive Datei-Permissions sind vorhanden und getestet. Die verbleibenden Risiken liegen vor allem bei kompromittierten Prozessen desselben OS-Users und bei mittelfristiger CSP-Haertung.
+Der aktuelle Stand ist fuer den Default-Loopback-Betrieb deutlich staerker als es die aeltere Pen-Test-Doku vermuten laesst: Host-Checks, Origin-Pruefung, Payload-Grenzen, Null-Byte-Abwehr, token-basierte API-Auth, restriktive Datei-Permissions und eine CSP ohne `unsafe-inline` fuer Styles sind vorhanden und getestet. Die verbleibenden Risiken liegen vor allem bei kompromittierten Prozessen desselben OS-Users und bei veralteter Security-Dokumentation.
 
 ## Was bereits gut ist
 
@@ -13,6 +13,7 @@ Der aktuelle Stand ist fuer den Default-Loopback-Betrieb deutlich staerker als e
 - Null-Byte-Pfade werden abgefangen, ohne den Server zu beenden
 - Oversized Upload- und Report-Requests werden sauber mit `413` behandelt
 - Persistierte Dateien und App-Directories werden mit restriktiven Rechten geschrieben
+- Die CSP trennt Element- und Attribut-Styles, erlaubt Stylesheet-Elemente nur ueber `self` bzw. HTML-Nonce und blockiert Style-Attribute ueber `style-src-attr 'none'`
 - Diese Schutzmechanismen sind nicht nur im Code sichtbar, sondern auch in Integrationstests verankert
 
 ## Findings
@@ -43,9 +44,13 @@ Das ist fuer den Default-Modus kein akuter Bug, aber ein klares Security-Design-
 
 **Referenzen:** `server.js:49-56`
 
-Die gesetzte CSP ist insgesamt ordentlich, enthaelt aber `style-src 'self' 'unsafe-inline'`. Das ist kein unmittelbarer Exploit-Nachweis, vergroessert aber die Angriffsoberflaeche, falls spaeter ungewollte Style-Injektionen oder unsaubere HTML-Renderpfade dazukommen.
+Die gesetzte CSP enthielt `style-src 'self' 'unsafe-inline'`. Das war kein unmittelbarer Exploit-Nachweis, vergroesserte aber die Angriffsoberflaeche, falls spaeter ungewollte Style-Injektionen oder unsaubere HTML-Renderpfade dazukommen.
 
 **Empfehlung:** mittelfristig auf style hashes oder reine Stylesheet-basierte Ausgabe umstellen.
+
+**Aktueller Stand:** In `docs/review/fixed-findings.md` als `security-review.md / N-01` geschlossen. Die CSP enthaelt kein `unsafe-inline` mehr fuer Styles, HTML-Antworten erhalten pro Response eine Nonce und ein passendes `ttdash-csp-nonce` Meta-Tag, `style-src-elem` erlaubt nur `self` bzw. die Nonce, und `style-src-attr 'none'` blockiert echte Inline-Style-Attribute.
+
+**Restrisiko:** JavaScript-gesteuerte Style-Properties bleiben fuer React, Recharts und Motion erlaubt. Das ist bewusst, weil diese Updates nicht der blockierte HTML-Style-Attributpfad sind und die bestehende Dashboard-Optik sowie Animationen ohne Security-Gewinn sonst umfangreich ersetzt werden muessten.
 
 ### N-02 - Die vorhandene Pen-Test-Doku ist fachlich nicht mehr auf dem aktuellen Stand
 

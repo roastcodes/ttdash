@@ -21,6 +21,7 @@ const { createBackgroundRuntime } = require('./server/background-runtime');
 const { createAutoImportRuntime } = require('./server/auto-import-runtime');
 const { createHttpRouter } = require('./server/http-router');
 const { createServerAuth } = require('./server/remote-auth');
+const { createSecurityHeaders, prepareHtmlResponse } = require('./server/security-headers');
 const {
   ensureBindHostAllowed,
   isLoopbackHost,
@@ -49,14 +50,7 @@ const SECURE_FILE_MODE = 0o600;
 const TOKTRACK_LOCAL_BIN =
   process.env.TTDASH_TOKTRACK_LOCAL_BIN ||
   path.join(ROOT, 'node_modules', '.bin', IS_WINDOWS ? 'toktrack.cmd' : 'toktrack');
-const SECURITY_HEADERS = {
-  'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'no-referrer',
-  'X-Frame-Options': 'DENY',
-  'Cross-Origin-Opener-Policy': 'same-origin',
-  'Content-Security-Policy':
-    "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
-};
+const SECURITY_HEADERS = createSecurityHeaders();
 const APP_LABEL = 'TTDash';
 const SETTINGS_BACKUP_KIND = 'ttdash-settings-backup';
 const USAGE_BACKUP_KIND = 'ttdash-usage-backup';
@@ -335,6 +329,7 @@ const router = createHttpRouter({
   path,
   staticRoot: STATIC_ROOT,
   securityHeaders: SECURITY_HEADERS,
+  prepareHtmlResponse,
   httpUtils,
   remoteAuth: serverAuth,
   dataRuntime,
