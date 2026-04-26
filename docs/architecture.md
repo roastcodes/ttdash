@@ -22,9 +22,13 @@ TTDash uses three complementary architecture gates. Each tool owns a different s
   - may depend on `shared/**`
   - must not depend on `server/**` or `server.js`
 - `server.js`
-  - CLI entrypoint, bootstrap, and composition root for the local server runtime
+  - executable CLI/bin shim for the local server runtime
+  - should only create the app runtime and call the CLI bootstrap path
+  - must not export helper APIs or own subsystem internals directly
+- `server/app-runtime.js`
+  - composition root for the local server runtime
   - may depend on `server/**` and `shared/**`
-  - should compose injected runtime modules instead of owning subsystem internals directly
+  - wires injected runtime modules for CLI, HTTP, persistence, auth, startup, background, reporting, and auto-import
 - `server/**`
   - local API, reporting, background process, persistence, auto-import, and package runtime modules
   - may depend on `shared/**`
@@ -39,8 +43,11 @@ TTDash uses three complementary architecture gates. Each tool owns a different s
 
 ## Server Composition
 
-The server runtime is intentionally split so `server.js` stays an orchestration layer instead of a catch-all implementation module.
+The server runtime is intentionally split so `server.js` stays an executable shim instead of a catch-all implementation module. `server/app-runtime.js` is the explicit composition root for in-process starts such as Playwright's isolated test server.
 
+- `server/app-runtime.js`
+  - owns root runtime composition and environment-derived CLI/server configuration
+  - keeps the background process entrypoint pointed at the package root `server.js`
 - `server/data-runtime.js`
   - owns app-path resolution, persisted usage/settings IO, migration, and file-mutation locks
   - consumes the shared settings contract instead of defining local settings defaults or normalizers
@@ -195,7 +202,7 @@ Both `ci.yml` and `release.yml` run `check:deps` and `test:architecture` explici
   - use `dependency-cruiser` for whole-repo dependency graph boundaries
   - use `eslint-plugin-boundaries` for frontend import discipline
   - use `archunit` for expressive architecture assertions and naming rules
-- Keep `server.js` small. New server behavior should usually land in `server/**` and be wired into the entrypoint via dependency injection.
+- Keep `server.js` as an executable shim. New server behavior should usually land in `server/**` and be wired through `server/app-runtime.js` via dependency injection.
 - Keep shared settings logic centralized. If a new persisted settings field, default, or normalization rule is added, update `shared/app-settings.js` first and adapt frontend/server wrappers afterward.
 - Keep dashboard orchestration bundled. New dashboard shell behavior should usually extend the controller/view-model contracts instead of adding new flat props to `Dashboard.tsx` or `DashboardSections.tsx`.
 - Keep dashboard controller internals private. New browser-side dashboard IO or orchestration helpers should usually live in `use-dashboard-controller-*.ts` and be composed by `use-dashboard-controller.ts`, not imported directly by components.

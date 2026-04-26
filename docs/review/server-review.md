@@ -2,7 +2,7 @@
 
 ## Kurzfazit
 
-Der Server ist funktional robust fuer eine lokale Single-Binary-Node-Runtime. Die fruehere Entrypoint-Konzentration wurde deutlich reduziert: `server.js` ist heute vor allem Komposition, waehrend CLI, Startup-Shell, HTTP-Lifecycle, Auth, Router, Persistenz, Auto-Import und Background-Betrieb in fokussierten Runtime-Modulen liegen.
+Der Server ist funktional robust fuer eine lokale Single-Binary-Node-Runtime. Die fruehere Entrypoint-Konzentration wurde deutlich reduziert: `server.js` ist heute nur noch der ausfuehrbare CLI/Bin-Shim, waehrend `server/app-runtime.js` die Runtime-Komposition uebernimmt und CLI, Startup-Shell, HTTP-Lifecycle, Auth, Router, Persistenz, Auto-Import und Background-Betrieb in fokussierten Runtime-Modulen liegen.
 
 ## Was bereits gut ist
 
@@ -10,7 +10,7 @@ Der Server ist funktional robust fuer eine lokale Single-Binary-Node-Runtime. Di
 - Persistenz nutzt atomische Schreibpfade und Cross-Process-Locks
 - Background-Instanzen, Logfiles und Dateirechte sind nicht nur "best effort", sondern explizit mitgedacht
 - Reporting, Auto-Import und Background-Betrieb haben klare Fehler- und Timeout-Strategien
-- `server.js` exportiert keine breite Test-Helper-API mehr und bleibt durch eine Architektur-Guardrail als Composition Root begrenzt
+- `server.js` exportiert keine Test- oder Runtime-Helper-API mehr und bleibt durch eine Architektur-Guardrail auf den ausfuehrbaren Shim begrenzt
 
 ## Findings
 
@@ -22,7 +22,7 @@ Das Entrypoint-Modul traegt Persistenz, File Locks, Background-Registry, CLI, Au
 
 **Empfehlung:** innere Runtime-Helfer in eigene Module verschieben und `server.js` auf Komposition reduzieren.
 
-**Aktueller Stand:** In `docs/review/fixed-findings.md` als `server-review.md / H-01` geschlossen. CLI-Parsing, Startup-Ausgabe, Browser-Open, lokale Auth-Session-Metadaten und HTTP-Lifecycle/Shutdown sind aus dem Entrypoint herausgezogen. `server.js` umfasst nur noch die Runtime-Komposition und den `require.main`-Startpfad.
+**Aktueller Stand:** In `docs/review/fixed-findings.md` als `server-review.md / H-01` geschlossen. CLI-Parsing, Startup-Ausgabe, Browser-Open, lokale Auth-Session-Metadaten und HTTP-Lifecycle/Shutdown sind aus dem Entrypoint herausgezogen. Nach `server-review.md / M-01` umfasst `server.js` nur noch den `require.main`-Startpfad und delegiert die Runtime-Komposition an `server/app-runtime.js`.
 
 ### M-01 - Der produktive Entrypoint exportiert einen breiten `__test__`-API-Schatten
 
@@ -32,7 +32,7 @@ Fuer Tests werden viele interne Helfer direkt aus `server.js` exportiert. Das is
 
 **Empfehlung:** Testziele aus `server.js` in importierbare Runtime-Module verschieben und dort direkt testen.
 
-**Aktueller Stand:** Im Rahmen von `server-review.md / H-01` entschaerft. Die Server-helper-Tests importieren die Runtime-Module direkt, und `server.js` exportiert keinen `__test__`-Schatten mehr.
+**Aktueller Stand:** In `docs/review/fixed-findings.md` als `server-review.md / M-01` geschlossen. Die Server-helper-Tests importieren die Runtime-Module direkt, die Playwright-Testserver-Komposition nutzt `server/app-runtime.js`, und `server.js` exportiert weder `__test__` noch andere produktive Runtime-Helper.
 
 ### M-02 - Globale Runtime-Flags und Caches erschweren lokale Isolation
 

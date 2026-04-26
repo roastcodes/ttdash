@@ -5,7 +5,7 @@
 ### server-review.md / H-01
 
 - Status: fixed
-- Scope: `server.js` is now a composition root for dependencies and runtime wiring only. CLI parsing/help moved to `server/cli.js`, startup summaries/browser opening/local auth-session metadata moved to `server/startup-runtime.js`, shared process helpers moved to `server/process-utils.js`, and HTTP server lifecycle, CLI routing, startup sequencing, client errors, and shutdown cleanup moved to `server/server-lifecycle.js`.
+- Scope: `server.js` was reduced to dependency/runtime wiring during this phase, then further reduced by `server-review.md / M-01` to an executable CLI/Bin shim. CLI parsing/help moved to `server/cli.js`, startup summaries/browser opening/local auth-session metadata moved to `server/startup-runtime.js`, shared process helpers moved to `server/process-utils.js`, and HTTP server lifecycle, CLI routing, startup sequencing, client errors, and shutdown cleanup moved to `server/server-lifecycle.js`.
 - Guardrails: `tests/architecture/server-entrypoint-contract.test.ts` blocks local helper function definitions, `__test__` exports, and direct `http.createServer(...)` calls from returning to `server.js`. `tests/unit/server-cli.test.ts`, `tests/unit/startup-runtime.test.ts`, and `tests/unit/server-lifecycle.test.ts` cover the extracted behavior directly. Existing server helper tests now instantiate `server/data-runtime.js` and `server/auto-import-runtime.js` directly instead of importing `server.js`.
 - Follow-up quality fixes during implementation:
   - The productive `server.js.__test__` helper surface was removed as part of the Entrypoint split; tests now target the owning runtime modules.
@@ -25,6 +25,26 @@
   - `npm run verify:full`
   - `npm run test:timings`
   - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> rounds 1-2: 0 issues; round 3: 2 minor issues fixed; round 4: 1 minor issue fixed
+
+### server-review.md / M-01
+
+- Status: fixed
+- Scope: `server.js` is now only the executable CLI/Bin shim. Runtime composition moved to `server/app-runtime.js`, which builds the injected server lifecycle and keeps the background process entrypoint pointed at package-root `server.js`. The undocumented `require('./server.js').bootstrapCli/runCli` import surface was removed; in-process test/server starts now use `createAppRuntime(...)` explicitly.
+- Guardrails: `tests/architecture/server-entrypoint-contract.test.ts` now blocks `module.exports`, `exports.*`, local helper functions, `__test__`, direct `http.createServer(...)`, and any `server.js` require target other than `./server/app-runtime`. Playwright's `scripts/start-test-server.js` uses the explicit app-runtime composer so E2E startup still exercises the same server lifecycle without importing the executable shim as a helper module.
+- Follow-up quality fixes during implementation:
+  - Environment-derived CLI/server configuration now lives inside `createAppRuntime(...)`, so test harnesses can set isolated storage, host, and port environment variables before composing the runtime.
+  - `server/app-runtime.js` passes an explicit root `server.js` path to the background runtime, preserving foreground/background CLI behavior after the composition move.
+  - `docs/architecture.md` documents the new split between the executable shim and the app-runtime composition root.
+  - Dashboard UI, content, animation, API route behavior, local auth, remote auth, background CLI, packaging, and E2E startup behavior remain unchanged.
+- Validation:
+  - `node -c server.js`
+  - `node -c server/app-runtime.js`
+  - `npx vitest run --project architecture tests/architecture/server-entrypoint-contract.test.ts --reporter=verbose`
+  - `npx vitest run --project unit tests/unit/server-lifecycle.test.ts tests/unit/server-cli.test.ts tests/unit/startup-runtime.test.ts --project integration tests/integration/server-local-auth.test.ts tests/integration/server-remote-auth.test.ts --reporter=verbose`
+  - `npx vitest run --project integration-background tests/integration/server-background.test.ts --reporter=verbose`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> multiple rounds: 0 issues
 
 ## 2026-04-25
 
