@@ -26,6 +26,7 @@ const { createStartupRuntime } = require('./startup-runtime');
 const { createServerLifecycle } = require('./server-lifecycle');
 const { sleep, isProcessRunning, formatDateTime } = require('./process-utils');
 const { ensureBindHostAllowed, isLoopbackHost, listenOnAvailablePort } = require('./runtime');
+const { createServerRuntimeState } = require('./runtime-state');
 
 const ROOT = path.resolve(__dirname, '..');
 const APP_DIR_NAME = 'TTDash';
@@ -76,19 +77,13 @@ function createAppRuntime({
   const securityHeaders = createSecurityHeaders();
   const isBackgroundChild = env.TTDASH_BACKGROUND_CHILD === '1';
   const forceOpenBrowser = env.TTDASH_FORCE_OPEN_BROWSER === '1';
-  const runtimeFlags = {
-    startupAutoLoadCompleted: false,
-  };
-  const runtimeState = {
-    port: null,
-    url: null,
-  };
-  const runtimeInstance = {
+  const runtimeState = createServerRuntimeState({
     id: env.TTDASH_INSTANCE_ID || `${processObject.pid}-${Date.now()}`,
     pid: processObject.pid,
     startedAt: new Date().toISOString(),
     mode: isBackgroundChild ? 'background' : 'foreground',
-  };
+  });
+  const runtimeInstance = runtimeState.getRuntimeInstance();
 
   const dataRuntime = createDataRuntime({
     fs,
@@ -108,7 +103,7 @@ function createAppRuntime({
     secureFileMode: SECURE_FILE_MODE,
     fileMutationLockTimeoutMs: FILE_MUTATION_LOCK_TIMEOUT_MS,
     fileMutationLockStaleMs: FILE_MUTATION_LOCK_STALE_MS,
-    getCliAutoLoadActive: () => runtimeFlags.startupAutoLoadCompleted,
+    getCliAutoLoadActive: runtimeState.isStartupAutoLoadCompleted,
   });
   const localAuthSessionFile = path.join(dataRuntime.appPaths.configDir, 'session-auth.json');
   const serverAuth = createServerAuth({
@@ -192,12 +187,7 @@ function createAppRuntime({
     dataRuntime,
     autoImportRuntime,
     generatePdfReport,
-    getRuntimeSnapshot: () => ({
-      id: runtimeInstance.id,
-      mode: runtimeInstance.mode,
-      port: runtimeState.port,
-      url: runtimeState.url,
-    }),
+    getRuntimeSnapshot: runtimeState.getSnapshot,
   });
 
   const startupRuntime = createStartupRuntime({
@@ -217,9 +207,7 @@ function createAppRuntime({
     forceOpenBrowser,
     isLoopbackHost,
     autoImportRuntime,
-    setStartupAutoLoadCompleted: (value) => {
-      runtimeFlags.startupAutoLoadCompleted = value;
-    },
+    markStartupAutoLoadCompleted: runtimeState.markStartupAutoLoadCompleted,
   });
 
   return createServerLifecycle({
@@ -234,7 +222,6 @@ function createAppRuntime({
     startupRuntime,
     serverAuth,
     runtimeState,
-    runtimeInstance,
     startPort,
     maxPort,
     bindHost,

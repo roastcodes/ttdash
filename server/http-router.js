@@ -40,7 +40,7 @@ function createHttpRouter({
   const {
     createAutoImportMessageEvent,
     formatAutoImportMessageEvent,
-    isAutoImportRunning,
+    acquireAutoImportLease,
     lookupLatestToktrackVersion,
     performAutoImport,
     toAutoImportErrorEvent,
@@ -60,8 +60,6 @@ function createHttpRouter({
     '.woff': 'font/woff',
     '.woff2': 'font/woff2',
   };
-
-  let autoImportStreamRunning = false;
 
   function sendSSE(res, event, data) {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -367,13 +365,17 @@ function createHttpRouter({
         return json(res, validationError.status, { message: validationError.message });
       }
 
-      if (autoImportStreamRunning || isAutoImportRunning()) {
+      let autoImportLease;
+      try {
+        autoImportLease = acquireAutoImportLease();
+      } catch (error) {
+        if (error?.messageKey !== 'autoImportRunning') {
+          throw error;
+        }
         return json(res, 409, {
           message: formatAutoImportMessageEvent(createAutoImportMessageEvent('autoImportRunning')),
         });
       }
-
-      autoImportStreamRunning = true;
 
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -409,6 +411,7 @@ function createHttpRouter({
           signalOnClose: (close) => {
             req.on('close', close);
           },
+          lease: autoImportLease,
         });
 
         if (aborted) {
@@ -426,7 +429,7 @@ function createHttpRouter({
         sendSSE(res, 'done', {});
         res.end();
       } finally {
-        autoImportStreamRunning = false;
+        autoImportLease.release();
       }
       return;
     }

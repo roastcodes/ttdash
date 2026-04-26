@@ -42,6 +42,8 @@ Zustaende wie `startupAutoLoadCompleted`, `runtimePort`, `runtimeUrl`, `autoImpo
 
 **Empfehlung:** zumindest die Toktrack- und Auto-Import-Laufzeit in dedizierte Service-Objekte kapseln.
 
+**Aktueller Stand:** In `docs/review/fixed-findings.md` als `server-review.md / M-02` geschlossen. Runtime-Snapshot, Startup-Auto-Load-Status, Auto-Import-Lease und Toktrack-Version-Cache liegen jetzt in pro Runtime instanziierten Service-Objekten; der HTTP-Router besitzt kein eigenes Auto-Import-Stream-Flag mehr.
+
 ### N-01 - Die Serverbasis ist strukturell staerker als es ihre Dateiform vermuten laesst
 
 **Referenzen:** `server/runtime.js`, `server/http-utils.js`, `tests/integration/server-api-guards.test.ts`, `tests/integration/server-background.test.ts`

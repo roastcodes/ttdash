@@ -1,3 +1,5 @@
+const { createExclusiveRuntimeLease, createExpiringAsyncCache } = require('./runtime-state');
+
 function createAutoImportRuntime({
   fs,
   processObject = process,
@@ -23,10 +25,6 @@ function createAutoImportRuntime({
   toktrackLatestCacheSuccessTtlMs,
   toktrackLatestCacheFailureTtlMs,
 }) {
-  let autoImportRunning = false;
-  let latestToktrackVersionCache = null;
-  let latestToktrackVersionLookupPromise = null;
-
   function createAutoImportMessageEvent(key, vars = {}) {
     return {
       key,
@@ -553,17 +551,19 @@ function createAutoImportRuntime({
     );
   }
 
-  async function lookupLatestToktrackVersion(timeoutMs = toktrackLatestLookupTimeoutMs) {
-    const now = Date.now();
-    if (latestToktrackVersionCache && now < latestToktrackVersionCache.expiresAt) {
-      return latestToktrackVersionCache.value;
-    }
+  function createAutoImportAlreadyRunningError() {
+    return createAutoImportError(
+      'An auto-import is already running. Please wait.',
+      'autoImportRunning',
+    );
+  }
 
-    if (latestToktrackVersionLookupPromise) {
-      return latestToktrackVersionLookupPromise;
-    }
+  const autoImportLease = createExclusiveRuntimeLease({
+    createAlreadyRunningError: createAutoImportAlreadyRunningError,
+  });
 
-    latestToktrackVersionLookupPromise = (async () => {
+  const latestToktrackVersionStatusCache = createExpiringAsyncCache({
+    load: async (timeoutMs = toktrackLatestLookupTimeoutMs) => {
       try {
         const latestVersion = String(
           await runCommand(
@@ -579,20 +579,14 @@ function createAutoImportRuntime({
           ),
         ).trim();
 
-        const result = {
+        return {
           configuredVersion: toktrackVersion,
           latestVersion,
           isLatest: latestVersion === toktrackVersion,
           lookupStatus: 'ok',
         };
-
-        latestToktrackVersionCache = {
-          value: result,
-          expiresAt: Date.now() + toktrackLatestCacheSuccessTtlMs,
-        };
-        return result;
       } catch (error) {
-        const result = {
+        return {
           configuredVersion: toktrackVersion,
           latestVersion: null,
           isLatest: null,
@@ -602,18 +596,20 @@ function createAutoImportRuntime({
               ? error.message.trim()
               : 'Could not determine the latest toktrack version.',
         };
-
-        latestToktrackVersionCache = {
-          value: result,
-          expiresAt: Date.now() + toktrackLatestCacheFailureTtlMs,
-        };
-        return result;
-      } finally {
-        latestToktrackVersionLookupPromise = null;
       }
-    })();
+    },
+    getTtlMs: (value) =>
+      value.lookupStatus === 'ok'
+        ? toktrackLatestCacheSuccessTtlMs
+        : toktrackLatestCacheFailureTtlMs,
+  });
 
-    return latestToktrackVersionLookupPromise;
+  async function lookupLatestToktrackVersion(timeoutMs = toktrackLatestLookupTimeoutMs) {
+    return latestToktrackVersionStatusCache.lookup(timeoutMs);
+  }
+
+  function acquireAutoImportLease() {
+    return autoImportLease.acquire();
   }
 
   async function performAutoImport({
@@ -622,15 +618,9 @@ function createAutoImportRuntime({
     onProgress = () => {},
     onOutput = () => {},
     signalOnClose,
+    lease = null,
   } = {}) {
-    if (autoImportRunning) {
-      throw createAutoImportError(
-        'An auto-import is already running. Please wait.',
-        'autoImportRunning',
-      );
-    }
-
-    autoImportRunning = true;
+    const activeLease = lease || acquireAutoImportLease();
     let progressSeconds = 0;
     const progressInterval = setInterval(() => {
       progressSeconds += 5;
@@ -794,7 +784,7 @@ function createAutoImportRuntime({
       };
     } finally {
       clearInterval(progressInterval);
-      autoImportRunning = false;
+      activeLease.release();
     }
   }
 
@@ -835,11 +825,11 @@ function createAutoImportRuntime({
   }
 
   function resetLatestToktrackVersionCache() {
-    latestToktrackVersionCache = null;
-    latestToktrackVersionLookupPromise = null;
+    latestToktrackVersionStatusCache.reset();
   }
 
   return {
+    acquireAutoImportLease,
     commandExists,
     createAutoImportMessageEvent,
     formatAutoImportMessageEvent,
@@ -847,7 +837,7 @@ function createAutoImportRuntime({
     getLocalToktrackDisplayCommand,
     getToktrackLatestLookupTimeoutMs,
     getToktrackRunnerTimeouts,
-    isAutoImportRunning: () => autoImportRunning,
+    isAutoImportRunning: autoImportLease.isActive,
     lookupLatestToktrackVersion,
     parseToktrackVersionOutput,
     performAutoImport,

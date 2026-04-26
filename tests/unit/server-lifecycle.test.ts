@@ -13,6 +13,18 @@ const { createClientErrorResponse, createServerLifecycle } =
       start: () => Promise<void>
     }
   }
+const { createServerRuntimeState } = require('../../server/runtime-state.js') as {
+  createServerRuntimeState: (options: {
+    id: string
+    pid: number
+    startedAt: string
+    mode: string
+  }) => {
+    getRuntimeInstance: () => { id: string; pid: number; startedAt: string; mode: string }
+    getSnapshot: () => { id: string; mode: string; port: number | null; url: string | null }
+    setListening: (listeningState: { port: number; url: string }) => void
+  }
+}
 
 class FakeServer extends EventEmitter {
   close(callback: () => void) {
@@ -21,7 +33,12 @@ class FakeServer extends EventEmitter {
 }
 
 function createLifecycleFixture(overrides: Record<string, unknown> = {}) {
-  const runtimeState = { port: null as number | null, url: null as string | null }
+  const runtimeState = createServerRuntimeState({
+    id: 'runtime-1',
+    pid: 1234,
+    startedAt: '2026-04-26T00:00:00.000Z',
+    mode: 'foreground',
+  })
   const calls: string[] = []
   const fakeServer = new FakeServer()
   const errorLog = vi.fn()
@@ -68,7 +85,6 @@ function createLifecycleFixture(overrides: Record<string, unknown> = {}) {
       createBootstrapUrl: vi.fn((url: string) => `${url}/?ttdash_token=token`),
     },
     runtimeState,
-    runtimeInstance: { id: 'runtime-1' },
     startPort: 3000,
     maxPort: 3100,
     bindHost: '127.0.0.1',
@@ -105,7 +121,9 @@ describe('server lifecycle runtime', () => {
 
     await lifecycle.start()
 
-    expect(runtimeState).toEqual({
+    expect(runtimeState.getSnapshot()).toEqual({
+      id: 'runtime-1',
+      mode: 'foreground',
       port: 3010,
       url: 'http://127.0.0.1:3010',
     })

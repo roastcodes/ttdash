@@ -21,7 +21,6 @@ function createServerLifecycle({
   startupRuntime,
   serverAuth,
   runtimeState,
-  runtimeInstance,
   startPort,
   maxPort,
   bindHost,
@@ -67,9 +66,8 @@ function createServerLifecycle({
     const port = await tryListen(startPort);
     const browserHost = bindHost === '0.0.0.0' ? 'localhost' : bindHost;
     const url = `http://${browserHost}:${port}`;
-    runtimeState.port = port;
-    runtimeState.url = url;
-    startupRuntime.writeLocalAuthSessionFile(url, runtimeInstance);
+    runtimeState.setListening({ port, url });
+    startupRuntime.writeLocalAuthSessionFile(url, runtimeState.getRuntimeInstance());
 
     if (isBackgroundChild) {
       await backgroundRuntime.registerBackgroundInstance(

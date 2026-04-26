@@ -28,7 +28,7 @@ function createStartupRuntime({
   forceOpenBrowser,
   isLoopbackHost,
   autoImportRuntime,
-  setStartupAutoLoadCompleted,
+  markStartupAutoLoadCompleted,
   log = console.log,
   errorLog = console.error,
 }) {
@@ -193,7 +193,7 @@ function createStartupRuntime({
         },
       });
 
-      setStartupAutoLoadCompleted(true);
+      markStartupAutoLoadCompleted();
       log(`Auto-load complete: imported ${result.days} days, ${formatCurrency(result.totalCost)}.`);
     } catch (error) {
       errorLog(`Auto-load failed: ${error.message}`);

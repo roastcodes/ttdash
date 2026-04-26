@@ -46,6 +46,27 @@
   - `npm run test:timings`
   - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> multiple rounds: 0 issues
 
+### server-review.md / M-02
+
+- Status: fixed
+- Scope: mutable server runtime state is now encapsulated in per-runtime services. `server/runtime-state.js` owns the runtime snapshot, startup auto-load flag, singleton runtime lease, and expiring async cache primitives; `server/app-runtime.js`, `server/server-lifecycle.js`, and `server/startup-runtime.js` use the runtime-state service instead of ad hoc mutable flags; `server/auto-import-runtime.js` owns the Auto-Import lease and Toktrack latest-version cache through those services.
+- Guardrails: `tests/unit/runtime-state.test.ts` covers runtime snapshots, startup flag isolation, singleton lease behavior, in-flight lookup deduplication, and TTL/reset behavior. `tests/architecture/server-runtime-state-contract.test.ts` blocks route-local `autoImportStreamRunning` state and the old free Auto-Import/Toktrack cache variables from returning.
+- Follow-up quality fixes during implementation:
+  - `server/http-router.js` no longer owns an Auto-Import stream flag. It acquires a lease before sending SSE headers, so concurrent starts still return the existing HTTP `409` response without turning into streamed errors.
+  - `server/auto-import-runtime.js` remains the owner of Auto-Import execution, but the singleton state is now an explicit lease with idempotent release for normal completion, failures, and aborted streams.
+  - Toktrack latest-version lookups still share one in-flight request and keep separate success/failure TTL behavior, but the cache/promise state is hidden behind `createExpiringAsyncCache(...)`.
+  - Dashboard UI, content, animation, API paths, response shapes, local auth, remote auth, background startup, and E2E startup behavior remain unchanged.
+- Validation:
+  - `node -c server/runtime-state.js`
+  - `node -c server/app-runtime.js`
+  - `node -c server/auto-import-runtime.js`
+  - `node -c server/http-router.js`
+  - `npx vitest run --project unit tests/unit/runtime-state.test.ts tests/unit/server-lifecycle.test.ts tests/unit/startup-runtime.test.ts tests/unit/server-helpers-runner-process.test.ts --project architecture tests/architecture/server-entrypoint-contract.test.ts tests/architecture/server-runtime-state-contract.test.ts --reporter=verbose`
+  - `npx vitest run --project integration tests/integration/server-auto-import.test.ts tests/integration/server-api-routing-runtime.test.ts tests/integration/server-local-auth.test.ts tests/integration/server-remote-auth.test.ts --project integration-background tests/integration/server-background.test.ts --reporter=verbose`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> multiple rounds: 0 issues
+
 ## 2026-04-25
 
 ### security-review.md / H-01

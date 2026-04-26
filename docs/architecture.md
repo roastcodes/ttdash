@@ -48,6 +48,9 @@ The server runtime is intentionally split so `server.js` stays an executable shi
 - `server/app-runtime.js`
   - owns root runtime composition and environment-derived CLI/server configuration
   - keeps the background process entrypoint pointed at the package root `server.js`
+- `server/runtime-state.js`
+  - owns local mutable runtime state services such as runtime snapshots, singleton runtime leases, and expiring async caches
+  - keeps startup flags, auto-import leases, and toktrack version lookup cache state scoped to one composed app runtime
 - `server/data-runtime.js`
   - owns app-path resolution, persisted usage/settings IO, migration, and file-mutation locks
   - consumes the shared settings contract instead of defining local settings defaults or normalizers
@@ -57,8 +60,10 @@ The server runtime is intentionally split so `server.js` stays an executable shi
   - owns background instance registry, start/stop flows, and registry locking
 - `server/auto-import-runtime.js`
   - owns toktrack runner resolution, subprocess execution, version lookup, and auto-import execution
+  - uses the injected runtime-state services for singleton import leasing and latest-version cache isolation
 - `server/http-router.js`
   - owns API routing, SSE wiring, and static asset dispatch with injected runtime dependencies
+  - must acquire auto-import work through `server/auto-import-runtime.js` instead of keeping route-local import flags
 - `server/security-headers.js`
   - owns shared browser security headers and the nonce-aware CSP used for HTML responses
   - keeps style directives strict by using `style-src-attr 'none'` and avoiding `unsafe-inline`

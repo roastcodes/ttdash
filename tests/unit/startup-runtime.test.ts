@@ -77,7 +77,7 @@ function createStartupRuntimeFixture(overrides: Record<string, unknown> = {}) {
         return { days: 2, totalCost: 1.23 }
       }),
     },
-    setStartupAutoLoadCompleted: vi.fn(),
+    markStartupAutoLoadCompleted: vi.fn(),
     log: (line: string) => logs.push(line),
     errorLog: (line: string) => errors.push(line),
     ...overrides,
@@ -162,14 +162,14 @@ describe('startup runtime', () => {
   })
 
   it('marks startup auto-load complete only after a successful import', async () => {
-    const setStartupAutoLoadCompleted = vi.fn()
+    const markStartupAutoLoadCompleted = vi.fn()
     const { logs, runtime } = createStartupRuntimeFixture({
-      setStartupAutoLoadCompleted,
+      markStartupAutoLoadCompleted,
     })
 
     await runtime.runStartupAutoLoad()
 
-    expect(setStartupAutoLoadCompleted).toHaveBeenCalledWith(true)
+    expect(markStartupAutoLoadCompleted).toHaveBeenCalledTimes(1)
     expect(logs).toContain('toktrack found (local, v2.5.0)')
     expect(logs).toContain('processingUsageData')
     expect(logs).toContain('Auto-load complete: imported 2 days, $ 1.23.')
