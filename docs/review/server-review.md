@@ -51,3 +51,5 @@ Zustaende wie `startupAutoLoadCompleted`, `runtimePort`, `runtimeUrl`, `autoImpo
 Positiv auffaellig ist, dass wesentliche Sicherheits- und Runtime-Helfer bereits aus `server.js` herausgezogen wurden. Diese Richtung ist richtig und sollte konsequent weitergefuehrt werden.
 
 **Empfehlung:** `server/runtime.js` und `server/http-utils.js` als Muster fuer weitere Extraktionen verwenden.
+
+**Aktueller Stand:** In `docs/review/fixed-findings.md` als `server-review.md / N-01` geschlossen. Die Host-/Origin-/Content-Type-Request-Policy liegt jetzt in `server/http-request-guards.js`, waehrend `server/http-utils.js` als kompatible Fassade fuer Body-, Response- und Router-Helfer erhalten bleibt.

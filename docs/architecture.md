@@ -64,6 +64,9 @@ The server runtime is intentionally split so `server.js` stays an executable shi
 - `server/http-router.js`
   - owns API routing, SSE wiring, and static asset dispatch with injected runtime dependencies
   - must acquire auto-import work through `server/auto-import-runtime.js` instead of keeping route-local import flags
+- `server/http-request-guards.js`
+  - owns Host, Origin, Sec-Fetch-Site, and JSON content-type request policy for local API protection
+  - is consumed through `server/http-utils.js` so route handlers keep using one HTTP utility facade
 - `server/security-headers.js`
   - owns shared browser security headers and the nonce-aware CSP used for HTML responses
   - keeps style directives strict by using `style-src-attr 'none'` and avoiding `unsafe-inline`

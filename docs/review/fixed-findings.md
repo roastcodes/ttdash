@@ -67,6 +67,25 @@
   - `npm run test:timings`
   - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> multiple rounds: 0 issues
 
+### server-review.md / N-01
+
+- Status: fixed
+- Scope: Host, Origin, Sec-Fetch-Site, and JSON content-type request policy moved from the broader HTTP utility module into `server/http-request-guards.js`. `server/http-utils.js` remains the compatible facade for router consumers and still owns request body parsing, JSON responses, buffer responses, and API-prefix resolution.
+- Guardrails: `tests/unit/http-request-guards.test.ts` covers loopback, wildcard, non-loopback, IPv6, origin, cross-site, and content-type behavior directly. `tests/unit/http-utils.test.ts` now focuses on the HTTP facade and body/response behavior. `tests/architecture/server-http-boundaries.test.ts` keeps request guard policy out of the router and out of generic HTTP utility internals.
+- Follow-up quality fixes during implementation:
+  - The request guard code now tolerates missing `req.headers` defensively while preserving the same rejection path for malformed or missing Host/Origin input.
+  - Wildcard binds now apply the intended socket-local host check before exact bind-host matching, so `Host: 0.0.0.0` is not treated as a trusted client-facing host.
+  - Body-size and response-header behavior gained focused unit coverage, so the split did not trade broad utility tests for narrower policy-only tests.
+  - Dashboard UI, content, animation, API paths, response shapes, local auth, remote auth, background startup, and E2E startup behavior remain unchanged.
+- Validation:
+  - `node -c server/http-request-guards.js`
+  - `node -c server/http-utils.js`
+  - `npx vitest run --project unit tests/unit/http-request-guards.test.ts tests/unit/http-utils.test.ts --project architecture tests/architecture/server-http-boundaries.test.ts tests/architecture/server-entrypoint-contract.test.ts tests/architecture/server-runtime-state-contract.test.ts --reporter=verbose`
+  - `npx vitest run --project integration tests/integration/server-api-guards.test.ts tests/integration/server-remote-auth.test.ts --reporter=verbose`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> multiple rounds: 0 issues
+
 ## 2026-04-25
 
 ### security-review.md / H-01
