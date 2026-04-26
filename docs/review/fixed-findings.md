@@ -1,5 +1,31 @@
 # Fixed Findings
 
+## 2026-04-26
+
+### server-review.md / H-01
+
+- Status: fixed
+- Scope: `server.js` is now a composition root for dependencies and runtime wiring only. CLI parsing/help moved to `server/cli.js`, startup summaries/browser opening/local auth-session metadata moved to `server/startup-runtime.js`, shared process helpers moved to `server/process-utils.js`, and HTTP server lifecycle, CLI routing, startup sequencing, client errors, and shutdown cleanup moved to `server/server-lifecycle.js`.
+- Guardrails: `tests/architecture/server-entrypoint-contract.test.ts` blocks local helper function definitions, `__test__` exports, and direct `http.createServer(...)` calls from returning to `server.js`. `tests/unit/server-cli.test.ts`, `tests/unit/startup-runtime.test.ts`, and `tests/unit/server-lifecycle.test.ts` cover the extracted behavior directly. Existing server helper tests now instantiate `server/data-runtime.js` and `server/auto-import-runtime.js` directly instead of importing `server.js`.
+- Follow-up quality fixes during implementation:
+  - The productive `server.js.__test__` helper surface was removed as part of the Entrypoint split; tests now target the owning runtime modules.
+  - The cross-process file-lock test now loads `server/data-runtime.js` directly in its child process, so it still validates real lock behavior without loading the CLI entrypoint.
+  - The startup data summary now pluralizes `1 day` versus `N days` correctly without changing the existing cost or token formatting.
+  - Background-child shutdown now logs unregister failures, suppresses unhandled promise rejections, exits through a finally-style path, and prevents duplicate shutdown completion when graceful close and forced timeout race.
+  - CLI help now documents the supported `-bg` legacy background alias alongside `-b` and `--background`, so displayed usage matches parser behavior.
+  - Startup behavior remains intentionally unchanged: auth bootstrap URL output, remote warnings, browser opening, background registration, auto-load logging, package startup, and API routing keep the same runtime contracts.
+- Validation:
+  - `npx vitest run --project unit tests/unit/server-cli.test.ts tests/unit/startup-runtime.test.ts tests/unit/server-lifecycle.test.ts tests/unit/server-helpers-network.test.ts tests/unit/server-helpers-runner-core.test.ts tests/unit/server-helpers-runner-process.test.ts tests/unit/server-helpers-file-locks.test.ts --reporter=verbose`
+  - `npx vitest run --project architecture tests/architecture/server-entrypoint-contract.test.ts --reporter=verbose`
+  - `npm run format:check`
+  - `npm run lint`
+  - `tsc --noEmit`
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> rounds 1-2: 0 issues; round 3: 2 minor issues fixed; round 4: 1 minor issue fixed
+
 ## 2026-04-25
 
 ### security-review.md / H-01

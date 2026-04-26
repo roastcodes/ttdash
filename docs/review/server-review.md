@@ -2,7 +2,7 @@
 
 ## Kurzfazit
 
-Der Server ist funktional erstaunlich robust fuer eine lokale Single-Binary-Node-Runtime. Seine groesste Staerke ist derselbe Punkt wie seine groesste Schwachstelle: fast alles ist an einer Stelle sichtbar. Das hilft beim Verstehen kleiner Projekte, skaliert aber schlecht fuer Wartung und Risikoisolation.
+Der Server ist funktional robust fuer eine lokale Single-Binary-Node-Runtime. Die fruehere Entrypoint-Konzentration wurde deutlich reduziert: `server.js` ist heute vor allem Komposition, waehrend CLI, Startup-Shell, HTTP-Lifecycle, Auth, Router, Persistenz, Auto-Import und Background-Betrieb in fokussierten Runtime-Modulen liegen.
 
 ## Was bereits gut ist
 
@@ -10,6 +10,7 @@ Der Server ist funktional erstaunlich robust fuer eine lokale Single-Binary-Node
 - Persistenz nutzt atomische Schreibpfade und Cross-Process-Locks
 - Background-Instanzen, Logfiles und Dateirechte sind nicht nur "best effort", sondern explizit mitgedacht
 - Reporting, Auto-Import und Background-Betrieb haben klare Fehler- und Timeout-Strategien
+- `server.js` exportiert keine breite Test-Helper-API mehr und bleibt durch eine Architektur-Guardrail als Composition Root begrenzt
 
 ## Findings
 
@@ -21,6 +22,8 @@ Das Entrypoint-Modul traegt Persistenz, File Locks, Background-Registry, CLI, Au
 
 **Empfehlung:** innere Runtime-Helfer in eigene Module verschieben und `server.js` auf Komposition reduzieren.
 
+**Aktueller Stand:** In `docs/review/fixed-findings.md` als `server-review.md / H-01` geschlossen. CLI-Parsing, Startup-Ausgabe, Browser-Open, lokale Auth-Session-Metadaten und HTTP-Lifecycle/Shutdown sind aus dem Entrypoint herausgezogen. `server.js` umfasst nur noch die Runtime-Komposition und den `require.main`-Startpfad.
+
 ### M-01 - Der produktive Entrypoint exportiert einen breiten `__test__`-API-Schatten
 
 **Referenzen:** `server.js:2935-2962`
@@ -28,6 +31,8 @@ Das Entrypoint-Modul traegt Persistenz, File Locks, Background-Registry, CLI, Au
 Fuer Tests werden viele interne Helfer direkt aus `server.js` exportiert. Das ist pragmatisch, macht das Produktionsmodul aber implizit zu einer halb-oeffentlichen Utility-Sammlung. Mit wachsender Codebasis entsteht daraus schnell eine "nicht offiziell oeffentliche, aber faktisch stabile" API.
 
 **Empfehlung:** Testziele aus `server.js` in importierbare Runtime-Module verschieben und dort direkt testen.
+
+**Aktueller Stand:** Im Rahmen von `server-review.md / H-01` entschaerft. Die Server-helper-Tests importieren die Runtime-Module direkt, und `server.js` exportiert keinen `__test__`-Schatten mehr.
 
 ### M-02 - Globale Runtime-Flags und Caches erschweren lokale Isolation
 

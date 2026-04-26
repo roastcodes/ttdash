@@ -44,6 +44,8 @@ The server runtime is intentionally split so `server.js` stays an orchestration 
 - `server/data-runtime.js`
   - owns app-path resolution, persisted usage/settings IO, migration, and file-mutation locks
   - consumes the shared settings contract instead of defining local settings defaults or normalizers
+- `server/cli.js`
+  - owns CLI alias normalization, help text, positional command parsing, and port validation
 - `server/background-runtime.js`
   - owns background instance registry, start/stop flows, and registry locking
 - `server/auto-import-runtime.js`
@@ -57,10 +59,14 @@ The server runtime is intentionally split so `server.js` stays an orchestration 
   - owns token-based authentication for both default loopback sessions and explicitly enabled non-loopback binds
   - keeps browser bootstrap, HttpOnly cookie setup, and non-browser Bearer/header auth outside the route handlers
   - uses a generated per-start local session token for loopback and `TTDASH_REMOTE_TOKEN` for remote binds
+- `server/startup-runtime.js`
+  - owns startup summaries, data-status formatting, browser opening, local auth-session file metadata, and startup auto-load logging
+- `server/server-lifecycle.js`
+  - owns HTTP server creation, malformed-request client errors, foreground/background CLI routing, startup sequencing, and shutdown cleanup
 - Local auth session state
-  - `server.js` writes the current local session metadata to a restrictive `session-auth.json` file in the user config dir
+  - `server/startup-runtime.js` writes the current local session metadata to a restrictive `session-auth.json` file in the user config dir through injected data-runtime IO
   - `server/background-runtime.js` stores per-instance auth headers and bootstrap URLs in the restrictive background registry so `ttdash stop` and no-open background starts stay usable
-- `server/http-utils.js`, `server/runtime.js`, `server/report/**`
+- `server/http-utils.js`, `server/runtime.js`, `server/process-utils.js`, `server/report/**`
   - shared support modules used by the composed runtimes
 
 ## Shared Settings Contract

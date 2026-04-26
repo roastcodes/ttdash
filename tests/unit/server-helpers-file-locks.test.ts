@@ -235,12 +235,35 @@ describe('server helper utilities: file mutation locks', () => {
     await fsPromises.writeFile(
       childScriptPath,
       `
-const serverPath = process.argv[2]
+const path = require('path')
+const fs = require('fs')
+const fsPromises = require('fs/promises')
+const os = require('os')
+const dataRuntimePath = process.argv[2]
 const filePath = process.argv[3]
-process.argv = process.argv.slice(0, 2)
-const { __test__: { withFileMutationLock } } = require(serverPath)
+const { createDataRuntime } = require(dataRuntimePath)
 
-withFileMutationLock(filePath, async () => {
+const dataRuntime = createDataRuntime({
+  fs,
+  fsPromises,
+  os,
+  path,
+  processObject: process,
+  normalizeIncomingData: (value) => value,
+  runtimeInstanceId: 'cross-process-lock-test',
+  appDirName: 'TTDash',
+  appDirNameLinux: 'ttdash',
+  legacyDataFile: path.join(process.cwd(), 'data.json'),
+  settingsBackupKind: 'ttdash-settings-backup',
+  usageBackupKind: 'ttdash-usage-backup',
+  isWindows: process.platform === 'win32',
+  secureDirMode: 0o700,
+  secureFileMode: 0o600,
+  fileMutationLockTimeoutMs: 10000,
+  fileMutationLockStaleMs: 30000,
+})
+
+dataRuntime.withFileMutationLock(filePath, async () => {
   if (typeof process.send === 'function') {
     process.send('locked')
   }
@@ -252,7 +275,7 @@ withFileMutationLock(filePath, async () => {
 `.trim(),
     )
 
-    const child = fork(childScriptPath, [path.resolve('server.js'), targetFile], {
+    const child = fork(childScriptPath, [path.resolve('server/data-runtime.js'), targetFile], {
       cwd: process.cwd(),
       stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
     })

@@ -22,6 +22,7 @@ requirements/
 docs/security/
 docs/review/*
 !docs/review/*.md
+docs/application-stack-reference.md
 /activity-*.png
 /cache-hit-rate-*.png
 /request-*.png
