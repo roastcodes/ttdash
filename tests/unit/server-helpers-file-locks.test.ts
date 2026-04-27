@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   existsSync,
@@ -14,9 +15,50 @@ import {
   writeJsonAtomicAsync,
 } from './server-helpers.shared'
 
+const require = createRequire(import.meta.url)
+const fs = require('node:fs')
+const os = require('node:os')
+const { normalizeIncomingData } = require('../../usage-normalizer.js') as {
+  normalizeIncomingData: (input: unknown) => unknown
+}
+const { createDataRuntime } = require('../../server/data-runtime.js') as {
+  createDataRuntime: (options: Record<string, unknown>) => {
+    getFileMutationLockDir: (filePath: string) => string
+    withFileMutationLock: <T>(filePath: string, operation: () => Promise<T>) => Promise<T>
+  }
+}
+
 afterEach(() => {
   resetServerHelperTestState()
 })
+
+function createShortTimeoutFileLockRuntime() {
+  return createDataRuntime({
+    fs,
+    fsPromises,
+    os,
+    path,
+    processObject: {
+      ...process,
+      env: process.env,
+      pid: process.pid,
+      platform: process.platform,
+      kill: vi.fn(() => true),
+    },
+    normalizeIncomingData,
+    runtimeInstanceId: `test-${process.pid}`,
+    appDirName: 'TTDash',
+    appDirNameLinux: 'ttdash',
+    legacyDataFile: path.join(process.cwd(), 'data.json'),
+    settingsBackupKind: 'ttdash-settings-backup',
+    usageBackupKind: 'ttdash-usage-backup',
+    isWindows: process.platform === 'win32',
+    secureDirMode: 0o700,
+    secureFileMode: 0o600,
+    fileMutationLockTimeoutMs: 80,
+    fileMutationLockStaleMs: 10,
+  })
+}
 
 function waitForChildMessage(
   child: ReturnType<typeof fork>,
@@ -206,23 +248,26 @@ describe('server helper utilities: file mutation locks', () => {
     await fsPromises.rm(targetDir, { recursive: true, force: true })
   })
 
-  it('reaps stale locks even when the recorded pid is still running', async () => {
+  it('does not reap stale locks while the recorded owner pid is still running', async () => {
+    const runtime = createShortTimeoutFileLockRuntime()
     const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-stale-pid-lock-'))
     const targetFile = path.join(targetDir, 'settings.json')
-    const lockDir = getFileMutationLockDir(targetFile)
+    const lockDir = runtime.getFileMutationLockDir(targetFile)
 
     await fsPromises.mkdir(lockDir, { recursive: true })
     await fsPromises.writeFile(
       path.join(lockDir, 'owner.json'),
       JSON.stringify({
-        pid: process.pid,
+        pid: 4242,
         createdAt: new Date(Date.now() - 60_000).toISOString(),
         instanceId: 'stale-instance',
       }),
     )
 
-    await expect(withFileMutationLock(targetFile, async () => 'ok')).resolves.toBe('ok')
-    expect(existsSync(lockDir)).toBe(false)
+    await expect(runtime.withFileMutationLock(targetFile, async () => 'ok')).rejects.toThrow(
+      'Could not acquire file mutation lock',
+    )
+    expect(existsSync(lockDir)).toBe(true)
 
     await fsPromises.rm(targetDir, { recursive: true, force: true })
   })

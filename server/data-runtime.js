@@ -218,6 +218,10 @@ function createDataRuntime({
     }
 
     try {
+      if (Number.isInteger(owner?.pid)) {
+        return !isProcessRunning(owner.pid);
+      }
+
       const ownerCreatedAt = owner?.createdAt ? Date.parse(owner.createdAt) : Number.NaN;
       const stats = await fsPromises.stat(lockDir);
       const lockAgeMs = Number.isFinite(ownerCreatedAt)
@@ -226,10 +230,6 @@ function createDataRuntime({
 
       if (lockAgeMs > fileMutationLockStaleMs) {
         return true;
-      }
-
-      if (Number.isInteger(owner?.pid)) {
-        return !isProcessRunning(owner.pid);
       }
 
       return false;
@@ -389,16 +389,17 @@ function createDataRuntime({
   function sortStrings(values) {
     return [
       ...new Set(
-        (Array.isArray(values) ? values : []).filter(
-          (value) => typeof value === 'string' && value.trim(),
-        ),
+        (Array.isArray(values) ? values : [])
+          .filter((value) => typeof value === 'string')
+          .map((value) => value.trim())
+          .filter(Boolean),
       ),
     ].sort((left, right) => left.localeCompare(right));
   }
 
   function canonicalizeModelBreakdown(entry) {
     return {
-      modelName: typeof entry?.modelName === 'string' ? entry.modelName : '',
+      modelName: typeof entry?.modelName === 'string' ? entry.modelName.trim() : '',
       inputTokens: Number(entry?.inputTokens) || 0,
       outputTokens: Number(entry?.outputTokens) || 0,
       cacheCreationTokens: Number(entry?.cacheCreationTokens) || 0,

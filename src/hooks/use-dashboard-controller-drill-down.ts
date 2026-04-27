@@ -23,7 +23,7 @@ export function useDashboardControllerDrillDown(
     if (drillDownDate !== null && drillDownDay === null) {
       setDrillDownDate(null)
     }
-  }, [drillDownDate, drillDownDay, filteredData])
+  }, [drillDownDate, drillDownDay])
 
   const drillDownSequence = useMemo(
     () => [...filteredData].sort((left, right) => left.date.localeCompare(right.date)),
@@ -59,7 +59,7 @@ export function useDashboardControllerDrillDown(
     dialog: {
       day: drillDownDay,
       contextData: filteredData,
-      open: drillDownDate !== null,
+      open: drillDownDay !== null,
       hasPrevious: hasPreviousDrillDown,
       hasNext: hasNextDrillDown,
       currentIndex: drillDownIndex >= 0 ? drillDownIndex + 1 : 0,

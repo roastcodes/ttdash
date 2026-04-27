@@ -35,6 +35,7 @@ describe('playwright config', () => {
     await expect(importPlaywrightConfig('true')).resolves.toMatchObject({
       workers: 1,
     })
-    expect(packageJson.scripts['test:e2e:ci']).toContain('CI=1')
+    expect(packageJson.scripts['test:e2e:ci']).toBe('playwright test --workers=1')
+    expect(packageJson.scripts['test:e2e:ci']).not.toContain('CI=1')
   })
 })

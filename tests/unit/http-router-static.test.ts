@@ -95,6 +95,21 @@ describe('HTTP router static file handling', () => {
     expect(res.body).toContain('<!doctype html>')
   })
 
+  it('returns not found for missing static assets instead of serving the SPA shell', async () => {
+    const router = createRouter(async (filePath) => {
+      if (filePath.endsWith('index.html')) {
+        return Buffer.from('<!doctype html><html></html>')
+      }
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' })
+    })
+    const res = new MockResponse()
+
+    await router.handleServerRequest({ url: '/assets/app.js', method: 'GET', headers: {} }, res)
+
+    expect(res.status).toBe(404)
+    expect(JSON.parse(res.body)).toEqual({ message: 'Not Found' })
+  })
+
   it('rejects directory reads instead of treating directories as static files', async () => {
     const router = createRouter(async () => {
       throw Object.assign(new Error('directory'), { code: 'EISDIR' })

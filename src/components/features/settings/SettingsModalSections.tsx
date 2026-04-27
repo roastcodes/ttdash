@@ -90,10 +90,11 @@ export function SettingsStatusSection({
 
 interface SettingsLanguageSectionProps {
   viewModel: SettingsModalGeneralDraftViewModel
+  settingsBusy: boolean
 }
 
 /** Renders the language controls of the settings modal. */
-export function SettingsLanguageSection({ viewModel }: SettingsLanguageSectionProps) {
+export function SettingsLanguageSection({ viewModel, settingsBusy }: SettingsLanguageSectionProps) {
   const { t } = useTranslation()
 
   return (
@@ -123,7 +124,12 @@ export function SettingsLanguageSection({ viewModel }: SettingsLanguageSectionPr
             data-testid={`settings-language-${nextLanguage}`}
             aria-pressed={viewModel.languageDraft === nextLanguage}
             variant={viewModel.languageDraft === nextLanguage ? 'default' : 'outline'}
-            onClick={() => viewModel.onLanguageChange(nextLanguage)}
+            onClick={() => {
+              if (!settingsBusy) {
+                viewModel.onLanguageChange(nextLanguage)
+              }
+            }}
+            disabled={settingsBusy}
           >
             {t(`app.languages.${nextLanguage}`)}
           </Button>
@@ -187,6 +193,7 @@ export function SettingsDefaultsSection({ viewModel, settingsBusy }: SettingsDef
                 aria-pressed={viewModel.defaultFilterDraft.viewMode === mode}
                 variant={viewModel.defaultFilterDraft.viewMode === mode ? 'default' : 'outline'}
                 onClick={() => viewModel.onViewModeChange(mode)}
+                disabled={settingsBusy}
               >
                 {t(`settings.modal.viewModes.${mode}`)}
               </Button>
@@ -207,6 +214,7 @@ export function SettingsDefaultsSection({ viewModel, settingsBusy }: SettingsDef
                 aria-pressed={viewModel.defaultFilterDraft.datePreset === preset}
                 variant={viewModel.defaultFilterDraft.datePreset === preset ? 'default' : 'outline'}
                 onClick={() => viewModel.onDatePresetChange(preset)}
+                disabled={settingsBusy}
               >
                 {t(`settings.modal.datePresets.${preset}`)}
               </Button>
@@ -232,11 +240,13 @@ export function SettingsDefaultsSection({ viewModel, settingsBusy }: SettingsDef
                     type="button"
                     aria-pressed={selected}
                     onClick={() => viewModel.onToggleProvider(provider)}
+                    disabled={settingsBusy}
                     className={cn(
                       'inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                       selected
                         ? 'border-primary/30 bg-primary text-primary-foreground'
                         : getProviderBadgeClasses(provider),
+                      settingsBusy && 'cursor-not-allowed opacity-50',
                     )}
                   >
                     {provider}
@@ -265,11 +275,13 @@ export function SettingsDefaultsSection({ viewModel, settingsBusy }: SettingsDef
                     type="button"
                     aria-pressed={selected}
                     onClick={() => viewModel.onToggleModel(model)}
+                    disabled={settingsBusy}
                     className={cn(
                       'inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                       selected
                         ? 'border-primary/30 bg-primary text-primary-foreground'
                         : 'border-border bg-muted/20 text-muted-foreground hover:bg-accent hover:text-foreground',
+                      settingsBusy && 'cursor-not-allowed opacity-50',
                     )}
                   >
                     {model}
@@ -343,25 +355,35 @@ export function SettingsSectionsSection({ viewModel, settingsBusy }: SettingsSec
             <div
               key={section.id}
               data-section-id={section.id}
-              draggable
+              draggable={!settingsBusy}
               onDragStart={(event) => {
+                if (settingsBusy) {
+                  event.preventDefault()
+                  return
+                }
                 event.dataTransfer.effectAllowed = 'move'
                 event.dataTransfer.setData('text/plain', section.id)
                 viewModel.onDraggedSectionChange(section.id)
                 viewModel.onDragOverSectionChange(section.id)
               }}
               onDragOver={(event) => {
+                if (settingsBusy) return
                 event.preventDefault()
                 if (viewModel.dragOverSectionId !== section.id) {
                   viewModel.onDragOverSectionChange(section.id)
                 }
               }}
               onDragLeave={() => {
+                if (settingsBusy) return
                 if (viewModel.dragOverSectionId === section.id) {
                   viewModel.onDragOverSectionChange(null)
                 }
               }}
               onDrop={(event) => {
+                if (settingsBusy) {
+                  event.preventDefault()
+                  return
+                }
                 event.preventDefault()
                 const sourceId =
                   (event.dataTransfer.getData('text/plain') as DashboardSectionOrder[number]) ||
@@ -373,6 +395,7 @@ export function SettingsSectionsSection({ viewModel, settingsBusy }: SettingsSec
                 viewModel.onDragOverSectionChange(null)
               }}
               onDragEnd={() => {
+                if (settingsBusy) return
                 viewModel.onDraggedSectionChange(null)
                 viewModel.onDragOverSectionChange(null)
               }}
@@ -407,7 +430,7 @@ export function SettingsSectionsSection({ viewModel, settingsBusy }: SettingsSec
                   className="h-8 w-8"
                   data-testid={`move-section-up-${section.id}`}
                   onClick={() => viewModel.onMoveSection(section.id, -1)}
-                  disabled={index === 0}
+                  disabled={settingsBusy || index === 0}
                   aria-label={t('settings.modal.moveSectionUp', {
                     section: t(section.labelKey),
                   })}
@@ -421,7 +444,7 @@ export function SettingsSectionsSection({ viewModel, settingsBusy }: SettingsSec
                   className="h-8 w-8"
                   data-testid={`move-section-down-${section.id}`}
                   onClick={() => viewModel.onMoveSection(section.id, 1)}
-                  disabled={index === orderedSections.length - 1}
+                  disabled={settingsBusy || index === orderedSections.length - 1}
                   aria-label={t('settings.modal.moveSectionDown', {
                     section: t(section.labelKey),
                   })}
@@ -433,11 +456,13 @@ export function SettingsSectionsSection({ viewModel, settingsBusy }: SettingsSec
                   data-testid={`toggle-section-visibility-${section.id}`}
                   aria-pressed={visible}
                   onClick={() => viewModel.onToggleSectionVisibility(section.id)}
+                  disabled={settingsBusy}
                   className={cn(
                     'inline-flex min-w-[88px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase transition-colors',
                     visible
                       ? 'border-emerald-500/30 bg-emerald-500/10 text-foreground'
                       : 'border-border bg-muted/20 text-muted-foreground hover:bg-accent hover:text-foreground',
+                    settingsBusy && 'cursor-not-allowed opacity-50',
                   )}
                 >
                   {visible ? t('common.visible') : t('common.hidden')}
@@ -453,10 +478,11 @@ export function SettingsSectionsSection({ viewModel, settingsBusy }: SettingsSec
 
 interface SettingsMotionSectionProps {
   viewModel: SettingsModalGeneralDraftViewModel
+  settingsBusy: boolean
 }
 
 /** Renders motion settings inside the settings modal. */
-export function SettingsMotionSection({ viewModel }: SettingsMotionSectionProps) {
+export function SettingsMotionSection({ viewModel, settingsBusy }: SettingsMotionSectionProps) {
   const { t } = useTranslation()
 
   return (
@@ -499,7 +525,12 @@ export function SettingsMotionSection({ viewModel }: SettingsMotionSectionProps)
               data-testid={`settings-reduced-motion-${value}`}
               aria-pressed={viewModel.reducedMotionPreferenceDraft === value}
               variant={viewModel.reducedMotionPreferenceDraft === value ? 'default' : 'outline'}
-              onClick={() => viewModel.onReducedMotionPreferenceChange(value)}
+              onClick={() => {
+                if (!settingsBusy) {
+                  viewModel.onReducedMotionPreferenceChange(value)
+                }
+              }}
+              disabled={settingsBusy}
             >
               {t(labelKey)}
             </Button>
@@ -668,19 +699,31 @@ interface SettingsProviderLimitRowProps {
   provider: string
   config: SettingsModalProviderLimitsDraftViewModel['limits'][string]
   viewModel: SettingsModalProviderLimitsDraftViewModel
+  settingsBusy: boolean
 }
 
-function SettingsProviderLimitRow({ provider, config, viewModel }: SettingsProviderLimitRowProps) {
+function SettingsProviderLimitRow({
+  provider,
+  config,
+  viewModel,
+  settingsBusy,
+}: SettingsProviderLimitRowProps) {
   const { t } = useTranslation()
   const [subscriptionPriceInput, setSubscriptionPriceInput] = useState(() =>
     String(config.subscriptionPrice),
   )
+  const [monthlyLimitInput, setMonthlyLimitInput] = useState(() => String(config.monthlyLimit))
 
   useEffect(() => {
     setSubscriptionPriceInput(String(config.subscriptionPrice))
   }, [config.subscriptionPrice])
 
+  useEffect(() => {
+    setMonthlyLimitInput(String(config.monthlyLimit))
+  }, [config.monthlyLimit])
+
   const commitSubscriptionPrice = () => {
+    if (settingsBusy) return
     const subscriptionPrice = parseSettingsNumberInput(subscriptionPriceInput)
     setSubscriptionPriceInput(String(subscriptionPrice))
     if (subscriptionPrice !== config.subscriptionPrice) {
@@ -688,9 +731,24 @@ function SettingsProviderLimitRow({ provider, config, viewModel }: SettingsProvi
     }
   }
 
+  const commitMonthlyLimit = () => {
+    if (settingsBusy) return
+    const monthlyLimit = parseSettingsNumberInput(monthlyLimitInput)
+    setMonthlyLimitInput(String(monthlyLimit))
+    if (monthlyLimit !== config.monthlyLimit) {
+      viewModel.onProviderChange(provider, { monthlyLimit })
+    }
+  }
+
   const handleSubscriptionPriceKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       commitSubscriptionPrice()
+    }
+  }
+
+  const handleMonthlyLimitKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      commitMonthlyLimit()
     }
   }
 
@@ -714,16 +772,20 @@ function SettingsProviderLimitRow({ provider, config, viewModel }: SettingsProvi
             <button
               type="button"
               data-testid={`settings-provider-subscription-${provider}`}
-              onClick={() =>
-                viewModel.onProviderChange(provider, {
-                  hasSubscription: !config.hasSubscription,
-                })
-              }
+              onClick={() => {
+                if (!settingsBusy) {
+                  viewModel.onProviderChange(provider, {
+                    hasSubscription: !config.hasSubscription,
+                  })
+                }
+              }}
+              disabled={settingsBusy}
               className={cn(
                 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
                 config.hasSubscription
                   ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
                   : 'border-border bg-muted/20 text-muted-foreground hover:bg-accent',
+                settingsBusy && 'cursor-not-allowed opacity-50',
               )}
             >
               {config.hasSubscription ? t('common.enabled') : t('limits.statuses.noSubscription')}
@@ -741,7 +803,7 @@ function SettingsProviderLimitRow({ provider, config, viewModel }: SettingsProvi
               min="0"
               step="0.01"
               value={subscriptionPriceInput}
-              disabled={!config.hasSubscription}
+              disabled={settingsBusy || !config.hasSubscription}
               onChange={(event) => setSubscriptionPriceInput(event.target.value)}
               onBlur={commitSubscriptionPrice}
               onKeyDown={handleSubscriptionPriceKeyDown}
@@ -754,16 +816,14 @@ function SettingsProviderLimitRow({ provider, config, viewModel }: SettingsProvi
               {t('limits.modal.monthlyLimit')}
             </span>
             <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={config.monthlyLimit}
-              onChange={(event) =>
-                viewModel.onProviderChange(provider, {
-                  monthlyLimit: parseSettingsNumberInput(event.target.value),
-                })
-              }
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+              type="text"
+              inputMode="decimal"
+              value={monthlyLimitInput}
+              disabled={settingsBusy}
+              onChange={(event) => setMonthlyLimitInput(event.target.value)}
+              onBlur={commitMonthlyLimit}
+              onKeyDown={handleMonthlyLimitKeyDown}
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
         </div>
@@ -826,6 +886,7 @@ export function SettingsProviderLimitsSection({
                   provider={provider}
                   config={config}
                   viewModel={viewModel}
+                  settingsBusy={settingsBusy}
                 />
               )
             })}

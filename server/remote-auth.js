@@ -207,7 +207,7 @@ function createServerAuth({
   }
 
   function resolveBootstrapResponse(url) {
-    if (!authRequired || !url.searchParams.has(AUTH_QUERY_PARAM)) {
+    if (!localAuthRequired || !url.searchParams.has(AUTH_QUERY_PARAM)) {
       return null;
     }
 
@@ -236,7 +236,7 @@ function createServerAuth({
   }
 
   function createBootstrapUrl(url) {
-    if (!authRequired || getConfigurationError()) {
+    if (!localAuthRequired || getConfigurationError()) {
       return url;
     }
 

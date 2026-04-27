@@ -180,9 +180,9 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
       const left = Math.min(Math.max(12, rect.left), Math.max(12, viewportWidth - width - 12))
       const showAbove =
         rect.bottom + estimatedHeight > viewportHeight - 12 && rect.top > estimatedHeight
-      const top = showAbove
-        ? Math.max(12, rect.top - estimatedHeight - 8)
-        : Math.min(viewportHeight - estimatedHeight - 12, rect.bottom + 8)
+      const preferredTop = showAbove ? rect.top - estimatedHeight - 8 : rect.bottom + 8
+      const maxTop = Math.max(12, viewportHeight - estimatedHeight - 12)
+      const top = Math.min(Math.max(12, preferredTop), maxTop)
       setOverlayStyle({ top, left, width })
     }
 

@@ -25,6 +25,7 @@ function validateSectionDefinitions(value, validSectionIds) {
   }
 
   const seenIds = new Set()
+  const seenDomIds = new Set()
   const sectionDefinitions = value.map((entry) => {
     if (!isPlainObject(entry)) {
       throw new Error(
@@ -43,6 +44,10 @@ function validateSectionDefinitions(value, validSectionIds) {
     if (typeof domId !== 'string' || !domId.trim()) {
       throw new Error('Invalid dashboard preferences: sectionDefinitions require a domId.')
     }
+    if (seenDomIds.has(domId)) {
+      throw new Error(`Invalid dashboard preferences: duplicate section domId "${domId}".`)
+    }
+    seenDomIds.add(domId)
     if (typeof labelKey !== 'string' || !labelKey.trim()) {
       throw new Error('Invalid dashboard preferences: sectionDefinitions require a labelKey.')
     }

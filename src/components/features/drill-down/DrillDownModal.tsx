@@ -118,14 +118,88 @@ export function DrillDownModal({
     [contextData, day],
   )
 
+  const benchmarkCards = useMemo(() => {
+    if (!day || !drillDownData) return []
+
+    const {
+      periodKind,
+      previousEntry,
+      previousSeven,
+      tokensTotal,
+      costPerMillion,
+      avgCost7,
+      avgRequests7,
+      avgTokens7,
+      avgCostPerMillion7,
+      previousTokens,
+      previousCostPerMillion,
+    } = drillDownData
+    const benchmarkWindowLabel = getBenchmarkWindowLabel(
+      previousSeven.length > 0 ? previousSeven.length : 7,
+      t(`drillDown.windowUnit.${periodKind}`),
+    )
+    const costPreviousDelta = getDelta(day.totalCost, previousEntry?.totalCost ?? null)
+    const tokensPreviousDelta = getDelta(tokensTotal, previousTokens)
+    const requestsPreviousDelta = getDelta(day.requestCount, previousEntry?.requestCount ?? null)
+    const costPerMillionAverageDelta =
+      costPerMillion !== null ? getDelta(costPerMillion, avgCostPerMillion7) : null
+    const costAverageDelta = getDelta(day.totalCost, avgCost7)
+    const requestsAverageDelta = getDelta(day.requestCount, avgRequests7)
+    const tokensAverageDelta = getDelta(tokensTotal, avgTokens7)
+    const costPerMillionPreviousDelta =
+      costPerMillion !== null ? getDelta(costPerMillion, previousCostPerMillion) : null
+    const formatRoundedNumber = (value: number) => formatNumber(Math.round(value))
+
+    return [
+      {
+        label: t('drillDown.costVsPrevious'),
+        primary: formatDeltaValue(costPreviousDelta, formatCurrency),
+        secondary: formatDeltaPercent(costPreviousDelta),
+      },
+      {
+        label: t('drillDown.tokensVsPrevious'),
+        primary: formatDeltaValue(tokensPreviousDelta, formatTokens),
+        secondary: formatDeltaPercent(tokensPreviousDelta),
+      },
+      {
+        label: t('drillDown.requestsVsPrevious'),
+        primary: formatDeltaValue(requestsPreviousDelta, formatRoundedNumber),
+        secondary: formatDeltaPercent(requestsPreviousDelta),
+      },
+      {
+        label: t('drillDown.costPerMillionVsAverageWindow', { window: benchmarkWindowLabel }),
+        primary: formatDeltaValue(costPerMillionAverageDelta, formatCurrency),
+        secondary: avgCostPerMillion7 !== null ? formatCurrency(avgCostPerMillion7) : '–',
+      },
+      {
+        label: t('drillDown.costVsAverageWindow', { window: benchmarkWindowLabel }),
+        primary: formatDeltaValue(costAverageDelta, formatCurrency),
+        secondary: avgCost7 !== null ? formatCurrency(avgCost7) : '–',
+      },
+      {
+        label: t('drillDown.requestsVsAverageWindow', { window: benchmarkWindowLabel }),
+        primary: formatDeltaValue(requestsAverageDelta, formatRoundedNumber),
+        secondary: avgRequests7 !== null ? formatRoundedNumber(avgRequests7) : '–',
+      },
+      {
+        label: t('drillDown.tokensVsAverageWindow', { window: benchmarkWindowLabel }),
+        primary: formatDeltaValue(tokensAverageDelta, formatTokens),
+        secondary: avgTokens7 !== null ? formatTokens(avgTokens7) : '–',
+      },
+      {
+        label: t('drillDown.costPerMillionVsPrevious'),
+        primary: formatDeltaValue(costPerMillionPreviousDelta, formatCurrency),
+        secondary: previousCostPerMillion !== null ? formatCurrency(previousCostPerMillion) : '–',
+      },
+    ]
+  }, [day, drillDownData, t])
+
   if (!day || !drillDownData) return null
 
   const {
     periodKind,
     sortedContextData,
     contextIndex,
-    previousEntry,
-    previousSeven,
     tokensTotal,
     hasTokens,
     modelData,
@@ -137,12 +211,6 @@ export function DrillDownModal({
     costPerMillion,
     costRanking,
     requestRanking,
-    avgCost7,
-    avgRequests7,
-    avgTokens7,
-    avgCostPerMillion7,
-    previousTokens,
-    previousCostPerMillion,
     topCostModel,
     topRequestModel,
     topTokenModel,
@@ -156,10 +224,6 @@ export function DrillDownModal({
   const hasNext = hasNextProp ?? (contextIndex >= 0 && contextIndex < sortedContextData.length - 1)
   const currentIndex = currentIndexProp ?? (contextIndex >= 0 ? contextIndex + 1 : 0)
   const totalCount = totalCountProp ?? sortedContextData.length
-  const benchmarkWindowLabel = getBenchmarkWindowLabel(
-    previousSeven.length > 0 ? previousSeven.length : 7,
-    t(`drillDown.windowUnit.${periodKind}`),
-  )
 
   const summaryCards = [
     { label: t('common.tokens'), value: <FormattedValue value={tokensTotal} type="tokens" /> },
@@ -208,65 +272,6 @@ export function DrillDownModal({
         (day._aggregatedDays ?? 1) > 1
           ? t('drillDown.coverageDays', { count: day._aggregatedDays ?? 1 })
           : t('drillDown.singlePeriod', { period: t(`periods.${periodKind}`) }),
-    },
-  ]
-
-  const benchmarkCards = [
-    {
-      label: t('drillDown.costVsPrevious'),
-      primary: formatDeltaValue(
-        getDelta(day.totalCost, previousEntry?.totalCost ?? null),
-        formatCurrency,
-      ),
-      secondary: formatDeltaPercent(getDelta(day.totalCost, previousEntry?.totalCost ?? null)),
-    },
-    {
-      label: t('drillDown.tokensVsPrevious'),
-      primary: formatDeltaValue(getDelta(tokensTotal, previousTokens), formatTokens),
-      secondary: formatDeltaPercent(getDelta(tokensTotal, previousTokens)),
-    },
-    {
-      label: t('drillDown.requestsVsPrevious'),
-      primary: formatDeltaValue(
-        getDelta(day.requestCount, previousEntry?.requestCount ?? null),
-        (value) => formatNumber(Math.round(value)),
-      ),
-      secondary: formatDeltaPercent(
-        getDelta(day.requestCount, previousEntry?.requestCount ?? null),
-      ),
-    },
-    {
-      label: t('drillDown.costPerMillionVsAverageWindow', { window: benchmarkWindowLabel }),
-      primary: formatDeltaValue(
-        costPerMillion !== null ? getDelta(costPerMillion, avgCostPerMillion7) : null,
-        formatCurrency,
-      ),
-      secondary: avgCostPerMillion7 !== null ? formatCurrency(avgCostPerMillion7) : '–',
-    },
-    {
-      label: t('drillDown.costVsAverageWindow', { window: benchmarkWindowLabel }),
-      primary: formatDeltaValue(getDelta(day.totalCost, avgCost7), formatCurrency),
-      secondary: avgCost7 !== null ? formatCurrency(avgCost7) : '–',
-    },
-    {
-      label: t('drillDown.requestsVsAverageWindow', { window: benchmarkWindowLabel }),
-      primary: formatDeltaValue(getDelta(day.requestCount, avgRequests7), (value) =>
-        formatNumber(Math.round(value)),
-      ),
-      secondary: avgRequests7 !== null ? formatNumber(Math.round(avgRequests7)) : '–',
-    },
-    {
-      label: t('drillDown.tokensVsAverageWindow', { window: benchmarkWindowLabel }),
-      primary: formatDeltaValue(getDelta(tokensTotal, avgTokens7), formatTokens),
-      secondary: avgTokens7 !== null ? formatTokens(avgTokens7) : '–',
-    },
-    {
-      label: t('drillDown.costPerMillionVsPrevious'),
-      primary: formatDeltaValue(
-        costPerMillion !== null ? getDelta(costPerMillion, previousCostPerMillion) : null,
-        formatCurrency,
-      ),
-      secondary: previousCostPerMillion !== null ? formatCurrency(previousCostPerMillion) : '–',
     },
   ]
 

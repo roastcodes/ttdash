@@ -84,6 +84,23 @@ describe('dashboard preferences config', () => {
     expect(secondSection).toBeDefined()
   })
 
+  it('fails fast when sectionDefinitions reuse DOM ids', () => {
+    const [firstSection, secondSection, ...remainingSections] =
+      dashboardPreferences.sectionDefinitions
+
+    expect(() =>
+      parseDashboardPreferencesConfig({
+        datePresets: dashboardPreferences.datePresets,
+        viewModes: dashboardPreferences.viewModes,
+        sectionDefinitions: [
+          firstSection,
+          { ...secondSection, domId: firstSection.domId },
+          ...remainingSections,
+        ],
+      }),
+    ).toThrow('duplicate section domId')
+  })
+
   it('supports custom validation scopes for parsed preference configs', () => {
     const parsed = parseSharedDashboardPreferencesConfig(
       {

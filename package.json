@@ -35,7 +35,7 @@
     "test:unit:coverage": "vitest run --coverage --project unit --project frontend --project integration --project integration-background --reporter=dot --reporter=junit --outputFile.junit=./test-results/vitest.junit.xml",
     "test:timings": "vitest run --coverage --project unit --project frontend --project integration --project integration-background --reporter=dot --reporter=junit --outputFile.junit=./test-results/vitest.junit.xml && node scripts/report-test-timings.js",
     "test:e2e": "npm run build:app && playwright test",
-    "test:e2e:ci": "CI=1 playwright test",
+    "test:e2e:ci": "playwright test --workers=1",
     "test:all": "npm run verify:full",
     "docs:screenshots": "node scripts/capture-readme-screenshots.js",
     "deps:graph": "dependency-cruiser --config .dependency-cruiser.cjs -T archi src shared server server.js usage-normalizer.js",

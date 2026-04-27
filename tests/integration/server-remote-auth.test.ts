@@ -70,13 +70,11 @@ describe('remote server authentication', () => {
         redirect: 'manual',
       },
     )
-    expect(bootstrapResponse.status).toBe(303)
-    expect(bootstrapResponse.headers.get('location')).toBe('/')
-    const cookieHeader = bootstrapResponse.headers.get('set-cookie')?.split(';', 1)[0]
-    expect(cookieHeader).toContain('ttdash_auth=')
+    expect(bootstrapResponse.status).not.toBe(303)
+    expect(bootstrapResponse.headers.get('set-cookie')).toBeNull()
 
     const cookieResponse = await fetch(`${standaloneServer.url}/api/usage`, {
-      headers: { Cookie: cookieHeader || '' },
+      headers: { Cookie: `ttdash_auth=${encodeURIComponent(remoteToken)}` },
     })
     expect(cookieResponse.status).toBe(200)
   }, 20_000)

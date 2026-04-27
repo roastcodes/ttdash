@@ -148,10 +148,14 @@ describe('remote auth', () => {
     })
   })
 
-  it('sets an HttpOnly cookie and strips the token from bootstrap redirects', () => {
-    const auth = createRemoteRequiredAuth()
+  it('sets an HttpOnly cookie and strips the token from local bootstrap redirects', () => {
+    const auth = createRemoteAuth({
+      bindHost: '127.0.0.1',
+      allowRemoteBind: false,
+      localToken,
+    })
     const response = auth.resolveBootstrapResponse(
-      new URL(`http://192.168.1.10:3000/?view=dashboard&${REMOTE_AUTH_QUERY_PARAM}=${remoteToken}`),
+      new URL(`http://127.0.0.1:3000/?view=dashboard&${REMOTE_AUTH_QUERY_PARAM}=${localToken}`),
     )
 
     expect(response).toMatchObject({
@@ -164,10 +168,14 @@ describe('remote auth', () => {
     expect(response?.headers['Set-Cookie']).toContain('SameSite=Strict')
   })
 
-  it('does not convert invalid bootstrap tokens into cookies', () => {
-    const auth = createRemoteRequiredAuth()
+  it('does not convert invalid local bootstrap tokens into cookies', () => {
+    const auth = createRemoteAuth({
+      bindHost: '127.0.0.1',
+      allowRemoteBind: false,
+      localToken,
+    })
     const response = auth.resolveBootstrapResponse(
-      new URL(`http://192.168.1.10:3000/?${REMOTE_AUTH_QUERY_PARAM}=wrong-token`),
+      new URL(`http://127.0.0.1:3000/?${REMOTE_AUTH_QUERY_PARAM}=wrong-token`),
     )
 
     expect(response).toMatchObject({
@@ -177,12 +185,15 @@ describe('remote auth', () => {
     expect(response?.headers['Set-Cookie']).toBeUndefined()
   })
 
-  it('provides token bootstrap and background API header helpers for authenticated modes', () => {
+  it('does not expose the remote bearer token through bootstrap URLs', () => {
     const auth = createRemoteRequiredAuth()
 
-    expect(auth.createBootstrapUrl('http://192.168.1.10:3000')).toBe(
-      `http://192.168.1.10:3000/?${REMOTE_AUTH_QUERY_PARAM}=${remoteToken}`,
-    )
+    expect(auth.createBootstrapUrl('http://192.168.1.10:3000')).toBe('http://192.168.1.10:3000')
+    expect(
+      auth.resolveBootstrapResponse(
+        new URL(`http://192.168.1.10:3000/?${REMOTE_AUTH_QUERY_PARAM}=${remoteToken}`),
+      ),
+    ).toBeNull()
     expect(auth.getAuthorizationHeader()).toBe(remoteAuthHeader)
   })
 })

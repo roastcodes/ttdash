@@ -45,6 +45,7 @@ function createStartupRuntimeFixture(overrides: Record<string, unknown> = {}) {
     createBootstrapUrl: vi.fn((url: string) => `${url}/?ttdash_token=local-token`),
     getAuthorizationHeader: vi.fn(() => 'Bearer local-token'),
     isLocalRequired: vi.fn(() => true),
+    isRemoteRequired: vi.fn(() => false),
   }
   const runtime = createStartupRuntime({
     fs: { existsSync: vi.fn(() => true) },
@@ -146,6 +147,45 @@ describe('startup runtime', () => {
     )
   })
 
+  it('treats any CI value as non-interactive', () => {
+    const { runtime } = createStartupRuntimeFixture({
+      processObject: {
+        env: { CI: 'true' },
+        pid: 1234,
+        platform: 'darwin',
+        stdout: { isTTY: true },
+      },
+    })
+
+    expect(runtime.shouldOpenBrowser()).toBe(false)
+  })
+
+  it('prints remote auth status without advertising URL token bootstrap', () => {
+    const serverAuth = {
+      mode: 'remote',
+      createBootstrapUrl: vi.fn((url: string) => url),
+      getAuthorizationHeader: vi.fn(() => ['Bearer', 'remote-token'].join(' ')),
+      isLocalRequired: vi.fn(() => false),
+      isRemoteRequired: vi.fn(() => true),
+    }
+    const { logs, runtime } = createStartupRuntimeFixture({
+      bindHost: '0.0.0.0',
+      isLoopbackHost: () => false,
+      serverAuth,
+    })
+
+    runtime.printStartupSummary('http://0.0.0.0:3000', 3000)
+
+    expect(logs).toContain('  Remote Auth:    required')
+    expect(logs).toContain('Use the bearer-token curl example below for remote API access.')
+    expect(logs).not.toContain(
+      'Open remote browsers once with ?ttdash_token=<TTDASH_REMOTE_TOKEN>.',
+    )
+    expect(logs).toContain(
+      '  curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" http://0.0.0.0:3000/api/usage',
+    )
+  })
+
   it('opens the platform browser with the provided bootstrap URL when allowed', () => {
     const { runtime, spawnCalls } = createStartupRuntimeFixture()
 
@@ -160,11 +200,18 @@ describe('startup runtime', () => {
   })
 
   it('writes local auth session metadata when local auth is required', () => {
-    const { runtime, writes } = createStartupRuntimeFixture()
+    const { runtime, writes } = createStartupRuntimeFixture({
+      processObject: {
+        env: { TTDASH_AUTH_STATUS_FILE: '/tmp/ttdash-auth-status.json' },
+        pid: 1234,
+        platform: 'darwin',
+        stdout: { isTTY: true },
+      },
+    })
 
     runtime.writeLocalAuthSessionFile('http://127.0.0.1:3000', { id: 'runtime-1' })
 
-    expect(writes).toHaveLength(1)
+    expect(writes).toHaveLength(2)
     expect(writes[0]).toMatchObject({
       filePath: '/config/session-auth.json',
       data: {
@@ -174,6 +221,13 @@ describe('startup runtime', () => {
         pid: 1234,
         url: 'http://127.0.0.1:3000',
         apiPrefix: '/api',
+        authorizationHeader: 'Bearer local-token',
+        bootstrapUrl: 'http://127.0.0.1:3000/?ttdash_token=local-token',
+      },
+    })
+    expect(writes[1]).toMatchObject({
+      filePath: '/tmp/ttdash-auth-status.json',
+      data: {
         authorizationHeader: 'Bearer local-token',
         bootstrapUrl: 'http://127.0.0.1:3000/?ttdash_token=local-token',
       },

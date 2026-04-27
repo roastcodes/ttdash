@@ -86,7 +86,14 @@ describe('local server API imports', () => {
       cliAutoLoadActive: false,
     })
 
-    const equivalentImportedDay = { ...sampleUsage.daily[0] }
+    const equivalentImportedDay = {
+      ...sampleUsage.daily[0],
+      modelsUsed: sampleUsage.daily[0].modelsUsed.map((modelName) => ` ${modelName} `),
+      modelBreakdowns: sampleUsage.daily[0].modelBreakdowns.map((entry) => ({
+        ...entry,
+        modelName: ` ${entry.modelName} `,
+      })),
+    }
     const newImportedDay = { ...sampleUsage.daily[0], date: '2026-03-31' }
     const usageImportResponse = await fetchTrusted(`${sharedServer.baseUrl}/api/usage/import`, {
       method: 'POST',

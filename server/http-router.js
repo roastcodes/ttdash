@@ -115,12 +115,25 @@ function createHttpRouter({
     });
   }
 
-  async function serveFile(res, reqPath) {
+  function shouldServeSpaFallback(req, safePath) {
+    const acceptHeader = req.headers?.accept || req.headers?.Accept || '';
+    const acceptsHtml = String(
+      Array.isArray(acceptHeader) ? acceptHeader[0] : acceptHeader,
+    ).includes('text/html');
+    return acceptsHtml || safePath.endsWith('/') || path.extname(safePath) === '';
+  }
+
+  async function serveFile(req, res, reqPath, safePath) {
     try {
       const data = await readStaticFile(reqPath);
       sendStaticFile(res, reqPath, data);
     } catch (error) {
       if (error && error.code === 'ENOENT') {
+        if (!shouldServeSpaFallback(req, safePath)) {
+          writeStaticErrorResponse(res, 404, 'Not Found');
+          return;
+        }
+
         try {
           const indexPath = path.join(staticRoot, 'index.html');
           const html = await readStaticFile(indexPath);
@@ -536,7 +549,7 @@ function createHttpRouter({
       return json(res, 403, { message: 'Access denied' });
     }
 
-    await serveFile(res, filePath);
+    await serveFile(req, res, filePath, safePath);
   }
 
   return {

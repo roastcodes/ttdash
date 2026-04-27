@@ -418,11 +418,11 @@ test('loads persisted settings on a fresh browser start and applies them immedia
     await dialog.getByRole('tab', { name: /Limits/ }).click()
     const openAiCard = dialog.locator('[data-provider-id="OpenAI"]')
     await expect(openAiCard).toBeVisible()
-    await expect(openAiCard.locator('input[type="number"]').nth(0)).toHaveValue('20')
-    await expect(openAiCard.locator('input[type="number"]').nth(1)).toHaveValue('400')
+    await expect(openAiCard.locator('input').nth(0)).toHaveValue('20')
+    await expect(openAiCard.locator('input').nth(1)).toHaveValue('400')
     await dialog.getByTestId('reset-provider-limits').click()
-    await expect(openAiCard.locator('input[type="number"]').nth(0)).toHaveValue('0')
-    await expect(openAiCard.locator('input[type="number"]').nth(1)).toHaveValue('0')
+    await expect(openAiCard.locator('input').nth(0)).toHaveValue('0')
+    await expect(openAiCard.locator('input').nth(1)).toHaveValue('0')
   } finally {
     await context.close()
   }

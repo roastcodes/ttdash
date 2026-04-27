@@ -84,6 +84,29 @@ describe('FilterBar date picker interactions', () => {
     expect(today).toHaveAttribute('aria-current', 'date')
   })
 
+  it('keeps the calendar overlay inside short viewports', async () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 200 })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800 })
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 10,
+      right: 180,
+      bottom: 40,
+      left: 20,
+      width: 160,
+      height: 30,
+      x: 20,
+      y: 10,
+      toJSON: () => ({}),
+    } as DOMRect)
+
+    renderFilterBar()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start date' }))
+    await vi.runAllTimersAsync()
+
+    expect(screen.getByRole('dialog', { name: 'Start date' })).toHaveStyle({ top: '12px' })
+  })
+
   it('cancels queued focus restoration when the date picker unmounts', async () => {
     const onStartDateChange = vi.fn()
     const scheduledFrames = new Map<number, FrameRequestCallback>()

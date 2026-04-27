@@ -115,7 +115,30 @@ function getLocalAuthHeaderFromOutput(output) {
   }
 }
 
-async function waitForServer(url, child, getOutput) {
+function getLocalAuthHeaderFromStatusFile(statusFile) {
+  if (!statusFile || !fs.existsSync(statusFile)) {
+    return null;
+  }
+
+  try {
+    const status = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
+    if (typeof status.authorizationHeader === 'string' && status.authorizationHeader.trim()) {
+      return status.authorizationHeader.trim();
+    }
+
+    if (typeof status.bootstrapUrl === 'string' && status.bootstrapUrl.trim()) {
+      const bootstrapUrl = new URL(status.bootstrapUrl);
+      const token = bootstrapUrl.searchParams.get('ttdash_token');
+      return token ? `Bearer ${token}` : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+async function waitForServer(url, child, getOutput, statusFile) {
   const startedAt = Date.now();
   let authHeader = null;
 
@@ -124,7 +147,10 @@ async function waitForServer(url, child, getOutput) {
       throw new Error(`Packaged TTDash exited before startup completed (exit ${child.exitCode}).`);
     }
 
-    authHeader = authHeader || getLocalAuthHeaderFromOutput(getOutput());
+    authHeader =
+      authHeader ||
+      getLocalAuthHeaderFromStatusFile(statusFile) ||
+      getLocalAuthHeaderFromOutput(getOutput());
     try {
       const response = await fetch(`${url}/api/usage`, {
         headers: authHeader ? { Authorization: authHeader } : undefined,
@@ -270,6 +296,7 @@ async function main() {
 
   const port = await getFreePort();
   const url = `http://127.0.0.1:${port}`;
+  const authStatusFile = path.join(appDataRoot, 'ttdash-auth-status.json');
   const child = spawn(installedCliPath, ['--no-open', '--port', String(port)], {
     cwd: installDir,
     env: {
@@ -278,6 +305,7 @@ async function main() {
       NO_OPEN_BROWSER: '1',
       HOST: '127.0.0.1',
       PORT: String(port),
+      TTDASH_AUTH_STATUS_FILE: authStatusFile,
       XDG_CACHE_HOME: path.join(appDataRoot, 'cache'),
       XDG_CONFIG_HOME: path.join(appDataRoot, 'config'),
       XDG_DATA_HOME: path.join(appDataRoot, 'data'),
@@ -294,7 +322,7 @@ async function main() {
   });
 
   try {
-    const authHeader = await waitForServer(url, child, () => output);
+    const authHeader = await waitForServer(url, child, () => output, authStatusFile);
     const usageResponse = await fetch(`${url}/api/usage`, {
       headers: authHeader ? { Authorization: authHeader } : undefined,
     });

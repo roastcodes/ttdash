@@ -132,13 +132,34 @@ export function SettingsModal(props: SettingsModalProps) {
     [focusTab],
   )
 
+  const operationBusy = settingsBusy || dataBusy
+  const handleDialogOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen && operationBusy) {
+        return
+      }
+      onOpenChange(nextOpen)
+    },
+    [onOpenChange, operationBusy],
+  )
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
         className="max-h-[88vh] max-w-5xl overflow-x-visible overflow-y-auto"
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           titleRef.current?.focus()
+        }}
+        onEscapeKeyDown={(event) => {
+          if (operationBusy) {
+            event.preventDefault()
+          }
+        }}
+        onInteractOutside={(event) => {
+          if (operationBusy) {
+            event.preventDefault()
+          }
         }}
       >
         <DialogHeader className="overflow-visible">
@@ -208,8 +229,8 @@ export function SettingsModal(props: SettingsModalProps) {
 
           {activeTab === 'basics' && (
             <div className="grid gap-4 xl:grid-cols-2">
-              <SettingsLanguageSection viewModel={draft.general} />
-              <SettingsMotionSection viewModel={draft.general} />
+              <SettingsLanguageSection viewModel={draft.general} settingsBusy={settingsBusy} />
+              <SettingsMotionSection viewModel={draft.general} settingsBusy={settingsBusy} />
               <div className="xl:col-span-2">
                 <SettingsDefaultsSection viewModel={draft.defaults} settingsBusy={settingsBusy} />
               </div>
@@ -258,7 +279,7 @@ export function SettingsModal(props: SettingsModalProps) {
             {t('common.reset')}
           </Button>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={draft.footer.onClose} disabled={settingsBusy}>
+            <Button variant="ghost" onClick={draft.footer.onClose} disabled={operationBusy}>
               {t('settings.modal.close')}
             </Button>
             <Button onClick={() => void draft.footer.onSave()} disabled={settingsBusy}>

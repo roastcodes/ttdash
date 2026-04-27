@@ -228,9 +228,9 @@ export function useDashboardControllerActions({
         addToast(t('toasts.fileLoaded', { name: file.name }), 'success')
       } catch {
         addToast(t('toasts.fileReadFailed'), 'error')
+      } finally {
+        event.target.value = ''
       }
-
-      event.target.value = ''
     },
     [uploadUsageData, queryClient, addToast, t],
   )

@@ -36,7 +36,7 @@ function createStartupRuntime({
     if (
       cliOptions.noOpen ||
       processObject.env.NO_OPEN_BROWSER === '1' ||
-      processObject.env.CI === '1'
+      Boolean(processObject.env.CI)
     ) {
       return false;
     }
@@ -96,6 +96,11 @@ function createStartupRuntime({
     const autoLoadMode = cliOptions.autoLoad ? 'enabled' : 'disabled';
     const runtimeMode = isBackgroundChild ? 'background' : 'foreground';
     const remoteBind = !isLoopbackHost(bindHost);
+    const localAuthRequired = serverAuth.isLocalRequired();
+    const remoteAuthRequired =
+      typeof serverAuth.isRemoteRequired === 'function'
+        ? serverAuth.isRemoteRequired()
+        : remoteBind;
     const bootstrapUrl = serverAuth.createBootstrapUrl(url);
     const usageApiUrl = `${url}${apiPrefix}/usage`;
 
@@ -107,9 +112,9 @@ function createStartupRuntime({
     log(`  Host:           ${bindHost}`);
     if (remoteBind) {
       log(`  Exposure:       network-accessible via ${bindHost}`);
-      log('  Remote Auth:    required');
+      log(`  Remote Auth:    ${remoteAuthRequired ? 'required' : 'disabled'}`);
     } else {
-      log('  Local Auth:     required');
+      log(`  Local Auth:     ${localAuthRequired ? 'required' : 'disabled'}`);
     }
     log(`  Mode:           ${runtimeMode}`);
     log(`  Static Root:    ${staticRoot}`);
@@ -121,14 +126,14 @@ function createStartupRuntime({
     log(`  Data Status:    ${describeDataFile()}`);
     log(`  Browser Open:   ${browserMode}`);
     log(`  Auto-Load:      ${autoLoadMode}`);
-    if (!remoteBind && !shouldOpenBrowser()) {
+    if (localAuthRequired && !shouldOpenBrowser()) {
       log(`  Local Auth URL: ${bootstrapUrl}`);
     }
     if (remoteBind) {
       log('');
       log('Security warning: this bind host exposes the dashboard to the network.');
       log('Use non-loopback hosts only on trusted networks and keep TTDASH_REMOTE_TOKEN secret.');
-      log('Open remote browsers once with ?ttdash_token=<TTDASH_REMOTE_TOKEN>.');
+      log('Use the bearer-token curl example below for remote API access.');
     }
     log('');
     log('Available ways to load data:');
@@ -144,10 +149,12 @@ function createStartupRuntime({
     log(
       `  TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=${bindHost} PORT=${port} node server.js`,
     );
-    if (remoteBind) {
+    if (remoteAuthRequired) {
       log(`  curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" ${usageApiUrl}`);
-    } else {
+    } else if (localAuthRequired) {
       log(`  curl -H "Authorization: Bearer <session-token-from-local-auth-url>" ${usageApiUrl}`);
+    } else {
+      log(`  curl ${usageApiUrl}`);
     }
     log('');
   }
@@ -162,7 +169,7 @@ function createStartupRuntime({
       return;
     }
 
-    dataRuntime.writeJsonAtomic(localAuthSessionFile, {
+    const sessionPayload = {
       version: 1,
       mode: serverAuth.mode,
       instanceId: runtimeInstance.id,
@@ -172,7 +179,13 @@ function createStartupRuntime({
       authorizationHeader,
       bootstrapUrl: serverAuth.createBootstrapUrl(url),
       createdAt: new Date().toISOString(),
-    });
+    };
+
+    dataRuntime.writeJsonAtomic(localAuthSessionFile, sessionPayload);
+
+    if (processObject.env.TTDASH_AUTH_STATUS_FILE) {
+      dataRuntime.writeJsonAtomic(processObject.env.TTDASH_AUTH_STATUS_FILE, sessionPayload);
+    }
   }
 
   async function runStartupAutoLoad({ source = 'cli-auto-load' } = {}) {

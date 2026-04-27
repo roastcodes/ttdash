@@ -214,6 +214,84 @@ describe('useDashboardControllerWithBootstrap actions', () => {
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings'] })
   })
 
+  it('resets the usage upload file input after upload failures', async () => {
+    const uploadUsageData = vi.fn().mockRejectedValue(new Error('Upload rejected'))
+    usageHookMocks.useUploadData.mockReturnValue({ mutateAsync: uploadUsageData })
+
+    const { result } = renderHookWithQueryClient(() =>
+      useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
+    )
+    const file = new File([JSON.stringify({ daily: [] })], 'usage.json', {
+      type: 'application/json',
+    })
+    const target = { files: [file], value: 'usage.json' }
+
+    await result.current.fileInputs.onUsageUploadChange({ target } as never)
+
+    expect(uploadUsageData).toHaveBeenCalledTimes(1)
+    expect(target.value).toBe('')
+    expect(toastMocks.addToast).toHaveBeenCalledWith('Upload rejected', 'error')
+  })
+
+  it('wires composed dashboard callbacks across header, filters, settings, and commands', async () => {
+    const setStartDate = vi.fn()
+    const setEndDate = vi.fn()
+    const toggleProvider = vi.fn()
+    const toggleModel = vi.fn()
+    const applyPreset = vi.fn()
+    const resetAll = vi.fn()
+    const saveSettings = vi.fn().mockResolvedValue(createSettings())
+    const deleteUsageData = vi.fn().mockResolvedValue(undefined)
+    usageHookMocks.useDeleteData.mockReturnValue({ mutateAsync: deleteUsageData })
+    settingsHookMocks.useAppSettings.mockReturnValue({
+      settings: createSettings(),
+      providerLimits: {},
+      setTheme: vi.fn(),
+      setLanguage: vi.fn(),
+      saveSettings,
+      isSaving: false,
+      isLoading: false,
+      error: null,
+      isError: false,
+      hasFetchedAfterMount: false,
+    })
+    filterHookMocks.useDashboardFilters.mockReturnValue(
+      createFilterState({
+        setStartDate,
+        setEndDate,
+        toggleProvider,
+        toggleModel,
+        applyPreset,
+        resetAll,
+      }),
+    )
+
+    const { result } = renderHookWithQueryClient(() =>
+      useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
+    )
+
+    result.current.filterBar.onStartDateChange('2026-04-03')
+    result.current.filterBar.onEndDateChange(undefined)
+    result.current.filterBar.onToggleProvider('OpenAI')
+    result.current.commandPalette.onToggleModel('GPT-4o')
+    result.current.commandPalette.onApplyPreset('30d')
+    result.current.commandPalette.onClearDateRange()
+    result.current.commandPalette.onResetAll()
+    await result.current.settingsModal.onSaveSettings(createSettings())
+    result.current.header.onDelete()
+    result.current.commandPalette.onDelete()
+
+    expect(setStartDate).toHaveBeenCalledWith('2026-04-03')
+    expect(setStartDate).toHaveBeenCalledWith(undefined)
+    expect(setEndDate).toHaveBeenCalledWith(undefined)
+    expect(toggleProvider).toHaveBeenCalledWith('OpenAI')
+    expect(toggleModel).toHaveBeenCalledWith('GPT-4o')
+    expect(applyPreset).toHaveBeenCalledWith('30d')
+    expect(resetAll).toHaveBeenCalledTimes(1)
+    expect(saveSettings).toHaveBeenCalledTimes(1)
+    expect(deleteUsageData).toHaveBeenCalledTimes(2)
+  })
+
   it('drives drill-down navigation from the controller view-model bundle', () => {
     filterHookMocks.useDashboardFilters.mockReturnValue(
       createFilterState({

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, screen } from '@testing-library/react'
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { initI18n } from '@/lib/i18n'
 import { SettingsModal } from '@/components/features/settings/SettingsModal'
 import { ToastProvider } from '@/components/ui/toast'
@@ -74,6 +74,38 @@ describe('SettingsModal tab navigation', () => {
     fireEvent.keyDown(maintenanceTab, { key: 'Home' })
     expect(basicsTab).toHaveFocus()
     expect(basicsTab).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('disables basics draft controls while settings are busy', () => {
+    renderSettingsModal({
+      settingsBusy: true,
+      filterProviders: ['OpenAI'],
+      models: ['gpt-5.4'],
+    })
+
+    expect(screen.getByTestId('settings-language-en')).toBeDisabled()
+    expect(screen.getByTestId('settings-reduced-motion-never')).toBeDisabled()
+    expect(screen.getByTestId('settings-default-view-mode-monthly')).toBeDisabled()
+    expect(screen.getByTestId('settings-default-date-preset-30d')).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'OpenAI' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'gpt-5.4' })).toBeDisabled()
+  })
+
+  it('prevents close requests while settings or data operations are busy', () => {
+    const onOpenChange = vi.fn()
+    renderSettingsModal({ onOpenChange, dataBusy: true })
+
+    const dialog = screen.getByRole('dialog')
+    const closeButton = screen
+      .getAllByRole('button', { name: 'Close' })
+      .find((button) => button.textContent === 'Close')
+
+    expect(closeButton).toBeDefined()
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    fireEvent.click(closeButton as HTMLButtonElement)
+
+    expect(onOpenChange).not.toHaveBeenCalledWith(false)
+    expect(closeButton).toBeDisabled()
   })
 
   it('resets to the basics tab while closed so the next open starts predictably', () => {

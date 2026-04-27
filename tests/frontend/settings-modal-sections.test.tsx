@@ -59,6 +59,18 @@ describe('SettingsModal sections controls', () => {
     expect(screen.getByTestId('move-section-down-metrics')).toHaveAccessibleName(/move .* down/i)
   })
 
+  it('disables section reordering and visibility mutations while settings are busy', () => {
+    renderSettingsModal({ settingsBusy: true })
+    openSettingsTab('Layout')
+
+    const metricsRow = screen.getByTestId('move-section-up-metrics').closest('[data-section-id]')
+
+    expect(metricsRow).toHaveAttribute('draggable', 'false')
+    expect(screen.getByTestId('move-section-up-metrics')).toBeDisabled()
+    expect(screen.getByTestId('move-section-down-metrics')).toBeDisabled()
+    expect(screen.getByTestId('toggle-section-visibility-metrics')).toBeDisabled()
+  })
+
   it('restores the default section layout when reset is pressed', () => {
     const { onSaveSettings } = renderSettingsModal({
       sectionVisibility: {
