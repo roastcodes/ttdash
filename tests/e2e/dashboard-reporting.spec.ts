@@ -11,10 +11,15 @@ test('uses the current UI language when generating a PDF report after switching 
 
   await gotoDashboard(page)
   await uploadSampleUsage(page)
-  await page.getByTitle(/English|Englisch/).click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de')
+
+  await page.getByRole('button', { name: 'Report' }).click()
+  await expect.poll(() => pdfReport.getReportRequest()?.language).toBe('de')
+
+  await page.getByTestId('language-switcher-en').click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   await expect(page.locator('#filters').getByText('Filter status')).toBeVisible()
 
   await page.getByRole('button', { name: 'Report' }).click()
-
   await expect.poll(() => pdfReport.getReportRequest()?.language).toBe('en')
 })
