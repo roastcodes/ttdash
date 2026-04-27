@@ -59,6 +59,7 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
   - motion/reveal behavior
 - For large server helper or integration suites, group tests by subsystem so Vitest can schedule them more efficiently.
 - Keep background-process integration files focused by behavior; the background Vitest project intentionally uses a small worker cap instead of one serial catch-all file or unbounded process fan-out.
+- Keep Playwright files grouped by end-to-end journey, such as load/upload, forecast/filter interaction, settings/backups, reporting, and command palette behavior. Share authentication, server reset, seeding, and download helpers through `tests/e2e/helpers.ts` instead of creating new browser catch-all files.
 
 ## Choosing the Right Layer
 
@@ -96,6 +97,8 @@ For `tests/architecture`, prefer the shared source graph helper for simple file,
 ## Coverage Scope
 
 `npm run test:unit:coverage` reports product-runtime coverage. The configured coverage scope intentionally includes frontend runtime modules, the local server runtime, shared runtime contracts, and `usage-normalizer.js` instead of only the historically high-signal frontend subset.
+
+The coverage and timing commands use explicit `dot` and `junit` Vitest reporters. Keep those reporters on both scripts so non-interactive gates emit compact progress and do not depend on silent reporter paths.
 
 The global thresholds are ratchets for that broader denominator:
 

@@ -1,20 +1,13 @@
-import fs from 'node:fs'
-import fsPromises from 'node:fs/promises'
-import path from 'node:path'
-import { expect, test, type Download, type Page } from '@playwright/test'
-
-const sampleUsagePath = path.join(process.cwd(), 'examples', 'sample-usage.json')
-const localAuthSessionPath = path.join(
-  process.cwd(),
-  '.tmp-playwright',
-  'app',
-  'config',
-  'session-auth.json',
-)
-const sampleUsage = JSON.parse(fs.readFileSync(sampleUsagePath, 'utf-8')) as {
-  daily: Array<Record<string, unknown> & { date: string }>
-  totals: Record<string, unknown>
-}
+import { expect, test, type Page } from '@playwright/test'
+import {
+  dailyViewPattern,
+  mockAutoImportStream,
+  mockPdfReport,
+  monthlyViewPattern,
+  prepareDashboard,
+  readDownloadText,
+  viewModeComboboxPattern,
+} from './helpers'
 
 const commandPaletteTitlePattern = /^Command [Pp]alette$/
 const settingsDialogTitlePattern = /^(Settings|Einstellungen)$/
@@ -23,11 +16,7 @@ const autoImportDialogTitlePattern = /^(Toktrack auto import|Toktrack Auto-Impor
 const closeButtonPattern = /^(Close|Schliessen)$/
 const autoImportButtonPattern = /^(Auto-Import|Auto import)$/
 const uploadFileButtonPattern = /^(Datei hochladen|Upload file)$/
-const viewModeComboboxPattern = /^(Ansichtsmodus|View mode)$/
-const dailyViewPattern = /^(Tagesansicht|Daily view)$/
-const monthlyViewPattern = /^(Monatsansicht|Monthly view)$/
 const yearlyViewPattern = /^(Jahresansicht|Yearly view)$/
-const filterStatusPattern = /^(Filterstatus|Filter status)$/
 const providersActivePattern = /^(1 providers active|1 Anbieter aktiv)$/
 const modelsActivePattern = /^(1 models active|1 Modelle aktiv)$/
 const dateFilterActivePattern = /^(Date filter active|Datumsfilter aktiv)$/
@@ -86,88 +75,6 @@ const expectedCommandTestIds = [
   ...modelLabels.map((model) => `command-model-${model}`),
 ].sort()
 
-type LocalAuthSession = {
-  authorizationHeader: string
-  bootstrapUrl: string
-}
-
-function readLocalAuthSession() {
-  return JSON.parse(fs.readFileSync(localAuthSessionPath, 'utf-8')) as LocalAuthSession
-}
-
-function createApiAuthHeaders() {
-  return {
-    Authorization: readLocalAuthSession().authorizationHeader,
-  }
-}
-
-function createTrustedMutationHeaders(baseURL?: string) {
-  if (!baseURL) {
-    throw new Error('Playwright baseURL is required for trusted mutation headers')
-  }
-
-  return {
-    ...createApiAuthHeaders(),
-    Origin: new URL(baseURL).origin,
-  }
-}
-
-function toLocalDateStr(date: Date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function addDays(date: Date, offset: number) {
-  const next = new Date(date)
-  next.setDate(next.getDate() + offset)
-  return next
-}
-
-function buildRelativeUsageData() {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  return {
-    ...sampleUsage,
-    daily: sampleUsage.daily.map((entry, index, array) => ({
-      ...entry,
-      date: toLocalDateStr(addDays(today, index - (array.length - 1))),
-    })),
-  }
-}
-
-async function resetAppState(page: Page, baseURL?: string) {
-  const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
-  await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
-  await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
-}
-
-async function seedUsage(page: Page, baseURL?: string, usageData = buildRelativeUsageData()) {
-  const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
-  const uploadResponse = await page.request.post('/api/upload', {
-    headers: trustedMutationHeaders,
-    data: usageData,
-  })
-
-  expect(uploadResponse.ok()).toBe(true)
-  return usageData
-}
-
-async function loadDashboard(page: Page) {
-  await page.goto(readLocalAuthSession().bootstrapUrl)
-  await expect(page.getByRole('heading', { name: 'TTDash' })).toBeVisible()
-  await expect(page.locator('#filters').getByText(filterStatusPattern)).toBeVisible()
-  await expect(page.locator('#token-analysis')).toBeVisible()
-}
-
-async function prepareDashboard(page: Page, baseURL?: string) {
-  await resetAppState(page, baseURL)
-  await seedUsage(page, baseURL)
-  await loadDashboard(page)
-}
-
 function getPalette(page: Page) {
   return page.getByRole('dialog', { name: commandPaletteTitlePattern })
 }
@@ -213,55 +120,6 @@ async function runSectionNavigationCommands(
       await runPaletteCommand(page, section.testId)
       await waitForSectionNearTop(page, section.selector)
     })
-  }
-}
-
-async function readDownloadText(download: Download) {
-  const downloadPath = await download.path()
-  expect(downloadPath).not.toBeNull()
-  return fsPromises.readFile(downloadPath as string, 'utf-8')
-}
-
-async function mockAutoImportStream(page: Page) {
-  await page.route('**/api/auto-import/stream', async (route) => {
-    await route.fulfill({
-      status: 200,
-      headers: {
-        'content-type': 'text/event-stream',
-        'cache-control': 'no-cache',
-      },
-      body: [
-        'event: check',
-        'data: {"tool":"toktrack","status":"found","method":"mock","version":"2.5.0"}',
-        '',
-        'event: progress',
-        'data: {"key":"startingLocalImport"}',
-        '',
-        'event: success',
-        'data: {"days":5,"totalCost":19.87}',
-        '',
-        'event: done',
-        'data: {}',
-        '',
-      ].join('\n'),
-    })
-  })
-}
-
-async function mockPdfReport(page: Page) {
-  let reportRequest: Record<string, unknown> | null = null
-
-  await page.route('**/api/report/pdf', async (route) => {
-    reportRequest = JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/pdf',
-      body: Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n'),
-    })
-  })
-
-  return {
-    getReportRequest: () => reportRequest,
   }
 }
 

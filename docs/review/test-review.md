@@ -85,6 +85,8 @@ Die Hotspots sind plausibel, aber sie zeigen klar, welche Testpfade kuenftig zue
 
 ### M-03 - Die E2E-Abdeckung ist funktional stark, aber in einer grossen Monolith-Datei konzentriert
 
+**Status:** Behoben, siehe `docs/review/fixed-findings.md` -> `test-review.md / M-03`.
+
 **Referenzen:** `tests/e2e/dashboard.spec.ts` insgesamt, `734` Zeilen, `7` Tests
 
 Die Playwright-Suite prueft wichtige Journeys, aber fast alles lebt in einer Datei. Das erschwert Navigation, Review und selektive Optimierung. Mit weiterem Wachstum wird daraus schnell ein langsamer Catch-all statt fokussierter Journeys.

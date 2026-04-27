@@ -83,6 +83,27 @@
   - `npm run test:timings` -> completed without hanging after the cleanup hardening
   - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> multiple rounds: 0 issues initially, 4 minor test-harness/test-clarity issues fixed, latest round 0 issues
 
+### test-review.md / M-03
+
+- Status: fixed
+- Scope: the Playwright dashboard monolith was split by user journey without changing dashboard runtime behavior. The former `tests/e2e/dashboard.spec.ts` coverage now lives in focused load/upload, forecast/filter, settings/backups, and reporting specs, while command-palette coverage remains separate.
+- Guardrails: shared E2E auth, state reset, usage seeding, file upload, mocked auto-import/report, download-recording, and dashboard test-hook access now live in `tests/e2e/helpers.ts`. `docs/testing.md` documents journey-based Playwright files so future browser coverage does not grow back into a catch-all suite.
+- Follow-up quality fixes during implementation:
+  - The CSP/browser-error smoke coverage moved to `tests/e2e/dashboard-load-upload.spec.ts`, replacing stale references to the removed dashboard monolith.
+  - The report-language test now resets both usage and settings before switching locale, making it independent from earlier Playwright file order.
+  - The largest dashboard-specific E2E files are now focused around settings/backups and command-palette behavior instead of one mixed dashboard file.
+  - The recurring silent coverage/timing hang was traced to Vitest runs that emitted only the JUnit reporter in this non-interactive gate. `test:unit:coverage` and `test:timings` now keep the JUnit artifact and also emit the `dot` reporter, so long coverage runs show progress and finish cleanly instead of depending on a silent reporter path.
+  - Dashboard UI, content, animation, runtime API behavior, and production code remain unchanged.
+- Validation:
+  - `npx vitest run --project unit tests/unit/vitest-coverage-config.test.ts --reporter=verbose` -> passed, including the guardrail for explicit `dot` plus `junit` reporters on coverage-heavy scripts.
+  - `npm run test:unit:coverage` -> passed with `135` files, `496` tests passed, `1` skipped, and no silent hang after the reporter fix.
+  - `npm run test:timings` -> passed and printed timing diagnostics; the slowest suites remained existing server integration subprocess paths, while the split E2E work is outside this Vitest-only timing gate.
+  - `PLAYWRIGHT_TEST_PORT=3016 npm_config_cache=/tmp/ttdash-npm-cache npm run test:e2e` -> passed with `15` Playwright tests after the journey split.
+  - `npm run verify:full` -> final run passed, including format, lint, docstring lint, dependency-cruiser, `tsc --noEmit`, architecture tests, coverage, package verification, production build, and Playwright `15 passed`.
+  - Targeted Playwright follow-ups passed for `tests/e2e/dashboard-load-upload.spec.ts` and `tests/e2e/dashboard-settings-backups.spec.ts` after CodeRabbit requested locale-resilient label assertions.
+  - `git diff --check` -> passed after this validation update.
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> rounds 1 and 3 reported minor test/doc clarity issues that were fixed; rounds 2, 4, and 5 reported 0 issues; round 6 reported this missing validation detail and was fixed by this entry; the follow-up review after the validation update reported 0 issues.
+
 ## 2026-04-26
 
 ### server-review.md / H-01
@@ -225,7 +246,7 @@
 
 - Status: fixed
 - Scope: the server CSP no longer allows `unsafe-inline` styles. Shared security headers now live in `server/security-headers.js`, HTML responses get a per-response CSP nonce plus a matching `ttdash-csp-nonce` meta tag, `style-src-elem` is limited to `self` and the nonce, and `style-src-attr 'none'` blocks literal inline style attributes.
-- Guardrails: `tests/unit/security-headers.test.ts` covers CSP construction, nonce shape, nonce meta injection, HTML response preparation, and non-HTML header behavior. `tests/integration/server-api-guards.test.ts` checks the strict CSP on authenticated API responses. `tests/e2e/dashboard.spec.ts` verifies that the loaded dashboard HTML carries the nonce-backed CSP and that the browser reports no CSP errors while the main dashboard journey runs.
+- Guardrails: `tests/unit/security-headers.test.ts` covers CSP construction, nonce shape, nonce meta injection, HTML response preparation, and non-HTML header behavior. `tests/integration/server-api-guards.test.ts` checks the strict CSP on authenticated API responses. `tests/e2e/dashboard-load-upload.spec.ts` verifies that the loaded dashboard HTML carries the nonce-backed CSP and that the browser reports no CSP errors while the main dashboard journey runs.
 - Follow-up quality fixes during implementation:
   - CSP generation moved out of `server.js`, so future header changes have a focused unit-testable boundary.
   - `server/http-router.js` now treats HTML static responses separately from other assets, allowing nonce-specific headers without weakening API, JSON, CSS, or JS asset responses.

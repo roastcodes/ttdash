@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import packageJson from '../../package.json'
 import vitestConfig from '../../vitest.config'
 
 type CoverageThresholds = {
@@ -59,5 +60,18 @@ describe('vitest coverage configuration', () => {
       functions: 70,
       lines: 70,
     })
+  })
+
+  it('keeps coverage-heavy scripts on bounded non-interactive reporters', () => {
+    const coverageScripts = [
+      packageJson.scripts['test:unit:coverage'],
+      packageJson.scripts['test:timings'],
+    ]
+
+    for (const script of coverageScripts) {
+      expect(script).toContain('--reporter=dot')
+      expect(script).toContain('--reporter=junit')
+      expect(script).toContain('--outputFile.junit=./test-results/vitest.junit.xml')
+    }
   })
 })
