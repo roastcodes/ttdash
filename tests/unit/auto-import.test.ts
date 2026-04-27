@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { startAutoImport, translateAutoImportEvent } from '@/lib/auto-import'
+import { TOKTRACK_PACKAGE_SPEC } from '../../shared/toktrack-version.js'
 
 const translations = {
   'autoImportModal.startingLocalImport': 'Starte toktrack-Import...',
@@ -59,11 +60,11 @@ describe('translateAutoImportEvent', () => {
       translateAutoImportEvent(
         {
           key: 'loadingUsageData',
-          vars: { command: 'npx --yes toktrack@2.5.0 daily --json' },
+          vars: { command: `npx --yes ${TOKTRACK_PACKAGE_SPEC} daily --json` },
         },
         translate,
       ),
-    ).toBe('Lade Nutzungsdaten via npx --yes toktrack@2.5.0 daily --json...')
+    ).toBe(`Lade Nutzungsdaten via npx --yes ${TOKTRACK_PACKAGE_SPEC} daily --json...`)
     expect(
       translateAutoImportEvent(
         {

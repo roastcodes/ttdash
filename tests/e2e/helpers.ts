@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import { expect, type Download, type Page } from '@playwright/test'
+import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 
 export const sampleUsagePath = path.join(process.cwd(), 'examples', 'sample-usage.json')
 
@@ -154,7 +155,12 @@ export async function mockAutoImportStream(page: Page) {
       },
       body: [
         'event: check',
-        'data: {"tool":"toktrack","status":"found","method":"mock","version":"2.5.0"}',
+        `data: ${JSON.stringify({
+          tool: 'toktrack',
+          status: 'found',
+          method: 'mock',
+          version: TOKTRACK_VERSION,
+        })}`,
         '',
         'event: progress',
         'data: {"key":"startingLocalImport"}',

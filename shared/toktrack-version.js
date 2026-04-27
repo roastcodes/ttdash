@@ -1,5 +1,5 @@
 const TOKTRACK_PACKAGE_NAME = 'toktrack'
-const TOKTRACK_VERSION = '2.5.0'
+const TOKTRACK_VERSION = '2.6.0'
 const TOKTRACK_PACKAGE_SPEC = `${TOKTRACK_PACKAGE_NAME}@${TOKTRACK_VERSION}`
 
 module.exports = {

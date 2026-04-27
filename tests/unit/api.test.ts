@@ -13,6 +13,7 @@ import {
 } from '@/lib/api'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { initI18n } from '@/lib/i18n'
+import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 
 describe('api error handling', () => {
   beforeEach(async () => {
@@ -254,7 +255,7 @@ describe('api error handling', () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            configuredVersion: '2.5.0',
+            configuredVersion: TOKTRACK_VERSION,
             latestVersion: '2.4.1',
             isLatest: false,
             lookupStatus: 'ok',
@@ -268,7 +269,7 @@ describe('api error handling', () => {
     )
 
     await expect(fetchToktrackVersionStatus()).resolves.toEqual({
-      configuredVersion: '2.5.0',
+      configuredVersion: TOKTRACK_VERSION,
       latestVersion: '2.4.1',
       isLatest: false,
       lookupStatus: 'ok',
