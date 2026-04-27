@@ -77,8 +77,7 @@ function toLocalDateStr(date) {
 }
 
 function getReferenceDate(referenceDate = new Date()) {
-  const candidate =
-    referenceDate instanceof Date ? new Date(referenceDate) : new Date(referenceDate)
+  const candidate = new Date(referenceDate)
   if (!Number.isFinite(candidate.getTime())) {
     const fallback = new Date()
     fallback.setHours(0, 0, 0, 0)

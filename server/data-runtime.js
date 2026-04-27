@@ -102,16 +102,31 @@ function createDataRuntime({
     extraDirs.forEach((dirPath) => ensureDir(dirPath));
   }
 
+  function applySecureFileMode(filePath) {
+    if (!isWindows) {
+      fs.chmodSync(filePath, secureFileMode);
+    }
+  }
+
   function writeJsonAtomic(filePath, data) {
     ensureDir(path.dirname(filePath));
     const tempPath = `${filePath}.${processObject.pid}.${Date.now()}.tmp`;
-    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), {
-      mode: secureFileMode,
-    });
-    if (!isWindows) {
-      fs.chmodSync(tempPath, secureFileMode);
+    try {
+      fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), {
+        mode: secureFileMode,
+      });
+      applySecureFileMode(tempPath);
+      fs.renameSync(tempPath, filePath);
+    } catch (error) {
+      try {
+        if (fs.existsSync(tempPath)) {
+          fs.unlinkSync(tempPath);
+        }
+      } catch {
+        // Ignore cleanup failures so the original write error is preserved.
+      }
+      throw error;
     }
-    fs.renameSync(tempPath, filePath);
   }
 
   async function writeJsonAtomicAsync(filePath, data) {
@@ -692,9 +707,11 @@ function createDataRuntime({
 
     try {
       fs.renameSync(legacyDataFile, dataFile);
+      applySecureFileMode(dataFile);
       log(`Migrating existing data to ${dataFile}`);
     } catch {
       fs.copyFileSync(legacyDataFile, dataFile);
+      applySecureFileMode(dataFile);
       try {
         fs.unlinkSync(legacyDataFile);
       } catch {

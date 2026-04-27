@@ -83,6 +83,27 @@ function createHttpRouter({
     res.end(JSON.stringify({ message }));
   }
 
+  function getErrorMessage(error, fallback) {
+    return error && typeof error.message === 'string' && error.message ? error.message : fallback;
+  }
+
+  async function readMutationBody(req, res, { tooLargeMessage, invalidMessage }) {
+    try {
+      return { ok: true, body: await readBody(req) };
+    } catch (error) {
+      if (isPayloadTooLargeError(error)) {
+        json(res, 413, { message: tooLargeMessage });
+        return { ok: false };
+      }
+      json(res, 400, { message: getErrorMessage(error, invalidMessage) });
+      return { ok: false };
+    }
+  }
+
+  function writeMutationServerError(res) {
+    return json(res, 500, { message: 'Server error' });
+  }
+
   function sendStaticFile(res, reqPath, data) {
     const ext = path.extname(reqPath).toLowerCase();
     const contentType = mimeTypes[ext] || 'application/octet-stream';
@@ -269,14 +290,22 @@ function createHttpRouter({
         if (validationError) {
           return json(res, validationError.status, { message: validationError.message });
         }
+
+        const bodyResult = await readMutationBody(req, res, {
+          tooLargeMessage: 'Settings request too large',
+          invalidMessage: 'Invalid settings request',
+        });
+        if (!bodyResult.ok) {
+          return;
+        }
+
         try {
-          const body = await readBody(req);
-          return json(res, 200, await updateSettings(body));
+          return json(res, 200, await updateSettings(bodyResult.body));
         } catch (error) {
-          if (isPayloadTooLargeError(error)) {
-            return json(res, 413, { message: 'Settings request too large' });
+          if (isPersistedStateError(error, 'settings')) {
+            return json(res, 500, { message: error.message });
           }
-          return json(res, 400, { message: error.message || 'Invalid settings request' });
+          return writeMutationServerError(res);
         }
       }
 
@@ -293,18 +322,31 @@ function createHttpRouter({
         return json(res, validationError.status, { message: validationError.message });
       }
 
+      const bodyResult = await readMutationBody(req, res, {
+        tooLargeMessage: 'Settings file too large',
+        invalidMessage: 'Invalid settings file',
+      });
+      if (!bodyResult.ok) {
+        return;
+      }
+
+      let importedSettings;
       try {
-        const body = await readBody(req);
-        const importedSettings = normalizeSettings(extractSettingsImportPayload(body));
+        importedSettings = normalizeSettings(extractSettingsImportPayload(bodyResult.body));
+      } catch (error) {
+        return json(res, 400, { message: getErrorMessage(error, 'Invalid settings file') });
+      }
+
+      try {
         await withFileMutationLock(settingsFile, async () => {
           await writeSettings(importedSettings);
         });
         return json(res, 200, readSettings());
       } catch (error) {
-        if (isPayloadTooLargeError(error)) {
-          return json(res, 413, { message: 'Settings file too large' });
+        if (isPersistedStateError(error, 'settings')) {
+          return json(res, 500, { message: error.message });
         }
-        return json(res, 400, { message: error.message || 'Invalid settings file' });
+        return writeMutationServerError(res);
       }
     }
 
@@ -315,12 +357,25 @@ function createHttpRouter({
           return json(res, validationError.status, { message: validationError.message });
         }
 
+        const bodyResult = await readMutationBody(req, res, {
+          tooLargeMessage: 'File too large (max. 10 MB)',
+          invalidMessage: 'Invalid JSON',
+        });
+        if (!bodyResult.ok) {
+          return;
+        }
+
+        let nextData;
         try {
-          const body = await readBody(req);
           const normalized = dataRuntime.normalizeIncomingData
-            ? dataRuntime.normalizeIncomingData(body)
+            ? dataRuntime.normalizeIncomingData(bodyResult.body)
             : null;
-          const nextData = normalized || body;
+          nextData = normalized || bodyResult.body;
+        } catch (error) {
+          return json(res, 400, { message: getErrorMessage(error, 'Invalid JSON') });
+        }
+
+        try {
           await withSettingsAndDataMutationLock(async () => {
             await writeData(nextData);
             await updateDataLoadState({
@@ -333,11 +388,10 @@ function createHttpRouter({
             totalCost: nextData.totals.totalCost,
           });
         } catch (error) {
-          const status = isPayloadTooLargeError(error) ? 413 : 400;
-          const message = isPayloadTooLargeError(error)
-            ? 'File too large (max. 10 MB)'
-            : error.message || 'Invalid JSON';
-          return json(res, status, { message });
+          if (isPersistedStateError(error, 'settings') || isPersistedStateError(error, 'usage')) {
+            return json(res, 500, { message: error.message });
+          }
+          return writeMutationServerError(res);
         }
       }
       return json(res, 405, { message: 'Method Not Allowed' });
@@ -353,11 +407,25 @@ function createHttpRouter({
         return json(res, validationError.status, { message: validationError.message });
       }
 
+      const bodyResult = await readMutationBody(req, res, {
+        tooLargeMessage: 'Usage backup file too large',
+        invalidMessage: 'Invalid usage backup file',
+      });
+      if (!bodyResult.ok) {
+        return;
+      }
+
+      let importedData;
       try {
-        const body = await readBody(req);
-        const importedData = dataRuntime.normalizeIncomingData
-          ? dataRuntime.normalizeIncomingData(extractUsageImportPayload(body))
-          : extractUsageImportPayload(body);
+        const usagePayload = extractUsageImportPayload(bodyResult.body);
+        importedData = dataRuntime.normalizeIncomingData
+          ? dataRuntime.normalizeIncomingData(usagePayload)
+          : usagePayload;
+      } catch (error) {
+        return json(res, 400, { message: getErrorMessage(error, 'Invalid usage backup file') });
+      }
+
+      try {
         const result = await withSettingsAndDataMutationLock(async () => {
           const currentData = readData();
           const merged = mergeUsageData(currentData, importedData);
@@ -370,13 +438,10 @@ function createHttpRouter({
         });
         return json(res, 200, result.summary);
       } catch (error) {
-        if (isPayloadTooLargeError(error)) {
-          return json(res, 413, { message: 'Usage backup file too large' });
-        }
-        if (isPersistedStateError(error, 'usage')) {
+        if (isPersistedStateError(error, 'usage') || isPersistedStateError(error, 'settings')) {
           return json(res, 500, { message: error.message });
         }
-        return json(res, 400, { message: error.message || 'Invalid usage backup file' });
+        return writeMutationServerError(res);
       }
     }
 
