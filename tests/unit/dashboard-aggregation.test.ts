@@ -78,6 +78,51 @@ describe('summarizeUsageBreakdowns', () => {
     expect(summary.providerMetrics.get('OpenAI')).toMatchObject({ cost: 3, requests: 2, days: 1 })
   })
 
+  it('aggregates toktrack provider-suffixed GPT models into the shared model bucket', () => {
+    const data: DailyUsage[] = [
+      {
+        date: '2026-04-01',
+        inputTokens: 30,
+        outputTokens: 15,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        thinkingTokens: 0,
+        totalTokens: 45,
+        totalCost: 3,
+        requestCount: 2,
+        modelsUsed: ['gpt-5.4', 'GPT-5 4::openai'],
+        modelBreakdowns: [
+          {
+            modelName: 'gpt-5.4',
+            inputTokens: 10,
+            outputTokens: 5,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            cost: 1,
+            requestCount: 1,
+          },
+          {
+            modelName: 'GPT-5 4::openai',
+            inputTokens: 20,
+            outputTokens: 10,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            cost: 2,
+            requestCount: 1,
+          },
+        ],
+      },
+    ]
+
+    const summary = summarizeUsageBreakdowns(data)
+
+    expect(summary.allModels).toEqual(['GPT-5.4'])
+    expect(summary.modelCosts.get('GPT-5.4')).toMatchObject({ cost: 3, requests: 2, days: 1 })
+    expect(summary.providerMetrics.get('OpenAI')).toMatchObject({ cost: 3, requests: 2, days: 1 })
+  })
+
   it('keeps model options aligned with breakdown-backed chart series without dropping modelsUsed-only data', () => {
     const data: DailyUsage[] = [
       {

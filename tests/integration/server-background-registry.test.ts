@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest'
 import {
   createCliEnv,
   createSharedServerContext,
-  fetchWithAuth,
   readBackgroundRegistry,
   registerSharedServerLifecycle,
   runCli,
@@ -21,23 +20,23 @@ describe('local server background registry pruning', () => {
     const backgroundEnv = createCliEnv(backgroundRoot)
 
     try {
-      const runtimeResponse = await fetchWithAuth(`${sharedServer.baseUrl}/api/runtime`)
-      const runtime = await runtimeResponse.json()
       const sharedServerPid = sharedServer.child?.pid
       if (!sharedServerPid) {
         throw new Error('Shared server child process was not started.')
       }
+      const sharedServerOrigin = new URL(sharedServer.baseUrl).origin
+      const sharedServerPort = Number.parseInt(new URL(sharedServer.baseUrl).port, 10)
 
       writeBackgroundRegistry(backgroundRoot, [
         {
           id: 'stale-entry',
           pid: sharedServerPid,
-          port: runtime.port,
-          url: sharedServer.baseUrl,
+          port: sharedServerPort,
+          url: sharedServerOrigin,
           host: '127.0.0.1',
-          authHeader: sharedServer.authHeader,
           startedAt: new Date().toISOString(),
           logFile: null,
+          ...(sharedServer.authHeader ? { authHeader: sharedServer.authHeader } : {}),
         },
       ])
 
@@ -48,4 +47,26 @@ describe('local server background registry pruning', () => {
       rmSync(backgroundRoot, { recursive: true, force: true })
     }
   }, 15_000)
+
+  it('rejects registry fixtures that would be rewritten by normalization', () => {
+    const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-invalid-test-'))
+
+    try {
+      expect(() =>
+        writeBackgroundRegistry(backgroundRoot, [
+          {
+            id: 'rewritten-entry',
+            pid: process.pid,
+            port: 3011,
+            url: 'http://127.0.0.1:3011/dashboard',
+            host: '127.0.0.1',
+            startedAt: new Date().toISOString(),
+            logFile: null,
+          },
+        ]),
+      ).toThrow('Invalid test background registry entry at index 0.')
+    } finally {
+      rmSync(backgroundRoot, { recursive: true, force: true })
+    }
+  })
 })

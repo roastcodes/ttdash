@@ -1,6 +1,11 @@
 import { createRequire } from 'node:module'
 import { afterEach, describe, expect, it } from 'vitest'
-import { getModelColor, getModelColorAlpha, getProviderBadgeStyle } from '@/lib/model-utils'
+import {
+  getModelColor,
+  getModelColorAlpha,
+  getProviderBadgeStyle,
+  normalizeModelName,
+} from '@/lib/model-utils'
 
 const require = createRequire(import.meta.url)
 const {
@@ -114,6 +119,21 @@ describe('model colors', () => {
     expect(getModelColor('Claude Sonnet 4.5', 'light')).toBe('hsl(214, 72%, 44%)')
     expect(getModelColor('Gemini 2.5 Pro', 'dark')).toBe('hsl(40, 88%, 49%)')
     expect(getModelColor('Gemini 2.5 Pro', 'light')).toBe('hsl(38, 86%, 34%)')
+  })
+
+  it('uses canonical GPT colors for toktrack provider-suffixed model names', () => {
+    const normalizedName = normalizeModelName('GPT-5 4::openai')
+    const palette = createModelColorPalette([
+      'GPT-5',
+      normalizedName,
+      normalizeModelName('gpt-5.4'),
+    ])
+
+    expect(normalizedName).toBe('GPT-5.4')
+    expect(getModelColor(normalizedName, 'dark')).toBe(getModelColor('GPT-5.4', 'dark'))
+    expect(palette.getColor(normalizedName, { theme: 'dark' })).toBe(
+      palette.getColor('GPT-5.4', { theme: 'dark' }),
+    )
   })
 
   it('routes GPT-4.1 through the omni family instead of the main GPT family', () => {

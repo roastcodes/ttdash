@@ -53,6 +53,7 @@ const fetchProbeTimeoutMs = 1000
 const fetchRequestTimeoutMs = 15_000
 const processStopTimeoutMs = 7000
 const cliCommandTimeoutMs = 30_000
+const trustedLoopbackHosts = new Set(['127.0.0.1', 'localhost', '[::1]', '::1'])
 
 export const hasTypst = (() => {
   const result = spawnSync('typst', ['--version'], { stdio: 'ignore' })
@@ -65,6 +66,139 @@ export function permissionBits(targetPath: string) {
   return statSync(targetPath).mode & 0o777
 }
 
+function toTrustedLoopbackUrl(value: string | URL, context = 'test server URL') {
+  const url = value instanceof URL ? value : new URL(value)
+  if (url.protocol !== 'http:' || !trustedLoopbackHosts.has(url.hostname)) {
+    throw new Error(`Refusing non-loopback ${context}: ${url.href}`)
+  }
+  return url
+}
+
+function toTrustedLoopbackHref(value: string | URL, context = 'test server URL') {
+  return toTrustedLoopbackUrl(value, context).href
+}
+
+function toTrustedLoopbackOrigin(value: string | URL, context = 'test server URL') {
+  return toTrustedLoopbackUrl(value, context).origin
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function toPortNumber(value: unknown) {
+  const port = typeof value === 'number' ? value : Number.parseInt(String(value), 10)
+  return Number.isInteger(port) && port > 0 && port <= 65535 ? port : null
+}
+
+function toPositiveInteger(value: unknown) {
+  const number = typeof value === 'number' ? value : Number.parseInt(String(value), 10)
+  return Number.isInteger(number) && number > 0 ? number : null
+}
+
+function normalizeOptionalString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value : null
+}
+
+function normalizeBackgroundRegistryEntry(value: unknown): BackgroundRegistryEntry | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeOptionalString(value.id)
+  const startedAt = normalizeOptionalString(value.startedAt)
+  const pid = toPositiveInteger(value.pid)
+  if (!id || !startedAt || pid === null) {
+    return null
+  }
+
+  let registryUrl: URL
+  try {
+    registryUrl = toTrustedLoopbackUrl(String(value.url), 'background registry URL')
+  } catch {
+    return null
+  }
+
+  const port = toPortNumber(value.port) ?? toPortNumber(registryUrl.port || 80)
+  if (port === null) {
+    return null
+  }
+
+  const host = trustedLoopbackHosts.has(String(value.host))
+    ? String(value.host)
+    : registryUrl.hostname
+  const entry: BackgroundRegistryEntry = {
+    id,
+    url: registryUrl.origin,
+    port,
+    pid,
+    host,
+    startedAt,
+  }
+
+  const apiPrefix = normalizeOptionalString(value.apiPrefix)
+  if (apiPrefix) {
+    entry.apiPrefix = apiPrefix
+  }
+
+  const authHeader = normalizeOptionalString(value.authHeader)
+  if (authHeader) {
+    entry.authHeader = authHeader
+  }
+
+  const bootstrapUrl = normalizeOptionalString(value.bootstrapUrl)
+  if (bootstrapUrl) {
+    try {
+      entry.bootstrapUrl = toTrustedLoopbackHref(bootstrapUrl, 'background bootstrap URL')
+    } catch {
+      entry.bootstrapUrl = null
+    }
+  } else if (value.bootstrapUrl === null) {
+    entry.bootstrapUrl = null
+  }
+
+  const logFile = normalizeOptionalString(value.logFile)
+  if (logFile) {
+    entry.logFile = logFile
+  } else if (value.logFile === null) {
+    entry.logFile = null
+  }
+
+  return entry
+}
+
+function normalizeBackgroundRegistryEntries(entries: unknown) {
+  if (!Array.isArray(entries)) {
+    return [] as BackgroundRegistryEntry[]
+  }
+
+  return entries.flatMap((entry) => {
+    const normalized = normalizeBackgroundRegistryEntry(entry)
+    return normalized ? [normalized] : []
+  })
+}
+
+function toStableJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => toStableJsonValue(entry))
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, entry]) => entry !== undefined)
+        .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+        .map(([key, entry]) => [key, toStableJsonValue(entry)]),
+    )
+  }
+
+  return value
+}
+
+function stableStringifyJson(value: unknown): string {
+  return JSON.stringify(toStableJsonValue(value))
+}
+
 async function fetchWithTimeout(
   url: string,
   init: RequestInit = {},
@@ -72,9 +206,10 @@ async function fetchWithTimeout(
 ) {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  const trustedUrl = toTrustedLoopbackHref(url, 'fetch URL')
 
   try {
-    return await fetch(url, {
+    return await fetch(trustedUrl, {
       ...init,
       signal: controller.signal,
     })
@@ -485,17 +620,21 @@ export function registerAuthHeader(url: string, authorizationHeader: string | nu
     return
   }
 
-  authHeadersByOrigin.set(new URL(url).origin, authorizationHeader)
+  authHeadersByOrigin.set(toTrustedLoopbackOrigin(url, 'auth header origin'), authorizationHeader)
 }
 
 export function getRegisteredAuthHeaders(url: string) {
-  const authorizationHeader = authHeadersByOrigin.get(new URL(url).origin)
+  const authorizationHeader = authHeadersByOrigin.get(
+    toTrustedLoopbackOrigin(url, 'auth header origin'),
+  )
   return authorizationHeader ? { Authorization: authorizationHeader } : undefined
 }
 
 function applyRegisteredAuthHeader(url: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers)
-  const registeredAuthHeader = authHeadersByOrigin.get(new URL(url).origin)
+  const registeredAuthHeader = authHeadersByOrigin.get(
+    toTrustedLoopbackOrigin(url, 'auth header origin'),
+  )
 
   if (registeredAuthHeader && !headers.has('Authorization')) {
     headers.set('Authorization', registeredAuthHeader)
@@ -533,7 +672,7 @@ export async function fetchTrusted(url: string, init: RequestInit = {}) {
     })
   }
 
-  headers.set('Origin', new URL(url).origin)
+  headers.set('Origin', toTrustedLoopbackOrigin(url, 'mutation origin'))
 
   return await fetchWithTimeout(url, {
     ...init,
@@ -556,9 +695,13 @@ export async function fetchWithAuth(
   )
 }
 
+export async function fetchLocalBootstrap(url: string, init: RequestInit = {}) {
+  return await fetchWithTimeout(toTrustedLoopbackHref(url, 'local auth bootstrap URL'), init)
+}
+
 export function readBackgroundRegistry(root: string) {
   const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
-  return JSON.parse(readFileSync(registryPath, 'utf-8')) as BackgroundRegistryEntry[]
+  return normalizeBackgroundRegistryEntries(JSON.parse(readFileSync(registryPath, 'utf-8')))
 }
 
 export function tryReadBackgroundRegistry(root: string) {
@@ -568,16 +711,26 @@ export function tryReadBackgroundRegistry(root: string) {
   }
 
   try {
-    return JSON.parse(readFileSync(registryPath, 'utf-8')) as BackgroundRegistryEntry[]
+    return normalizeBackgroundRegistryEntries(JSON.parse(readFileSync(registryPath, 'utf-8')))
   } catch {
     return []
   }
 }
 
-export function writeBackgroundRegistry(root: string, entries: unknown) {
+export function writeBackgroundRegistry(root: string, entries: BackgroundRegistryEntry[]) {
+  const normalizedEntries = normalizeBackgroundRegistryEntries(entries)
+  if (normalizedEntries.length !== entries.length) {
+    throw new Error('Invalid test background registry entries.')
+  }
+  entries.forEach((entry, index) => {
+    if (stableStringifyJson(entry) !== stableStringifyJson(normalizedEntries[index])) {
+      throw new Error(`Invalid test background registry entry at index ${index}.`)
+    }
+  })
+
   const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
   mkdirSync(path.dirname(registryPath), { recursive: true })
-  writeFileSync(registryPath, JSON.stringify(entries, null, 2))
+  writeFileSync(registryPath, JSON.stringify(normalizedEntries, null, 2))
 }
 
 export async function waitForBackgroundRegistry(
