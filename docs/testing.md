@@ -90,6 +90,19 @@ For `tests/architecture`, prefer the shared source graph helper for simple file,
 - Reuse the smallest fixture that still proves the behavior.
 - Keep deep regression tests separate from baseline component behavior so hot paths stay readable and cheap to run.
 
+## Coverage Scope
+
+`npm run test:unit:coverage` reports product-runtime coverage. The configured coverage scope intentionally includes frontend runtime modules, the local server runtime, shared runtime contracts, and `usage-normalizer.js` instead of only the historically high-signal frontend subset.
+
+The global thresholds are ratchets for that broader denominator:
+
+- Statements: `70`
+- Branches: `60`
+- Functions: `70`
+- Lines: `70`
+
+Some executable entry and orchestration files are expected to stay lower than focused pure modules because subprocess-spawned CLI/server paths are proven by integration, background, and Playwright tests. Treat those gaps as prioritization signals for future focused tests, not as a reason to remove the files from the product-runtime coverage denominator.
+
 ## Critical Coverage Targets
 
 Prioritize targeted branch coverage in runtime-heavy modules before adding another broad dashboard regression.

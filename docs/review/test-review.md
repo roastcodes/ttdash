@@ -27,6 +27,8 @@ Das ist kein semantischer Architekturverstoss, aber ein instabiles Signal. Genau
 
 ### H-02 - Die Coverage-Zahl bildet die produktive Runtime nur teilweise ab
 
+**Status:** Behoben, siehe `docs/review/fixed-findings.md` -> `test-review.md / H-02`.
+
 **Referenzen:** `vitest.config.ts:27-44`
 
 Die Coverage-Includes decken nur:

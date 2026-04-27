@@ -29,20 +29,19 @@ export default defineConfig(async () => {
           reporter: ['text', 'html', 'lcov'],
           reportsDirectory: './coverage',
           include: [
-            'src/hooks/**/*.ts',
-            'src/lib/**/*.ts',
-            'src/components/Dashboard.tsx',
-            'shared/app-settings.js',
-            'shared/dashboard-preferences.js',
+            'src/**/*.{ts,tsx}',
+            'server.js',
+            'server/**/*.js',
+            'shared/**/*.js',
             'usage-normalizer.js',
           ],
-          exclude: [
-            'src/lib/i18n.ts',
-            'src/lib/constants.ts',
-            'src/lib/help-content.ts',
-            'src/lib/cn.ts',
-            'tests/**',
-          ],
+          exclude: ['src/**/*.d.ts', 'tests/**', 'shared/locales/**'],
+          thresholds: {
+            statements: 70,
+            branches: 60,
+            functions: 70,
+            lines: 70,
+          },
         },
         projects: [
           {

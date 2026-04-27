@@ -22,6 +22,28 @@
   - `npm run test:timings`
   - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 1 minor status-line suggestion already satisfied by the current `- Status: fixed` text, round 3: 1 dynamic-import options issue fixed, final round: 0 issues
 
+### test-review.md / H-02
+
+- Status: fixed
+- Scope: Vitest coverage now reports against the product runtime instead of the former narrow frontend slice. `vitest.config.ts` includes `src/**/*.{ts,tsx}`, `server.js`, `server/**/*.js`, `shared/**/*.js`, and `usage-normalizer.js`, while excluding only TypeScript declarations, test files, and locale JSON assets from the configured runtime denominator.
+- Guardrails: `tests/unit/vitest-coverage-config.test.ts` locks the coverage includes, excludes, and broad-denominator global thresholds. The thresholds ratchet the new signal at Statements `70`, Branches `60`, Functions `70`, and Lines `70`, below the measured broad baseline so CI fails on real regressions without making the first honest denominator brittle.
+- Follow-up quality fixes during implementation:
+  - The current `npm run test:unit:coverage` baseline is Statements `72.85%`, Branches `63.01%`, Functions `74.97%`, Lines `73.88%` across the broader runtime scope.
+  - Server entrypoints, local server modules, shared runtime contracts, App/main entry files, and lazy dashboard sections are now visible in the coverage report instead of being hidden outside the denominator.
+  - `docs/testing.md` documents the broader denominator and clarifies that subprocess-spawned CLI/server paths remain behaviorally covered by integration, background, and Playwright tests even when V8 main-process line attribution stays lower.
+  - Dashboard UI, content, animation, runtime API behavior, and production code remain unchanged.
+- Validation:
+  - `npx vitest run --project unit tests/unit/vitest-coverage-config.test.ts --reporter=verbose`
+  - `npm run test:unit:coverage`
+  - `npm run format:check`
+  - `npm run lint`
+  - `tsc --noEmit`
+  - `npm run check:deps`
+  - `npx vitest run --project architecture --reporter=verbose`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues
+
 ## 2026-04-26
 
 ### server-review.md / H-01

@@ -27,14 +27,15 @@ Der Codebase-Stand ist insgesamt solide: die wichtigsten Qualitaetsgates laufen 
 
 ## Wichtige Messpunkte
 
-- Coverage-Summary aus `npm run test:unit:coverage`:
+- Urspruengliche Coverage-Summary aus `npm run test:unit:coverage`:
   - Statements `76.27%`
   - Branches `65.71%`
   - Functions `76.43%`
   - Lines `78.61%`
-- Wichtige Einschraenkung:
-  - Die Coverage-Konfiguration zaehlt nur `src/hooks/**/*.ts`, `src/lib/**/*.ts`, `src/components/Dashboard.tsx` und `usage-normalizer.js`
-  - `server.js`, `server/**`, `shared/**` und fast alle Komponenten fehlen in dieser Metrik
+- Aktueller Stand zu `test-review.md / H-02`:
+  - `npm run test:unit:coverage` zaehlt inzwischen `src/**/*.{ts,tsx}`, `server.js`, `server/**/*.js`, `shared/**/*.js` und `usage-normalizer.js`
+  - Die neue Produkt-Runtime-Baseline liegt bei Statements `72.85%`, Branches `63.01%`, Functions `74.97%`, Lines `73.88%`
+  - Server-Entrypoints, Child-Process-Pfade und lazy Dashboard-Sektionen bleiben dadurch sichtbar, auch wenn sie nicht alle direkt im Vitest-Hauptprozess hohe Line-Coverage erzeugen
 - Langsamste Test-Suites aus `npm run test:timings`:
   - `tests/integration/server-background.test.ts` -> `5.785s`
   - `tests/integration/server-auto-import.test.ts` -> `4.521s`
