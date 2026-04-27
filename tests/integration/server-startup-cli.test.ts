@@ -3,6 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { createBearerAuthHeader, createRemoteAuthTestToken } from '../auth-test-helpers'
 import {
   createCliEnv,
   getCliConfigDir,
@@ -15,6 +16,8 @@ import {
 } from './server-test-helpers'
 
 const itIfPosix = isPosix ? it : it.skip
+const remoteToken = createRemoteAuthTestToken()
+const remoteAuthHeader = createBearerAuthHeader(remoteToken)
 
 describe('local server startup CLI integration', () => {
   it('fails cleanly when port 65535 is busy instead of retrying to 65536', async () => {
@@ -63,10 +66,10 @@ describe('local server startup CLI integration', () => {
           HOST: '0.0.0.0',
           NO_OPEN_BROWSER: '1',
           TTDASH_ALLOW_REMOTE: '1',
-          TTDASH_REMOTE_TOKEN: 'remote-token-123456789012345',
+          TTDASH_REMOTE_TOKEN: remoteToken,
         },
         readinessHeaders: {
-          Authorization: 'Bearer remote-token-123456789012345',
+          Authorization: remoteAuthHeader,
         },
       })
 

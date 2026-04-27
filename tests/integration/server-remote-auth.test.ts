@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import { createBearerAuthHeader, createRemoteAuthTestToken } from '../auth-test-helpers'
 import {
   createCliEnv,
   fetchTrusted,
@@ -10,7 +11,8 @@ import {
   stopProcess,
 } from './server-test-helpers'
 
-const remoteToken = 'remote-token-123456789012345'
+const remoteToken = createRemoteAuthTestToken()
+const remoteAuthHeader = createBearerAuthHeader(remoteToken)
 
 describe('remote server authentication', () => {
   let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
@@ -53,7 +55,7 @@ describe('remote server authentication', () => {
     expect(await unauthenticatedResponse.json()).toEqual({ message: 'Authentication required' })
 
     const bearerResponse = await fetch(`${standaloneServer.url}/api/usage`, {
-      headers: { Authorization: `Bearer ${remoteToken}` },
+      headers: { Authorization: remoteAuthHeader },
     })
     expect(bearerResponse.status).toBe(200)
 
@@ -85,13 +87,13 @@ describe('remote server authentication', () => {
 
     const missingOriginResponse = await fetch(`${standaloneServer.url}/api/usage`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${remoteToken}` },
+      headers: { Authorization: remoteAuthHeader },
     })
     expect(missingOriginResponse.status).toBe(403)
 
     const trustedResponse = await fetchTrusted(`${standaloneServer.url}/api/usage`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${remoteToken}` },
+      headers: { Authorization: remoteAuthHeader },
     })
     expect(trustedResponse.status).toBe(200)
   }, 20_000)
@@ -107,7 +109,7 @@ async function startRemoteServer(root: string) {
       TTDASH_REMOTE_TOKEN: remoteToken,
     },
     readinessHeaders: {
-      Authorization: `Bearer ${remoteToken}`,
+      Authorization: remoteAuthHeader,
     },
   })
 }

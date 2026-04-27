@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
+import { createBearerAuthHeader, createRemoteAuthTestToken } from '../auth-test-helpers'
 
 const require = createRequire(import.meta.url)
 const { REMOTE_AUTH_COOKIE_NAME, REMOTE_AUTH_QUERY_PARAM, createRemoteAuth } =
@@ -32,7 +33,8 @@ const { REMOTE_AUTH_COOKIE_NAME, REMOTE_AUTH_QUERY_PARAM, createRemoteAuth } =
     }
   }
 
-const remoteToken = 'remote-token-123456789012345'
+const remoteToken = createRemoteAuthTestToken()
+const remoteAuthHeader = createBearerAuthHeader(remoteToken)
 const localToken = 'local-token-1234567890123456'
 
 class MockRequest extends EventEmitter {
@@ -56,7 +58,7 @@ describe('remote auth', () => {
     })
     const req = new MockRequest()
     const authorizedRequest = new MockRequest()
-    authorizedRequest.headers.authorization = `Bearer ${localToken}`
+    authorizedRequest.headers.authorization = createBearerAuthHeader(localToken)
 
     expect(auth.isRequired()).toBe(true)
     expect(auth.isLocalRequired()).toBe(true)
@@ -87,11 +89,11 @@ describe('remote auth', () => {
       tokenFactory: () => generatedToken,
     })
     const req = new MockRequest()
-    req.headers.authorization = `Bearer ${generatedToken}`
+    req.headers.authorization = createBearerAuthHeader(generatedToken)
 
     expect(auth.isLocalRequired()).toBe(true)
     expect(auth.validateApiRequest(req)).toBeNull()
-    expect(auth.getAuthorizationHeader()).toBe(`Bearer ${generatedToken}`)
+    expect(auth.getAuthorizationHeader()).toBe(createBearerAuthHeader(generatedToken))
   })
 
   it('requires a long token when remote binding is explicitly enabled', () => {
@@ -113,7 +115,7 @@ describe('remote auth', () => {
   it('accepts bearer, explicit token header, and cookie credentials', () => {
     const auth = createRemoteRequiredAuth()
     const bearerRequest = new MockRequest()
-    bearerRequest.headers.authorization = `Bearer ${remoteToken}`
+    bearerRequest.headers.authorization = remoteAuthHeader
     const headerRequest = new MockRequest()
     headerRequest.headers['x-ttdash-remote-token'] = remoteToken
     const cookieRequest = new MockRequest()
@@ -130,7 +132,7 @@ describe('remote auth', () => {
     const wrongRequest = new MockRequest()
     wrongRequest.headers.authorization = 'Bearer wrong-token'
     const longWrongRequest = new MockRequest()
-    longWrongRequest.headers.authorization = `Bearer ${remoteToken}-but-wrong`
+    longWrongRequest.headers.authorization = createBearerAuthHeader(`${remoteToken}-but-wrong`)
 
     expect(auth.validateApiRequest(missingRequest)).toMatchObject({
       status: 401,
@@ -181,6 +183,6 @@ describe('remote auth', () => {
     expect(auth.createBootstrapUrl('http://192.168.1.10:3000')).toBe(
       `http://192.168.1.10:3000/?${REMOTE_AUTH_QUERY_PARAM}=${remoteToken}`,
     )
-    expect(auth.getAuthorizationHeader()).toBe(`Bearer ${remoteToken}`)
+    expect(auth.getAuthorizationHeader()).toBe(remoteAuthHeader)
   })
 })
