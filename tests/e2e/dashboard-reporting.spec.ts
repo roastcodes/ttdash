@@ -11,6 +11,7 @@ test('uses the current UI language when generating a PDF report after switching 
 
   await gotoDashboard(page)
   await uploadSampleUsage(page)
+  await page.getByTestId('language-switcher-de').click()
   await expect(page.locator('html')).toHaveAttribute('lang', 'de')
 
   await page.getByRole('button', { name: 'Report' }).click()

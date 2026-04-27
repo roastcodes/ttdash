@@ -178,6 +178,27 @@ function normalizeBackgroundRegistryEntries(entries: unknown) {
   })
 }
 
+function toStableJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => toStableJsonValue(entry))
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, entry]) => entry !== undefined)
+        .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+        .map(([key, entry]) => [key, toStableJsonValue(entry)]),
+    )
+  }
+
+  return value
+}
+
+function stableStringifyJson(value: unknown): string {
+  return JSON.stringify(toStableJsonValue(value))
+}
+
 async function fetchWithTimeout(
   url: string,
   init: RequestInit = {},
@@ -701,6 +722,11 @@ export function writeBackgroundRegistry(root: string, entries: BackgroundRegistr
   if (normalizedEntries.length !== entries.length) {
     throw new Error('Invalid test background registry entries.')
   }
+  entries.forEach((entry, index) => {
+    if (stableStringifyJson(entry) !== stableStringifyJson(normalizedEntries[index])) {
+      throw new Error(`Invalid test background registry entry at index ${index}.`)
+    }
+  })
 
   const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
   mkdirSync(path.dirname(registryPath), { recursive: true })

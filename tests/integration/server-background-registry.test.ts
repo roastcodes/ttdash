@@ -24,6 +24,7 @@ describe('local server background registry pruning', () => {
       if (!sharedServerPid) {
         throw new Error('Shared server child process was not started.')
       }
+      const sharedServerOrigin = new URL(sharedServer.baseUrl).origin
       const sharedServerPort = Number.parseInt(new URL(sharedServer.baseUrl).port, 10)
 
       writeBackgroundRegistry(backgroundRoot, [
@@ -31,11 +32,11 @@ describe('local server background registry pruning', () => {
           id: 'stale-entry',
           pid: sharedServerPid,
           port: sharedServerPort,
-          url: sharedServer.baseUrl,
+          url: sharedServerOrigin,
           host: '127.0.0.1',
-          authHeader: sharedServer.authHeader,
           startedAt: new Date().toISOString(),
           logFile: null,
+          ...(sharedServer.authHeader ? { authHeader: sharedServer.authHeader } : {}),
         },
       ])
 
@@ -46,4 +47,26 @@ describe('local server background registry pruning', () => {
       rmSync(backgroundRoot, { recursive: true, force: true })
     }
   }, 15_000)
+
+  it('rejects registry fixtures that would be rewritten by normalization', () => {
+    const backgroundRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-background-invalid-test-'))
+
+    try {
+      expect(() =>
+        writeBackgroundRegistry(backgroundRoot, [
+          {
+            id: 'rewritten-entry',
+            pid: process.pid,
+            port: 3011,
+            url: 'http://127.0.0.1:3011/dashboard',
+            host: '127.0.0.1',
+            startedAt: new Date().toISOString(),
+            logFile: null,
+          },
+        ]),
+      ).toThrow('Invalid test background registry entry at index 0.')
+    } finally {
+      rmSync(backgroundRoot, { recursive: true, force: true })
+    }
+  })
 })
