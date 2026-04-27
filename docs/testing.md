@@ -68,6 +68,8 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
 
 Choose the narrowest layer that can still falsify the behavior. Do not promote a test to Playwright if the same behavior can be proven in `jsdom` or with server integration.
 
+For `tests/architecture`, prefer the shared source graph helper for simple file, naming, placement, and direct import rules over `src/**`. Keep ArchUnit for higher-level architecture models such as feature-slice diagrams where its abstraction is worth the extra scan cost.
+
 ## Real Processes vs Test Doubles
 
 - Prefer injected test doubles such as fake children or `spawnImpl` hooks for timeout, stderr/stdout, and process-lifecycle policy.

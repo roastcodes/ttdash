@@ -209,7 +209,8 @@ Both `ci.yml` and `release.yml` run `check:deps` and `test:architecture` explici
 - Prefer the narrowest tool:
   - use `dependency-cruiser` for whole-repo dependency graph boundaries
   - use `eslint-plugin-boundaries` for frontend import discipline
-  - use `archunit` for expressive architecture assertions and naming rules
+  - use the cached architecture source graph helper for simple file, naming, placement, and direct import rules over `src/**`
+  - use `archunit` for expressive architecture assertions where its higher-level model adds value
 - Keep `server.js` as an executable shim. New server behavior should usually land in `server/**` and be wired through `server/app-runtime.js` via dependency injection.
 - Keep shared settings logic centralized. If a new persisted settings field, default, or normalization rule is added, update `shared/app-settings.js` first and adapt frontend/server wrappers afterward.
 - Keep dashboard orchestration bundled. New dashboard shell behavior should usually extend the controller/view-model contracts instead of adding new flat props to `Dashboard.tsx` or `DashboardSections.tsx`.

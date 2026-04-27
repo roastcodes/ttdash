@@ -1,5 +1,27 @@
 # Fixed Findings
 
+## 2026-04-27
+
+### test-review.md / H-01
+
+- Status: fixed
+- Scope: simple architecture rules no longer depend on repeated ArchUnit project scans. `tests/architecture/source-graph.ts` now owns one cached `src/**` file scan, TypeScript-based import/export parsing, alias resolution for `@/...`, relative import resolution, extension resolution, and `index` module resolution. The frontend layer, unused-hook, hook-naming, and shared-UI-placement tests use this shared graph while the feature-slice diagram remains on ArchUnit where its diagram model adds value.
+- Guardrails: `tests/architecture/frontend-layers.test.ts` still blocks hooks from importing components, lib core from importing hooks/components, lib React modules from reaching back into hooks/components, and type modules from depending on components/hooks/lib. `tests/architecture/unused-hooks.test.ts`, `hook-naming.test.ts`, and `shared-ui-placement.test.ts` now reuse the same source graph so future test-layer changes do not reintroduce separate slow scans. `tests/architecture/source-graph.test.ts` covers static imports, re-exports, side-effect imports, and dynamic imports with options.
+- Follow-up quality fixes during implementation:
+  - Dynamic `import(...)` calls are parsed alongside static imports and re-exports, so lazy edges stay visible to the architecture guardrails instead of only top-level declarations being checked.
+  - The formerly near-timeout `hooks must not depend on components` rule dropped from the historical `~4950ms` flake boundary to well below `100ms` in the targeted architecture run, without increasing global or local timeouts.
+  - Dashboard UI, content, animation, runtime API behavior, and production code remain unchanged.
+- Validation:
+  - `npm run test:architecture -- --reporter=verbose`
+  - `npm run format:check`
+  - `npm run lint`
+  - `tsc --noEmit`
+  - `npm run check:deps`
+  - `git diff --check`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 1 minor status-line suggestion already satisfied by the current `- Status: fixed` text, round 3: 1 dynamic-import options issue fixed, final round: 0 issues
+
 ## 2026-04-26
 
 ### server-review.md / H-01

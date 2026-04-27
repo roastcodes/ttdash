@@ -15,6 +15,8 @@ Die Teststrategie ist stark: klare Layer, viele gezielte Frontend- und Integrati
 
 ### H-01 - Die Architektur-Suite enthaelt einen echten Timeout-Fall an der Flake-Grenze
 
+**Status:** Behoben, siehe `docs/review/fixed-findings.md` -> `test-review.md / H-01`.
+
 **Referenzen:** `tests/architecture/frontend-layers.test.ts:3-12`
 
 `npm run test:architecture` fiel im Gesamtlauf aus, weil `hooks must not depend on components` den `5000ms` Timeout riss. Der isolierte Re-Run derselben Datei bestand, aber der langsamste Fall lag bei etwa `4950ms`.
