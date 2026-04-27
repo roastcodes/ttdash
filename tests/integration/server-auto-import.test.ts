@@ -1,4 +1,4 @@
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -7,6 +7,20 @@ import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 import { fetchTrusted, isPosix, startStandaloneServer, stopProcess } from './server-test-helpers'
 
 const itIfPosix = isPosix ? it : it.skip
+
+async function waitForPath(filePath: string, timeoutMs = 5000) {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (existsSync(filePath)) {
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+
+  throw new Error(`Timed out waiting for path: ${filePath}`)
+}
 
 describe('local server auto-import integration', () => {
   it('streams auto-import events over POST instead of mutating via GET', async () => {
@@ -91,6 +105,8 @@ describe('local server auto-import integration', () => {
       const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-auto-import-singleton-'))
       const fakeToktrackPath = path.join(runtimeRoot, 'fake-toktrack')
       const invocationCountPath = path.join(runtimeRoot, 'toktrack-daily-count.txt')
+      const runnerStartedPath = path.join(runtimeRoot, 'toktrack-daily-started.txt')
+      const releaseRunnerPath = path.join(runtimeRoot, 'toktrack-daily-release.txt')
       let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
 
       writeFileSync(
@@ -99,6 +115,8 @@ describe('local server auto-import integration', () => {
           `#!${process.execPath}`,
           "const fs = require('node:fs')",
           `const countFile = ${JSON.stringify(invocationCountPath)}`,
+          `const startedFile = ${JSON.stringify(runnerStartedPath)}`,
+          `const releaseFile = ${JSON.stringify(releaseRunnerPath)}`,
           `const payload = ${JSON.stringify(sampleUsage)}`,
           'if (process.argv[2] === "--version") {',
           `  console.log("toktrack ${TOKTRACK_VERSION}")`,
@@ -109,9 +127,17 @@ describe('local server auto-import integration', () => {
           '  count = Number.parseInt(fs.readFileSync(countFile, "utf-8"), 10) || 0',
           '} catch {}',
           'fs.writeFileSync(countFile, String(count + 1))',
-          'setTimeout(() => {',
-          '  process.stdout.write(JSON.stringify(payload))',
-          '}, 2000)',
+          'fs.writeFileSync(startedFile, "started")',
+          'const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)',
+          'const deadline = Date.now() + 5000',
+          'while (!fs.existsSync(releaseFile)) {',
+          '  if (Date.now() > deadline) {',
+          '    console.error("timed out waiting for release")',
+          '    process.exit(1)',
+          '  }',
+          '  sleep(10)',
+          '}',
+          'process.stdout.write(JSON.stringify(payload))',
         ].join('\n'),
       )
       chmodSync(fakeToktrackPath, 0o755)
@@ -131,18 +157,15 @@ describe('local server auto-import integration', () => {
             method: 'POST',
           },
         )
-        const secondResponsePromise = new Promise<Response>((resolve, reject) => {
-          setTimeout(() => {
-            fetchTrusted(`${standaloneServer.url}/api/auto-import/stream`, {
-              method: 'POST',
-            }).then(resolve, reject)
-          }, 50)
-        })
-
-        const [firstResponse, secondResponse] = await Promise.all([
-          firstResponsePromise,
-          secondResponsePromise,
-        ])
+        await waitForPath(runnerStartedPath)
+        const secondResponse = await fetchTrusted(
+          `${standaloneServer.url}/api/auto-import/stream`,
+          {
+            method: 'POST',
+          },
+        )
+        writeFileSync(releaseRunnerPath, 'release')
+        const firstResponse = await firstResponsePromise
 
         expect(firstResponse.status).toBe(200)
         expect(secondResponse.status).toBe(409)
@@ -155,6 +178,9 @@ describe('local server auto-import integration', () => {
         expect(firstStreamBody).toContain('event: done')
         expect(readFileSync(invocationCountPath, 'utf-8')).toBe('1')
       } finally {
+        if (!existsSync(releaseRunnerPath)) {
+          writeFileSync(releaseRunnerPath, 'release')
+        }
         if (standaloneServer) await stopProcess(standaloneServer.child)
         rmSync(runtimeRoot, { recursive: true, force: true })
       }

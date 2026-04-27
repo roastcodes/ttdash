@@ -58,6 +58,7 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
   - keyboard/accessibility
   - motion/reveal behavior
 - For large server helper or integration suites, group tests by subsystem so Vitest can schedule them more efficiently.
+- Keep background-process integration files focused by behavior; the background Vitest project intentionally uses a small worker cap instead of one serial catch-all file or unbounded process fan-out.
 
 ## Choosing the Right Layer
 
@@ -79,6 +80,8 @@ For `tests/architecture`, prefer the shared source graph helper for simple file,
   - CLI startup and background coordination
   - cross-process locking semantics
 - If a test needs a real subprocess, isolate it in its own focused file whenever possible.
+- For subprocess concurrency tests, prefer deterministic readiness and release signals over fixed sleeps so the test waits for the real state transition, not an assumed delay.
+- Every integration helper that starts a server or CLI process must also bound startup, HTTP probes, shutdown, and cleanup; hanging helpers should fail the test and terminate owned processes instead of waiting forever.
 
 ## Hotspot Rules
 

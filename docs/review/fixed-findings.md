@@ -61,6 +61,28 @@
   - `git diff --check`
   - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 1: 0 issues, round 2: 0 issues
 
+### test-review.md / M-02
+
+- Status: fixed
+- Scope: the highest-cost and hang-prone test paths were split, made deterministic, and given bounded cleanup without changing production behavior. The auto-import singleton integration test now coordinates the fake Toktrack runner through start/release sentinel files instead of a fixed 2-second delay, and the previous background catch-all suite was split into focused background prefix, selection, concurrency, registry, and startup CLI files.
+- Guardrails: the `integration-background` Vitest project now allows file-level scheduling with a capped `maxWorkers: 2`, so independent background process tests can overlap without turning the test run into an unbounded process fan-out. `docs/testing.md` now documents deterministic subprocess coordination and small focused background files as the expected pattern.
+- Follow-up quality fixes during implementation:
+  - The final `npm run test:timings` run now reports the auto-import singleton test at `1.371s` instead of the historical `3.326s`, and `tests/integration/server-auto-import.test.ts` at `2.669s` instead of the historical `4.521s`.
+  - The old `tests/integration/server-background.test.ts` monolith no longer dominates as one `5.785s` suite; its formerly mixed cases now appear as focused files, with the slowest background slice at `3.208s` in the final coverage/timing run.
+  - Test hangs were addressed at the harness level: server readiness/shutdown probes now have abort timeouts, CLI subprocess helpers have bounded timeouts and SIGKILL fallback, failed standalone server startup cleans up the spawned process, background cleanup force-stops leftover registry PIDs owned by the test root, and shared integration servers now wait for process shutdown in `afterAll`.
+  - `tests/unit/server-helpers-runner-process.test.ts` remains intentionally subprocess-backed where shell, `PATH`, timeout, and runner fallback behavior are the thing under test.
+  - Dashboard UI, content, animation, runtime API behavior, and production code remain unchanged.
+- Validation:
+  - `npx vitest run --project integration tests/integration/server-auto-import.test.ts tests/integration/server-startup-cli.test.ts --project integration-background tests/integration/server-background.test.ts tests/integration/server-background-selection.test.ts tests/integration/server-background-concurrency.test.ts tests/integration/server-background-registry.test.ts --reporter=verbose`
+  - `npx vitest run --project integration tests/integration/server-auto-import.test.ts tests/integration/server-startup-cli.test.ts tests/integration/server-local-auth.test.ts --project integration-background tests/integration/server-background.test.ts tests/integration/server-background-selection.test.ts tests/integration/server-background-concurrency.test.ts tests/integration/server-background-registry.test.ts --reporter=verbose`
+  - `npx vitest run --project integration-background tests/integration/server-background-registry.test.ts --reporter=verbose`
+  - `npx vitest run --project integration-background tests/integration/server-background-selection.test.ts --reporter=verbose`
+  - `tsc --noEmit`
+  - `npx vitest run --project integration --project integration-background --reporter=verbose`
+  - `npm run verify:full` -> final run passed, including Playwright `15 passed`
+  - `npm run test:timings` -> completed without hanging after the cleanup hardening
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> multiple rounds: 0 issues initially, 4 minor test-harness/test-clarity issues fixed, latest round 0 issues
+
 ## 2026-04-26
 
 ### server-review.md / H-01

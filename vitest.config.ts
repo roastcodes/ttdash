@@ -105,7 +105,7 @@ export default defineConfig(async () => {
               include: ['tests/integration/**/*background*.test.ts'],
               environment: 'node',
               setupFiles: ['./vitest.setup.ts'],
-              fileParallelism: false,
+              maxWorkers: 2,
               sequence: {
                 groupOrder: 4,
               },

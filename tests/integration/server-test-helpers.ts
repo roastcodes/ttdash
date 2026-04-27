@@ -14,12 +14,15 @@ import path from 'node:path'
 import { afterAll, beforeAll } from 'vitest'
 
 export type BackgroundRegistryEntry = {
+  id: string
   url: string
   bootstrapUrl?: string | null
   port: number
   pid: number
+  host: string
   apiPrefix?: string
   authHeader?: string | null
+  startedAt: string
   logFile?: string | null
 }
 
@@ -46,6 +49,10 @@ export type LocalAuthSession = {
 }
 
 const authHeadersByOrigin = new Map<string, string>()
+const fetchProbeTimeoutMs = 1000
+const fetchRequestTimeoutMs = 15_000
+const processStopTimeoutMs = 7000
+const cliCommandTimeoutMs = 30_000
 
 export const hasTypst = (() => {
   const result = spawnSync('typst', ['--version'], { stdio: 'ignore' })
@@ -56,6 +63,24 @@ export const isPosix = process.platform !== 'win32'
 
 export function permissionBits(targetPath: string) {
   return statSync(targetPath).mode & 0o777
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs = fetchRequestTimeoutMs,
+) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeoutId)
+  }
 }
 
 export async function getFreePort() {
@@ -108,7 +133,7 @@ async function waitForServerReady(
     }
 
     try {
-      const response = await fetch(`${url}${readinessPath}`, {
+      const response = await fetchWithTimeout(`${url}${readinessPath}`, {
         headers: readinessHeaders,
       })
       if (response.ok) {
@@ -143,7 +168,7 @@ export async function waitForServerUnavailable(url: string) {
 
   while (Date.now() - startedAt < 15_000) {
     try {
-      await fetchWithAuth(`${url}/api/usage`)
+      await fetchWithAuth(`${url}/api/usage`, {}, fetchProbeTimeoutMs)
     } catch {
       return
     }
@@ -169,13 +194,101 @@ export async function waitForProcessServer(
   })
 }
 
-export async function stopProcess(currentChild: ChildProcessWithoutNullStreams) {
+async function waitForChildClose(currentChild: ChildProcessWithoutNullStreams, timeoutMs: number) {
+  if (currentChild.exitCode !== null || currentChild.signalCode !== null) {
+    return true
+  }
+
+  return await new Promise<boolean>((resolve) => {
+    const timeoutId = setTimeout(() => {
+      cleanup()
+      resolve(false)
+    }, timeoutMs)
+
+    const cleanup = () => {
+      clearTimeout(timeoutId)
+      currentChild.off('close', onClose)
+      currentChild.off('error', onError)
+    }
+
+    const onClose = () => {
+      cleanup()
+      resolve(true)
+    }
+
+    const onError = () => {
+      cleanup()
+      resolve(true)
+    }
+
+    currentChild.once('close', onClose)
+    currentChild.once('error', onError)
+  })
+}
+
+async function waitForPidExit(pid: number, timeoutMs = processStopTimeoutMs) {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      process.kill(pid, 0)
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code === 'ESRCH') {
+        return true
+      }
+      if (code !== 'EPERM') {
+        throw error
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+
+  return false
+}
+
+async function forceStopPid(pid: number) {
+  try {
+    process.kill(pid, 'SIGTERM')
+  } catch {
+    return
+  }
+
+  if (await waitForPidExit(pid)) {
+    return
+  }
+
+  try {
+    process.kill(pid, 'SIGKILL')
+  } catch {
+    return
+  }
+
+  await waitForPidExit(pid, 2000)
+}
+
+export async function stopProcess(
+  currentChild: ChildProcessWithoutNullStreams,
+  timeoutMs = processStopTimeoutMs,
+) {
   if (currentChild.exitCode !== null) {
     return
   }
 
+  const closePromise = waitForChildClose(currentChild, timeoutMs)
   currentChild.kill('SIGTERM')
-  await new Promise((resolve) => currentChild.once('close', resolve))
+  if (await closePromise) {
+    return
+  }
+
+  if (currentChild.exitCode === null) {
+    currentChild.kill('SIGKILL')
+  }
+
+  if (!(await waitForChildClose(currentChild, 2000))) {
+    throw new Error(`Timed out waiting for process shutdown: PID ${currentChild.pid ?? 'unknown'}`)
+  }
 }
 
 export function createCliEnv(root: string) {
@@ -228,32 +341,37 @@ export async function startStandaloneServer({
     serverOutput += chunk.toString()
   })
 
-  const localAuthSession = readinessHeaders
-    ? null
-    : await waitForLocalAuthSession(root, currentChild, () => serverOutput)
-  const effectiveReadinessHeaders =
-    readinessHeaders ?? authHeadersFromSession(localAuthSession) ?? undefined
+  try {
+    const localAuthSession = readinessHeaders
+      ? null
+      : await waitForLocalAuthSession(root, currentChild, () => serverOutput)
+    const effectiveReadinessHeaders =
+      readinessHeaders ?? authHeadersFromSession(localAuthSession) ?? undefined
 
-  if (effectiveReadinessHeaders?.Authorization) {
-    registerAuthHeader(url, effectiveReadinessHeaders.Authorization)
-  }
+    if (effectiveReadinessHeaders?.Authorization) {
+      registerAuthHeader(url, effectiveReadinessHeaders.Authorization)
+    }
 
-  await waitForProcessServer(
-    currentChild,
-    url,
-    () => serverOutput,
-    readinessPath,
-    effectiveReadinessHeaders,
-  )
+    await waitForProcessServer(
+      currentChild,
+      url,
+      () => serverOutput,
+      readinessPath,
+      effectiveReadinessHeaders,
+    )
 
-  return {
-    child: currentChild,
-    url,
-    port,
-    authHeader: effectiveReadinessHeaders?.Authorization ?? null,
-    authHeaders: effectiveReadinessHeaders ?? {},
-    bootstrapUrl: localAuthSession?.bootstrapUrl ?? null,
-    getOutput: () => serverOutput,
+    return {
+      child: currentChild,
+      url,
+      port,
+      authHeader: effectiveReadinessHeaders?.Authorization ?? null,
+      authHeaders: effectiveReadinessHeaders ?? {},
+      bootstrapUrl: localAuthSession?.bootstrapUrl ?? null,
+      getOutput: () => serverOutput,
+    }
+  } catch (error) {
+    await stopProcess(currentChild).catch(() => undefined)
+    throw error
   }
 }
 
@@ -409,7 +527,7 @@ export async function fetchTrusted(url: string, init: RequestInit = {}) {
   const headers = applyRegisteredAuthHeader(url, init)
 
   if (method === 'GET' || method === 'HEAD') {
-    return await fetch(url, {
+    return await fetchWithTimeout(url, {
       ...init,
       headers,
     })
@@ -417,17 +535,25 @@ export async function fetchTrusted(url: string, init: RequestInit = {}) {
 
   headers.set('Origin', new URL(url).origin)
 
-  return await fetch(url, {
+  return await fetchWithTimeout(url, {
     ...init,
     headers,
   })
 }
 
-export async function fetchWithAuth(url: string, init: RequestInit = {}) {
-  return await fetch(url, {
-    ...init,
-    headers: applyRegisteredAuthHeader(url, init),
-  })
+export async function fetchWithAuth(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs = fetchRequestTimeoutMs,
+) {
+  return await fetchWithTimeout(
+    url,
+    {
+      ...init,
+      headers: applyRegisteredAuthHeader(url, init),
+    },
+    timeoutMs,
+  )
 }
 
 export function readBackgroundRegistry(root: string) {
@@ -482,7 +608,7 @@ export async function waitForHttpOk(url: string, timeoutMs = 15_000) {
 
   while (Date.now() - startedAt < timeoutMs) {
     try {
-      const response = await fetchWithAuth(url)
+      const response = await fetchWithAuth(url, {}, fetchProbeTimeoutMs)
       if (response.ok) {
         return
       }
@@ -496,7 +622,11 @@ export async function waitForHttpOk(url: string, timeoutMs = 15_000) {
 
 export async function runCli(
   args: string[],
-  { env, input }: { env: NodeJS.ProcessEnv; input?: string },
+  {
+    env,
+    input,
+    timeoutMs = cliCommandTimeoutMs,
+  }: { env: NodeJS.ProcessEnv; input?: string; timeoutMs?: number },
 ) {
   return await new Promise<{ code: number | null; output: string }>((resolve, reject) => {
     const cli = spawn(process.execPath, ['server.js', ...args], {
@@ -506,6 +636,24 @@ export async function runCli(
     })
 
     let cliOutput = ''
+    let timedOut = false
+    let forceKillId: ReturnType<typeof setTimeout> | null = null
+    const timeoutId = setTimeout(() => {
+      timedOut = true
+      cli.kill('SIGTERM')
+      forceKillId = setTimeout(() => {
+        if (cli.exitCode === null) {
+          cli.kill('SIGKILL')
+        }
+      }, 2000)
+    }, timeoutMs)
+
+    const cleanup = () => {
+      clearTimeout(timeoutId)
+      if (forceKillId) {
+        clearTimeout(forceKillId)
+      }
+    }
 
     cli.stdout.on('data', (chunk) => {
       cliOutput += chunk.toString()
@@ -515,8 +663,19 @@ export async function runCli(
       cliOutput += chunk.toString()
     })
 
-    cli.on('error', reject)
+    cli.on('error', (error) => {
+      cleanup()
+      reject(error)
+    })
     cli.on('close', (code) => {
+      cleanup()
+      if (timedOut) {
+        reject(
+          new Error(`Timed out waiting for CLI command: server.js ${args.join(' ')}\n${cliOutput}`),
+        )
+        return
+      }
+
       resolve({ code, output: cliOutput })
     })
 
@@ -525,6 +684,15 @@ export async function runCli(
     }
     cli.stdin.end()
   })
+}
+
+async function forceStopBackgroundEntries(entries: BackgroundRegistryEntry[]) {
+  await Promise.all(
+    entries
+      .map((entry) => Number.parseInt(String(entry.pid), 10))
+      .filter((pid) => Number.isInteger(pid) && pid > 0)
+      .map((pid) => forceStopPid(pid)),
+  )
 }
 
 export async function stopAllBackgroundServers(env: NodeJS.ProcessEnv, root?: string) {
@@ -536,10 +704,17 @@ export async function stopAllBackgroundServers(env: NodeJS.ProcessEnv, root?: st
       }
     }
 
-    const result = await runCli(['stop'], {
-      env,
-      input: '1\n',
-    })
+    let result: { code: number | null; output: string } | null = null
+    try {
+      result = await runCli(['stop'], {
+        env,
+        input: '1\n',
+      })
+    } catch (error) {
+      if (!root) {
+        throw error
+      }
+    }
 
     if (root) {
       const entriesAfterStop = tryReadBackgroundRegistry(root)
@@ -547,9 +722,15 @@ export async function stopAllBackgroundServers(env: NodeJS.ProcessEnv, root?: st
         return
       }
       continue
-    } else if (result.output.includes('No running TTDash background servers found.')) {
+    } else if (result?.output.includes('No running TTDash background servers found.')) {
       return
     }
+  }
+
+  if (root) {
+    const leftoverEntries = tryReadBackgroundRegistry(root)
+    await forceStopBackgroundEntries(leftoverEntries)
+    writeBackgroundRegistry(root, [])
   }
 }
 
@@ -613,9 +794,9 @@ export function registerSharedServerLifecycle(context: SharedServerContext) {
     )
   }, 20_000)
 
-  afterAll(() => {
-    if (context.child && context.child.exitCode === null) {
-      context.child.kill('SIGTERM')
+  afterAll(async () => {
+    if (context.child) {
+      await stopProcess(context.child).catch(() => undefined)
     }
 
     if (context.tempRoot) {

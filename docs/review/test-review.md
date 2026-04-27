@@ -63,6 +63,8 @@ Das ist wichtig, weil tote oder veraltete Pfade so laenger unauffaellig im Repo 
 
 ### M-02 - Testdauer konzentriert sich auf wenige Hotspots
 
+**Status:** Behoben, siehe `docs/review/fixed-findings.md` -> `test-review.md / M-02`.
+
 **Evidenz:** `npm run test:timings`
 
 Langsamste Suites:
