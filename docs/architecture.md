@@ -122,7 +122,7 @@ Dashboard-specific presets, static section metadata, and preset date semantics a
   - `src/components/**`
 - `hooks`
   - `src/hooks/**`
-  - hook files must be imported by production code; unused hook files should be removed instead of kept as speculative helpers
+  - hook files must be reachable from the frontend app entrypoint; unused hook files should be removed instead of kept as speculative helpers
 - `lib-react`
   - `src/lib/**/*.tsx`
 - `lib-core`

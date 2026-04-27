@@ -131,7 +131,7 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 
 ## Architecture Guardrails
 
-- Keep hook files under `src/hooks/` wired into production code; `npm run test:architecture` fails on unused production hooks so dead hook helpers do not silently remain at `0%` coverage.
+- Keep hook files under `src/hooks/` reachable from the frontend app entrypoint; `npm run test:architecture` fails on unused production hooks so dead hook helpers do not silently remain at `0%` coverage.
 - Timing diagnostics: `npm run test:timings`
 
 `npm run test:timings` generates a fresh Vitest JUnit report and prints the slowest suites and tests. Use it after larger test additions or refactors to catch new hotspots early.

@@ -44,6 +44,23 @@
   - `npm run test:timings`
   - `coderabbit review --agent -t uncommitted -c AGENTS.md --files ...` -> round 1: 0 issues, round 2: 0 issues
 
+### test-review.md / M-01
+
+- Status: fixed
+- Scope: dead hook visibility now has an explicit architecture guardrail. The two originally cited unused hook files, `src/hooks/use-theme.ts` and `src/hooks/use-provider-limits.ts`, had already been removed during the earlier `code-review.md / N-01` cleanup; this phase strengthens the test-review guardrail so the same class of dead runtime hook cannot silently return.
+- Guardrails: `tests/architecture/unused-hooks.test.ts` now treats a hook as live only when it is reachable from `src/main.tsx`, rather than merely imported by any production file. A focused synthetic regression covers a dead hook cluster where one unused hook imports another, so future dead-code islands cannot satisfy the guardrail by importing each other.
+- Follow-up quality fixes during implementation:
+  - `docs/architecture.md` and `docs/testing.md` now describe the hook rule as app-entrypoint reachability, matching the enforced behavior.
+  - `dependency-cruiser` remains responsible for dependency boundaries and cycle/orphan visibility, while `npm run test:architecture` owns the precise unused-hook signal that the original finding needed.
+  - Dashboard UI, content, animation, runtime API behavior, and production code remain unchanged.
+- Validation:
+  - `npm run test:architecture`
+  - `npm run check:deps`
+  - `npm run verify:full`
+  - `npm run test:timings`
+  - `git diff --check`
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md` -> round 1: 0 issues, round 2: 0 issues
+
 ## 2026-04-26
 
 ### server-review.md / H-01

@@ -51,6 +51,8 @@ Die gemeldeten `76.27 / 65.71 / 76.43 / 78.61` sind also technisch korrekt, aber
 
 ### M-01 - Dead Code und Coverage-Luecken werden von den Guardrails nicht sichtbar gemacht
 
+**Status:** Behoben, siehe `docs/review/fixed-findings.md` -> `test-review.md / M-01`.
+
 **Referenzen:** `src/hooks/use-theme.ts:1-21`, `src/hooks/use-provider-limits.ts:1-17`, `.dependency-cruiser.cjs:12-21`
 
 Es gibt mindestens zwei Hooks ohne produktive Importe und mit `0%` Coverage. Gleichzeitig lief `dependency-cruiser` trotz `no-orphans-src` Regel ohne Hinweis durch.
