@@ -1,5 +1,22 @@
 # Changelog
 
+## [6.2.9] - 2026-04-28
+
+### Improved
+
+- **Toktrack-2.6.0-Modellnamen mit Provider-Suffixen** — Modelle wie `GPT-5 4::openai` werden jetzt auf die kanonische Modellfamilie und den zugehörigen Provider normalisiert, sodass vordefinierte Farben, Aggregationen und Provider-Erkennung auch mit den neuen Toktrack-Suffixen stabil bleiben
+- **CodeQL-stabilere Integrationstest-Helfer** — E2E-/Integrationstest-Fetches akzeptieren nur noch validierte Loopback-URLs, Background-Registry-Fixtures werden strukturiert normalisiert, und lokale Auth-Bootstrap-Tests nutzen explizite Test-Tokens statt file-derived URLs
+- **Robustere Reporting-Locale-E2E-Abdeckung** — der PDF-Reporting-Test nutzt stabile Sprachumschalter-Test-IDs und prüft den Report-Payload sowohl im deutschen Ausgangszustand als auch nach dem Wechsel auf Englisch
+
+### Fixed
+
+- **CodeQL-Alerts in Testpfaden** — TOCTOU- und Datei-/Netzwerk-Datenflüsse in Auto-Import-, Local-Auth- und Background-Registry-Tests wurden entfernt oder auf explizit validierte lokale Testdaten begrenzt
+- **Fragile Sprachumschalter-Selektion im Reporting-Test** — der E2E-Test hängt nicht mehr an übersetzten `title`-Strings wie `English` oder `Englisch`, sondern an stabilen `data-testid`-Attributen
+
+### Commits
+
+- Enthält alle Branch-Commits seit `6.2.8`: `6fa78ce`, `c2494ae`, `365254b`
+
 ## [6.2.8] - 2026-04-27
 
 ### Added
