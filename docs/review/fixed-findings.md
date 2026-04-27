@@ -350,7 +350,7 @@
 ### dashboard-review.md / N-02
 
 - Status: fixed
-- Scope: `src/components/dashboard/DashboardSections.tsx` already consumes a single structured `DashboardSectionsViewModel`, and `src/lib/dashboard-view-model.d.ts` keeps the section data split into named section bundles instead of flat dashboard props. This closes the original broad `DashboardSectionsProps` concern without changing visible dashboard functionality, content, UI, or animations.
+- Scope: `src/components/dashboard/DashboardSections.tsx` already consumes a single structured `DashboardSectionsViewModel`, and `src/types/dashboard-view-model.d.ts` keeps the section data split into named section bundles instead of flat dashboard props. This closes the original broad `DashboardSectionsProps` concern without changing visible dashboard functionality, content, UI, or animations.
 - Guardrails: `tests/architecture/dashboard-sections-contract.test.ts` now locks the public `DashboardSections` prop contract to one `viewModel` prop and keeps `DashboardSectionsViewModel` split into the intended layout, analysis, table, comparison, and interaction bundles.
 - Follow-up quality fixes during implementation:
   - No production refactor was needed because the broader view-model boundary had already been introduced by `architecture-review.md / M-01`; this change adds a targeted regression guardrail so future section work does not reintroduce wide flat props.
@@ -549,7 +549,7 @@
 
 - Status: fixed
 - Scope: the dashboard orchestration was cut from a broad flat controller surface into focused view-model bundles in `src/hooks/use-dashboard-controller.ts`; `src/components/Dashboard.tsx` now consumes `header`, `filterBar`, `sections`, `settingsModal`, `dialogs`, `commandPalette`, `report`, and shell bundles instead of forwarding dozens of individual fields, and `src/components/dashboard/DashboardSections.tsx` now consumes one structured `DashboardSectionsViewModel`.
-- Guardrails: `src/lib/dashboard-view-model.d.ts` now owns the shared frontend-only dashboard view-model contracts, `docs/architecture.md` documents `Dashboard.tsx` as the controller composition root, and `.dependency-cruiser.cjs` now blocks component-subtree fanout to `src/hooks/use-dashboard-controller.ts`.
+- Guardrails: `src/types/dashboard-view-model.d.ts` now owns the shared frontend-only dashboard view-model contracts, `docs/architecture.md` documents `Dashboard.tsx` as the controller composition root, and `.dependency-cruiser.cjs` now blocks component-subtree fanout to `src/hooks/use-dashboard-controller.ts`.
 - Follow-up quality fixes during implementation:
   - `src/components/layout/Header.tsx`, `src/components/layout/FilterBar.tsx`, `src/components/features/command-palette/CommandPalette.tsx`, and `src/components/features/settings/SettingsModal.tsx` now type their props from the shared dashboard view-model contracts instead of re-declaring local prop shapes.
   - `tests/frontend/dashboard-controller-test-helpers.ts` now provides bundle-based controller and section factories, so dashboard composition tests no longer rebuild a flat mega-mock.
@@ -574,7 +574,7 @@
   - `tests/unit/dashboard-preferences.test.ts` now locks the shared/frontend adapter alignment for config parsing, section metadata, preset-range resolution, and active-preset detection.
   - `tests/frontend/use-dashboard-filters.test.tsx` now asserts preset application and reset behavior against the shared preset resolver instead of re-hardcoding date ranges.
   - `tests/frontend/filter-bar-presets.test.tsx` now seeds active-preset UI states from the shared resolver while preserving the existing visible quick-select order.
-  - `src/lib/dashboard-view-model.d.ts` and `src/hooks/use-dashboard-controller.ts` now type preset actions with `DashboardDatePreset` instead of broad strings.
+  - `src/types/dashboard-view-model.d.ts` and `src/hooks/use-dashboard-controller.ts` now type preset actions with `DashboardDatePreset` instead of broad strings.
 - Validation:
   - `npm run check`
   - `npm run test:architecture`

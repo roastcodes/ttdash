@@ -1,5 +1,9 @@
 # Dashboard Review
 
+> Historical note: Findings M-01, M-02, N-01, and N-02 are resolved historical
+> review items. See `docs/review/fixed-findings.md` for the implementation
+> status and guardrails.
+
 ## Kurzfazit
 
 Das Dashboard ist funktional stark und sichtbar mit Fokus auf Accessibility, Internationalisierung und lehrreiche Analytik gebaut. Die Kehrseite ist eine hohe Oberflaechen- und Interaktionsdichte, die sowohl Nutzer als auch Maintainer belastet.

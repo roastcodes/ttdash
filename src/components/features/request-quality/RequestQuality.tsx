@@ -47,6 +47,13 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
           value: metrics.hasRequestData ? formatTokens(item.value) : t('common.notAvailable'),
           hint: t('requestQuality.thinkingHint'),
         }
+      default:
+        return {
+          ...item,
+          label: item.id,
+          value: t('common.notAvailable'),
+          hint: '',
+        }
     }
   })
 

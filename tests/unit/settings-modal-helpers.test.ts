@@ -13,7 +13,7 @@ import {
 } from '@/components/features/settings/settings-modal-helpers'
 
 describe('settings modal helpers', () => {
-  it('reorders sections to the target slot when dragging downward', () => {
+  it('reorders sections by inserting the dragged item before the target section', () => {
     expect(reorderSettingsSections(['metrics', 'activity', 'tables'], 'metrics', 'tables')).toEqual(
       ['activity', 'metrics', 'tables'],
     )

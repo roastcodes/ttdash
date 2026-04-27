@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import {
   DEFAULT_DASHBOARD_FILTERS,
   getDefaultDashboardSectionOrder,
   getDefaultDashboardSectionVisibility,
 } from '@/lib/dashboard-preferences'
-import type { DashboardSettingsModalViewModel } from '@/lib/dashboard-view-model'
+import type { DashboardSettingsModalViewModel } from '@/types/dashboard-view-model'
 import type {
   AppLanguage,
   DashboardDatePreset,
@@ -16,6 +17,7 @@ import type {
   ReducedMotionPreference,
   ViewMode,
 } from '@/types'
+import { useToast } from '@/lib/toast'
 import {
   buildSettingsProviderLimitDraft,
   cloneSettingsDefaultFilters,
@@ -27,6 +29,26 @@ import {
   reorderSettingsSections,
   toggleSettingsSelection,
 } from './settings-modal-helpers'
+
+function normalizeErrorMessage(error: unknown): string | null {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim()
+  }
+  if (typeof error === 'string' && error.trim()) {
+    return error.trim()
+  }
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string' &&
+    error.message.trim()
+  ) {
+    return error.message.trim()
+  }
+
+  return null
+}
 
 type SettingsModalDraftParams = Pick<
   DashboardSettingsModalViewModel,
@@ -120,6 +142,8 @@ export function useSettingsModalDraft({
   onSaveSettings,
   onOpenChange,
 }: SettingsModalDraftParams): SettingsModalDraftViewModel {
+  const { t } = useTranslation()
+  const { addToast } = useToast()
   const draftInitializedRef = useRef(false)
   const [languageDraft, setLanguageDraft] = useState<AppLanguage>(language)
   const [reducedMotionPreferenceDraft, setReducedMotionPreferenceDraft] =
@@ -192,19 +216,23 @@ export function useSettingsModalDraft({
   }
 
   const handleSave = async () => {
-    await onSaveSettings({
-      language: languageDraft,
-      reducedMotionPreference: reducedMotionPreferenceDraft,
-      providerLimits: buildSettingsProviderLimitDraft(limitProviders, limitDraft),
-      defaultFilters: {
-        ...defaultFilterDraft,
-        providers: normalizeSettingsSelection(defaultFilterDraft.providers),
-        models: normalizeSettingsSelection(defaultFilterDraft.models),
-      },
-      sectionVisibility: sectionVisibilityDraft,
-      sectionOrder: sectionOrderDraft,
-    })
-    onOpenChange(false)
+    try {
+      await onSaveSettings({
+        language: languageDraft,
+        reducedMotionPreference: reducedMotionPreferenceDraft,
+        providerLimits: buildSettingsProviderLimitDraft(limitProviders, limitDraft),
+        defaultFilters: {
+          ...defaultFilterDraft,
+          providers: normalizeSettingsSelection(defaultFilterDraft.providers),
+          models: normalizeSettingsSelection(defaultFilterDraft.models),
+        },
+        sectionVisibility: sectionVisibilityDraft,
+        sectionOrder: sectionOrderDraft,
+      })
+      onOpenChange(false)
+    } catch (error) {
+      addToast(normalizeErrorMessage(error) ?? t('api.saveSettingsFailed'), 'error')
+    }
   }
 
   return {

@@ -7,7 +7,7 @@ import type {
   ProviderLimits,
 } from '@/types'
 
-/** Parses a settings number input into a non-negative currency-like value. */
+/** Parses display-rounded settings input; use a decimal library for exact financial math. */
 export function parseSettingsNumberInput(value: string): number {
   const normalized = value.replace(',', '.').trim()
   if (!normalized) return 0
@@ -15,7 +15,7 @@ export function parseSettingsNumberInput(value: string): number {
   const parsed = Number.parseFloat(normalized)
   if (!Number.isFinite(parsed)) return 0
 
-  return Math.max(0, Number(parsed.toFixed(2)))
+  return Math.max(0, Math.round(parsed * 100) / 100)
 }
 
 /** Toggles one string id inside a multi-select settings draft list. */
@@ -92,7 +92,7 @@ export function moveSettingsSection(
   return next
 }
 
-/** Reorders dashboard sections by moving the source section to the target slot. */
+/** Reorders dashboard sections by removing the source and inserting it before the target section. */
 export function reorderSettingsSections(
   order: DashboardSectionOrder,
   sourceId: DashboardSectionOrder[number],

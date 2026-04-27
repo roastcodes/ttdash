@@ -1,8 +1,12 @@
 import type {
   AggregateMetrics,
   CacheHitRateByModelChartDataPoint,
+  CurrentMonthForecast,
+  CurrentMonthProviderForecasts,
   DailyUsage,
+  DashboardForecastState,
   DashboardMetrics,
+  ForecastConfidence,
 } from '@/types'
 import {
   computeMetrics as computeSharedMetrics,
@@ -288,58 +292,6 @@ function winsorizedAverage(values: number[], limit = 0.15): number {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
-}
-
-/** Labels the confidence attached to a current-month forecast. */
-export type ForecastConfidence = 'low' | 'medium' | 'high'
-
-/** Describes one elapsed calendar day in the month-to-date forecast series. */
-export interface CurrentMonthForecastPoint {
-  date: string
-  cost: number
-}
-
-/** Captures the shared current-month forecast used by dashboard forecast views. */
-export interface CurrentMonthForecast {
-  currentMonth: string
-  monthData: DailyUsage[]
-  currentMonthTotal: number
-  elapsedDays: number
-  elapsedCalendarSeries: CurrentMonthForecastPoint[]
-  daysInMonth: number
-  remainingDays: number
-  projectedDailyBurn: number
-  volatility: number
-  lowerDaily: number
-  upperDaily: number
-  forecastTotal: number
-  dailyAvgTrend: {
-    avg: number
-    change: number
-  }
-  confidence: ForecastConfidence
-}
-
-/** Extends the shared current-month forecast with its owning provider. */
-export interface ProviderCurrentMonthForecast extends CurrentMonthForecast {
-  provider: string
-}
-
-/** Groups the current-month forecast results for all visible providers. */
-export interface CurrentMonthProviderForecasts {
-  currentMonth: string
-  elapsedDays: number
-  daysInMonth: number
-  remainingDays: number
-  providers: ProviderCurrentMonthForecast[]
-  currentMonthTotal: number
-  forecastTotal: number
-}
-
-/** Bundles the shared dashboard forecast outputs derived from one month-to-date input. */
-export interface DashboardForecastState {
-  costForecast: CurrentMonthForecast | null
-  providerForecast: CurrentMonthProviderForecasts | null
 }
 
 /** Forecasts the current month total from elapsed daily costs. */

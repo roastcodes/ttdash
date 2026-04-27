@@ -140,7 +140,8 @@ function parseCliArgs(
 
   let port;
   if (parsed.values.port !== undefined) {
-    const parsedPort = Number.parseInt(parsed.values.port, 10);
+    const portValue = String(parsed.values.port);
+    const parsedPort = /^\d+$/.test(portValue) ? Number(portValue) : NaN;
     if (!Number.isInteger(parsedPort) || parsedPort <= 0 || parsedPort > 65535) {
       exitWithHelp({
         code: 1,

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { resolveDashboardActivePreset } from '@/lib/dashboard-preferences'
-import type { DashboardFilterBarViewModel } from '@/lib/dashboard-view-model'
+import type { DashboardFilterBarViewModel } from '@/types/dashboard-view-model'
 import { FilterBarChipFilters } from './FilterBarChipFilters'
 import { FilterBarDateRange } from './FilterBarDateRange'
 import { FilterBarQuickControls } from './FilterBarQuickControls'

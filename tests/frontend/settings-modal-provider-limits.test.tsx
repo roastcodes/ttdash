@@ -47,6 +47,7 @@ describe('SettingsModal provider limits', () => {
     expect(updatedSubscriptionInput).toBeEnabled()
 
     fireEvent.change(updatedSubscriptionInput, { target: { value: '5.2' } })
+    fireEvent.blur(updatedSubscriptionInput)
     fireEvent.change(updatedMonthlyLimitInput, { target: { value: '12.345' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -61,6 +62,35 @@ describe('SettingsModal provider limits', () => {
         },
       }),
     )
+  })
+
+  it('keeps subscription price typing local until blur commits the rounded value', () => {
+    renderSettingsModal({
+      limitProviders: ['OpenAI'],
+      limits: {
+        OpenAI: {
+          hasSubscription: true,
+          subscriptionPrice: 5,
+          monthlyLimit: 0,
+        },
+      },
+    })
+    openSettingsTab('Limits')
+
+    const providerCard = screen
+      .getByTestId('settings-provider-subscription-OpenAI')
+      .closest('[data-provider-id="OpenAI"]')
+    expect(providerCard).not.toBeNull()
+
+    const [subscriptionInput] = within(providerCard as HTMLElement).getAllByRole(
+      'spinbutton',
+    ) as HTMLInputElement[]
+
+    fireEvent.change(subscriptionInput, { target: { value: '1.234' } })
+    expect(subscriptionInput.value).toBe('1.234')
+
+    fireEvent.blur(subscriptionInput)
+    expect(subscriptionInput.value).toBe('1.23')
   })
 
   it('resets provider limits back to the per-provider defaults', () => {

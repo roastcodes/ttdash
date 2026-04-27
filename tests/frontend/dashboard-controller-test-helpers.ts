@@ -1,7 +1,7 @@
 import { vi } from 'vitest'
 import type { DashboardControllerViewModel } from '@/hooks/use-dashboard-controller'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
-import type { DashboardSectionsViewModel } from '@/lib/dashboard-view-model'
+import type { DashboardSectionsViewModel } from '@/types/dashboard-view-model'
 import type { AppSettings, UsageData } from '@/types'
 
 export function createUsageData(overrides: Partial<UsageData> = {}): UsageData {

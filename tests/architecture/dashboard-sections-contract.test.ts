@@ -6,7 +6,7 @@ const dashboardSectionsPath = path.resolve(
   process.cwd(),
   'src/components/dashboard/DashboardSections.tsx',
 )
-const dashboardViewModelPath = path.resolve(process.cwd(), 'src/lib/dashboard-view-model.d.ts')
+const dashboardViewModelPath = path.resolve(process.cwd(), 'src/types/dashboard-view-model.d.ts')
 
 function readSourceFile(filePath: string) {
   return ts.createSourceFile(

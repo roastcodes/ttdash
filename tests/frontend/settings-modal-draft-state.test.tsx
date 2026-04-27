@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsModal } from '@/components/features/settings/SettingsModal'
+import { ToastProvider } from '@/components/ui/toast'
 import { initI18n } from '@/lib/i18n'
 import {
   buildSettingsModalProps,
@@ -31,15 +32,17 @@ describe('SettingsModal draft state lifecycle', () => {
     fireEvent.click(screen.getByTestId('settings-reduced-motion-never'))
 
     rerender(
-      <SettingsModal
-        {...buildSettingsModalProps({
-          onSaveSettings,
-          language: 'de',
-          reducedMotionPreference: 'always',
-          filterProviders: ['Anthropic'],
-          models: ['claude-3-7-sonnet'],
-        })}
-      />,
+      <ToastProvider>
+        <SettingsModal
+          {...buildSettingsModalProps({
+            onSaveSettings,
+            language: 'de',
+            reducedMotionPreference: 'always',
+            filterProviders: ['Anthropic'],
+            models: ['claude-3-7-sonnet'],
+          })}
+        />
+      </ToastProvider>,
     )
 
     expect(screen.getByTestId('settings-language-en')).toHaveAttribute('aria-pressed', 'true')
@@ -61,16 +64,22 @@ describe('SettingsModal draft state lifecycle', () => {
     fireEvent.click(screen.getByTestId('settings-language-en'))
     fireEvent.click(screen.getByTestId('settings-reduced-motion-never'))
 
-    rerender(<SettingsModal {...buildSettingsModalProps({ ...initialProps, open: false })} />)
     rerender(
-      <SettingsModal
-        {...buildSettingsModalProps({
-          onSaveSettings,
-          language: 'de',
-          reducedMotionPreference: 'always',
-          open: true,
-        })}
-      />,
+      <ToastProvider>
+        <SettingsModal {...buildSettingsModalProps({ ...initialProps, open: false })} />
+      </ToastProvider>,
+    )
+    rerender(
+      <ToastProvider>
+        <SettingsModal
+          {...buildSettingsModalProps({
+            onSaveSettings,
+            language: 'de',
+            reducedMotionPreference: 'always',
+            open: true,
+          })}
+        />
+      </ToastProvider>,
     )
 
     expect(screen.getByTestId('settings-language-de')).toHaveAttribute('aria-pressed', 'true')
@@ -78,5 +87,21 @@ describe('SettingsModal draft state lifecycle', () => {
       'aria-pressed',
       'true',
     )
+  })
+
+  it('keeps the dialog open and shows a toast when saving settings fails', async () => {
+    const onOpenChange = vi.fn()
+    const onSaveSettings = vi.fn().mockRejectedValue({ message: 'Settings backend rejected' })
+
+    renderSettingsModal({
+      onOpenChange,
+      onSaveSettings,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSaveSettings).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('Settings backend rejected')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalledWith(false)
   })
 })

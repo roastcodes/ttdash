@@ -28,7 +28,7 @@ import {
 } from './dashboard-section-preloading'
 import { SECTION_HELP } from '@/lib/help-content'
 import { cn } from '@/lib/cn'
-import type { DashboardSectionsViewModel } from '@/lib/dashboard-view-model'
+import type { DashboardSectionsViewModel } from '@/types/dashboard-view-model'
 import { formatCurrency, formatPercent, formatTokens, periodUnit } from '@/lib/formatters'
 import type { DashboardSectionId } from '@/types'
 

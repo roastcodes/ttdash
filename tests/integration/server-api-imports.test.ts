@@ -86,6 +86,7 @@ describe('local server API imports', () => {
       cliAutoLoadActive: false,
     })
 
+    const equivalentImportedDay = { ...sampleUsage.daily[0] }
     const newImportedDay = { ...sampleUsage.daily[0], date: '2026-03-31' }
     const usageImportResponse = await fetchTrusted(`${sharedServer.baseUrl}/api/usage/import`, {
       method: 'POST',
@@ -95,7 +96,7 @@ describe('local server API imports', () => {
         version: 1,
         data: {
           daily: [
-            sampleUsage.daily[0],
+            equivalentImportedDay,
             {
               ...sampleUsage.daily[1],
               totalCost: 999,

@@ -5,6 +5,7 @@ import type {
   RequestChartDataPoint,
   WeekdayData,
   ViewMode,
+  ModelCostChartPoint,
 } from '@/types'
 import { computeMovingAverage } from './calculations'
 import {
@@ -119,11 +120,6 @@ function createWeekdayLabels(locale: string) {
       .replace('.', '')
       .slice(0, 2),
   )
-}
-
-/** Describes a chart point with dynamic per-model cost series and optional moving averages. */
-export interface ModelCostChartPoint extends ChartDataPoint {
-  [key: string]: string | number | undefined
 }
 
 /** Describes the chart transform bundle built from filtered usage data. */

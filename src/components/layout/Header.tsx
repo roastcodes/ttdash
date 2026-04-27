@@ -17,7 +17,7 @@ import type {
   DashboardDataSource,
   DashboardHeaderViewModel,
   DashboardStartupAutoLoadBadge,
-} from '@/lib/dashboard-view-model'
+} from '@/types/dashboard-view-model'
 
 interface HeaderProps extends DashboardHeaderViewModel {
   settingsButton?: React.ReactNode

@@ -4,6 +4,7 @@ import { fireEvent, screen } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { initI18n } from '@/lib/i18n'
 import { SettingsModal } from '@/components/features/settings/SettingsModal'
+import { ToastProvider } from '@/components/ui/toast'
 import {
   openSettingsTab,
   renderSettingsModal,
@@ -84,8 +85,16 @@ describe('SettingsModal tab navigation', () => {
       'true',
     )
 
-    rerender(<SettingsModal {...props} open={false} />)
-    rerender(<SettingsModal {...props} open />)
+    rerender(
+      <ToastProvider>
+        <SettingsModal {...props} open={false} />
+      </ToastProvider>,
+    )
+    rerender(
+      <ToastProvider>
+        <SettingsModal {...props} open />
+      </ToastProvider>,
+    )
 
     expect(screen.getByRole('tab', { name: /Basics/ })).toHaveAttribute('aria-selected', 'true')
     expect(screen.queryByTestId('settings-status-section')).not.toBeInTheDocument()

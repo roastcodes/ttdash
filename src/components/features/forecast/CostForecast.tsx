@@ -26,8 +26,7 @@ import { MetricCard } from '@/components/cards/MetricCard'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { TrendingUp } from 'lucide-react'
 import { CHART_HELP } from '@/lib/help-content'
-import type { CurrentMonthForecast } from '@/lib/calculations'
-import type { DailyUsage, ViewMode } from '@/types'
+import type { CurrentMonthForecast, DailyUsage, ViewMode } from '@/types'
 
 function ForecastTooltip({
   active,

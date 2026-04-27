@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
@@ -384,7 +384,10 @@ export function SettingsSectionsSection({ viewModel, settingsBusy }: SettingsSec
                 viewModel.draggedSectionId === section.id && 'opacity-70',
               )}
             >
-              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/40 text-muted-foreground">
+              <span
+                aria-hidden="true"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/40 text-muted-foreground"
+              >
                 <GripVertical className="h-4 w-4" />
               </span>
               <div className="min-w-0 flex-1">
@@ -661,6 +664,114 @@ interface SettingsProviderLimitsSectionProps {
   settingsBusy: boolean
 }
 
+interface SettingsProviderLimitRowProps {
+  provider: string
+  config: SettingsModalProviderLimitsDraftViewModel['limits'][string]
+  viewModel: SettingsModalProviderLimitsDraftViewModel
+}
+
+function SettingsProviderLimitRow({ provider, config, viewModel }: SettingsProviderLimitRowProps) {
+  const { t } = useTranslation()
+  const [subscriptionPriceInput, setSubscriptionPriceInput] = useState(() =>
+    String(config.subscriptionPrice),
+  )
+
+  useEffect(() => {
+    setSubscriptionPriceInput(String(config.subscriptionPrice))
+  }, [config.subscriptionPrice])
+
+  const commitSubscriptionPrice = () => {
+    const subscriptionPrice = parseSettingsNumberInput(subscriptionPriceInput)
+    setSubscriptionPriceInput(String(subscriptionPrice))
+    if (subscriptionPrice !== config.subscriptionPrice) {
+      viewModel.onProviderChange(provider, { subscriptionPrice })
+    }
+  }
+
+  const handleSubscriptionPriceKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      commitSubscriptionPrice()
+    }
+  }
+
+  return (
+    <div
+      key={provider}
+      data-provider-id={provider}
+      className="rounded-2xl border border-border/50 bg-background/40 p-4"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium',
+                getProviderBadgeClasses(provider),
+              )}
+            >
+              {provider}
+            </span>
+            <button
+              type="button"
+              data-testid={`settings-provider-subscription-${provider}`}
+              onClick={() =>
+                viewModel.onProviderChange(provider, {
+                  hasSubscription: !config.hasSubscription,
+                })
+              }
+              className={cn(
+                'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                config.hasSubscription
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                  : 'border-border bg-muted/20 text-muted-foreground hover:bg-accent',
+              )}
+            >
+              {config.hasSubscription ? t('common.enabled') : t('limits.statuses.noSubscription')}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:w-[420px]">
+          <label className="space-y-1.5">
+            <span className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+              {t('limits.modal.subscriptionPerMonth')}
+            </span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={subscriptionPriceInput}
+              disabled={!config.hasSubscription}
+              onChange={(event) => setSubscriptionPriceInput(event.target.value)}
+              onBlur={commitSubscriptionPrice}
+              onKeyDown={handleSubscriptionPriceKeyDown}
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+              {t('limits.modal.monthlyLimit')}
+            </span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={config.monthlyLimit}
+              onChange={(event) =>
+                viewModel.onProviderChange(provider, {
+                  monthlyLimit: parseSettingsNumberInput(event.target.value),
+                })
+              }
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+            />
+          </label>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** Renders the provider-limit editor of the settings modal. */
 export function SettingsProviderLimitsSection({
   viewModel,
@@ -710,84 +821,12 @@ export function SettingsProviderLimitsSection({
               const config = viewModel.limits[provider] ?? DEFAULT_PROVIDER_LIMIT_CONFIG
 
               return (
-                <div
+                <SettingsProviderLimitRow
                   key={provider}
-                  data-provider-id={provider}
-                  className="rounded-2xl border border-border/50 bg-background/40 p-4"
-                >
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={cn(
-                            'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium',
-                            getProviderBadgeClasses(provider),
-                          )}
-                        >
-                          {provider}
-                        </span>
-                        <button
-                          type="button"
-                          data-testid={`settings-provider-subscription-${provider}`}
-                          onClick={() =>
-                            viewModel.onProviderChange(provider, {
-                              hasSubscription: !config.hasSubscription,
-                            })
-                          }
-                          className={cn(
-                            'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-                            config.hasSubscription
-                              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                              : 'border-border bg-muted/20 text-muted-foreground hover:bg-accent',
-                          )}
-                        >
-                          {config.hasSubscription
-                            ? t('common.enabled')
-                            : t('limits.statuses.noSubscription')}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:w-[420px]">
-                      <label className="space-y-1.5">
-                        <span className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                          {t('limits.modal.subscriptionPerMonth')}
-                        </span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={config.subscriptionPrice}
-                          disabled={!config.hasSubscription}
-                          onChange={(event) =>
-                            viewModel.onProviderChange(provider, {
-                              subscriptionPrice: parseSettingsNumberInput(event.target.value),
-                            })
-                          }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                        />
-                      </label>
-
-                      <label className="space-y-1.5">
-                        <span className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                          {t('limits.modal.monthlyLimit')}
-                        </span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={config.monthlyLimit}
-                          onChange={(event) =>
-                            viewModel.onProviderChange(provider, {
-                              monthlyLimit: parseSettingsNumberInput(event.target.value),
-                            })
-                          }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
+                  provider={provider}
+                  config={config}
+                  viewModel={viewModel}
+                />
               )
             })}
           </div>

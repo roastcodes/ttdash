@@ -97,11 +97,12 @@ function createStartupRuntime({
     const runtimeMode = isBackgroundChild ? 'background' : 'foreground';
     const remoteBind = !isLoopbackHost(bindHost);
     const bootstrapUrl = serverAuth.createBootstrapUrl(url);
+    const usageApiUrl = `${url}${apiPrefix}/usage`;
 
     log('');
     log(`${appLabel} v${appVersion} is ready`);
     log(`  URL:            ${url}`);
-    log(`  API:            ${url}/api/usage`);
+    log(`  API:            ${usageApiUrl}`);
     log(`  Port:           ${port}`);
     log(`  Host:           ${bindHost}`);
     if (remoteBind) {
@@ -144,9 +145,9 @@ function createStartupRuntime({
       `  TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=${bindHost} PORT=${port} node server.js`,
     );
     if (remoteBind) {
-      log(`  curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" ${url}/api/usage`);
+      log(`  curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" ${usageApiUrl}`);
     } else {
-      log(`  curl -H "Authorization: Bearer <session-token-from-local-auth-url>" ${url}/api/usage`);
+      log(`  curl -H "Authorization: Bearer <session-token-from-local-auth-url>" ${usageApiUrl}`);
     }
     log('');
   }

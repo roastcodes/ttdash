@@ -8,8 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { CostForecast } from './CostForecast'
 import { ProviderCostForecast } from './ProviderCostForecast'
-import type { DashboardForecastState } from '@/lib/calculations'
-import type { DailyUsage, ViewMode } from '@/types'
+import type { DailyUsage, DashboardForecastState, ViewMode } from '@/types'
 
 interface ForecastZoomDialogProps {
   open: boolean

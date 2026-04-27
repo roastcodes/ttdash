@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { InfoHeading } from '@/components/ui/info-heading'
 import { FEATURE_HELP } from '@/lib/help-content'
-import type { DashboardSettingsModalViewModel } from '@/lib/dashboard-view-model'
+import type { DashboardSettingsModalViewModel } from '@/types/dashboard-view-model'
 import { cn } from '@/lib/cn'
 import {
   SettingsBackupsSection,

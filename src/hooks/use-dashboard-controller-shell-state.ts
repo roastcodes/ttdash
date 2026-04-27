@@ -5,14 +5,30 @@ import type {
   DashboardDataSource,
   DashboardLoadErrorViewModel,
   DashboardStartupAutoLoadBadge,
-} from '@/lib/dashboard-view-model'
+} from '@/types/dashboard-view-model'
 import type { AppSettings } from '@/types'
 
 const CORRUPT_SETTINGS_MESSAGE = 'Settings file is unreadable or corrupted.'
 const CORRUPT_USAGE_MESSAGE = 'Usage data file is unreadable or corrupted.'
 
 function normalizeErrorMessage(error: unknown): string | null {
-  return error instanceof Error && error.message.trim() ? error.message : null
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim()
+  }
+  if (typeof error === 'string' && error.trim()) {
+    return error.trim()
+  }
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string' &&
+    error.message.trim()
+  ) {
+    return error.message.trim()
+  }
+
+  return null
 }
 
 function describeLoadError(message: string, fallback: string): string {

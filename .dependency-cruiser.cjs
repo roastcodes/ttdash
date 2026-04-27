@@ -22,13 +22,7 @@ module.exports = {
       from: {
         orphan: true,
         path: '^src/',
-        pathNot: [
-          '^src/main\\.ts$',
-          '^src/App\\.tsx$',
-          '^src/types/index\\.ts$',
-          '^src/hooks/use-dashboard-controller-types\\.ts$',
-          '\\.d\\.ts$',
-        ],
+        pathNot: ['^src/main\\.ts$', '^src/App\\.tsx$', '^src/types/index\\.ts$', '\\.d\\.ts$'],
       },
       to: {},
     },

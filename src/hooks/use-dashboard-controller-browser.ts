@@ -1,4 +1,4 @@
-import type { DashboardTestHooks } from '@/hooks/use-dashboard-controller-types'
+import type { DashboardTestHooks } from '@/types/dashboard-controller'
 
 const DOWNLOAD_REVOKE_DELAY_MS = 1000
 

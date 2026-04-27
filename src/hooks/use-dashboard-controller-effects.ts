@@ -38,7 +38,9 @@ export function useDashboardControllerEffects({
 
   useEffect(() => {
     if (i18n.resolvedLanguage !== language) {
-      void i18n.changeLanguage(language)
+      void i18n.changeLanguage(language).catch((error: unknown) => {
+        console.error('Failed to change dashboard language', error)
+      })
     }
   }, [i18n, language])
 

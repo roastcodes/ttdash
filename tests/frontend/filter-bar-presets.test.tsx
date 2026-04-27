@@ -80,6 +80,19 @@ describe('FilterBar preset and chip states', () => {
     )
   })
 
+  it('renders quick presets in the shared display order', () => {
+    renderFilterBar()
+
+    const presetLabels = screen
+      .getAllByRole('button')
+      .map((button) => button.textContent)
+      .filter((label): label is string =>
+        ['7D', '30D', 'Month', 'Year', 'All'].includes(label ?? ''),
+      )
+
+    expect(presetLabels).toEqual(['7D', '30D', 'Month', 'Year', 'All'])
+  })
+
   it('marks unfiltered provider and model chips as included instead of selected', () => {
     renderFilterBar({
       availableProviders: ['Anthropic', 'OpenAI'],

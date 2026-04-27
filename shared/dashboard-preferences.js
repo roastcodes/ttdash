@@ -24,7 +24,8 @@ function validateSectionDefinitions(value, validSectionIds) {
     throw new Error('Invalid dashboard preferences: "sectionDefinitions" must be an array.')
   }
 
-  return value.map((entry) => {
+  const seenIds = new Set()
+  const sectionDefinitions = value.map((entry) => {
     if (!isPlainObject(entry)) {
       throw new Error(
         'Invalid dashboard preferences: each "sectionDefinitions" entry must be an object.',
@@ -35,6 +36,10 @@ function validateSectionDefinitions(value, validSectionIds) {
     if (typeof id !== 'string' || !validSectionIds.includes(id)) {
       throw new Error('Invalid dashboard preferences: sectionDefinitions contain an unknown id.')
     }
+    if (seenIds.has(id)) {
+      throw new Error('Invalid dashboard preferences: sectionDefinitions contain duplicate ids.')
+    }
+    seenIds.add(id)
     if (typeof domId !== 'string' || !domId.trim()) {
       throw new Error('Invalid dashboard preferences: sectionDefinitions require a domId.')
     }
@@ -48,6 +53,15 @@ function validateSectionDefinitions(value, validSectionIds) {
       labelKey,
     }
   })
+
+  if (
+    seenIds.size !== validSectionIds.length ||
+    !validSectionIds.every((sectionId) => seenIds.has(sectionId))
+  ) {
+    throw new Error('Invalid dashboard preferences: sectionDefinitions must include every id once.')
+  }
+
+  return sectionDefinitions
 }
 
 function toLocalDateStr(date) {
@@ -119,6 +133,9 @@ function parseDashboardPreferencesConfig(
 
 const parsedDashboardPreferences = parseDashboardPreferencesConfig(dashboardPreferences)
 const DASHBOARD_DATE_PRESETS = parsedDashboardPreferences.datePresets
+const DASHBOARD_QUICK_DATE_PRESETS = ['7d', '30d', 'month', 'year', 'all'].filter((preset) =>
+  DASHBOARD_DATE_PRESETS.includes(preset),
+)
 const DASHBOARD_VIEW_MODES = parsedDashboardPreferences.viewModes
 const DASHBOARD_SECTION_DEFINITIONS = parsedDashboardPreferences.sectionDefinitions
 const DASHBOARD_SECTION_DEFINITION_MAP = Object.fromEntries(
@@ -305,6 +322,7 @@ function resolveDashboardActivePreset(value) {
 
 module.exports = {
   DASHBOARD_DATE_PRESETS,
+  DASHBOARD_QUICK_DATE_PRESETS,
   DASHBOARD_SECTION_DEFINITIONS,
   DASHBOARD_SECTION_DEFINITION_MAP,
   DASHBOARD_VIEW_MODES,

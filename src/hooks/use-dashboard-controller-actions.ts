@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 import type { TFunction, i18n as I18n } from 'i18next'
 import {
@@ -18,11 +18,14 @@ import type {
   DashboardHeaderViewModel,
   DashboardReportViewModel,
   DashboardSettingsModalViewModel,
-} from '@/lib/dashboard-view-model'
+} from '@/types/dashboard-view-model'
 import { VERSION } from '@/lib/constants'
 import { formatDateTimeFull, localToday } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
-import type { DashboardFileInputsViewModel } from '@/hooks/use-dashboard-controller-types'
+import type {
+  DashboardFileInputChangeEvent,
+  DashboardFileInputsViewModel,
+} from '@/types/dashboard-controller'
 import type {
   AppLanguage,
   AppSettings,
@@ -198,7 +201,7 @@ export function useDashboardControllerActions({
   )
 
   const handleUsageUploadChange = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
+    async (event: DashboardFileInputChangeEvent) => {
       const file = event.target.files?.[0]
       if (!file) return
 
@@ -344,7 +347,7 @@ export function useDashboardControllerActions({
   }, [])
 
   const handleSettingsImportChange = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
+    async (event: DashboardFileInputChangeEvent) => {
       const file = event.target.files?.[0]
       if (!file) return
 
@@ -366,7 +369,7 @@ export function useDashboardControllerActions({
   )
 
   const handleDataImportChange = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
+    async (event: DashboardFileInputChangeEvent) => {
       const file = event.target.files?.[0]
       if (!file) return
 

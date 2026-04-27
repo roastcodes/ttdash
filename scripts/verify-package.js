@@ -101,7 +101,7 @@ function getFreePort() {
 }
 
 function getLocalAuthHeaderFromOutput(output) {
-  const match = output.match(/Local Auth URL:\s+(http:\/\/[^\s]+)/);
+  const match = output.match(/Local Auth URL:\s+(https?:\/\/[^\s]+)/);
   if (!match || !match[1]) {
     return null;
   }

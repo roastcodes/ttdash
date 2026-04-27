@@ -69,7 +69,7 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   const calendarDays = useMemo(() => buildCalendarDays(displayMonth), [displayMonth])
   const selectableDates = useMemo(() => getSelectableDates(calendarDays), [calendarDays])
   const calendarDayByIso = useMemo(() => buildCalendarDayMap(calendarDays), [calendarDays])
-  const today = localToday()
+  const today = useMemo(() => localToday(), [])
   const [focusedDate, setFocusedDate] = useState<string | null>(value ?? today)
   const clearScheduledFocus = useCallback(() => {
     const scheduledFocus = scheduledFocusRef.current

@@ -46,6 +46,8 @@ describe('DrillDownModal content', () => {
     if (!gptCard) throw new Error('Expected GPT-5.4 card')
     expect(within(gptCard).getByText('Cost share')).toBeInTheDocument()
     expect(within(gptCard).getByText('64.3%')).toBeInTheDocument()
+    expect(within(gptCard).getByText('Cache Read')).toBeInTheDocument()
+    expect(within(gptCard).getByText('Cache Write')).toBeInTheDocument()
 
     const providerSection = screen.getByText('Provider summary').closest('section')
     expect(providerSection).not.toBeNull()

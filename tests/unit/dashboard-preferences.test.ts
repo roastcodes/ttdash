@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import dashboardPreferences from '../../shared/dashboard-preferences.json'
 import {
   DASHBOARD_DATE_PRESETS,
+  DASHBOARD_QUICK_DATE_PRESETS,
   DASHBOARD_SECTION_DEFINITIONS,
   DASHBOARD_SECTION_DEFINITION_MAP,
   DASHBOARD_VIEW_MODES,
@@ -24,6 +25,10 @@ describe('dashboard preferences config', () => {
     expect(parsed.viewModes).toEqual(DASHBOARD_VIEW_MODES)
     expect(parsed.datePresets).toEqual(DASHBOARD_DATE_PRESETS)
     expect(DASHBOARD_SECTION_DEFINITION_MAP.forecastCache.domId).toBe('forecast-cache')
+  })
+
+  it('publishes the quick date presets in display order from the shared contract', () => {
+    expect(DASHBOARD_QUICK_DATE_PRESETS).toEqual(['7d', '30d', 'month', 'year', 'all'])
   })
 
   it('fails fast when datePresets contain unsupported values', () => {
@@ -54,6 +59,50 @@ describe('dashboard preferences config', () => {
         sectionDefinitions: [{ id: 'metrics', domId: 'metrics' }],
       }),
     ).toThrow('Invalid dashboard preferences')
+  })
+
+  it('fails fast when sectionDefinitions omit or duplicate supported ids', () => {
+    const [firstSection, secondSection, ...remainingSections] =
+      dashboardPreferences.sectionDefinitions
+
+    expect(() =>
+      parseDashboardPreferencesConfig({
+        datePresets: dashboardPreferences.datePresets,
+        viewModes: dashboardPreferences.viewModes,
+        sectionDefinitions: [firstSection, firstSection, ...remainingSections],
+      }),
+    ).toThrow('duplicate ids')
+
+    expect(() =>
+      parseDashboardPreferencesConfig({
+        datePresets: dashboardPreferences.datePresets,
+        viewModes: dashboardPreferences.viewModes,
+        sectionDefinitions: [firstSection, ...remainingSections],
+      }),
+    ).toThrow('include every id once')
+
+    expect(secondSection).toBeDefined()
+  })
+
+  it('supports custom validation scopes for parsed preference configs', () => {
+    const parsed = parseSharedDashboardPreferencesConfig(
+      {
+        datePresets: ['rolling'],
+        viewModes: ['compact'],
+        sectionDefinitions: [{ id: 'overview', domId: 'overview', labelKey: 'overview' }],
+      },
+      {
+        validDatePresets: ['rolling'],
+        validViewModes: ['compact'],
+        validSectionIds: ['overview'],
+      },
+    )
+
+    expect(parsed.datePresets).toEqual(['rolling'])
+    expect(parsed.viewModes).toEqual(['compact'])
+    expect(parsed.sectionDefinitions).toEqual([
+      { id: 'overview', domId: 'overview', labelKey: 'overview' },
+    ])
   })
 
   it('resolves preset ranges through the same shared contract used by runtime consumers', () => {

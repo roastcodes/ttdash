@@ -25,8 +25,7 @@ import {
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
 import { getModelProvider, getProviderBadgeStyle } from '@/lib/model-utils'
-import type { CurrentMonthProviderForecasts } from '@/lib/calculations'
-import type { DailyUsage } from '@/types'
+import type { CurrentMonthProviderForecasts, DailyUsage } from '@/types'
 
 interface CumulativeCostPerProviderProps {
   data: DailyUsage[]

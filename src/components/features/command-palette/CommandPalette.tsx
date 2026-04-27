@@ -27,7 +27,7 @@ import {
   Languages,
 } from 'lucide-react'
 import { DASHBOARD_SECTION_DEFINITION_MAP } from '@/lib/dashboard-preferences'
-import type { DashboardCommandPaletteViewModel } from '@/lib/dashboard-view-model'
+import type { DashboardCommandPaletteViewModel } from '@/types/dashboard-view-model'
 import type { DashboardSectionId } from '@/types'
 
 type CommandPaletteProps = DashboardCommandPaletteViewModel

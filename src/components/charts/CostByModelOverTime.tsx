@@ -24,7 +24,7 @@ import {
   scopedGradientId,
 } from './chart-theme'
 import { useModelColorHelpers } from '@/lib/model-color-context'
-import type { ModelCostChartPoint } from '@/lib/data-transforms'
+import type { ModelCostChartPoint } from '@/types'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
 

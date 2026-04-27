@@ -23,8 +23,7 @@ import {
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
 import { getProviderBadgeStyle } from '@/lib/model-utils'
-import type { CurrentMonthProviderForecasts } from '@/lib/calculations'
-import type { ViewMode } from '@/types'
+import type { CurrentMonthProviderForecasts, ViewMode } from '@/types'
 
 interface ProviderCostForecastProps {
   forecast: CurrentMonthProviderForecasts | null

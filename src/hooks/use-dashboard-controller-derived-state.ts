@@ -4,23 +4,8 @@ import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
 import { computeDashboardForecastState } from '@/lib/calculations'
 import { getCurrentMonthForecastData } from '@/lib/data-transforms'
 import { localToday, toLocalDateStr } from '@/lib/formatters'
+import type { DashboardControllerDerivedState } from '@/types/dashboard-controller'
 import type { AppSettings, DailyUsage } from '@/types'
-
-/** Collects the heavy derived data assembled for the dashboard controller. */
-export interface DashboardControllerDerivedState {
-  hasData: boolean
-  filters: ReturnType<typeof useDashboardFilters>
-  computed: ReturnType<typeof useComputedMetrics>
-  totalCalendarDays: number
-  todayData: DailyUsage | null
-  hasCurrentMonthData: boolean
-  visibleLimitProviders: string[]
-  forecastState: ReturnType<typeof computeDashboardForecastState>
-  settingsProviderOptions: string[]
-  settingsModelOptions: string[]
-  streak: number
-  filterBarModels: string[]
-}
 
 /** Declares the raw inputs required to derive the dashboard controller state. */
 interface DashboardControllerDerivedStateParams {

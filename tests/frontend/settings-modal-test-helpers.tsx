@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react'
 import { fireEvent, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 import { SettingsModal } from '@/components/features/settings/SettingsModal'
+import { ToastProvider } from '@/components/ui/toast'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { resetToktrackVersionStatusSession } from '@/lib/toktrack-version-status'
 import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
@@ -41,7 +42,11 @@ export function buildSettingsModalProps(
 
 export function renderSettingsModal(overrides: Partial<ComponentProps<typeof SettingsModal>> = {}) {
   const props = buildSettingsModalProps(overrides)
-  const view = renderWithAppProviders(<SettingsModal {...props} />)
+  const view = renderWithAppProviders(
+    <ToastProvider>
+      <SettingsModal {...props} />
+    </ToastProvider>,
+  )
   return {
     ...view,
     props,

@@ -580,23 +580,33 @@ export function DrillDownModal({
 
                   <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-5">
                     <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-                      <div className="text-muted-foreground">{t('common.input')}</div>
+                      <div className="text-muted-foreground">
+                        {t(getTokenSegmentLabelKey('input'))}
+                      </div>
                       <div className="mt-1 font-mono">{formatTokens(model.input)}</div>
                     </div>
                     <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-                      <div className="text-muted-foreground">{t('common.output')}</div>
+                      <div className="text-muted-foreground">
+                        {t(getTokenSegmentLabelKey('output'))}
+                      </div>
                       <div className="mt-1 font-mono">{formatTokens(model.output)}</div>
                     </div>
                     <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-                      <div className="text-muted-foreground">{t('common.cacheRead')}</div>
+                      <div className="text-muted-foreground">
+                        {t(getTokenSegmentLabelKey('cacheRead'))}
+                      </div>
                       <div className="mt-1 font-mono">{formatTokens(model.cacheRead)}</div>
                     </div>
                     <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-                      <div className="text-muted-foreground">{t('common.cacheWrite')}</div>
+                      <div className="text-muted-foreground">
+                        {t(getTokenSegmentLabelKey('cacheWrite'))}
+                      </div>
                       <div className="mt-1 font-mono">{formatTokens(model.cacheCreate)}</div>
                     </div>
                     <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-                      <div className="text-muted-foreground">{t('common.thinking')}</div>
+                      <div className="text-muted-foreground">
+                        {t(getTokenSegmentLabelKey('thinking'))}
+                      </div>
                       <div className="mt-1 font-mono">{formatTokens(model.thinking)}</div>
                     </div>
                   </div>

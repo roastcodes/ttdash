@@ -154,6 +154,36 @@ describe('useDashboardControllerWithBootstrap state', () => {
     )
   })
 
+  it('normalizes non-Error settings and usage error shapes into the fatal-load state', async () => {
+    usageHookMocks.useUsageData.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: 'usage string failed',
+    })
+    settingsHookMocks.useAppSettings.mockReturnValue({
+      settings: createSettings(),
+      providerLimits: {},
+      setTheme: vi.fn(),
+      setLanguage: vi.fn(),
+      saveSettings: vi.fn(),
+      isSaving: false,
+      isLoading: false,
+      error: { message: 'settings object failed' },
+      isError: true,
+      hasFetchedAfterMount: false,
+    })
+
+    const { result } = renderHookWithQueryClient(() =>
+      useDashboardControllerWithBootstrap(createSettings(), false, null, null),
+    )
+
+    await waitFor(() =>
+      expect(result.current.loadError).toMatchObject({
+        details: ['settings object failed', 'usage string failed'],
+      }),
+    )
+  })
+
   it('clears a bootstrap settings error after a successful settings reset', async () => {
     apiMocks.deleteSettings.mockResolvedValue(createSettings({ theme: 'light' }))
 

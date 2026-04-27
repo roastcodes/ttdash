@@ -99,36 +99,48 @@ function createHttpRouter({
     res.end(responseBody);
   }
 
-  function serveFile(res, reqPath) {
-    try {
-      fs.readFile(reqPath, (err, data) => {
-        if (err) {
-          if (err.code === 'ENOENT') {
-            fs.readFile(path.join(staticRoot, 'index.html'), (err2, html) => {
-              if (err2) {
-                writeStaticErrorResponse(res, 500, 'Internal Server Error');
-                return;
-              }
-              sendStaticFile(res, path.join(staticRoot, 'index.html'), html);
-            });
-            return;
-          }
-          writeStaticErrorResponse(
-            res,
-            err.code === 'ERR_INVALID_ARG_VALUE' ? 400 : 500,
-            err.code === 'ERR_INVALID_ARG_VALUE' ? 'Invalid request path' : 'Internal Server Error',
-          );
+  function readStaticFile(reqPath) {
+    if (fs.promises && typeof fs.promises.readFile === 'function') {
+      return fs.promises.readFile(reqPath);
+    }
+
+    return new Promise((resolve, reject) => {
+      fs.readFile(reqPath, (error, data) => {
+        if (error) {
+          reject(error);
           return;
         }
-        sendStaticFile(res, reqPath, data);
+        resolve(data);
       });
+    });
+  }
+
+  async function serveFile(res, reqPath) {
+    try {
+      const data = await readStaticFile(reqPath);
+      sendStaticFile(res, reqPath, data);
     } catch (error) {
+      if (error && error.code === 'ENOENT') {
+        try {
+          const indexPath = path.join(staticRoot, 'index.html');
+          const html = await readStaticFile(indexPath);
+          sendStaticFile(res, indexPath, html);
+        } catch {
+          writeStaticErrorResponse(res, 500, 'Internal Server Error');
+        }
+        return;
+      }
+
+      const invalidPath = error && error.code === 'ERR_INVALID_ARG_VALUE';
+      const directoryRead = error && error.code === 'EISDIR';
       writeStaticErrorResponse(
         res,
-        error && error.code === 'ERR_INVALID_ARG_VALUE' ? 400 : 500,
-        error && error.code === 'ERR_INVALID_ARG_VALUE'
+        invalidPath ? 400 : directoryRead ? 403 : 500,
+        invalidPath
           ? 'Invalid request path'
-          : 'Internal Server Error',
+          : directoryRead
+            ? 'Access denied'
+            : 'Internal Server Error',
       );
     }
   }
@@ -517,13 +529,14 @@ function createHttpRouter({
     const filePath = path.resolve(staticRoot, `.${safePath}`);
 
     if (
-      !filePath.startsWith(resolvedStaticRoot + path.sep) &&
-      filePath !== path.resolve(staticRoot, 'index.html')
+      filePath === resolvedStaticRoot ||
+      (!filePath.startsWith(resolvedStaticRoot + path.sep) &&
+        filePath !== path.resolve(staticRoot, 'index.html'))
     ) {
       return json(res, 403, { message: 'Access denied' });
     }
 
-    serveFile(res, filePath);
+    await serveFile(res, filePath);
   }
 
   return {

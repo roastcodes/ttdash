@@ -70,6 +70,20 @@ describe('FilterBar date picker interactions', () => {
     expect(trigger).toHaveFocus()
   })
 
+  it('focuses today when opening an empty date field', async () => {
+    renderFilterBar()
+
+    const trigger = screen.getByRole('button', { name: 'Start date' })
+    fireEvent.click(trigger)
+    await vi.runAllTimersAsync()
+
+    const dialog = screen.getByRole('dialog', { name: 'Start date' })
+    const today = within(dialog).getByRole('button', { name: /^Mon, 04\/06\/2026$/ })
+
+    expect(today).toHaveFocus()
+    expect(today).toHaveAttribute('aria-current', 'date')
+  })
+
   it('cancels queued focus restoration when the date picker unmounts', async () => {
     const onStartDateChange = vi.fn()
     const scheduledFrames = new Map<number, FrameRequestCallback>()

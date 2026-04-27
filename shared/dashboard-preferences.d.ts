@@ -35,8 +35,17 @@ export interface DashboardActivePresetInput {
   referenceDate?: Date | string | number | undefined
 }
 
+/** Defines custom validation scopes for dashboard preferences parsing. */
+export interface DashboardPreferencesParseOptions {
+  validDatePresets?: string[] | undefined
+  validViewModes?: string[] | undefined
+  validSectionIds?: string[] | undefined
+}
+
 /** Lists the supported dashboard date presets. */
 export const DASHBOARD_DATE_PRESETS: DashboardDatePreset[]
+/** Lists the dashboard date presets in quick-filter display order. */
+export const DASHBOARD_QUICK_DATE_PRESETS: DashboardDatePreset[]
 /** Lists the supported dashboard view modes. */
 export const DASHBOARD_VIEW_MODES: ViewMode[]
 /** Lists the dashboard sections available to the app. */
@@ -50,7 +59,10 @@ export const DASHBOARD_SECTION_DEFINITION_MAP: Record<
 export const DEFAULT_DASHBOARD_FILTERS: DashboardDefaultFilters
 
 /** Parses and validates the static dashboard preferences config. */
-export function parseDashboardPreferencesConfig(value: unknown): DashboardPreferencesConfig
+export function parseDashboardPreferencesConfig(
+  value: unknown,
+  options?: DashboardPreferencesParseOptions,
+): DashboardPreferencesConfig
 /** Builds the default dashboard filter state. */
 export function createDefaultDashboardFilters(): DashboardDefaultFilters
 /** Returns the default visibility state for all dashboard sections. */

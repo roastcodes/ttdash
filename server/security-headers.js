@@ -48,8 +48,9 @@ function injectCspNonceMeta(html, nonce) {
   }
 
   const metaTag = `<meta name="${CSP_NONCE_META_NAME}" content="${nonce}" />`;
-  if (html.includes('<head>')) {
-    return html.replace('<head>', `<head>\n    ${metaTag}`);
+  const headMatch = html.match(/<head\b[^>]*>/i);
+  if (headMatch) {
+    return html.replace(headMatch[0], `${headMatch[0]}\n    ${metaTag}`);
   }
 
   return `${metaTag}\n${html}`;

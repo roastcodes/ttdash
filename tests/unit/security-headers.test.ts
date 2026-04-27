@@ -47,6 +47,15 @@ describe('security headers', () => {
     expect(reinjected.match(new RegExp(CSP_NONCE_META_NAME, 'g'))).toHaveLength(1)
   })
 
+  it('injects CSP nonce metadata inside head tags with attributes or mixed case', () => {
+    const html = '<!doctype html><html><HEAD data-app="ttdash"><title>TTDash</title></HEAD></html>'
+    const withNonce = injectCspNonceMeta(html, 'abc123')
+
+    expect(withNonce).toContain(
+      `<HEAD data-app="ttdash">\n    <meta name="${CSP_NONCE_META_NAME}" content="abc123" />`,
+    )
+  })
+
   it('prepares HTML with matching nonce metadata and CSP headers', () => {
     const response = prepareHtmlResponse('<!doctype html><html><head></head><body></body></html>')
     const csp = response.headers['Content-Security-Policy']

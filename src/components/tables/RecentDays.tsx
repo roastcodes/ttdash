@@ -35,6 +35,7 @@ import {
   sortRecentDays,
   summarizeRecentDays,
   type RecentDaysSortKey,
+  type SortState,
 } from '@/lib/sortable-table-data'
 import { ArrowUpDown } from 'lucide-react'
 import type { DailyUsage, ViewMode } from '@/types'
@@ -59,10 +60,13 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
   const { t } = useTranslation()
   const { getModelColor, getModelColorAlpha } = useModelColorHelpers()
   const [showAll, setShowAll] = useState(false)
-  const [sortKey, setSortKey] = useState<RecentDaysSortKey>('date')
-  const [sortAsc, setSortAsc] = useState(false)
+  const [sortState, setSortState] = useState<SortState<RecentDaysSortKey>>({
+    sortKey: 'date',
+    sortAsc: false,
+  })
   const [visibleCount, setVisibleCount] = useState(DEFAULT_VISIBLE_ROWS)
   const [, startTransition] = useTransition()
+  const { sortKey, sortAsc } = sortState
 
   const sorted = useMemo(() => sortRecentDays(data, sortKey, sortAsc), [data, sortKey, sortAsc])
 
@@ -111,9 +115,7 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
 
   const handleSort = (key: RecentDaysSortKey) => {
     startTransition(() => {
-      const next = resolveNextSortState({ sortKey, sortAsc }, key)
-      setSortKey(next.sortKey)
-      setSortAsc(next.sortAsc)
+      setSortState((current) => resolveNextSortState(current, key))
     })
   }
 

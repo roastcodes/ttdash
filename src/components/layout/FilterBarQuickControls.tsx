@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/cn'
+import { DASHBOARD_QUICK_DATE_PRESETS } from '@/lib/dashboard-preferences'
 import { formatMonthYear } from '@/lib/formatters'
 import type { DashboardDatePreset, ViewMode } from '@/types'
 
@@ -31,13 +32,10 @@ export function FilterBarQuickControls({
   onApplyPreset,
 }: FilterBarQuickControlsProps) {
   const { t } = useTranslation()
-  const presets = [
-    { key: '7d', label: t('filterBar.presets.7d') },
-    { key: '30d', label: t('filterBar.presets.30d') },
-    { key: 'month', label: t('filterBar.presets.month') },
-    { key: 'year', label: t('filterBar.presets.year') },
-    { key: 'all', label: t('filterBar.presets.all') },
-  ] satisfies Array<{ key: DashboardDatePreset; label: string }>
+  const presets = DASHBOARD_QUICK_DATE_PRESETS.map((key) => ({
+    key,
+    label: t(`filterBar.presets.${key}`),
+  }))
 
   return (
     <section

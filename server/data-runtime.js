@@ -428,9 +428,60 @@ function createDataRuntime({
   }
 
   function areUsageDaysEquivalent(left, right) {
-    return (
-      JSON.stringify(canonicalizeUsageDay(left)) === JSON.stringify(canonicalizeUsageDay(right))
-    );
+    const leftDay = canonicalizeUsageDay(left);
+    const rightDay = canonicalizeUsageDay(right);
+    const scalarFields = [
+      'date',
+      'inputTokens',
+      'outputTokens',
+      'cacheCreationTokens',
+      'cacheReadTokens',
+      'thinkingTokens',
+      'totalTokens',
+      'totalCost',
+      'requestCount',
+    ];
+
+    for (const field of scalarFields) {
+      if (leftDay[field] !== rightDay[field]) {
+        return false;
+      }
+    }
+
+    if (leftDay.modelsUsed.length !== rightDay.modelsUsed.length) {
+      return false;
+    }
+    for (let index = 0; index < leftDay.modelsUsed.length; index += 1) {
+      if (leftDay.modelsUsed[index] !== rightDay.modelsUsed[index]) {
+        return false;
+      }
+    }
+
+    if (leftDay.modelBreakdowns.length !== rightDay.modelBreakdowns.length) {
+      return false;
+    }
+
+    const breakdownFields = [
+      'modelName',
+      'inputTokens',
+      'outputTokens',
+      'cacheCreationTokens',
+      'cacheReadTokens',
+      'thinkingTokens',
+      'cost',
+      'requestCount',
+    ];
+    for (let index = 0; index < leftDay.modelBreakdowns.length; index += 1) {
+      const leftBreakdown = leftDay.modelBreakdowns[index];
+      const rightBreakdown = rightDay.modelBreakdowns[index];
+      for (const field of breakdownFields) {
+        if (leftBreakdown[field] !== rightBreakdown[field]) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   function extractSettingsImportPayload(payload) {

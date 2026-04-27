@@ -8,7 +8,7 @@ import { useDashboardControllerDialogs } from '@/hooks/use-dashboard-controller-
 import { useDashboardControllerDrillDown } from '@/hooks/use-dashboard-controller-drill-down'
 import { useDashboardControllerEffects } from '@/hooks/use-dashboard-controller-effects'
 import { useDashboardControllerShellState } from '@/hooks/use-dashboard-controller-shell-state'
-import type { DashboardControllerViewModel } from '@/hooks/use-dashboard-controller-types'
+import type { DashboardControllerViewModel } from '@/types/dashboard-controller'
 import { useDeleteData, useUploadData, useUsageData } from '@/hooks/use-usage-data'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { downloadCSV } from '@/lib/csv-export'
@@ -23,7 +23,7 @@ export type {
   DashboardShellViewModel,
   DashboardTestHooks,
   JsonDownloadRecord,
-} from '@/hooks/use-dashboard-controller-types'
+} from '@/types/dashboard-controller'
 
 /** Creates the dashboard controller with default bootstrap settings. */
 export function useDashboardController(

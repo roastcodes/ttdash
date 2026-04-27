@@ -48,6 +48,17 @@ describe('SettingsModal sections controls', () => {
     )
   })
 
+  it('keeps the visual drag grip hidden from assistive technology', () => {
+    renderSettingsModal()
+    openSettingsTab('Layout')
+
+    const metricsRow = screen.getByTestId('move-section-up-metrics').closest('[data-section-id]')
+
+    expect(metricsRow?.querySelector('[aria-hidden="true"] svg')).not.toBeNull()
+    expect(screen.getByTestId('move-section-up-metrics')).toHaveAccessibleName(/move .* up/i)
+    expect(screen.getByTestId('move-section-down-metrics')).toHaveAccessibleName(/move .* down/i)
+  })
+
   it('restores the default section layout when reset is pressed', () => {
     const { onSaveSettings } = renderSettingsModal({
       sectionVisibility: {

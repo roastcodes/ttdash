@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
-import type { DashboardDrillDownViewModel } from '@/lib/dashboard-view-model'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { DashboardDrillDownViewModel } from '@/types/dashboard-view-model'
 import type { DailyUsage } from '@/types'
 
 /** Groups the drill-down dialog state and section interaction callback. */
@@ -18,6 +18,12 @@ export function useDashboardControllerDrillDown(
     if (!drillDownDate) return null
     return filteredData.find((entry) => entry.date === drillDownDate) ?? null
   }, [drillDownDate, filteredData])
+
+  useEffect(() => {
+    if (drillDownDate !== null && drillDownDay === null) {
+      setDrillDownDate(null)
+    }
+  }, [drillDownDate, drillDownDay, filteredData])
 
   const drillDownSequence = useMemo(
     () => [...filteredData].sort((left, right) => left.date.localeCompare(right.date)),

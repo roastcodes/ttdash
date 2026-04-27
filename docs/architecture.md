@@ -142,8 +142,10 @@ Dashboard-specific presets, static section metadata, and preset date semantics a
   - wires the controller bundles into `Header`, `FilterBar`, dialogs, `CommandPalette`, and `DashboardSections`
 - `src/components/layout/Header.tsx` and `src/components/features/command-palette/CommandPalette.tsx`
   - group dashboard actions by user intent so data loading, exports, maintenance, filters, navigation, and view actions stay discoverable without collapsing into one undifferentiated action surface
-- `src/lib/dashboard-view-model.d.ts`
+- `src/types/dashboard-view-model.d.ts`
   - owns the shared frontend-only view-model contracts for the dashboard shell and sections
+- `src/types/**/*.{ts,tsx}`
+  - owns TypeScript-only contracts; new shared type definitions belong here instead of `src/lib/` or `src/hooks/`
 - `src/lib/toktrack-version-status.ts`
   - owns the session-wide toktrack latest-version warmup cache so settings can render status without coupling dialog opening to the registry lookup
 - `src/lib/drill-down-data.ts`, `src/lib/heatmap-calendar-data.ts`, `src/lib/request-quality-data.ts`, `src/lib/sortable-table-data.ts`, and `src/lib/filter-date-picker-data.ts`

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DashboardTestHooks } from '@/hooks/use-dashboard-controller-types'
+import type { DashboardTestHooks } from '@/types/dashboard-controller'
 import {
   downloadJsonFile,
   registerDashboardOpenSettingsHandler,

@@ -74,22 +74,25 @@ describe('server CLI parsing', () => {
     expect(lines).toContain('  ttdash stop')
   })
 
-  it('prints a helpful error for invalid invocations', () => {
-    const lines: string[] = []
-    const errors: string[] = []
+  it.each(['99999', '3000abc'])(
+    'prints a helpful error for invalid port values: %s',
+    (portValue) => {
+      const lines: string[] = []
+      const errors: string[] = []
 
-    expect(() =>
-      parseCliArgs(['--port', '99999'], {
-        appVersion: '1.2.3',
-        log: (line) => lines.push(line),
-        errorLog: (line) => errors.push(line),
-        exit: throwingExit,
-      }),
-    ).toThrow(new ExitError(1))
+      expect(() =>
+        parseCliArgs(['--port', portValue], {
+          appVersion: '1.2.3',
+          log: (line) => lines.push(line),
+          errorLog: (line) => errors.push(line),
+          exit: throwingExit,
+        }),
+      ).toThrow(new ExitError(1))
 
-    expect(errors).toEqual(['Invalid port: 99999'])
-    expect(lines).toContain('Usage:')
-  })
+      expect(errors).toEqual([`Invalid port: ${portValue}`])
+      expect(lines).toContain('Usage:')
+    },
+  )
 
   it('keeps help text complete for operational flags', () => {
     const lines: string[] = []

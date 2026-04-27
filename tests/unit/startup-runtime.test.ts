@@ -127,6 +127,25 @@ describe('startup runtime', () => {
     expect(logs).toContain('  Local Auth URL: http://127.0.0.1:3000/?ttdash_token=local-token')
   })
 
+  it('prints API and curl URLs with the configured API prefix', () => {
+    const { logs, runtime } = createStartupRuntimeFixture({
+      apiPrefix: '/custom-api',
+      processObject: {
+        env: { NO_OPEN_BROWSER: '1' },
+        pid: 1234,
+        platform: 'darwin',
+        stdout: { isTTY: true },
+      },
+    })
+
+    runtime.printStartupSummary('http://127.0.0.1:3000', 3000)
+
+    expect(logs).toContain('  API:            http://127.0.0.1:3000/custom-api/usage')
+    expect(logs).toContain(
+      '  curl -H "Authorization: Bearer <session-token-from-local-auth-url>" http://127.0.0.1:3000/custom-api/usage',
+    )
+  })
+
   it('opens the platform browser with the provided bootstrap URL when allowed', () => {
     const { runtime, spawnCalls } = createStartupRuntimeFixture()
 
