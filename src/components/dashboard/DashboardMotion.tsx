@@ -15,7 +15,10 @@ import { APP_MOTION, useShouldReduceMotion } from '@/lib/motion'
 
 /** Defines the shared dashboard motion timings for section reveal and child chart orchestration. */
 export const DASHBOARD_MOTION = {
-  sectionPreloadMargin: '0px 0px 45% 0px',
+  sectionPreloadMargin: '0px 0px 160% 0px',
+  sectionPreloadConcurrency: 4,
+  sectionPreloadIdleTimeoutMs: 160,
+  sectionPreloadMinimumIdleMs: 8,
   sectionRevealAmount: 0.14,
   sectionRevealOffset: 12,
   sectionRevealDuration: 0.6,
@@ -28,6 +31,126 @@ export const DASHBOARD_MOTION = {
   chartStartDelayMs: 285,
   meterStartDelayMs: 375,
   meterDurationMs: APP_MOTION.meterDurationMs,
+}
+
+/** Describes one non-blocking dashboard chunk preload task. */
+export type DashboardPreloadTask = () => void | Promise<unknown>
+
+interface DashboardPreloadSchedulerOptions {
+  concurrency?: number
+  idleTimeoutMs?: number
+}
+
+interface DashboardPreloadHandle {
+  cancel: () => void
+}
+
+interface DashboardIdleDeadline {
+  didTimeout: boolean
+  timeRemaining: () => number
+}
+
+interface DashboardSchedulerHost {
+  requestIdleCallback?: (
+    callback: (deadline: DashboardIdleDeadline) => void,
+    options?: { timeout?: number },
+  ) => number
+  cancelIdleCallback?: (handle: number) => void
+  requestAnimationFrame?: Window['requestAnimationFrame']
+  cancelAnimationFrame?: Window['cancelAnimationFrame']
+}
+
+function hasIdleBudget(deadline: DashboardIdleDeadline | undefined) {
+  if (!deadline) return true
+  if (deadline.didTimeout) return true
+  return deadline.timeRemaining() >= DASHBOARD_MOTION.sectionPreloadMinimumIdleMs
+}
+
+/** Schedules dashboard chunk preloads after paint without blocking the initial view. */
+export function scheduleDashboardPreloads(
+  tasks: DashboardPreloadTask[],
+  {
+    concurrency = DASHBOARD_MOTION.sectionPreloadConcurrency,
+    idleTimeoutMs = DASHBOARD_MOTION.sectionPreloadIdleTimeoutMs,
+  }: DashboardPreloadSchedulerOptions = {},
+): DashboardPreloadHandle {
+  const pendingTasks = Array.from(new Set(tasks))
+  const maxConcurrency = Math.max(1, Math.floor(concurrency))
+  const host = typeof window === 'undefined' ? null : (window as unknown as DashboardSchedulerHost)
+  let activeTasks = 0
+  let cursor = 0
+  let canceled = false
+  let cancelScheduledCallback: (() => void) | null = null
+
+  const hasPendingWork = () => cursor < pendingTasks.length
+
+  const schedulePump = () => {
+    if (canceled || cancelScheduledCallback || !hasPendingWork() || activeTasks >= maxConcurrency) {
+      return
+    }
+
+    const runPump = (deadline?: DashboardIdleDeadline) => {
+      cancelScheduledCallback = null
+
+      if (canceled) return
+
+      let startedInTurn = 0
+      while (
+        !canceled &&
+        activeTasks < maxConcurrency &&
+        hasPendingWork() &&
+        (startedInTurn === 0 || hasIdleBudget(deadline))
+      ) {
+        const task = pendingTasks[cursor]
+        cursor += 1
+        startedInTurn += 1
+        activeTasks += 1
+
+        Promise.resolve()
+          .then(task)
+          .catch(() => undefined)
+          .finally(() => {
+            activeTasks -= 1
+            schedulePump()
+          })
+      }
+
+      if (!canceled && activeTasks < maxConcurrency && hasPendingWork()) {
+        schedulePump()
+      }
+    }
+
+    if (host?.requestIdleCallback) {
+      const handle = host.requestIdleCallback(runPump, { timeout: idleTimeoutMs })
+      cancelScheduledCallback = () => {
+        host.cancelIdleCallback?.(handle)
+      }
+      return
+    }
+
+    if (host?.requestAnimationFrame) {
+      const handle = host.requestAnimationFrame(() => runPump())
+      cancelScheduledCallback = () => {
+        host.cancelAnimationFrame?.(handle)
+      }
+      return
+    }
+
+    const handle = setTimeout(() => runPump(), 16)
+    cancelScheduledCallback = () => {
+      clearTimeout(handle)
+    }
+  }
+
+  schedulePump()
+
+  return {
+    cancel: () => {
+      canceled = true
+      cancelScheduledCallback?.()
+      cancelScheduledCallback = null
+    },
+  }
 }
 
 interface DashboardSectionMotionState {

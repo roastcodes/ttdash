@@ -1,16 +1,22 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Dashboard } from '@/components/Dashboard'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { initI18n } from '@/lib/i18n'
+import { createDashboardControllerViewModel } from './dashboard-controller-test-helpers'
 
 const dashboardControllerMocks = vi.hoisted(() => ({
   useDashboardControllerWithBootstrap: vi.fn(),
 }))
 
+const toktrackVersionStatusMocks = vi.hoisted(() => ({
+  scheduleToktrackVersionStatusWarmup: vi.fn(() => ({ cancel: vi.fn() })),
+}))
+
 vi.mock('@/hooks/use-dashboard-controller', () => dashboardControllerMocks)
+vi.mock('@/lib/toktrack-version-status', () => toktrackVersionStatusMocks)
 vi.mock('@/components/layout/Header', () => ({
   Header: () => <div data-testid="header" />,
 }))
@@ -25,7 +31,21 @@ vi.mock('@/components/layout/FilterBar', () => ({
   ),
 }))
 vi.mock('@/components/dashboard/DashboardSections', () => ({
-  DashboardSections: () => <div data-testid="dashboard-sections" />,
+  DashboardSections: ({
+    viewModel,
+  }: {
+    viewModel: {
+      layout: { sectionOrder: string[] }
+      interactions: { onDrillDownDateChange: (date: string | null) => void }
+    }
+  }) => (
+    <div data-testid="dashboard-sections-props">
+      {JSON.stringify({
+        sectionOrder: viewModel.layout.sectionOrder,
+        hasDrillDownHandler: typeof viewModel.interactions.onDrillDownDateChange === 'function',
+      })}
+    </div>
+  ),
 }))
 vi.mock('@/components/features/command-palette/CommandPalette', () => ({
   CommandPalette: () => <div data-testid="command-palette" />,
@@ -34,116 +54,16 @@ vi.mock('@/components/features/pdf-report/PDFReport', () => ({
   PDFReportButton: () => <div data-testid="pdf-report-button" />,
 }))
 
-function createController(overrides: Record<string, unknown> = {}) {
-  return {
-    fileInputRef: { current: null },
-    settingsImportInputRef: { current: null },
-    dataImportInputRef: { current: null },
-    settings: {
-      ...DEFAULT_APP_SETTINGS,
-      language: 'en',
-      lastLoadedAt: null,
-      lastLoadSource: null,
-      cliAutoLoadActive: false,
-    },
-    providerLimits: {},
-    isLoading: false,
-    settingsLoading: false,
-    isSaving: false,
-    isDark: false,
-    hasData: true,
-    helpOpen: false,
-    setHelpOpen: vi.fn(),
-    autoImportOpen: false,
-    setAutoImportOpen: vi.fn(),
-    settingsOpen: false,
-    setSettingsOpen: vi.fn(),
-    drillDownDate: null,
-    setDrillDownDate: vi.fn(),
-    drillDownDay: null,
-    reportGenerating: false,
-    settingsTransferBusy: false,
-    dataTransferBusy: false,
-    headerDataSource: null,
-    startupAutoLoadBadge: null,
-    animationSeed: 1,
-    allProviders: [],
-    allModelsFromData: ['Claude Sonnet 4.5', 'GPT-5.4'],
-    settingsProviderOptions: [],
-    settingsModelOptions: [],
-    viewMode: 'daily',
-    setViewMode: vi.fn(),
-    selectedMonth: null,
-    setSelectedMonth: vi.fn(),
-    selectedProviders: [],
-    toggleProvider: vi.fn(),
-    clearProviders: vi.fn(),
-    selectedModels: ['GPT-5.4'],
-    toggleModel: vi.fn(),
-    clearModels: vi.fn(),
-    startDate: undefined,
-    setStartDate: vi.fn(),
-    endDate: undefined,
-    setEndDate: vi.fn(),
-    resetAll: vi.fn(),
-    applyPreset: vi.fn(),
-    filteredDailyData: [],
-    filteredData: [],
-    availableMonths: [],
-    availableProviders: [],
-    availableModels: ['Claude Sonnet 4.5'],
-    dateRange: null,
-    metrics: { hasRequestData: false },
-    modelCosts: [],
-    providerMetrics: [],
-    costChartData: [],
-    modelCostChartData: [],
-    tokenChartData: [],
-    requestChartData: [],
-    weekdayData: [],
-    allModels: [],
-    modelPieData: [],
-    tokenPieData: [],
-    comparisonData: [],
-    totalCalendarDays: 0,
-    todayData: null,
-    hasCurrentMonthData: false,
-    visibleLimitProviders: [],
-    sectionVisibility: {},
-    sectionOrder: [],
-    streak: null,
-    fatalLoadState: null,
-    handleUpload: vi.fn(),
-    handleOpenSettings: vi.fn(),
-    handleRetryLoad: vi.fn(),
-    handleResetSettings: vi.fn(),
-    handleToggleTheme: vi.fn(),
-    handleSaveSettings: vi.fn(),
-    handleLanguageChange: vi.fn(),
-    handleFileChange: vi.fn(),
-    handleDelete: vi.fn(),
-    handleExportCSV: vi.fn(),
-    handleGenerateReport: vi.fn(),
-    handleAutoImport: vi.fn(),
-    handleAutoImportSuccess: vi.fn(),
-    handleExportSettings: vi.fn(),
-    handleExportData: vi.fn(),
-    handleImportSettings: vi.fn(),
-    handleImportData: vi.fn(),
-    handleSettingsImportChange: vi.fn(),
-    handleDataImportChange: vi.fn(),
-    handleScrollTo: vi.fn(),
-    ...overrides,
-  }
-}
-
 describe('Dashboard model filter visibility', () => {
   beforeEach(async () => {
     await initI18n('en')
+    toktrackVersionStatusMocks.scheduleToktrackVersionStatusWarmup.mockClear()
   })
 
   it('keeps selected models visible in the FilterBar when they are filtered out of availableModels', () => {
-    dashboardControllerMocks.useDashboardControllerWithBootstrap.mockReturnValue(createController())
+    dashboardControllerMocks.useDashboardControllerWithBootstrap.mockReturnValue(
+      createDashboardControllerViewModel(),
+    )
 
     render(<Dashboard initialSettings={DEFAULT_APP_SETTINGS} />)
 
@@ -154,5 +74,37 @@ describe('Dashboard model filter visibility', () => {
 
     expect(props.selectedModels).toEqual(['GPT-5.4'])
     expect(props.allModels).toEqual(['Claude Sonnet 4.5', 'GPT-5.4'])
+  })
+
+  it('passes dashboard sections through one structured view model bundle', () => {
+    dashboardControllerMocks.useDashboardControllerWithBootstrap.mockReturnValue(
+      createDashboardControllerViewModel(),
+    )
+
+    render(<Dashboard initialSettings={DEFAULT_APP_SETTINGS} />)
+
+    const props = JSON.parse(
+      screen.getByTestId('dashboard-sections-props').textContent ?? '{}',
+    ) as {
+      sectionOrder: string[]
+      hasDrillDownHandler: boolean
+    }
+
+    expect(props.sectionOrder).toEqual(DEFAULT_APP_SETTINGS.sectionOrder)
+    expect(props.hasDrillDownHandler).toBe(true)
+  })
+
+  it('starts the toktrack version status warmup from the dashboard shell', async () => {
+    dashboardControllerMocks.useDashboardControllerWithBootstrap.mockReturnValue(
+      createDashboardControllerViewModel(),
+    )
+
+    render(<Dashboard initialSettings={DEFAULT_APP_SETTINGS} />)
+
+    await waitFor(() =>
+      expect(toktrackVersionStatusMocks.scheduleToktrackVersionStatusWarmup).toHaveBeenCalledTimes(
+        1,
+      ),
+    )
   })
 })

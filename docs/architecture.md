@@ -21,16 +21,97 @@ TTDash uses three complementary architecture gates. Each tool owns a different s
   - frontend-only code
   - may depend on `shared/**`
   - must not depend on `server/**` or `server.js`
-- `server/**` and `server.js`
-  - local API, reporting, background process, and package runtime
+- `server.js`
+  - executable CLI/bin shim for the local server runtime
+  - should only create the app runtime and call the CLI bootstrap path
+  - must not export helper APIs or own subsystem internals directly
+- `server/app-runtime.js`
+  - composition root for the local server runtime
+  - may depend on `server/**` and `shared/**`
+  - wires injected runtime modules for CLI, HTTP, persistence, auth, startup, background, reporting, and auto-import
+- `server/**`
+  - local API, reporting, background process, persistence, auto-import, and package runtime modules
   - may depend on `shared/**`
-  - must not depend on `src/**`
+  - must not depend on `src/**` or `server.js`
 - `shared/**`
   - neutral runtime/domain utilities and shared assets
+  - owns cross-runtime contracts such as `shared/app-settings.js` for persisted settings defaults and normalization
   - must not depend on `src/**`, `server/**`, `server.js`, or `usage-normalizer.js`
 - `usage-normalizer.js`
   - standalone normalization logic
   - must stay independent from frontend and server modules
+
+## Server Composition
+
+The server runtime is intentionally split so `server.js` stays an executable shim instead of a catch-all implementation module. `server/app-runtime.js` is the explicit composition root for in-process starts such as Playwright's isolated test server.
+
+- `server/app-runtime.js`
+  - owns root runtime composition and environment-derived CLI/server configuration
+  - keeps the background process entrypoint pointed at the package root `server.js`
+- `server/runtime-state.js`
+  - owns local mutable runtime state services such as runtime snapshots, singleton runtime leases, and expiring async caches
+  - keeps startup flags, auto-import leases, and toktrack version lookup cache state scoped to one composed app runtime
+- `server/data-runtime.js`
+  - owns app-path resolution, persisted usage/settings IO, migration, and file-mutation locks
+  - consumes the shared settings contract instead of defining local settings defaults or normalizers
+- `server/cli.js`
+  - owns CLI alias normalization, help text, positional command parsing, and port validation
+- `server/background-runtime.js`
+  - owns background instance registry, start/stop flows, and registry locking
+- `server/auto-import-runtime.js`
+  - owns toktrack runner resolution, subprocess execution, version lookup, and auto-import execution
+  - uses the injected runtime-state services for singleton import leasing and latest-version cache isolation
+- `server/http-router.js`
+  - owns API routing, SSE wiring, and static asset dispatch with injected runtime dependencies
+  - must acquire auto-import work through `server/auto-import-runtime.js` instead of keeping route-local import flags
+- `server/http-request-guards.js`
+  - owns Host, Origin, Sec-Fetch-Site, and JSON content-type request policy for local API protection
+  - is consumed through `server/http-utils.js` so route handlers keep using one HTTP utility facade
+- `server/security-headers.js`
+  - owns shared browser security headers and the nonce-aware CSP used for HTML responses
+  - keeps style directives strict by using `style-src-attr 'none'` and avoiding `unsafe-inline`
+- `server/remote-auth.js`
+  - owns token-based authentication for both default loopback sessions and explicitly enabled non-loopback binds
+  - keeps browser bootstrap, HttpOnly cookie setup, and non-browser Bearer/header auth outside the route handlers
+  - uses a generated per-start local session token for loopback and `TTDASH_REMOTE_TOKEN` for remote binds
+- `server/startup-runtime.js`
+  - owns startup summaries, data-status formatting, browser opening, local auth-session file metadata, and startup auto-load logging
+- `server/server-lifecycle.js`
+  - owns HTTP server creation, malformed-request client errors, foreground/background CLI routing, startup sequencing, and shutdown cleanup
+- Local auth session state
+  - `server/startup-runtime.js` writes the current local session metadata to a restrictive `session-auth.json` file in the user config dir through injected data-runtime IO
+  - `server/background-runtime.js` stores per-instance auth headers and bootstrap URLs in the restrictive background registry so `ttdash stop` and no-open background starts stay usable
+- `server/http-utils.js`, `server/runtime.js`, `server/process-utils.js`, `server/report/**`
+  - shared support modules used by the composed runtimes
+
+## Shared Settings Contract
+
+Persisted settings are a shared contract across the frontend bootstrap path and the server persistence/runtime path.
+
+- `shared/app-settings.js`
+  - owns app-level settings defaults, provider-limit normalization, and timestamp/load-source coercion
+  - consumes `shared/dashboard-preferences.js` for dashboard-specific filter/section defaults and normalization
+  - is the only production module that should define persisted settings defaults or normalization rules
+- `src/lib/app-settings.ts`
+  - is a typed frontend adapter over `shared/app-settings.js`
+  - may keep DOM-only behavior such as `applyTheme`, but must not recompute settings defaults from local helpers
+- `server/data-runtime.js`
+  - must normalize and default persisted settings through `shared/app-settings.js`
+  - must not derive settings defaults from raw dashboard preference JSON
+
+## Shared Dashboard Contract
+
+Dashboard-specific presets, static section metadata, and preset date semantics are shared domain rules across settings, filters, and command/navigation surfaces.
+
+- `shared/dashboard-preferences.js`
+  - owns validated dashboard preference config from `shared/dashboard-preferences.json`
+  - owns shared dashboard preset semantics such as preset-range resolution and active-preset detection
+  - is the only production module that should read the raw dashboard preferences JSON
+- `src/lib/dashboard-preferences.ts`
+  - is a thin frontend adapter over `shared/dashboard-preferences.js`
+  - may keep UI-specific rendering choices such as quick-select button order, but must not duplicate preset/filter semantics
+- `shared/app-settings.js`
+  - must consume dashboard defaults and normalization from `shared/dashboard-preferences.js` instead of re-declaring them locally
 
 ## Frontend Layer Model
 
@@ -41,12 +122,60 @@ TTDash uses three complementary architecture gates. Each tool owns a different s
   - `src/components/**`
 - `hooks`
   - `src/hooks/**`
+  - hook files must be reachable from the frontend app entrypoint; unused hook files should be removed instead of kept as speculative helpers
 - `lib-react`
   - `src/lib/**/*.tsx`
 - `lib-core`
   - `src/lib/**/*.ts`
 - `types`
   - `src/types/**`
+
+## Dashboard Composition
+
+- `src/hooks/use-dashboard-controller.ts`
+  - owns the public dashboard orchestration contract and composes the internal controller slices into the final view model
+- `src/hooks/use-dashboard-controller-*.ts`
+  - own the internal controller slices for derived data, dialogs, drill-down, shell state, browser IO, effects, and imperative actions
+  - are implementation details behind `use-dashboard-controller.ts`, not component-level dependencies
+- `src/components/Dashboard.tsx`
+  - is the only production composition root that should consume `use-dashboard-controller.ts`
+  - wires the controller bundles into `Header`, `FilterBar`, dialogs, `CommandPalette`, and `DashboardSections`
+- `src/components/layout/Header.tsx` and `src/components/features/command-palette/CommandPalette.tsx`
+  - group dashboard actions by user intent so data loading, exports, maintenance, filters, navigation, and view actions stay discoverable without collapsing into one undifferentiated action surface
+- `src/types/dashboard-view-model.d.ts`
+  - owns the shared frontend-only view-model contracts for the dashboard shell and sections
+- `src/types/**/*.{ts,tsx}`
+  - owns TypeScript-only contracts; new shared type definitions belong here instead of `src/lib/` or `src/hooks/`
+- `src/lib/toktrack-version-status.ts`
+  - owns the session-wide toktrack latest-version warmup cache so settings can render status without coupling dialog opening to the registry lookup
+- `src/lib/drill-down-data.ts`, `src/lib/heatmap-calendar-data.ts`, `src/lib/request-quality-data.ts`, `src/lib/sortable-table-data.ts`, and `src/lib/filter-date-picker-data.ts`
+  - own non-presentational data derivation for complex dashboard UI islands so components can keep rendering, accessibility, and motion concerns separate from calculation-heavy view data
+- `src/hooks/use-dashboard-controller-browser.ts`
+  - owns dashboard-specific browser IO such as download anchors, section scrolling, and the test-only `openSettings` bridge
+  - keeps DOM concerns out of the main controller orchestration file
+- `src/components/dashboard/DashboardSections.tsx`
+  - consumes a single `DashboardSectionsViewModel`
+  - should keep section ownership grouped by section bundle instead of reintroducing broad prop lists
+- `src/components/layout/FilterBar.tsx`
+  - owns the public filter bar shell and composes private layout filter groups for status, time presets, date range, and provider/model chips
+- `src/components/layout/FilterBar*.tsx`
+  - are private FilterBar internals, not shared UI primitives; unrelated modules should consume `FilterBar.tsx` only
+
+## Settings Modal Composition
+
+- `src/components/features/settings/SettingsModal.tsx`
+  - owns the tabbed dialog shell and composes the internal settings sections and draft/version hooks
+  - groups settings by user intent: basics, layout, limits, and maintenance
+- `src/components/features/settings/SettingsModalSections.tsx`
+  - owns the extracted section subviews for status, language, defaults, dashboard motion, toktrack version, backups, section layout, and provider limits
+- `src/components/features/settings/use-settings-modal-draft.ts`
+  - owns the editable settings draft state, reset behavior, and save orchestration for the modal
+- `src/components/features/settings/use-settings-modal-version-status.ts`
+  - formats the session-wide toktrack version status shown in the modal
+- `src/components/features/settings/settings-modal-helpers.ts`
+  - owns modal-specific draft helpers such as provider-limit patching, selection normalization, and section reordering
+- these settings-modal internals are private to the settings feature
+  - other frontend modules should consume `SettingsModal.tsx`, not its internal helper files directly
 
 Important expectations:
 
@@ -82,6 +211,12 @@ Both `ci.yml` and `release.yml` run `check:deps` and `test:architecture` explici
 - Prefer the narrowest tool:
   - use `dependency-cruiser` for whole-repo dependency graph boundaries
   - use `eslint-plugin-boundaries` for frontend import discipline
-  - use `archunit` for expressive architecture assertions and naming rules
+  - use the cached architecture source graph helper for simple file, naming, placement, and direct import rules over `src/**`
+  - use `archunit` for expressive architecture assertions where its higher-level model adds value
+- Keep `server.js` as an executable shim. New server behavior should usually land in `server/**` and be wired through `server/app-runtime.js` via dependency injection.
+- Keep shared settings logic centralized. If a new persisted settings field, default, or normalization rule is added, update `shared/app-settings.js` first and adapt frontend/server wrappers afterward.
+- Keep dashboard orchestration bundled. New dashboard shell behavior should usually extend the controller/view-model contracts instead of adding new flat props to `Dashboard.tsx` or `DashboardSections.tsx`.
+- Keep dashboard controller internals private. New browser-side dashboard IO or orchestration helpers should usually live in `use-dashboard-controller-*.ts` and be composed by `use-dashboard-controller.ts`, not imported directly by components.
+- Keep settings modal internals private. New settings-modal sections, draft helpers, or version-status logic should stay under `src/components/features/settings/**` and be composed by `SettingsModal.tsx`, not imported directly by unrelated features.
 - Do not add broad allowlists just to get green. Fix the code or scope the rule explicitly.
 - If a feature helper becomes cross-feature, move it out of `src/components/features/**` before adding more exceptions.

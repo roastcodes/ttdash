@@ -21,10 +21,16 @@ import {
 } from '@/lib/formatters'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { AnimatedSegmentedBar } from '@/components/ui/AnimatedSegmentedBar'
-import { normalizeModelName, getModelProvider, getProviderBadgeClasses } from '@/lib/model-utils'
+import { getProviderBadgeClasses } from '@/lib/model-utils'
 import { useModelColorHelpers } from '@/lib/model-color-context'
 import { useShouldReduceMotion } from '@/lib/motion'
 import { cn } from '@/lib/cn'
+import {
+  deriveDrillDownData,
+  getDelta,
+  type DrillDownDelta,
+  type DrillDownTokenSegmentId,
+} from '@/lib/drill-down-data'
 import type { DailyUsage } from '@/types'
 
 interface DrillDownModalProps {
@@ -40,43 +46,8 @@ interface DrillDownModalProps {
   onClose: () => void
 }
 
-type PeriodKind = 'day' | 'month' | 'year'
-
-function getPeriodKind(date: string): PeriodKind {
-  if (/^\d{4}$/.test(date)) return 'year'
-  if (/^\d{4}-\d{2}$/.test(date)) return 'month'
-  return 'day'
-}
-
-function getEntryTokenTotal(entry: DailyUsage): number {
-  return (
-    entry.cacheReadTokens +
-    entry.cacheCreationTokens +
-    entry.inputTokens +
-    entry.outputTokens +
-    entry.thinkingTokens
-  )
-}
-
-function toPerMillion(cost: number, tokens: number): number | null {
-  return tokens > 0 ? cost / (tokens / 1_000_000) : null
-}
-
-function toPerRequest(value: number, requests: number): number | null {
-  return requests > 0 ? value / requests : null
-}
-
-function getDelta(current: number, reference: number | null) {
-  if (reference === null) return null
-
-  const absolute = current - reference
-  const percent = reference !== 0 ? (absolute / reference) * 100 : null
-
-  return { absolute, percent }
-}
-
 function formatDeltaValue(
-  delta: ReturnType<typeof getDelta>,
+  delta: DrillDownDelta | null,
   formatter: (value: number) => string,
   fallback = '–',
 ) {
@@ -86,7 +57,7 @@ function formatDeltaValue(
   return `${delta.absolute > 0 ? '↑' : '↓'} ${formatter(Math.abs(delta.absolute))}`
 }
 
-function formatDeltaPercent(delta: ReturnType<typeof getDelta>, fallback = '–') {
+function formatDeltaPercent(delta: DrillDownDelta | null, fallback = '–') {
   if (!delta) return fallback
   if (delta.percent === null) return fallback
   if (delta.percent === 0) return '0.0%'
@@ -110,6 +81,21 @@ function getBenchmarkWindowLabel(count: number, unitLabel: string) {
   return `${count}${unitLabel}`
 }
 
+function getTokenSegmentLabelKey(id: DrillDownTokenSegmentId) {
+  switch (id) {
+    case 'cacheRead':
+      return 'drillDown.tokenSegments.cacheRead'
+    case 'cacheWrite':
+      return 'drillDown.tokenSegments.cacheWrite'
+    case 'input':
+      return 'common.input'
+    case 'output':
+      return 'common.output'
+    case 'thinking':
+      return 'common.thinking'
+  }
+}
+
 /** Renders the per-period drilldown dialog with navigation and benchmarks. */
 export function DrillDownModal({
   day,
@@ -127,202 +113,117 @@ export function DrillDownModal({
   const { getModelColor } = useModelColorHelpers()
   const shouldReduceMotion = useShouldReduceMotion()
 
-  const periodKind = day ? getPeriodKind(day.date) : 'day'
-
-  const sortedContextData = useMemo(
-    () => [...contextData].sort((a, b) => a.date.localeCompare(b.date)),
-    [contextData],
+  const drillDownData = useMemo(
+    () => (day ? deriveDrillDownData(day, contextData) : null),
+    [contextData, day],
   )
 
-  const contextIndex = useMemo(
-    () => (day ? sortedContextData.findIndex((entry) => entry.date === day.date) : -1),
-    [day, sortedContextData],
-  )
+  const benchmarkCards = useMemo(() => {
+    if (!day || !drillDownData) return []
 
-  const previousEntry = contextIndex > 0 ? sortedContextData[contextIndex - 1] : null
-  const previousSeven =
-    contextIndex > 0 ? sortedContextData.slice(Math.max(0, contextIndex - 7), contextIndex) : []
+    const {
+      periodKind,
+      previousEntry,
+      previousSeven,
+      tokensTotal,
+      costPerMillion,
+      avgCost7,
+      avgRequests7,
+      avgTokens7,
+      avgCostPerMillion7,
+      previousTokens,
+      previousCostPerMillion,
+    } = drillDownData
+    const benchmarkWindowLabel = getBenchmarkWindowLabel(
+      previousSeven.length > 0 ? previousSeven.length : 7,
+      t(`drillDown.windowUnit.${periodKind}`),
+    )
+    const costPreviousDelta = getDelta(day.totalCost, previousEntry?.totalCost ?? null)
+    const tokensPreviousDelta = getDelta(tokensTotal, previousTokens)
+    const requestsPreviousDelta = getDelta(day.requestCount, previousEntry?.requestCount ?? null)
+    const costPerMillionAverageDelta =
+      costPerMillion !== null ? getDelta(costPerMillion, avgCostPerMillion7) : null
+    const costAverageDelta = getDelta(day.totalCost, avgCost7)
+    const requestsAverageDelta = getDelta(day.requestCount, avgRequests7)
+    const tokensAverageDelta = getDelta(tokensTotal, avgTokens7)
+    const costPerMillionPreviousDelta =
+      costPerMillion !== null ? getDelta(costPerMillion, previousCostPerMillion) : null
+    const formatRoundedNumber = (value: number) => formatNumber(Math.round(value))
+
+    return [
+      {
+        label: t('drillDown.costVsPrevious'),
+        primary: formatDeltaValue(costPreviousDelta, formatCurrency),
+        secondary: formatDeltaPercent(costPreviousDelta),
+      },
+      {
+        label: t('drillDown.tokensVsPrevious'),
+        primary: formatDeltaValue(tokensPreviousDelta, formatTokens),
+        secondary: formatDeltaPercent(tokensPreviousDelta),
+      },
+      {
+        label: t('drillDown.requestsVsPrevious'),
+        primary: formatDeltaValue(requestsPreviousDelta, formatRoundedNumber),
+        secondary: formatDeltaPercent(requestsPreviousDelta),
+      },
+      {
+        label: t('drillDown.costPerMillionVsAverageWindow', { window: benchmarkWindowLabel }),
+        primary: formatDeltaValue(costPerMillionAverageDelta, formatCurrency),
+        secondary: avgCostPerMillion7 !== null ? formatCurrency(avgCostPerMillion7) : '–',
+      },
+      {
+        label: t('drillDown.costVsAverageWindow', { window: benchmarkWindowLabel }),
+        primary: formatDeltaValue(costAverageDelta, formatCurrency),
+        secondary: avgCost7 !== null ? formatCurrency(avgCost7) : '–',
+      },
+      {
+        label: t('drillDown.requestsVsAverageWindow', { window: benchmarkWindowLabel }),
+        primary: formatDeltaValue(requestsAverageDelta, formatRoundedNumber),
+        secondary: avgRequests7 !== null ? formatRoundedNumber(avgRequests7) : '–',
+      },
+      {
+        label: t('drillDown.tokensVsAverageWindow', { window: benchmarkWindowLabel }),
+        primary: formatDeltaValue(tokensAverageDelta, formatTokens),
+        secondary: avgTokens7 !== null ? formatTokens(avgTokens7) : '–',
+      },
+      {
+        label: t('drillDown.costPerMillionVsPrevious'),
+        primary: formatDeltaValue(costPerMillionPreviousDelta, formatCurrency),
+        secondary: previousCostPerMillion !== null ? formatCurrency(previousCostPerMillion) : '–',
+      },
+    ]
+  }, [day, drillDownData, t])
+
+  if (!day || !drillDownData) return null
+
+  const {
+    periodKind,
+    sortedContextData,
+    contextIndex,
+    tokensTotal,
+    hasTokens,
+    modelData,
+    providerData,
+    pieData,
+    cacheRate,
+    avgTokensPerRequest,
+    avgCostPerRequest,
+    costPerMillion,
+    costRanking,
+    requestRanking,
+    topCostModel,
+    topRequestModel,
+    topTokenModel,
+    priciestPerMillionModel,
+    topThreeCostShare,
+    tokenSegments,
+    tokenDistributionSegments: rawTokenDistributionSegments,
+  } = drillDownData
+
   const hasPrevious = hasPreviousProp ?? contextIndex > 0
   const hasNext = hasNextProp ?? (contextIndex >= 0 && contextIndex < sortedContextData.length - 1)
   const currentIndex = currentIndexProp ?? (contextIndex >= 0 ? contextIndex + 1 : 0)
   const totalCount = totalCountProp ?? sortedContextData.length
-
-  const tokensTotal = day ? getEntryTokenTotal(day) : 0
-  const hasTokens = tokensTotal > 0
-
-  const modelData = useMemo(() => {
-    if (!day) return []
-
-    const map = new Map<
-      string,
-      {
-        provider: string
-        cost: number
-        tokens: number
-        input: number
-        output: number
-        cacheRead: number
-        cacheCreate: number
-        thinking: number
-        requests: number
-      }
-    >()
-
-    for (const mb of day.modelBreakdowns) {
-      const name = normalizeModelName(mb.modelName)
-      const provider = getModelProvider(mb.modelName)
-      const existing = map.get(name) ?? {
-        provider,
-        cost: 0,
-        tokens: 0,
-        input: 0,
-        output: 0,
-        cacheRead: 0,
-        cacheCreate: 0,
-        thinking: 0,
-        requests: 0,
-      }
-
-      existing.cost += mb.cost
-      existing.tokens +=
-        mb.inputTokens +
-        mb.outputTokens +
-        mb.cacheCreationTokens +
-        mb.cacheReadTokens +
-        mb.thinkingTokens
-      existing.input += mb.inputTokens
-      existing.output += mb.outputTokens
-      existing.cacheRead += mb.cacheReadTokens
-      existing.cacheCreate += mb.cacheCreationTokens
-      existing.thinking += mb.thinkingTokens
-      existing.requests += mb.requestCount
-
-      map.set(name, existing)
-    }
-
-    return Array.from(map.entries())
-      .map(([name, value]) => ({
-        name,
-        ...value,
-        costShare: day.totalCost > 0 ? (value.cost / day.totalCost) * 100 : 0,
-        tokenShare: tokensTotal > 0 ? (value.tokens / tokensTotal) * 100 : 0,
-        costPerMillion: toPerMillion(value.cost, value.tokens),
-        costPerRequest: toPerRequest(value.cost, value.requests),
-        tokensPerRequest: toPerRequest(value.tokens, value.requests),
-      }))
-      .sort((a, b) => b.cost - a.cost)
-  }, [day, tokensTotal])
-
-  const providerData = useMemo(() => {
-    const map = new Map<
-      string,
-      { cost: number; tokens: number; requests: number; activeModels: Set<string> }
-    >()
-
-    for (const model of modelData) {
-      const existing = map.get(model.provider) ?? {
-        cost: 0,
-        tokens: 0,
-        requests: 0,
-        activeModels: new Set<string>(),
-      }
-
-      existing.cost += model.cost
-      existing.tokens += model.tokens
-      existing.requests += model.requests
-      existing.activeModels.add(model.name)
-      map.set(model.provider, existing)
-    }
-
-    return Array.from(map.entries())
-      .map(([provider, value]) => ({
-        provider,
-        cost: value.cost,
-        tokens: value.tokens,
-        requests: value.requests,
-        activeModels: value.activeModels.size,
-        costShare: day && day.totalCost > 0 ? (value.cost / day.totalCost) * 100 : 0,
-      }))
-      .sort((a, b) => b.cost - a.cost)
-  }, [day, modelData])
-
-  if (!day) return null
-
-  const pieData = modelData.map((model) => ({ name: model.name, value: model.cost }))
-  const cacheRate = hasTokens ? (day.cacheReadTokens / tokensTotal) * 100 : 0
-  const avgTokensPerRequest = toPerRequest(tokensTotal, day.requestCount)
-  const avgCostPerRequest = toPerRequest(day.totalCost, day.requestCount)
-  const costPerMillion = toPerMillion(day.totalCost, tokensTotal)
-  const hasRequestCounts =
-    day.requestCount > 0 ||
-    day.modelBreakdowns.some((modelBreakdown) => modelBreakdown.requestCount > 0) ||
-    contextData.some((entry) => entry.requestCount > 0)
-  const costRanking =
-    [...contextData]
-      .sort((a, b) => b.totalCost - a.totalCost)
-      .findIndex((entry) => entry.date === day.date) + 1
-  const requestRanking = hasRequestCounts
-    ? [...contextData]
-        .sort((a, b) => b.requestCount - a.requestCount)
-        .findIndex((entry) => entry.date === day.date) + 1
-    : 0
-
-  const avgCost7 =
-    previousSeven.length > 0
-      ? previousSeven.reduce((sum, entry) => sum + entry.totalCost, 0) / previousSeven.length
-      : null
-  const avgRequests7 =
-    previousSeven.length > 0
-      ? previousSeven.reduce((sum, entry) => sum + entry.requestCount, 0) / previousSeven.length
-      : null
-  const avgTokens7 =
-    previousSeven.length > 0
-      ? previousSeven.reduce((sum, entry) => sum + getEntryTokenTotal(entry), 0) /
-        previousSeven.length
-      : null
-  const avgCostPerMillion7 =
-    previousSeven.length > 0
-      ? toPerMillion(
-          previousSeven.reduce((sum, entry) => sum + entry.totalCost, 0),
-          previousSeven.reduce((sum, entry) => sum + getEntryTokenTotal(entry), 0),
-        )
-      : null
-  const benchmarkWindowLabel = getBenchmarkWindowLabel(
-    previousSeven.length > 0 ? previousSeven.length : 7,
-    t(`drillDown.windowUnit.${periodKind}`),
-  )
-
-  const previousTokens = previousEntry ? getEntryTokenTotal(previousEntry) : null
-  const previousCostPerMillion = previousEntry
-    ? toPerMillion(previousEntry.totalCost, getEntryTokenTotal(previousEntry))
-    : null
-
-  const topCostModel = modelData[0] ?? null
-  const topRequestModel = hasRequestCounts
-    ? modelData.reduce(
-        (best, current) => (!best || current.requests > best.requests ? current : best),
-        null as (typeof modelData)[number] | null,
-      )
-    : null
-  const topTokenModel = modelData.reduce(
-    (best, current) => (!best || current.tokens > best.tokens ? current : best),
-    null as (typeof modelData)[number] | null,
-  )
-  const priciestPerMillionModel = modelData.reduce(
-    (best, current) => {
-      if (current.costPerMillion === null) return best
-      if (!best || best.costPerMillion === null || current.costPerMillion > best.costPerMillion) {
-        return current
-      }
-      return best
-    },
-    null as (typeof modelData)[number] | null,
-  )
-
-  const topThreeCostShare =
-    day.totalCost > 0
-      ? (modelData.slice(0, 3).reduce((sum, model) => sum + model.cost, 0) / day.totalCost) * 100
-      : 0
 
   const summaryCards = [
     { label: t('common.tokens'), value: <FormattedValue value={tokensTotal} type="tokens" /> },
@@ -374,104 +275,15 @@ export function DrillDownModal({
     },
   ]
 
-  const benchmarkCards = [
-    {
-      label: t('drillDown.costVsPrevious'),
-      primary: formatDeltaValue(
-        getDelta(day.totalCost, previousEntry?.totalCost ?? null),
-        formatCurrency,
-      ),
-      secondary: formatDeltaPercent(getDelta(day.totalCost, previousEntry?.totalCost ?? null)),
-    },
-    {
-      label: t('drillDown.tokensVsPrevious'),
-      primary: formatDeltaValue(getDelta(tokensTotal, previousTokens), formatTokens),
-      secondary: formatDeltaPercent(getDelta(tokensTotal, previousTokens)),
-    },
-    {
-      label: t('drillDown.requestsVsPrevious'),
-      primary: formatDeltaValue(
-        getDelta(day.requestCount, previousEntry?.requestCount ?? null),
-        (value) => formatNumber(Math.round(value)),
-      ),
-      secondary: formatDeltaPercent(
-        getDelta(day.requestCount, previousEntry?.requestCount ?? null),
-      ),
-    },
-    {
-      label: t('drillDown.costPerMillionVsAverageWindow', { window: benchmarkWindowLabel }),
-      primary: formatDeltaValue(
-        costPerMillion !== null ? getDelta(costPerMillion, avgCostPerMillion7) : null,
-        formatCurrency,
-      ),
-      secondary: avgCostPerMillion7 !== null ? formatCurrency(avgCostPerMillion7) : '–',
-    },
-    {
-      label: t('drillDown.costVsAverageWindow', { window: benchmarkWindowLabel }),
-      primary: formatDeltaValue(getDelta(day.totalCost, avgCost7), formatCurrency),
-      secondary: avgCost7 !== null ? formatCurrency(avgCost7) : '–',
-    },
-    {
-      label: t('drillDown.requestsVsAverageWindow', { window: benchmarkWindowLabel }),
-      primary: formatDeltaValue(getDelta(day.requestCount, avgRequests7), (value) =>
-        formatNumber(Math.round(value)),
-      ),
-      secondary: avgRequests7 !== null ? formatNumber(Math.round(avgRequests7)) : '–',
-    },
-    {
-      label: t('drillDown.tokensVsAverageWindow', { window: benchmarkWindowLabel }),
-      primary: formatDeltaValue(getDelta(tokensTotal, avgTokens7), formatTokens),
-      secondary: avgTokens7 !== null ? formatTokens(avgTokens7) : '–',
-    },
-    {
-      label: t('drillDown.costPerMillionVsPrevious'),
-      primary: formatDeltaValue(
-        costPerMillion !== null ? getDelta(costPerMillion, previousCostPerMillion) : null,
-        formatCurrency,
-      ),
-      secondary: previousCostPerMillion !== null ? formatCurrency(previousCostPerMillion) : '–',
-    },
-  ]
-
-  const tokenSegments = [
-    {
-      id: 'cacheRead',
-      value: day.cacheReadTokens,
-      color: 'hsl(160, 50%, 42%)',
-      label: t('drillDown.tokenSegments.cacheRead'),
-    },
-    {
-      id: 'cacheWrite',
-      value: day.cacheCreationTokens,
-      color: 'hsl(262, 60%, 55%)',
-      label: t('drillDown.tokenSegments.cacheWrite'),
-    },
-    { id: 'input', value: day.inputTokens, color: 'hsl(340, 55%, 52%)', label: t('common.input') },
-    {
-      id: 'output',
-      value: day.outputTokens,
-      color: 'hsl(35, 80%, 52%)',
-      label: t('common.output'),
-    },
-    {
-      id: 'thinking',
-      value: day.thinkingTokens,
-      color: 'hsl(12, 78%, 56%)',
-      label: t('common.thinking'),
-    },
-  ] as const
-
-  const tokenDistributionSegments = hasTokens
-    ? tokenSegments.map((segment) => {
-        const share = Number(((segment.value / tokensTotal) * 100).toFixed(3))
-        return {
-          id: segment.id,
-          width: share,
-          color: segment.color,
-          label: `${segment.label}: ${formatTokens(segment.value)} (${share.toFixed(1)}%)`,
-        }
-      })
-    : []
+  const tokenDistributionSegments = rawTokenDistributionSegments.map((segment) => {
+    const label = t(getTokenSegmentLabelKey(segment.id))
+    return {
+      id: segment.id,
+      width: segment.width,
+      color: segment.color,
+      label: `${label}: ${formatTokens(segment.value)} (${segment.width.toFixed(1)}%)`,
+    }
+  })
 
   const topModelCards = [
     {
@@ -773,23 +585,33 @@ export function DrillDownModal({
 
                   <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-5">
                     <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-                      <div className="text-muted-foreground">{t('common.input')}</div>
+                      <div className="text-muted-foreground">
+                        {t(getTokenSegmentLabelKey('input'))}
+                      </div>
                       <div className="mt-1 font-mono">{formatTokens(model.input)}</div>
                     </div>
                     <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-                      <div className="text-muted-foreground">{t('common.output')}</div>
+                      <div className="text-muted-foreground">
+                        {t(getTokenSegmentLabelKey('output'))}
+                      </div>
                       <div className="mt-1 font-mono">{formatTokens(model.output)}</div>
                     </div>
                     <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-                      <div className="text-muted-foreground">{t('common.cacheRead')}</div>
+                      <div className="text-muted-foreground">
+                        {t(getTokenSegmentLabelKey('cacheRead'))}
+                      </div>
                       <div className="mt-1 font-mono">{formatTokens(model.cacheRead)}</div>
                     </div>
                     <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-                      <div className="text-muted-foreground">{t('common.cacheWrite')}</div>
+                      <div className="text-muted-foreground">
+                        {t(getTokenSegmentLabelKey('cacheWrite'))}
+                      </div>
                       <div className="mt-1 font-mono">{formatTokens(model.cacheCreate)}</div>
                     </div>
                     <div className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-                      <div className="text-muted-foreground">{t('common.thinking')}</div>
+                      <div className="text-muted-foreground">
+                        {t(getTokenSegmentLabelKey('thinking'))}
+                      </div>
                       <div className="mt-1 font-mono">{formatTokens(model.thinking)}</div>
                     </div>
                   </div>
@@ -871,7 +693,7 @@ export function DrillDownModal({
                       className="h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: segment.color }}
                     />
-                    {segment.label}
+                    {t(getTokenSegmentLabelKey(segment.id))}
                   </div>
                   <div className="mt-1 font-mono">{formatTokens(segment.value)}</div>
                   <div className="mt-1 text-[11px] text-muted-foreground">

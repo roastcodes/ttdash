@@ -3,6 +3,7 @@
 import { screen } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FilterBar } from '@/components/layout/FilterBar'
+import { resolveDashboardPresetRange } from '@/lib/dashboard-preferences'
 import { initI18n } from '@/lib/i18n'
 import { buildFilterBarProps, renderFilterBar } from './filter-bar-test-helpers'
 
@@ -21,9 +22,10 @@ describe('FilterBar preset and chip states', () => {
   })
 
   it('derives preset highlighting from the actual date range and clears it for custom ranges or month filters', () => {
+    const sevenDayRange = resolveDashboardPresetRange('7d', new Date())
+
     const { rerender } = renderFilterBar({
-      startDate: '2026-03-31',
-      endDate: '2026-04-06',
+      ...sevenDayRange,
     })
 
     expect(screen.getByRole('button', { name: '7D' })).toHaveClass('bg-primary')
@@ -61,8 +63,7 @@ describe('FilterBar preset and chip states', () => {
       selectedProviders: ['OpenAI'],
       allModels: ['Claude Sonnet 4.5', 'GPT-5.4'],
       selectedModels: ['GPT-5.4'],
-      startDate: '2026-03-31',
-      endDate: '2026-04-06',
+      ...resolveDashboardPresetRange('7d', new Date()),
     })
 
     expect(screen.getByRole('button', { name: '7D' })).toHaveAttribute('aria-pressed', 'true')
@@ -77,6 +78,19 @@ describe('FilterBar preset and chip states', () => {
       'aria-pressed',
       'false',
     )
+  })
+
+  it('renders quick presets in the shared display order', () => {
+    renderFilterBar()
+
+    const presetLabels = screen
+      .getAllByRole('button')
+      .map((button) => button.textContent)
+      .filter((label): label is string =>
+        ['7D', '30D', 'Month', 'Year', 'All'].includes(label ?? ''),
+      )
+
+    expect(presetLabels).toEqual(['7D', '30D', 'Month', 'Year', 'All'])
   })
 
   it('marks unfiltered provider and model chips as included instead of selected', () => {

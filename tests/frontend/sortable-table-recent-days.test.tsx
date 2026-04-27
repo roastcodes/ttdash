@@ -78,7 +78,50 @@ describe('sortable recent-days table', () => {
 
     fireEvent.click(within(costHeader).getByRole('button', { name: /^cost$/i }))
     expect(costHeader).toHaveAttribute('aria-sort', 'ascending')
-  }, 15_000)
+  })
+
+  it('keeps rapid same-header sort toggles atomic', () => {
+    renderWithTooltip(
+      <RecentDays
+        data={[
+          {
+            date: '2026-04-02',
+            totalCost: 2,
+            totalTokens: 200,
+            inputTokens: 100,
+            outputTokens: 100,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            requestCount: 2,
+            modelsUsed: ['GPT-5.4'],
+            modelBreakdowns: [],
+          },
+          {
+            date: '2026-04-01',
+            totalCost: 5,
+            totalTokens: 500,
+            inputTokens: 250,
+            outputTokens: 250,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            thinkingTokens: 0,
+            requestCount: 4,
+            modelsUsed: ['Sonnet 4.6'],
+            modelBreakdowns: [],
+          },
+        ]}
+      />,
+    )
+
+    const costHeader = screen.getByRole('columnheader', { name: /^cost$/i })
+    const costButton = within(costHeader).getByRole('button', { name: /^cost$/i })
+
+    fireEvent.click(costButton)
+    fireEvent.click(costButton)
+
+    expect(costHeader).toHaveAttribute('aria-sort', 'ascending')
+  })
 
   it('supports keyboard row activation for clickable recent-days rows', () => {
     const onClickDay = vi.fn()

@@ -1,73 +1,24 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import type { DailyUsage, DashboardDefaultFilters, DashboardDatePreset, ViewMode } from '@/types'
-import { DEFAULT_DASHBOARD_FILTERS } from '@/lib/dashboard-preferences'
+import { DEFAULT_DASHBOARD_FILTERS, resolveDashboardPresetRange } from '@/lib/dashboard-preferences'
 import {
-  filterByDateRange,
-  filterByModels,
-  filterByMonth,
-  sortByDate,
-  getAvailableMonths,
-  getDateRange,
-  aggregateToDailyFormat,
-  filterByProviders,
-} from '@/lib/data-transforms'
-import { toLocalDateStr } from '@/lib/formatters'
-import { getUniqueModels, getUniqueProviders } from '@/lib/model-utils'
-
-function resolvePresetRange(preset: DashboardDatePreset) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const fmt = toLocalDateStr
-
-  switch (preset) {
-    case '7d': {
-      const start = new Date(today)
-      start.setDate(today.getDate() - 6)
-      return { startDate: fmt(start), endDate: fmt(today) }
-    }
-    case '30d': {
-      const start = new Date(today)
-      start.setDate(today.getDate() - 29)
-      return { startDate: fmt(start), endDate: fmt(today) }
-    }
-    case 'month': {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1)
-      return { startDate: fmt(start), endDate: fmt(today) }
-    }
-    case 'year': {
-      const start = new Date(today.getFullYear(), 0, 1)
-      return { startDate: fmt(start), endDate: fmt(today) }
-    }
-    case 'all':
-    default:
-      return { startDate: undefined, endDate: undefined }
-  }
-}
-
-function sanitizeDefaultFilters(data: DailyUsage[], defaultFilters: DashboardDefaultFilters) {
-  const providers = new Set(getUniqueProviders(data.map((entry) => entry.modelsUsed)))
-  const models = new Set(getUniqueModels(data.map((entry) => entry.modelsUsed)))
-
-  return {
-    viewMode: defaultFilters.viewMode,
-    datePreset: defaultFilters.datePreset,
-    providers: defaultFilters.providers.filter((provider) => providers.has(provider)),
-    models: defaultFilters.models.filter((model) => models.has(model)),
-  }
-}
+  deriveDashboardFilterData,
+  sanitizeDashboardDefaultFilters,
+  sortDashboardUsageData,
+} from '@/lib/dashboard-filter-data'
 
 /** Manages dashboard filters and derives the filtered usage slices. */
 export function useDashboardFilters(
   data: DailyUsage[],
   defaultFilters: DashboardDefaultFilters = DEFAULT_DASHBOARD_FILTERS,
 ) {
-  const sortedData = useMemo(() => sortByDate(data), [data])
+  const sortedData = useMemo(() => sortDashboardUsageData(data), [data])
   const resolvedDefaults = useMemo(
-    () => sanitizeDefaultFilters(sortedData, defaultFilters),
+    () => sanitizeDashboardDefaultFilters(sortedData, defaultFilters),
     [sortedData, defaultFilters],
   )
   const defaultRange = useMemo(
-    () => resolvePresetRange(resolvedDefaults.datePreset),
+    () => resolveDashboardPresetRange(resolvedDefaults.datePreset),
     [resolvedDefaults.datePreset],
   )
   const defaultFiltersKey = useMemo(() => JSON.stringify(resolvedDefaults), [resolvedDefaults])
@@ -85,8 +36,8 @@ export function useDashboardFilters(
 
   const applyDefaultFilters = useCallback(
     (nextDefaultFilters: DashboardDefaultFilters = defaultFilters) => {
-      const sanitizedDefaults = sanitizeDefaultFilters(sortedData, nextDefaultFilters)
-      const nextRange = resolvePresetRange(sanitizedDefaults.datePreset)
+      const sanitizedDefaults = sanitizeDashboardDefaultFilters(sortedData, nextDefaultFilters)
+      const nextRange = resolveDashboardPresetRange(sanitizedDefaults.datePreset)
       userModifiedRef.current = false
       appliedDefaultsKeyRef.current = JSON.stringify(sanitizedDefaults)
       setViewModeState(sanitizedDefaults.viewMode)
@@ -163,49 +114,35 @@ export function useDashboardFilters(
     applyDefaultFilters()
   }, [applyDefaultFilters])
 
-  const applyPreset = useCallback((preset: string) => {
+  const applyPreset = useCallback((preset: DashboardDatePreset) => {
     userModifiedRef.current = true
     setSelectedMonthState(null)
-    const nextRange = resolvePresetRange(preset as DashboardDatePreset)
+    const nextRange = resolveDashboardPresetRange(preset)
     setStartDateState(nextRange.startDate)
     setEndDateState(nextRange.endDate)
   }, [])
 
-  const preProviderFilteredData = useMemo(() => {
-    let result = sortedData
-    result = filterByDateRange(result, startDateState, endDateState)
-    result = filterByMonth(result, selectedMonthState)
-    return result
-  }, [sortedData, startDateState, endDateState, selectedMonthState])
-
-  const preModelFilteredData = useMemo(() => {
-    let result = preProviderFilteredData
-    result = filterByProviders(result, selectedProvidersState)
-    return result
-  }, [preProviderFilteredData, selectedProvidersState])
-
-  const filteredDailyData = useMemo(() => {
-    let result = preModelFilteredData
-    result = filterByModels(result, selectedModelsState)
-    return result
-  }, [preModelFilteredData, selectedModelsState])
-
-  const filteredData = useMemo(() => {
-    let result = filteredDailyData
-    result = aggregateToDailyFormat(result, viewModeState)
-    return result
-  }, [filteredDailyData, viewModeState])
-
-  const availableMonths = useMemo(() => getAvailableMonths(sortedData), [sortedData])
-  const availableProviders = useMemo(
-    () => getUniqueProviders(preProviderFilteredData.map((d) => d.modelsUsed)),
-    [preProviderFilteredData],
+  const filterData = useMemo(
+    () =>
+      deriveDashboardFilterData({
+        sortedData,
+        viewMode: viewModeState,
+        selectedMonth: selectedMonthState,
+        selectedProviders: selectedProvidersState,
+        selectedModels: selectedModelsState,
+        startDate: startDateState,
+        endDate: endDateState,
+      }),
+    [
+      sortedData,
+      viewModeState,
+      selectedMonthState,
+      selectedProvidersState,
+      selectedModelsState,
+      startDateState,
+      endDateState,
+    ],
   )
-  const availableModels = useMemo(
-    () => getUniqueModels(preModelFilteredData.map((d) => d.modelsUsed)),
-    [preModelFilteredData],
-  )
-  const dateRange = useMemo(() => getDateRange(filteredDailyData), [filteredDailyData])
 
   return {
     viewMode: viewModeState,
@@ -225,11 +162,11 @@ export function useDashboardFilters(
     resetAll,
     applyDefaultFilters,
     applyPreset,
-    filteredDailyData,
-    filteredData,
-    availableMonths,
-    availableProviders,
-    availableModels,
-    dateRange,
+    filteredDailyData: filterData.filteredDailyData,
+    filteredData: filterData.filteredData,
+    availableMonths: filterData.availableMonths,
+    availableProviders: filterData.availableProviders,
+    availableModels: filterData.availableModels,
+    dateRange: filterData.dateRange,
   }
 }

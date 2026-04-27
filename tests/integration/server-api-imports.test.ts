@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { getDefaultDashboardSectionOrder } from '../../shared/app-settings.js'
 import { fetchTrusted } from './server-test-helpers'
 import { createApiSharedServer, sampleUsage } from './server-api-test-helpers'
 
@@ -50,7 +51,49 @@ describe('local server API imports', () => {
       },
     )
     expect(settingsImportResponse.status).toBe(200)
+    expect(await settingsImportResponse.json()).toMatchObject({
+      language: 'de',
+      theme: 'light',
+      reducedMotionPreference: 'never',
+      providerLimits: {
+        Anthropic: {
+          hasSubscription: true,
+          subscriptionPrice: 21.5,
+          monthlyLimit: 300.11,
+        },
+      },
+      defaultFilters: {
+        viewMode: 'yearly',
+        datePreset: 'year',
+        providers: ['Anthropic'],
+        models: ['Claude Sonnet 4.5'],
+      },
+      sectionVisibility: {
+        tables: false,
+        advancedAnalysis: false,
+        insights: true,
+      },
+      sectionOrder: [
+        'tables',
+        'metrics',
+        'insights',
+        ...getDefaultDashboardSectionOrder().filter(
+          (sectionId) => !['tables', 'metrics', 'insights'].includes(sectionId),
+        ),
+      ],
+      lastLoadedAt: '2026-04-01T12:30:00.000Z',
+      lastLoadSource: 'file',
+      cliAutoLoadActive: false,
+    })
 
+    const equivalentImportedDay = {
+      ...sampleUsage.daily[0],
+      modelsUsed: sampleUsage.daily[0].modelsUsed.map((modelName) => ` ${modelName} `),
+      modelBreakdowns: sampleUsage.daily[0].modelBreakdowns.map((entry) => ({
+        ...entry,
+        modelName: ` ${entry.modelName} `,
+      })),
+    }
     const newImportedDay = { ...sampleUsage.daily[0], date: '2026-03-31' }
     const usageImportResponse = await fetchTrusted(`${sharedServer.baseUrl}/api/usage/import`, {
       method: 'POST',
@@ -60,7 +103,7 @@ describe('local server API imports', () => {
         version: 1,
         data: {
           daily: [
-            sampleUsage.daily[0],
+            equivalentImportedDay,
             {
               ...sampleUsage.daily[1],
               totalCost: 999,

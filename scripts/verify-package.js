@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const http = require('http');
+const crypto = require('crypto');
 const { execFileSync, spawn } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -100,16 +101,32 @@ function getFreePort() {
   });
 }
 
-async function waitForServer(url, child) {
+function createPackageSmokeAuth() {
+  const token = `ttdash-package-smoke-${crypto.randomBytes(32).toString('base64url')}`;
+  return {
+    token,
+    authHeader: `Bearer ${token}`,
+  };
+}
+
+function authorizationHeaders(authHeader) {
+  return authHeader ? { Authorization: authHeader } : undefined;
+}
+
+async function waitForServer(url, child, authHeader, getOutput) {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < 15000) {
     if (child.exitCode !== null) {
-      throw new Error(`Packaged TTDash exited before startup completed (exit ${child.exitCode}).`);
+      throw new Error(
+        `Packaged TTDash exited before startup completed (exit ${child.exitCode}).\n${getOutput()}`,
+      );
     }
 
     try {
-      const response = await fetch(`${url}/api/usage`);
+      const response = await fetch(`${url}/api/usage`, {
+        headers: authorizationHeaders(authHeader),
+      });
       if (response.ok) {
         return;
       }
@@ -120,7 +137,7 @@ async function waitForServer(url, child) {
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
 
-  throw new Error('Timed out waiting for packaged TTDash to start.');
+  throw new Error(`Timed out waiting for packaged TTDash to start.\n${getOutput()}`);
 }
 
 function waitForChildClose(child, timeoutMs) {
@@ -251,6 +268,7 @@ async function main() {
 
   const port = await getFreePort();
   const url = `http://127.0.0.1:${port}`;
+  const { token: localAuthToken, authHeader } = createPackageSmokeAuth();
   const child = spawn(installedCliPath, ['--no-open', '--port', String(port)], {
     cwd: installDir,
     env: {
@@ -259,6 +277,7 @@ async function main() {
       NO_OPEN_BROWSER: '1',
       HOST: '127.0.0.1',
       PORT: String(port),
+      TTDASH_LOCAL_AUTH_TOKEN: localAuthToken,
       XDG_CACHE_HOME: path.join(appDataRoot, 'cache'),
       XDG_CONFIG_HOME: path.join(appDataRoot, 'config'),
       XDG_DATA_HOME: path.join(appDataRoot, 'data'),
@@ -275,8 +294,10 @@ async function main() {
   });
 
   try {
-    await waitForServer(url, child);
-    const usageResponse = await fetch(`${url}/api/usage`);
+    await waitForServer(url, child, authHeader, () => output);
+    const usageResponse = await fetch(`${url}/api/usage`, {
+      headers: authorizationHeaders(authHeader),
+    });
     if (!usageResponse.ok) {
       throw new Error(`Packaged server returned ${usageResponse.status} from /api/usage.`);
     }

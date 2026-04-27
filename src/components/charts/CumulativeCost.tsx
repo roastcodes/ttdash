@@ -20,8 +20,7 @@ import {
 } from './chart-theme'
 import { coerceNumber, formatCurrency, formatDateAxis } from '@/lib/formatters'
 import { CHART_HELP } from '@/lib/help-content'
-import type { CurrentMonthForecast } from '@/lib/calculations'
-import type { ChartDataPoint } from '@/types'
+import type { ChartDataPoint, CurrentMonthForecast } from '@/types'
 
 interface CumulativeCostProps {
   data: ChartDataPoint[]

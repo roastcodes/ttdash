@@ -58,6 +58,8 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
   - keyboard/accessibility
   - motion/reveal behavior
 - For large server helper or integration suites, group tests by subsystem so Vitest can schedule them more efficiently.
+- Keep background-process integration files focused by behavior; the background Vitest project intentionally uses a small worker cap instead of one serial catch-all file or unbounded process fan-out.
+- Keep Playwright files grouped by end-to-end journey, such as load/upload, forecast/filter interaction, settings/backups, reporting, and command palette behavior. Share authentication, server reset, seeding, and download helpers through `tests/e2e/helpers.ts` instead of creating new browser catch-all files.
 
 ## Choosing the Right Layer
 
@@ -68,6 +70,8 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
 
 Choose the narrowest layer that can still falsify the behavior. Do not promote a test to Playwright if the same behavior can be proven in `jsdom` or with server integration.
 
+For `tests/architecture`, prefer the shared source graph helper for simple file, naming, placement, and direct import rules over `src/**`. Keep ArchUnit for higher-level architecture models such as feature-slice diagrams where its abstraction is worth the extra scan cost.
+
 ## Real Processes vs Test Doubles
 
 - Prefer injected test doubles such as fake children or `spawnImpl` hooks for timeout, stderr/stdout, and process-lifecycle policy.
@@ -77,6 +81,8 @@ Choose the narrowest layer that can still falsify the behavior. Do not promote a
   - CLI startup and background coordination
   - cross-process locking semantics
 - If a test needs a real subprocess, isolate it in its own focused file whenever possible.
+- For subprocess concurrency tests, prefer deterministic readiness and release signals over fixed sleeps so the test waits for the real state transition, not an assumed delay.
+- Every integration helper that starts a server or CLI process must also bound startup, HTTP probes, shutdown, and cleanup; hanging helpers should fail the test and terminate owned processes instead of waiting forever.
 
 ## Hotspot Rules
 
@@ -87,6 +93,21 @@ Choose the narrowest layer that can still falsify the behavior. Do not promote a
   - chart appearance vs keyboard accessibility
 - Reuse the smallest fixture that still proves the behavior.
 - Keep deep regression tests separate from baseline component behavior so hot paths stay readable and cheap to run.
+
+## Coverage Scope
+
+`npm run test:unit:coverage` reports product-runtime coverage. The configured coverage scope intentionally includes frontend runtime modules, the local server runtime, shared runtime contracts, and `usage-normalizer.js` instead of only the historically high-signal frontend subset.
+
+The coverage and timing commands use explicit `dot` and `junit` Vitest reporters. Keep those reporters on both scripts so non-interactive gates emit compact progress and do not depend on silent reporter paths.
+
+The global thresholds are ratchets for that broader denominator:
+
+- Statements: `70`
+- Branches: `60`
+- Functions: `70`
+- Lines: `70`
+
+Some executable entry and orchestration files are expected to stay lower than focused pure modules because subprocess-spawned CLI/server paths are proven by integration, background, and Playwright tests. Treat those gaps as prioritization signals for future focused tests, not as a reason to remove the files from the product-runtime coverage denominator.
 
 ## Critical Coverage Targets
 
@@ -113,6 +134,10 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 - Dependency graph gate: `npm run check:deps`
 - Coverage-only unit/integration gate: `npm run test:unit:coverage`
 - Playwright only: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`
+
+## Architecture Guardrails
+
+- Keep hook files under `src/hooks/` reachable from the frontend app entrypoint; `npm run test:architecture` fails on unused production hooks so dead hook helpers do not silently remain at `0%` coverage.
 - Timing diagnostics: `npm run test:timings`
 
 `npm run test:timings` generates a fresh Vitest JUnit report and prints the slowest suites and tests. Use it after larger test additions or refactors to catch new hotspots early.

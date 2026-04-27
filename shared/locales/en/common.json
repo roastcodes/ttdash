@@ -21,7 +21,12 @@
     "autoLoadActive": "Auto-load on start",
     "autoLoadAt": "Automatically loaded on start: {{time}}",
     "versionLinkTitle": "Open TTDash v{{version}} on npm",
-    "streak": "{{count}}D streak"
+    "streak": "{{count}}D streak",
+    "actionGroups": {
+      "loadData": "Load data",
+      "useExport": "Use & export",
+      "maintenance": "Maintenance"
+    }
   },
   "emptyState": {
     "description": "Upload a `toktrack` or legacy JSON file, or start local auto-import with local `toktrack`, `bunx {{toktrackSpec}} daily --json`, or `npx --yes {{toktrackSpec}} daily --json`.",
@@ -119,6 +124,12 @@
     "modelsActive": "{{count}} models active",
     "dateFilterActive": "Date filter active",
     "clearDate": "Clear {{label}}",
+    "groups": {
+      "time": "Time",
+      "dateRange": "Date range",
+      "providers": "Providers",
+      "models": "Models"
+    },
     "presets": {
       "7d": "7D",
       "30d": "30D",
@@ -747,6 +758,9 @@
     "empty": "No command found.",
     "groups": {
       "actions": "Actions",
+      "loadData": "Load data",
+      "exports": "Exports",
+      "maintenance": "Maintenance",
       "filters": "Filters & View",
       "navigation": "Navigation",
       "view": "View",
@@ -919,6 +933,25 @@
     "modal": {
       "title": "Settings",
       "description": "Manage app backups, stored data, and provider limits in one place.",
+      "tabs": {
+        "label": "Settings areas",
+        "basics": {
+          "label": "Basics",
+          "description": "Language, motion, and default filters for everyday dashboard use."
+        },
+        "layout": {
+          "label": "Layout",
+          "description": "Control which dashboard sections are visible and how they are ordered."
+        },
+        "limits": {
+          "label": "Limits",
+          "description": "Configure provider subscriptions and monthly budget limits."
+        },
+        "maintenance": {
+          "label": "Maintenance",
+          "description": "Check data status, backups, imports, exports, and toktrack version state."
+        }
+      },
       "languageTitle": "Dashboard language",
       "languageDescription": "Choose the language used in the dashboard UI, dialogs, and reports.",
       "dataStatus": "Data status",

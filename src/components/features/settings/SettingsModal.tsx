@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
@@ -10,357 +10,156 @@ import {
 import { Button } from '@/components/ui/button'
 import { InfoHeading } from '@/components/ui/info-heading'
 import { FEATURE_HELP } from '@/lib/help-content'
-import { formatDateTimeFull } from '@/lib/formatters'
-import { SUPPORTED_LANGUAGES } from '@/lib/i18n'
-import { getProviderBadgeClasses } from '@/lib/model-utils'
-import { DEFAULT_PROVIDER_LIMIT_CONFIG, syncProviderLimits } from '@/lib/provider-limits'
-import {
-  DASHBOARD_SECTION_DEFINITION_MAP,
-  DASHBOARD_DATE_PRESETS,
-  DASHBOARD_VIEW_MODES,
-  DEFAULT_DASHBOARD_FILTERS,
-  getDefaultDashboardSectionOrder,
-  getDefaultDashboardSectionVisibility,
-} from '@/lib/dashboard-preferences'
+import type { DashboardSettingsModalViewModel } from '@/types/dashboard-view-model'
 import { cn } from '@/lib/cn'
-import { fetchToktrackVersionStatus } from '@/lib/api'
 import {
-  ArrowDown,
-  ArrowUp,
-  Database,
-  Download,
-  Eye,
-  Filter,
-  GripVertical,
-  LayoutPanelTop,
-  Languages,
-  Settings2,
-  Upload,
-} from 'lucide-react'
-import type {
-  AppLanguage,
-  DashboardDefaultFilters,
-  DashboardSectionOrder,
-  DashboardSectionVisibility,
-  DataLoadSource,
-  ProviderLimits,
-  ReducedMotionPreference,
-  ToktrackVersionStatus,
-} from '@/types'
-import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
-import { TOKTRACK_VERSION } from '@/lib/toktrack-version'
+  SettingsBackupsSection,
+  SettingsDefaultsSection,
+  SettingsLanguageSection,
+  SettingsMotionSection,
+  SettingsProviderLimitsSection,
+  SettingsSectionsSection,
+  SettingsStatusSection,
+  SettingsToktrackVersionSection,
+} from './SettingsModalSections'
+import { useSettingsModalDraft } from './use-settings-modal-draft'
+import { useSettingsModalVersionStatus } from './use-settings-modal-version-status'
 
-interface SettingsModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  language: AppLanguage
-  reducedMotionPreference: ReducedMotionPreference
-  limitProviders: string[]
-  filterProviders: string[]
-  models: string[]
-  limits: ProviderLimits
-  defaultFilters: DashboardDefaultFilters
-  sectionVisibility: DashboardSectionVisibility
-  sectionOrder: DashboardSectionOrder
-  lastLoadedAt?: string | null
-  lastLoadSource?: DataLoadSource
-  cliAutoLoadActive?: boolean
-  hasData: boolean
-  onSaveSettings: (settings: {
-    language: AppLanguage
-    reducedMotionPreference: ReducedMotionPreference
-    providerLimits: ProviderLimits
-    defaultFilters: DashboardDefaultFilters
-    sectionVisibility: DashboardSectionVisibility
-    sectionOrder: DashboardSectionOrder
-  }) => Promise<void> | void
-  onExportSettings: () => void
-  onImportSettings: () => void
-  onExportData: () => void
-  onImportData: () => void
-  settingsBusy?: boolean
-  dataBusy?: boolean
+type SettingsModalProps = DashboardSettingsModalViewModel
+
+type SettingsModalTabId = 'basics' | 'layout' | 'limits' | 'maintenance'
+
+const SETTINGS_MODAL_TABS: Array<{
+  id: SettingsModalTabId
+  labelKey: string
+  descriptionKey: string
+}> = [
+  {
+    id: 'basics',
+    labelKey: 'settings.modal.tabs.basics.label',
+    descriptionKey: 'settings.modal.tabs.basics.description',
+  },
+  {
+    id: 'layout',
+    labelKey: 'settings.modal.tabs.layout.label',
+    descriptionKey: 'settings.modal.tabs.layout.description',
+  },
+  {
+    id: 'limits',
+    labelKey: 'settings.modal.tabs.limits.label',
+    descriptionKey: 'settings.modal.tabs.limits.description',
+  },
+  {
+    id: 'maintenance',
+    labelKey: 'settings.modal.tabs.maintenance.label',
+    descriptionKey: 'settings.modal.tabs.maintenance.description',
+  },
+]
+
+function getSettingsTabPanelId(tabId: SettingsModalTabId) {
+  return `settings-tab-panel-${tabId}`
 }
 
-type ToktrackVersionState = ToktrackVersionStatus & {
-  isLoading: boolean
-}
-
-const DEFAULT_TOKTRACK_VERSION_STATE: ToktrackVersionState = {
-  configuredVersion: TOKTRACK_VERSION,
-  latestVersion: null,
-  isLatest: null,
-  lookupStatus: 'ok',
-  isLoading: true,
-}
-
-function parseNumberInput(value: string): number {
-  const normalized = value.replace(',', '.').trim()
-  if (!normalized) return 0
-  const parsed = Number.parseFloat(normalized)
-  if (!Number.isFinite(parsed)) return 0
-  return Math.max(0, Number(parsed.toFixed(2)))
-}
-
-function toggleSelection(values: string[], value: string) {
-  return values.includes(value) ? values.filter((entry) => entry !== value) : [...values, value]
-}
-
-function normalizeSelection(values: string[]) {
-  return [...new Set(values.map((value) => value.trim()).filter(Boolean))].sort((left, right) =>
-    left.localeCompare(right),
-  )
-}
-
-/** Builds the editable provider-limit state used by the settings dialog. */
-export function buildProviderLimitsState(
-  providers: string[],
-  draft: ProviderLimits,
-): ProviderLimits {
-  const nextProviderLimits: ProviderLimits = {}
-
-  for (const provider of providers) {
-    nextProviderLimits[provider] = draft[provider] ?? { ...DEFAULT_PROVIDER_LIMIT_CONFIG }
-  }
-
-  return nextProviderLimits
-}
-
-function moveSection(
-  order: DashboardSectionOrder,
-  sectionId: DashboardSectionOrder[number],
-  direction: -1 | 1,
-) {
-  const currentIndex = order.indexOf(sectionId)
-  const targetIndex = currentIndex + direction
-
-  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= order.length) {
-    return order
-  }
-
-  const next = [...order]
-  const [moved] = next.splice(currentIndex, 1)
-  if (!moved) return order
-  next.splice(targetIndex, 0, moved)
-  return next
-}
-
-/** Reorders dashboard sections by moving one item to a target index. */
-export function reorderSections(
-  order: DashboardSectionOrder,
-  sourceId: DashboardSectionOrder[number],
-  targetId: DashboardSectionOrder[number],
-) {
-  if (sourceId === targetId) return order
-
-  const sourceIndex = order.indexOf(sourceId)
-  const targetIndex = order.indexOf(targetId)
-
-  if (sourceIndex < 0 || targetIndex < 0) {
-    return order
-  }
-
-  const next = [...order]
-  const [moved] = next.splice(sourceIndex, 1)
-  if (!moved) return order
-  const insertionIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
-  next.splice(insertionIndex, 0, moved)
-  return next
+function getSettingsTabButtonId(tabId: SettingsModalTabId) {
+  return `settings-tab-${tabId}`
 }
 
 /** Renders the settings dialog for dashboard preferences and imports. */
-export function SettingsModal({
-  open,
-  onOpenChange,
-  language,
-  reducedMotionPreference,
-  limitProviders,
-  filterProviders,
-  models,
-  limits,
-  defaultFilters,
-  sectionVisibility,
-  sectionOrder,
-  lastLoadedAt,
-  lastLoadSource,
-  cliAutoLoadActive = false,
-  hasData,
-  onSaveSettings,
-  onExportSettings,
-  onImportSettings,
-  onExportData,
-  onImportData,
-  settingsBusy = false,
-  dataBusy = false,
-}: SettingsModalProps) {
-  const { t } = useTranslation()
-  const [languageDraft, setLanguageDraft] = useState<AppLanguage>(language)
-  const [reducedMotionPreferenceDraft, setReducedMotionPreferenceDraft] =
-    useState<ReducedMotionPreference>(reducedMotionPreference)
-  const [limitDraft, setLimitDraft] = useState<ProviderLimits>(() =>
-    syncProviderLimits(limitProviders, limits),
-  )
-  const [defaultFilterDraft, setDefaultFilterDraft] =
-    useState<DashboardDefaultFilters>(defaultFilters)
-  const [sectionVisibilityDraft, setSectionVisibilityDraft] =
-    useState<DashboardSectionVisibility>(sectionVisibility)
-  const [sectionOrderDraft, setSectionOrderDraft] = useState<DashboardSectionOrder>(sectionOrder)
-  const [draggedSectionId, setDraggedSectionId] = useState<DashboardSectionOrder[number] | null>(
-    null,
-  )
-  const [dragOverSectionId, setDragOverSectionId] = useState<DashboardSectionOrder[number] | null>(
-    null,
-  )
-  const [toktrackVersionState, setToktrackVersionState] = useState<ToktrackVersionState>(
-    DEFAULT_TOKTRACK_VERSION_STATE,
-  )
-  const titleRef = useRef<HTMLHeadingElement | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-
-    setLanguageDraft(language)
-    setReducedMotionPreferenceDraft(reducedMotionPreference)
-    setLimitDraft(syncProviderLimits(limitProviders, limits))
-    setDefaultFilterDraft(defaultFilters)
-    setSectionVisibilityDraft(sectionVisibility)
-    setSectionOrderDraft(sectionOrder)
-    setDraggedSectionId(null)
-    setDragOverSectionId(null)
-  }, [
+export function SettingsModal(props: SettingsModalProps) {
+  const {
     open,
-    language,
-    reducedMotionPreference,
-    limitProviders,
-    limits,
-    defaultFilters,
-    sectionVisibility,
-    sectionOrder,
-  ])
+    onOpenChange,
+    lastLoadedAt,
+    lastLoadSource,
+    cliAutoLoadActive = false,
+    hasData,
+    onExportSettings,
+    onImportSettings,
+    onExportData,
+    onImportData,
+    settingsBusy = false,
+    dataBusy = false,
+  } = props
+  const { t } = useTranslation()
+  const titleRef = useRef<HTMLHeadingElement | null>(null)
+  const tabRefs = useRef<Record<SettingsModalTabId, HTMLButtonElement | null>>({
+    basics: null,
+    layout: null,
+    limits: null,
+    maintenance: null,
+  })
+  const [activeTab, setActiveTab] = useState<SettingsModalTabId>('basics')
+  const draft = useSettingsModalDraft(props)
+  const versionStatus = useSettingsModalVersionStatus()
+  const activeTabDefinition =
+    SETTINGS_MODAL_TABS.find((tab) => tab.id === activeTab) ?? SETTINGS_MODAL_TABS[0]!
 
   useEffect(() => {
-    if (!open) return
-
-    let cancelled = false
-    setToktrackVersionState(DEFAULT_TOKTRACK_VERSION_STATE)
-
-    void fetchToktrackVersionStatus()
-      .then((status) => {
-        if (cancelled) return
-        setToktrackVersionState({
-          ...status,
-          configuredVersion: status.configuredVersion || TOKTRACK_VERSION,
-          isLoading: false,
-        })
-      })
-      .catch(() => {
-        if (cancelled) return
-        setToktrackVersionState({
-          configuredVersion: TOKTRACK_VERSION,
-          latestVersion: null,
-          isLatest: null,
-          lookupStatus: 'failed',
-          message: t('settings.modal.toktrackLatestCheckFailed'),
-          isLoading: false,
-        })
-      })
-
-    return () => {
-      cancelled = true
+    if (!open) {
+      setActiveTab('basics')
     }
-  }, [open, t])
+  }, [open])
 
-  const providerOptions = useMemo(
-    () => normalizeSelection([...filterProviders, ...defaultFilterDraft.providers]),
-    [filterProviders, defaultFilterDraft.providers],
+  const focusTab = useCallback((tabId: SettingsModalTabId) => {
+    setActiveTab(tabId)
+    tabRefs.current[tabId]?.focus()
+  }, [])
+
+  const handleTabKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>, tabId: SettingsModalTabId) => {
+      const currentIndex = SETTINGS_MODAL_TABS.findIndex((tab) => tab.id === tabId)
+      if (currentIndex === -1) return
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        const nextTab = SETTINGS_MODAL_TABS[(currentIndex + 1) % SETTINGS_MODAL_TABS.length]!
+        focusTab(nextTab.id)
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        const nextTab =
+          SETTINGS_MODAL_TABS[
+            (currentIndex - 1 + SETTINGS_MODAL_TABS.length) % SETTINGS_MODAL_TABS.length
+          ]!
+        focusTab(nextTab.id)
+      } else if (event.key === 'Home') {
+        event.preventDefault()
+        focusTab(SETTINGS_MODAL_TABS[0]!.id)
+      } else if (event.key === 'End') {
+        event.preventDefault()
+        focusTab(SETTINGS_MODAL_TABS[SETTINGS_MODAL_TABS.length - 1]!.id)
+      }
+    },
+    [focusTab],
   )
-  const modelOptions = useMemo(
-    () => normalizeSelection([...models, ...defaultFilterDraft.models]),
-    [models, defaultFilterDraft.models],
+
+  const operationBusy = settingsBusy || dataBusy
+  const handleDialogOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen && operationBusy) {
+        return
+      }
+      onOpenChange(nextOpen)
+    },
+    [onOpenChange, operationBusy],
   )
-
-  const updateProvider = (provider: string, patch: Partial<ProviderLimits[string]>) => {
-    setLimitDraft((prev) => ({
-      ...prev,
-      [provider]: {
-        ...(prev[provider] ?? DEFAULT_PROVIDER_LIMIT_CONFIG),
-        ...patch,
-      },
-    }))
-  }
-
-  const handleSave = async () => {
-    await onSaveSettings({
-      language: languageDraft,
-      reducedMotionPreference: reducedMotionPreferenceDraft,
-      providerLimits: buildProviderLimitsState(limitProviders, limitDraft),
-      defaultFilters: {
-        ...defaultFilterDraft,
-        providers: normalizeSelection(defaultFilterDraft.providers),
-        models: normalizeSelection(defaultFilterDraft.models),
-      },
-      sectionVisibility: sectionVisibilityDraft,
-      sectionOrder: sectionOrderDraft,
-    })
-    onOpenChange(false)
-  }
-
-  const handleResetDrafts = () => {
-    setLanguageDraft(DEFAULT_APP_SETTINGS.language)
-    setReducedMotionPreferenceDraft(DEFAULT_APP_SETTINGS.reducedMotionPreference)
-    setLimitDraft(syncProviderLimits(limitProviders, {}))
-    setDefaultFilterDraft(DEFAULT_DASHBOARD_FILTERS)
-    setSectionVisibilityDraft(getDefaultDashboardSectionVisibility())
-    setSectionOrderDraft(getDefaultDashboardSectionOrder())
-    setDraggedSectionId(null)
-    setDragOverSectionId(null)
-  }
-
-  const handleResetDefaultFilters = () => {
-    setDefaultFilterDraft(DEFAULT_DASHBOARD_FILTERS)
-  }
-
-  const handleResetSectionVisibility = () => {
-    setSectionVisibilityDraft(getDefaultDashboardSectionVisibility())
-    setSectionOrderDraft(getDefaultDashboardSectionOrder())
-  }
-
-  const handleResetProviderLimits = () => {
-    setLimitDraft(syncProviderLimits(limitProviders, {}))
-  }
-
-  const loadSourceLabel = lastLoadSource
-    ? t(`settings.modal.sources.${lastLoadSource}`)
-    : t('settings.modal.sources.unknown')
-  const orderedSections = useMemo(
-    () =>
-      sectionOrderDraft
-        .map((sectionId) => DASHBOARD_SECTION_DEFINITION_MAP[sectionId])
-        .filter((section) => section !== undefined),
-    [sectionOrderDraft],
-  )
-  const toktrackStatusToneClass = toktrackVersionState.isLoading
-    ? 'text-muted-foreground'
-    : toktrackVersionState.lookupStatus === 'failed' || toktrackVersionState.isLatest === false
-      ? 'text-amber-500'
-      : 'text-green-500'
-  const toktrackStatusLabel = toktrackVersionState.isLoading
-    ? t('settings.modal.toktrackCheckingLatest')
-    : toktrackVersionState.lookupStatus === 'failed'
-      ? t('settings.modal.toktrackLatestCheckFailed')
-      : toktrackVersionState.isLatest
-        ? t('settings.modal.toktrackLatest')
-        : t('settings.modal.toktrackUpdateAvailable', {
-            version: toktrackVersionState.latestVersion ?? t('common.notAvailable'),
-          })
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
         className="max-h-[88vh] max-w-5xl overflow-x-visible overflow-y-auto"
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           titleRef.current?.focus()
+        }}
+        onEscapeKeyDown={(event) => {
+          if (operationBusy) {
+            event.preventDefault()
+          }
+        }}
+        onInteractOutside={(event) => {
+          if (operationBusy) {
+            event.preventDefault()
+          }
         }}
       >
         <DialogHeader className="overflow-visible">
@@ -372,650 +171,118 @@ export function SettingsModal({
           <DialogDescription>{t('settings.modal.description')}</DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-3">
-          <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-            {t('settings.modal.dataStatus')}
-          </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <div className="space-y-1">
-              <div className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
-                {t('settings.modal.lastLoaded')}
-              </div>
-              <div className="text-sm font-medium text-foreground">
-                {lastLoadedAt ? formatDateTimeFull(lastLoadedAt) : t('common.notAvailable')}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
-                {t('settings.modal.loadedVia')}
-              </div>
-              <div className="text-sm font-medium text-foreground">{loadSourceLabel}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
-                {t('settings.modal.cliAutoLoad')}
-              </div>
-              <div className="text-sm font-medium text-foreground">
-                {cliAutoLoadActive ? t('common.enabled') : t('common.disabled')}
-              </div>
-            </div>
-          </div>
-        </div>
+        <div className="rounded-2xl border border-border/50 bg-muted/15 p-2">
+          <div
+            role="tablist"
+            aria-label={t('settings.modal.tabs.label')}
+            className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4"
+          >
+            {SETTINGS_MODAL_TABS.map((tab) => {
+              const selected = activeTab === tab.id
 
-        <div className="grid gap-4 xl:grid-cols-2">
-          <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl">
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
-                <Languages className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium text-foreground">
-                  {t('settings.modal.languageTitle')}
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {t('settings.modal.languageDescription')}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {SUPPORTED_LANGUAGES.map((nextLanguage) => (
-                <Button
-                  key={nextLanguage}
+              return (
+                <button
+                  key={tab.id}
+                  ref={(element) => {
+                    tabRefs.current[tab.id] = element
+                  }}
                   type="button"
-                  data-testid={`settings-language-${nextLanguage}`}
-                  aria-pressed={languageDraft === nextLanguage}
-                  variant={languageDraft === nextLanguage ? 'default' : 'outline'}
-                  onClick={() => setLanguageDraft(nextLanguage)}
+                  role="tab"
+                  id={getSettingsTabButtonId(tab.id)}
+                  aria-selected={selected}
+                  aria-controls={getSettingsTabPanelId(tab.id)}
+                  tabIndex={selected ? 0 : -1}
+                  data-testid={`settings-tab-${tab.id}`}
+                  onClick={() => setActiveTab(tab.id)}
+                  onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
+                  className={cn(
+                    'rounded-xl border px-3 py-3 text-left transition-colors focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background focus:outline-none',
+                    selected
+                      ? 'border-primary/40 bg-primary/12 text-foreground shadow-sm'
+                      : 'border-transparent text-muted-foreground hover:border-border/70 hover:bg-background/45 hover:text-foreground',
+                  )}
                 >
-                  {t(`app.languages.${nextLanguage}`)}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
-                  <Filter className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 space-y-1">
-                  <div className="text-sm font-medium text-foreground">
-                    {t('settings.modal.defaultFiltersTitle')}
-                  </div>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {t('settings.modal.defaultFiltersDescription')}
-                  </p>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                data-testid="reset-default-filters"
-                onClick={handleResetDefaultFilters}
-                disabled={settingsBusy}
-              >
-                {t('common.reset')}
-              </Button>
-            </div>
-
-            <div className="mt-4 space-y-4">
-              <div className="space-y-2">
-                <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                  {t('settings.modal.defaultViewMode')}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {DASHBOARD_VIEW_MODES.map((mode) => (
-                    <Button
-                      key={mode}
-                      type="button"
-                      aria-pressed={defaultFilterDraft.viewMode === mode}
-                      variant={defaultFilterDraft.viewMode === mode ? 'default' : 'outline'}
-                      onClick={() => setDefaultFilterDraft((prev) => ({ ...prev, viewMode: mode }))}
-                    >
-                      {t(`settings.modal.viewModes.${mode}`)}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                  {t('settings.modal.defaultDateRange')}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {DASHBOARD_DATE_PRESETS.map((preset) => (
-                    <Button
-                      key={preset}
-                      type="button"
-                      aria-pressed={defaultFilterDraft.datePreset === preset}
-                      variant={defaultFilterDraft.datePreset === preset ? 'default' : 'outline'}
-                      onClick={() =>
-                        setDefaultFilterDraft((prev) => ({ ...prev, datePreset: preset }))
-                      }
-                    >
-                      {t(`settings.modal.datePresets.${preset}`)}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                  {t('settings.modal.filterProviders')}
-                </div>
-                {providerOptions.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-3 py-4 text-sm text-muted-foreground">
-                    {t('settings.modal.noProviders')}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {providerOptions.map((provider) => {
-                      const selected = defaultFilterDraft.providers.includes(provider)
-                      return (
-                        <button
-                          key={provider}
-                          type="button"
-                          aria-pressed={selected}
-                          onClick={() =>
-                            setDefaultFilterDraft((prev) => ({
-                              ...prev,
-                              providers: toggleSelection(prev.providers, provider),
-                            }))
-                          }
-                          className={cn(
-                            'inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                            selected
-                              ? 'border-primary/30 bg-primary text-primary-foreground'
-                              : getProviderBadgeClasses(provider),
-                          )}
-                        >
-                          {provider}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                  {t('settings.modal.filterModels')}
-                </div>
-                {modelOptions.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-3 py-4 text-sm text-muted-foreground">
-                    {t('settings.modal.noModels')}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {modelOptions.map((model) => {
-                      const selected = defaultFilterDraft.models.includes(model)
-                      return (
-                        <button
-                          key={model}
-                          type="button"
-                          aria-pressed={selected}
-                          onClick={() =>
-                            setDefaultFilterDraft((prev) => ({
-                              ...prev,
-                              models: toggleSelection(prev.models, model),
-                            }))
-                          }
-                          className={cn(
-                            'inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                            selected
-                              ? 'border-primary/30 bg-primary text-primary-foreground'
-                              : 'border-border bg-muted/20 text-muted-foreground hover:bg-accent hover:text-foreground',
-                          )}
-                        >
-                          {model}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
-                  <Eye className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 space-y-1">
-                  <div className="text-sm font-medium text-foreground">
-                    {t('settings.modal.sectionVisibilityTitle')}
-                  </div>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {t('settings.modal.sectionVisibilityDescription')}
-                  </p>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                data-testid="reset-section-visibility"
-                onClick={handleResetSectionVisibility}
-                disabled={settingsBusy}
-              >
-                {t('common.reset')}
-              </Button>
-            </div>
-
-            <div className="mt-3 text-xs text-muted-foreground">
-              {t('settings.modal.sectionOrderHint')}
-            </div>
-            <div className="mt-4 space-y-2">
-              {orderedSections.map((section, index) => {
-                const visible = sectionVisibilityDraft[section.id]
-                return (
-                  <div
-                    key={section.id}
-                    data-section-id={section.id}
-                    draggable
-                    onDragStart={(event) => {
-                      event.dataTransfer.effectAllowed = 'move'
-                      event.dataTransfer.setData('text/plain', section.id)
-                      setDraggedSectionId(section.id)
-                      setDragOverSectionId(section.id)
-                    }}
-                    onDragOver={(event) => {
-                      event.preventDefault()
-                      if (dragOverSectionId !== section.id) {
-                        setDragOverSectionId(section.id)
-                      }
-                    }}
-                    onDragLeave={() => {
-                      if (dragOverSectionId === section.id) {
-                        setDragOverSectionId(null)
-                      }
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault()
-                      const sourceId =
-                        (event.dataTransfer.getData(
-                          'text/plain',
-                        ) as DashboardSectionOrder[number]) || draggedSectionId
-                      if (!sourceId) return
-                      setSectionOrderDraft((prev) => reorderSections(prev, sourceId, section.id))
-                      setDraggedSectionId(null)
-                      setDragOverSectionId(null)
-                    }}
-                    onDragEnd={() => {
-                      setDraggedSectionId(null)
-                      setDragOverSectionId(null)
-                    }}
-                    className={cn(
-                      'flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors',
-                      dragOverSectionId === section.id
-                        ? 'border-primary/40 bg-primary/10'
-                        : 'border-border/70 bg-muted/10',
-                      draggedSectionId === section.id && 'opacity-70',
-                    )}
-                  >
-                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/40 text-muted-foreground">
-                      <GripVertical className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium text-foreground">
-                        {t(section.labelKey)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {t('settings.modal.positionLabel', {
-                          position: index + 1,
-                          total: orderedSections.length,
-                        })}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        data-testid={`move-section-up-${section.id}`}
-                        onClick={() =>
-                          setSectionOrderDraft((prev) => moveSection(prev, section.id, -1))
-                        }
-                        disabled={index === 0}
-                        aria-label={t('settings.modal.moveSectionUp', {
-                          section: t(section.labelKey),
-                        })}
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        data-testid={`move-section-down-${section.id}`}
-                        onClick={() =>
-                          setSectionOrderDraft((prev) => moveSection(prev, section.id, 1))
-                        }
-                        disabled={index === orderedSections.length - 1}
-                        aria-label={t('settings.modal.moveSectionDown', {
-                          section: t(section.labelKey),
-                        })}
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </Button>
-                      <button
-                        type="button"
-                        data-testid={`toggle-section-visibility-${section.id}`}
-                        aria-pressed={visible}
-                        onClick={() =>
-                          setSectionVisibilityDraft((prev) => ({
-                            ...prev,
-                            [section.id]: !prev[section.id],
-                          }))
-                        }
-                        className={cn(
-                          'inline-flex min-w-[88px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium tracking-[0.12em] uppercase transition-colors',
-                          visible
-                            ? 'border-emerald-500/30 bg-emerald-500/10 text-foreground'
-                            : 'border-border bg-muted/20 text-muted-foreground hover:bg-accent hover:text-foreground',
-                        )}
-                      >
-                        {visible ? t('common.visible') : t('common.hidden')}
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl">
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
-                <Settings2 className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium text-foreground">
-                  {t('settings.modal.dashboardSettingsTitle')}
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {t('settings.modal.dashboardSettingsDescription')}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2">
-              <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                {t('settings.modal.reducedMotionTitle')}
-              </div>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {t('settings.modal.reducedMotionDescription')}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {(
-                  [
-                    ['system', 'settings.modal.reducedMotionOptions.system'],
-                    ['always', 'settings.modal.reducedMotionOptions.always'],
-                    ['never', 'settings.modal.reducedMotionOptions.never'],
-                  ] as const
-                ).map(([value, labelKey]) => (
-                  <Button
-                    key={value}
-                    type="button"
-                    data-testid={`settings-reduced-motion-${value}`}
-                    aria-pressed={reducedMotionPreferenceDraft === value}
-                    variant={reducedMotionPreferenceDraft === value ? 'default' : 'outline'}
-                    onClick={() => setReducedMotionPreferenceDraft(value)}
-                  >
-                    {t(labelKey)}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-border/50 bg-muted/20 px-3 py-3">
-              <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                {t('settings.modal.toktrackVersionTitle')}
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <span
-                  className="font-mono text-sm font-medium text-foreground"
-                  data-testid="settings-toktrack-version"
-                >
-                  {toktrackVersionState.configuredVersion}
-                </span>
-                <span
-                  className={cn('text-xs font-medium', toktrackStatusToneClass)}
-                  data-testid="settings-toktrack-status"
-                >
-                  {toktrackStatusLabel}
-                </span>
-              </div>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {t('settings.modal.toktrackVersionDescription')}
-              </p>
-            </div>
+                  <span className="block text-sm font-semibold">{t(tab.labelKey)}</span>
+                  <span className="mt-1 block text-xs leading-relaxed">
+                    {t(tab.descriptionKey)}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-2">
-          <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl">
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
-                <Settings2 className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium text-foreground">
-                  {t('settings.modal.settingsBackupTitle')}
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {t('settings.modal.settingsBackupDescription')}
-                </p>
-              </div>
+        <div
+          id={getSettingsTabPanelId(activeTab)}
+          role="tabpanel"
+          aria-labelledby={getSettingsTabButtonId(activeTab)}
+          className="space-y-4"
+        >
+          <div className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-3">
+            <div className="text-sm font-medium text-foreground">
+              {t(activeTabDefinition.labelKey)}
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={onExportSettings}
-                disabled={settingsBusy}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                {t('settings.modal.exportSettings')}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={onImportSettings}
-                disabled={settingsBusy}
-                className="gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                {t('settings.modal.importSettings')}
-              </Button>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl">
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
-                <Database className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium text-foreground">
-                  {t('settings.modal.dataBackupTitle')}
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {t('settings.modal.dataBackupDescription')}
-                </p>
-              </div>
-            </div>
-            <p className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-xs leading-relaxed text-amber-200/90">
-              {t('settings.modal.dataImportPolicy')}
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              {t(activeTabDefinition.descriptionKey)}
             </p>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              {t('settings.modal.dataImportReplaceHint')}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={onExportData}
-                disabled={!hasData || dataBusy}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                {t('settings.modal.exportData')}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={onImportData}
-                disabled={dataBusy}
-                className="gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                {t('settings.modal.importData')}
-              </Button>
-            </div>
           </div>
-        </div>
 
-        <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
-                <LayoutPanelTop className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium text-foreground">
-                  {t('settings.modal.providerLimitsTitle')}
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {t('settings.modal.providerLimitsDescription')}
-                </p>
+          {activeTab === 'basics' && (
+            <div className="grid gap-4 xl:grid-cols-2">
+              <SettingsLanguageSection viewModel={draft.general} settingsBusy={settingsBusy} />
+              <SettingsMotionSection viewModel={draft.general} settingsBusy={settingsBusy} />
+              <div className="xl:col-span-2">
+                <SettingsDefaultsSection viewModel={draft.defaults} settingsBusy={settingsBusy} />
               </div>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              data-testid="reset-provider-limits"
-              onClick={handleResetProviderLimits}
-              disabled={settingsBusy}
-            >
-              {t('common.reset')}
-            </Button>
-          </div>
+          )}
 
-          <div className="mt-4">
-            {limitProviders.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-8 text-center text-sm text-muted-foreground">
-                {t('settings.modal.noProviders')}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {limitProviders.map((provider) => {
-                  const config = limitDraft[provider] ?? DEFAULT_PROVIDER_LIMIT_CONFIG
+          {activeTab === 'layout' && (
+            <SettingsSectionsSection viewModel={draft.sections} settingsBusy={settingsBusy} />
+          )}
 
-                  return (
-                    <div
-                      key={provider}
-                      data-provider-id={provider}
-                      className="rounded-2xl border border-border/50 bg-background/40 p-4"
-                    >
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={cn(
-                                'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium',
-                                getProviderBadgeClasses(provider),
-                              )}
-                            >
-                              {provider}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateProvider(provider, {
-                                  hasSubscription: !config.hasSubscription,
-                                })
-                              }
-                              className={cn(
-                                'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-                                config.hasSubscription
-                                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                                  : 'border-border bg-muted/20 text-muted-foreground hover:bg-accent',
-                              )}
-                            >
-                              {config.hasSubscription
-                                ? t('common.enabled')
-                                : t('limits.statuses.noSubscription')}
-                            </button>
-                          </div>
-                        </div>
+          {activeTab === 'limits' && (
+            <SettingsProviderLimitsSection
+              viewModel={draft.providerLimits}
+              settingsBusy={settingsBusy}
+            />
+          )}
 
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:w-[420px]">
-                          <label className="space-y-1.5">
-                            <span className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                              {t('limits.modal.subscriptionPerMonth')}
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={config.subscriptionPrice}
-                              disabled={!config.hasSubscription}
-                              onChange={(e) =>
-                                updateProvider(provider, {
-                                  subscriptionPrice: parseNumberInput(e.target.value),
-                                })
-                              }
-                              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                            />
-                          </label>
-
-                          <label className="space-y-1.5">
-                            <span className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                              {t('limits.modal.monthlyLimit')}
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={config.monthlyLimit}
-                              onChange={(e) =>
-                                updateProvider(provider, {
-                                  monthlyLimit: parseNumberInput(e.target.value),
-                                })
-                              }
-                              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
+          {activeTab === 'maintenance' && (
+            <>
+              <SettingsStatusSection
+                lastLoadedAt={lastLoadedAt ?? null}
+                lastLoadSource={lastLoadSource ?? null}
+                cliAutoLoadActive={cliAutoLoadActive}
+              />
+              <SettingsBackupsSection
+                hasData={hasData}
+                settingsBusy={settingsBusy}
+                dataBusy={dataBusy}
+                onExportSettings={onExportSettings}
+                onImportSettings={onImportSettings}
+                onExportData={onExportData}
+                onImportData={onImportData}
+              />
+              <SettingsToktrackVersionSection versionStatus={versionStatus} />
+            </>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-4">
           <Button
             variant="ghost"
-            onClick={handleResetDrafts}
+            onClick={draft.footer.onResetAll}
             disabled={settingsBusy}
             data-testid="reset-all-settings-drafts"
           >
             {t('common.reset')}
           </Button>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={settingsBusy}>
+            <Button variant="ghost" onClick={draft.footer.onClose} disabled={operationBusy}>
               {t('settings.modal.close')}
             </Button>
-            <Button onClick={() => void handleSave()} disabled={settingsBusy}>
+            <Button onClick={() => void draft.footer.onSave()} disabled={settingsBusy}>
               {t('settings.modal.save')}
             </Button>
           </div>

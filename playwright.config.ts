@@ -7,6 +7,7 @@ const baseURL = `http://${host}:${port}`
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
+  workers: process.env.CI ? 1 : undefined,
   timeout: 30_000,
   reporter: [
     ['list'],

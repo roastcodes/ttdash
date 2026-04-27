@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   existsSync,
@@ -14,9 +15,92 @@ import {
   writeJsonAtomicAsync,
 } from './server-helpers.shared'
 
+const require = createRequire(import.meta.url)
+const fs = require('node:fs')
+const os = require('node:os')
+const { normalizeIncomingData } = require('../../usage-normalizer.js') as {
+  normalizeIncomingData: (input: unknown) => unknown
+}
+const { createDataRuntime } = require('../../server/data-runtime.js') as {
+  createDataRuntime: (options: Record<string, unknown>) => {
+    paths: { dataFile: string; settingsFile: string }
+    getFileMutationLockDir: (filePath: string) => string
+    migrateLegacyDataFile: (log?: (message: string) => void) => void
+    readSettings: () => { lastLoadedAt?: string | null; lastLoadSource?: string | null }
+    updateDataLoadState: (patch: Record<string, unknown>) => Promise<unknown>
+    writeJsonAtomic: (filePath: string, data: unknown) => void
+    withFileMutationLock: <T>(filePath: string, operation: () => Promise<T>) => Promise<T>
+  }
+}
+
 afterEach(() => {
   resetServerHelperTestState()
 })
+
+function createShortTimeoutFileLockRuntime() {
+  return createDataRuntime({
+    fs,
+    fsPromises,
+    os,
+    path,
+    processObject: {
+      ...process,
+      env: process.env,
+      pid: process.pid,
+      platform: process.platform,
+      kill: vi.fn(() => true),
+    },
+    normalizeIncomingData,
+    runtimeInstanceId: `test-${process.pid}`,
+    appDirName: 'TTDash',
+    appDirNameLinux: 'ttdash',
+    legacyDataFile: path.join(process.cwd(), 'data.json'),
+    settingsBackupKind: 'ttdash-settings-backup',
+    usageBackupKind: 'ttdash-usage-backup',
+    isWindows: process.platform === 'win32',
+    secureDirMode: 0o700,
+    secureFileMode: 0o600,
+    fileMutationLockTimeoutMs: 80,
+    fileMutationLockStaleMs: 10,
+  })
+}
+
+function createFileModeRuntime(runtimeRoot: string, legacyDataFile: string) {
+  return createDataRuntime({
+    fs,
+    fsPromises,
+    os,
+    path,
+    processObject: {
+      ...process,
+      env: {
+        ...process.env,
+        TTDASH_DATA_DIR: path.join(runtimeRoot, 'data'),
+        TTDASH_CONFIG_DIR: path.join(runtimeRoot, 'config'),
+        TTDASH_CACHE_DIR: path.join(runtimeRoot, 'cache'),
+      },
+      pid: process.pid,
+      platform: process.platform,
+      kill: vi.fn(() => true),
+    },
+    normalizeIncomingData,
+    runtimeInstanceId: `test-${process.pid}`,
+    appDirName: 'TTDash',
+    appDirNameLinux: 'ttdash',
+    legacyDataFile,
+    settingsBackupKind: 'ttdash-settings-backup',
+    usageBackupKind: 'ttdash-usage-backup',
+    isWindows: process.platform === 'win32',
+    secureDirMode: 0o700,
+    secureFileMode: 0o600,
+    fileMutationLockTimeoutMs: 80,
+    fileMutationLockStaleMs: 10,
+  })
+}
+
+function getMode(filePath: string) {
+  return fs.statSync(filePath).mode & 0o777
+}
 
 function waitForChildMessage(
   child: ReturnType<typeof fork>,
@@ -206,23 +290,26 @@ describe('server helper utilities: file mutation locks', () => {
     await fsPromises.rm(targetDir, { recursive: true, force: true })
   })
 
-  it('reaps stale locks even when the recorded pid is still running', async () => {
+  it('does not reap stale locks while the recorded owner pid is still running', async () => {
+    const runtime = createShortTimeoutFileLockRuntime()
     const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-stale-pid-lock-'))
     const targetFile = path.join(targetDir, 'settings.json')
-    const lockDir = getFileMutationLockDir(targetFile)
+    const lockDir = runtime.getFileMutationLockDir(targetFile)
 
     await fsPromises.mkdir(lockDir, { recursive: true })
     await fsPromises.writeFile(
       path.join(lockDir, 'owner.json'),
       JSON.stringify({
-        pid: process.pid,
+        pid: 4242,
         createdAt: new Date(Date.now() - 60_000).toISOString(),
         instanceId: 'stale-instance',
       }),
     )
 
-    await expect(withFileMutationLock(targetFile, async () => 'ok')).resolves.toBe('ok')
-    expect(existsSync(lockDir)).toBe(false)
+    await expect(runtime.withFileMutationLock(targetFile, async () => 'ok')).rejects.toThrow(
+      'Could not acquire file mutation lock',
+    )
+    expect(existsSync(lockDir)).toBe(true)
 
     await fsPromises.rm(targetDir, { recursive: true, force: true })
   })
@@ -235,12 +322,35 @@ describe('server helper utilities: file mutation locks', () => {
     await fsPromises.writeFile(
       childScriptPath,
       `
-const serverPath = process.argv[2]
+const path = require('path')
+const fs = require('fs')
+const fsPromises = require('fs/promises')
+const os = require('os')
+const dataRuntimePath = process.argv[2]
 const filePath = process.argv[3]
-process.argv = process.argv.slice(0, 2)
-const { __test__: { withFileMutationLock } } = require(serverPath)
+const { createDataRuntime } = require(dataRuntimePath)
 
-withFileMutationLock(filePath, async () => {
+const dataRuntime = createDataRuntime({
+  fs,
+  fsPromises,
+  os,
+  path,
+  processObject: process,
+  normalizeIncomingData: (value) => value,
+  runtimeInstanceId: 'cross-process-lock-test',
+  appDirName: 'TTDash',
+  appDirNameLinux: 'ttdash',
+  legacyDataFile: path.join(process.cwd(), 'data.json'),
+  settingsBackupKind: 'ttdash-settings-backup',
+  usageBackupKind: 'ttdash-usage-backup',
+  isWindows: process.platform === 'win32',
+  secureDirMode: 0o700,
+  secureFileMode: 0o600,
+  fileMutationLockTimeoutMs: 10000,
+  fileMutationLockStaleMs: 30000,
+})
+
+dataRuntime.withFileMutationLock(filePath, async () => {
   if (typeof process.send === 'function') {
     process.send('locked')
   }
@@ -252,7 +362,7 @@ withFileMutationLock(filePath, async () => {
 `.trim(),
     )
 
-    const child = fork(childScriptPath, [path.resolve('server.js'), targetFile], {
+    const child = fork(childScriptPath, [path.resolve('server/data-runtime.js'), targetFile], {
       cwd: process.cwd(),
       stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
     })
@@ -301,6 +411,30 @@ withFileMutationLock(filePath, async () => {
     await fsPromises.rm(targetDir, { recursive: true, force: true })
   })
 
+  it('removes temporary files when atomic sync writes fail after creating the temp file', async () => {
+    const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-write-json-sync-'))
+    const targetFile = path.join(targetDir, 'settings.json')
+    const expectedTempPath = `${targetFile}.${process.pid}.1700000000002.tmp`
+    const renameError = Object.assign(new Error('rename failed'), { code: 'EXDEV' })
+    const runtime = createFileModeRuntime(targetDir, path.join(targetDir, 'legacy-data.json'))
+
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation(() => {
+      throw renameError
+    })
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1700000000002)
+
+    try {
+      expect(() => runtime.writeJsonAtomic(targetFile, { ok: true })).toThrow(renameError)
+
+      expect(renameSpy).toHaveBeenCalledWith(expectedTempPath, targetFile)
+      expect(existsSync(expectedTempPath)).toBe(false)
+    } finally {
+      renameSpy.mockRestore()
+      nowSpy.mockRestore()
+      await fsPromises.rm(targetDir, { recursive: true, force: true })
+    }
+  })
+
   it('removes temporary files when writeFile rejects after creating the temp file', async () => {
     const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-write-json-'))
     const targetFile = path.join(targetDir, 'settings.json')
@@ -326,6 +460,228 @@ withFileMutationLock(filePath, async () => {
     unlinkSpy.mockRestore()
     nowSpy.mockRestore()
     await fsPromises.rm(targetDir, { recursive: true, force: true })
+  })
+
+  it.runIf(process.platform !== 'win32')(
+    'normalizes parent directory permissions before async atomic writes',
+    async () => {
+      const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-write-dir-mode-'))
+      const targetFile = path.join(targetDir, 'settings.json')
+
+      try {
+        await fsPromises.chmod(targetDir, 0o755)
+
+        await writeJsonAtomicAsync(targetFile, { ok: true })
+
+        expect(getMode(targetDir)).toBe(0o700)
+        expect(getMode(targetFile)).toBe(0o600)
+      } finally {
+        await fsPromises.rm(targetDir, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it('serializes public data-load-state updates through the settings file lock', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-data-load-lock-'))
+    const runtime = createFileModeRuntime(runtimeRoot, path.join(runtimeRoot, 'legacy-data.json'))
+    const events: string[] = []
+    let releaseFirst: (() => void) | null = null
+
+    try {
+      const first = runtime.withFileMutationLock(runtime.paths.settingsFile, async () => {
+        events.push('lock:start')
+        await new Promise<void>((resolve) => {
+          releaseFirst = () => {
+            events.push('lock:end')
+            resolve()
+          }
+        })
+      })
+
+      await vi.waitFor(() => {
+        expect(events).toEqual(['lock:start'])
+      })
+
+      const update = runtime.updateDataLoadState({
+        lastLoadedAt: '2026-04-27T12:00:00.000Z',
+        lastLoadSource: 'file',
+      })
+
+      await Promise.resolve()
+      expect(events).toEqual(['lock:start'])
+
+      releaseFirst?.()
+      await Promise.all([first, update])
+
+      expect(events).toEqual(['lock:start', 'lock:end'])
+      expect(runtime.readSettings()).toMatchObject({
+        lastLoadedAt: '2026-04-27T12:00:00.000Z',
+        lastLoadSource: 'file',
+      })
+    } finally {
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('normalizes migrated legacy data file permissions after rename', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-legacy-rename-'))
+    const legacyDataFile = path.join(runtimeRoot, 'data.json')
+    const runtime = createFileModeRuntime(runtimeRoot, legacyDataFile)
+
+    try {
+      await fsPromises.writeFile(legacyDataFile, '{"daily":[]}', { mode: 0o644 })
+      if (process.platform !== 'win32') {
+        await fsPromises.chmod(legacyDataFile, 0o644)
+      }
+
+      runtime.migrateLegacyDataFile(vi.fn())
+
+      expect(existsSync(runtime.paths.dataFile)).toBe(true)
+      expect(existsSync(legacyDataFile)).toBe(false)
+      if (process.platform !== 'win32') {
+        expect(getMode(runtime.paths.dataFile)).toBe(0o600)
+      }
+    } finally {
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('normalizes migrated legacy data file permissions after copy fallback', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-legacy-copy-'))
+    const legacyDataFile = path.join(runtimeRoot, 'data.json')
+    const runtime = createFileModeRuntime(runtimeRoot, legacyDataFile)
+    const renameError = Object.assign(new Error('cross-device rename'), { code: 'EXDEV' })
+    const originalRenameSync = fs.renameSync.bind(fs)
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation((from, to) => {
+      if (from === legacyDataFile && to === runtime.paths.dataFile) {
+        throw renameError
+      }
+      return originalRenameSync(from, to)
+    })
+
+    try {
+      await fsPromises.writeFile(legacyDataFile, '{"daily":[]}', { mode: 0o644 })
+      if (process.platform !== 'win32') {
+        await fsPromises.chmod(legacyDataFile, 0o644)
+      }
+
+      runtime.migrateLegacyDataFile(vi.fn())
+
+      expect(renameSpy).toHaveBeenCalledWith(legacyDataFile, runtime.paths.dataFile)
+      expect(existsSync(runtime.paths.dataFile)).toBe(true)
+      expect(existsSync(legacyDataFile)).toBe(false)
+      if (process.platform !== 'win32') {
+        expect(getMode(runtime.paths.dataFile)).toBe(0o600)
+      }
+    } finally {
+      renameSpy.mockRestore()
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('treats missing legacy data during rename as already migrated when the target exists', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-legacy-race-rename-'))
+    const legacyDataFile = path.join(runtimeRoot, 'data.json')
+    const runtime = createFileModeRuntime(runtimeRoot, legacyDataFile)
+    const logs: string[] = []
+    const originalRenameSync = fs.renameSync.bind(fs)
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation((from, to) => {
+      if (from === legacyDataFile && to === runtime.paths.dataFile) {
+        fs.unlinkSync(legacyDataFile)
+        fs.mkdirSync(path.dirname(runtime.paths.dataFile), { recursive: true })
+        fs.writeFileSync(runtime.paths.dataFile, '{"daily":[]}', { mode: 0o644 })
+        if (process.platform !== 'win32') {
+          fs.chmodSync(runtime.paths.dataFile, 0o644)
+        }
+        throw Object.assign(new Error('no such file or directory'), { code: 'ENOENT' })
+      }
+      return originalRenameSync(from, to)
+    })
+
+    try {
+      await fsPromises.writeFile(legacyDataFile, '{"daily":[]}', { mode: 0o644 })
+
+      expect(() => runtime.migrateLegacyDataFile((message) => logs.push(message))).not.toThrow()
+
+      expect(renameSpy).toHaveBeenCalledWith(legacyDataFile, runtime.paths.dataFile)
+      expect(existsSync(runtime.paths.dataFile)).toBe(true)
+      expect(logs).toEqual([`Existing data already migrated to ${runtime.paths.dataFile}`])
+      if (process.platform !== 'win32') {
+        expect(getMode(runtime.paths.dataFile)).toBe(0o600)
+      }
+    } finally {
+      renameSpy.mockRestore()
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('treats missing legacy data during copy fallback as already migrated when the target exists', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-legacy-race-copy-'))
+    const legacyDataFile = path.join(runtimeRoot, 'data.json')
+    const runtime = createFileModeRuntime(runtimeRoot, legacyDataFile)
+    const logs: string[] = []
+    const originalRenameSync = fs.renameSync.bind(fs)
+    const originalCopyFileSync = fs.copyFileSync.bind(fs)
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation((from, to) => {
+      if (from === legacyDataFile && to === runtime.paths.dataFile) {
+        throw Object.assign(new Error('cross-device rename'), { code: 'EXDEV' })
+      }
+      return originalRenameSync(from, to)
+    })
+    const copySpy = vi.spyOn(fs, 'copyFileSync').mockImplementation((from, to) => {
+      if (from === legacyDataFile && to === runtime.paths.dataFile) {
+        fs.unlinkSync(legacyDataFile)
+        fs.mkdirSync(path.dirname(runtime.paths.dataFile), { recursive: true })
+        fs.writeFileSync(runtime.paths.dataFile, '{"daily":[]}', { mode: 0o644 })
+        if (process.platform !== 'win32') {
+          fs.chmodSync(runtime.paths.dataFile, 0o644)
+        }
+        throw Object.assign(new Error('no such file or directory'), { code: 'ENOENT' })
+      }
+      return originalCopyFileSync(from, to)
+    })
+
+    try {
+      await fsPromises.writeFile(legacyDataFile, '{"daily":[]}', { mode: 0o644 })
+
+      expect(() => runtime.migrateLegacyDataFile((message) => logs.push(message))).not.toThrow()
+
+      expect(renameSpy).toHaveBeenCalledWith(legacyDataFile, runtime.paths.dataFile)
+      expect(copySpy).toHaveBeenCalledWith(legacyDataFile, runtime.paths.dataFile)
+      expect(existsSync(runtime.paths.dataFile)).toBe(true)
+      expect(logs).toEqual([`Existing data already migrated to ${runtime.paths.dataFile}`])
+      if (process.platform !== 'win32') {
+        expect(getMode(runtime.paths.dataFile)).toBe(0o600)
+      }
+    } finally {
+      renameSpy.mockRestore()
+      copySpy.mockRestore()
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('keeps missing legacy data migration failures visible when the target was not created', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-legacy-missing-'))
+    const legacyDataFile = path.join(runtimeRoot, 'data.json')
+    const runtime = createFileModeRuntime(runtimeRoot, legacyDataFile)
+    const originalRenameSync = fs.renameSync.bind(fs)
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation((from, to) => {
+      if (from === legacyDataFile && to === runtime.paths.dataFile) {
+        fs.unlinkSync(legacyDataFile)
+        throw Object.assign(new Error('no such file or directory'), { code: 'ENOENT' })
+      }
+      return originalRenameSync(from, to)
+    })
+
+    try {
+      await fsPromises.writeFile(legacyDataFile, '{"daily":[]}', { mode: 0o644 })
+
+      expect(() => runtime.migrateLegacyDataFile(vi.fn())).toThrow('no such file')
+      expect(existsSync(runtime.paths.dataFile)).toBe(false)
+    } finally {
+      renameSpy.mockRestore()
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
   })
 
   it('swallows missing-file deletes but rethrows other unlink failures', async () => {

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import { createRequire } from 'node:module'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const { createHttpUtils } = require('../../server/http-utils.js') as {
@@ -11,7 +11,19 @@ const { createHttpUtils } = require('../../server/http-utils.js') as {
     securityHeaders: Record<string, string>
   }) => {
     readBody: (req: EventEmitter & { readableEnded?: boolean }) => Promise<unknown>
+    json: (
+      res: MockResponse,
+      status: number,
+      data: unknown,
+      headers?: Record<string, string>,
+    ) => void
     resolveApiPath: (pathname: string) => string | null
+    sendBuffer: (
+      res: MockResponse,
+      status: number,
+      headers: Record<string, string | number>,
+      buffer: Buffer,
+    ) => void
     validateMutationRequest: (
       req: EventEmitter & {
         headers?: Record<string, string>
@@ -32,6 +44,22 @@ class MockRequest extends EventEmitter {
   readableEnded = false
   headers: Record<string, string> = {}
   socket: { localAddress?: string } = {}
+  resume = vi.fn()
+}
+
+class MockResponse {
+  body = ''
+  headers: Record<string, string | number> = {}
+  status = 0
+
+  writeHead(status: number, headers: Record<string, string | number>) {
+    this.status = status
+    this.headers = headers
+  }
+
+  end(chunk?: string | Buffer) {
+    this.body = chunk ? chunk.toString() : ''
+  }
 }
 
 describe('http utils', () => {
@@ -66,6 +94,22 @@ describe('http utils', () => {
     )
   })
 
+  it('rejects body reads that exceed the configured payload size', async () => {
+    const utils = createHttpUtils({
+      apiPrefix: '/api',
+      bindHost: '127.0.0.1',
+      maxBodySize: 4,
+      securityHeaders: {},
+    })
+    const req = new MockRequest()
+
+    const bodyPromise = utils.readBody(req)
+    req.emit('data', Buffer.from('{"ok":true}'))
+
+    await expect(bodyPromise).rejects.toMatchObject({ code: 'PAYLOAD_TOO_LARGE' })
+    expect(req.resume).toHaveBeenCalledOnce()
+  })
+
   it('parses JSON bodies normally when the request ends cleanly', async () => {
     const utils = createHttpUtils({
       apiPrefix: '/api',
@@ -84,24 +128,47 @@ describe('http utils', () => {
     await expect(bodyPromise).resolves.toEqual({ ok: true })
   })
 
-  it('rejects mutation requests without a trusted Origin header', () => {
+  it('writes JSON responses with security headers and custom overrides', () => {
     const utils = createHttpUtils({
       apiPrefix: '/api',
       bindHost: '127.0.0.1',
       maxBodySize: 1024,
-      securityHeaders: {},
+      securityHeaders: { 'Content-Security-Policy': "default-src 'self'" },
     })
-    const req = new MockRequest()
-    req.headers.host = '127.0.0.1:3000'
-    req.socket.localAddress = '127.0.0.1'
+    const res = new MockResponse()
 
-    expect(utils.validateMutationRequest(req)).toEqual({
-      status: 403,
-      message: 'Cross-site requests are not allowed',
+    utils.json(res, 201, { ok: true }, { 'Cache-Control': 'no-store' })
+
+    expect(res.status).toBe(201)
+    expect(res.headers).toEqual({
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Security-Policy': "default-src 'self'",
+      'Cache-Control': 'no-store',
     })
+    expect(res.body).toBe('{"ok":true}')
   })
 
-  it('accepts same-origin mutation requests on loopback hosts', () => {
+  it('writes binary responses with content length and security headers', () => {
+    const utils = createHttpUtils({
+      apiPrefix: '/api',
+      bindHost: '127.0.0.1',
+      maxBodySize: 1024,
+      securityHeaders: { 'X-Content-Type-Options': 'nosniff' },
+    })
+    const res = new MockResponse()
+
+    utils.sendBuffer(res, 200, { 'Content-Type': 'application/pdf' }, Buffer.from('pdf'))
+
+    expect(res.status).toBe(200)
+    expect(res.headers).toEqual({
+      'Content-Length': 3,
+      'Content-Type': 'application/pdf',
+      'X-Content-Type-Options': 'nosniff',
+    })
+    expect(res.body).toBe('pdf')
+  })
+
+  it('keeps request guard validation available through the utils facade', () => {
     const utils = createHttpUtils({
       apiPrefix: '/api',
       bindHost: '127.0.0.1',
@@ -111,59 +178,9 @@ describe('http utils', () => {
     const req = new MockRequest()
     req.headers.host = '127.0.0.1:3000'
     req.headers.origin = 'http://127.0.0.1:3000'
-    req.socket.localAddress = '127.0.0.1'
+    req.headers['content-type'] = 'application/json'
 
     expect(utils.validateRequestHost(req)).toBeNull()
-    expect(utils.validateMutationRequest(req)).toBeNull()
-  })
-
-  it('accepts same-origin mutation requests when the Host header casing differs', () => {
-    const utils = createHttpUtils({
-      apiPrefix: '/api',
-      bindHost: '127.0.0.1',
-      maxBodySize: 1024,
-      securityHeaders: {},
-    })
-    const req = new MockRequest()
-    req.headers.host = 'LOCALHOST:3000'
-    req.headers.origin = 'http://localhost:3000'
-    req.socket.localAddress = '127.0.0.1'
-
-    expect(utils.validateRequestHost(req)).toBeNull()
-    expect(utils.validateMutationRequest(req)).toBeNull()
-  })
-
-  it('rejects untrusted host headers even when the origin matches them', () => {
-    const utils = createHttpUtils({
-      apiPrefix: '/api',
-      bindHost: '127.0.0.1',
-      maxBodySize: 1024,
-      securityHeaders: {},
-    })
-    const req = new MockRequest()
-    req.headers.host = 'evil.example:3000'
-    req.headers.origin = 'http://evil.example:3000'
-    req.socket.localAddress = '127.0.0.1'
-
-    expect(utils.validateRequestHost(req)).toEqual({
-      status: 403,
-      message: 'Untrusted host header',
-    })
-  })
-
-  it('accepts host headers that match the active local address on wildcard binds', () => {
-    const utils = createHttpUtils({
-      apiPrefix: '/api',
-      bindHost: '0.0.0.0',
-      maxBodySize: 1024,
-      securityHeaders: {},
-    })
-    const req = new MockRequest()
-    req.headers.host = '192.168.1.10:3000'
-    req.headers.origin = 'http://192.168.1.10:3000'
-    req.socket.localAddress = '192.168.1.10'
-
-    expect(utils.validateRequestHost(req)).toBeNull()
-    expect(utils.validateMutationRequest(req)).toBeNull()
+    expect(utils.validateMutationRequest(req, { requiresJsonContentType: true })).toBeNull()
   })
 })

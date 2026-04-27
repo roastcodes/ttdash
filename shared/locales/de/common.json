@@ -21,7 +21,12 @@
     "autoLoadActive": "Auto-Load beim Start",
     "autoLoadAt": "Beim Start automatisch geladen: {{time}}",
     "versionLinkTitle": "TTDash v{{version}} auf npm öffnen",
-    "streak": "{{count}} Tage in Folge"
+    "streak": "{{count}} Tage in Folge",
+    "actionGroups": {
+      "loadData": "Daten laden",
+      "useExport": "Nutzen & exportieren",
+      "maintenance": "Wartung"
+    }
   },
   "emptyState": {
     "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx {{toktrackSpec}} daily --json` oder `npx --yes {{toktrackSpec}} daily --json`.",
@@ -119,6 +124,12 @@
     "modelsActive": "{{count}} Modelle aktiv",
     "dateFilterActive": "Datumsfilter aktiv",
     "clearDate": "{{label}} zurücksetzen",
+    "groups": {
+      "time": "Zeit",
+      "dateRange": "Zeitraum",
+      "providers": "Anbieter",
+      "models": "Modelle"
+    },
     "presets": {
       "7d": "7T",
       "30d": "30T",
@@ -747,6 +758,9 @@
     "empty": "Kein Befehl gefunden.",
     "groups": {
       "actions": "Aktionen",
+      "loadData": "Daten laden",
+      "exports": "Exporte",
+      "maintenance": "Wartung",
       "filters": "Filter & Ansicht",
       "navigation": "Navigation",
       "view": "Ansicht",
@@ -919,6 +933,25 @@
     "modal": {
       "title": "Einstellungen",
       "description": "Verwalte App-Backups, gespeicherte Daten und Anbieterlimits an einem Ort.",
+      "tabs": {
+        "label": "Einstellungsbereiche",
+        "basics": {
+          "label": "Basis",
+          "description": "Sprache, Bewegung und Standardfilter für die tägliche Dashboard-Nutzung."
+        },
+        "layout": {
+          "label": "Layout",
+          "description": "Steuere, welche Dashboard-Sektionen sichtbar sind und in welcher Reihenfolge sie erscheinen."
+        },
+        "limits": {
+          "label": "Limits",
+          "description": "Konfiguriere Anbieter-Abos und monatliche Budgetlimits."
+        },
+        "maintenance": {
+          "label": "Wartung",
+          "description": "Prüfe Datenstatus, Backups, Importe, Exporte und den Toktrack-Versionsstatus."
+        }
+      },
       "languageTitle": "Dashboard-Sprache",
       "languageDescription": "Lege fest, welche Sprache im Dashboard, in Dialogen und in Reports verwendet wird.",
       "dataStatus": "Datenstatus",

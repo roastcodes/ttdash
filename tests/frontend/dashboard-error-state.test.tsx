@@ -26,9 +26,14 @@ const apiMocks = vi.hoisted(() => ({
   importUsageData: vi.fn(),
 }))
 
+const toktrackVersionStatusMocks = vi.hoisted(() => ({
+  scheduleToktrackVersionStatusWarmup: vi.fn(() => ({ cancel: vi.fn() })),
+}))
+
 vi.mock('@/hooks/use-usage-data', () => usageHookMocks)
 vi.mock('@/hooks/use-app-settings', () => settingsHookMocks)
 vi.mock('@/lib/api', () => apiMocks)
+vi.mock('@/lib/toktrack-version-status', () => toktrackVersionStatusMocks)
 
 function makeEmptyUsageData() {
   return {
@@ -106,6 +111,7 @@ describe('Dashboard fatal load state', () => {
       conflictingDays: 0,
       totalDays: 0,
     })
+    toktrackVersionStatusMocks.scheduleToktrackVersionStatusWarmup.mockClear()
   })
 
   it('renders a fatal settings error state instead of the normal empty state and resets settings', async () => {
@@ -185,6 +191,34 @@ describe('Dashboard fatal load state', () => {
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
     expect(await screen.findByText('Usage payload is invalid')).toBeInTheDocument()
+    expect(screen.queryByText('Could not read file')).not.toBeInTheDocument()
+  })
+
+  it('uses the upload fallback toast when the backend rejects without an Error instance', async () => {
+    const mutateAsync = vi.fn().mockRejectedValue('upload rejected')
+
+    usageHookMocks.useUsageData.mockReturnValue({
+      data: makeEmptyUsageData(),
+      isLoading: false,
+      error: null,
+    })
+    usageHookMocks.useUploadData.mockReturnValue({
+      mutateAsync,
+    })
+
+    render(<Dashboard />, {
+      wrapper: createWrapper(),
+    })
+
+    const input = screen.getByTestId('usage-upload-input') as HTMLInputElement
+    const file = new File([JSON.stringify({ daily: [] })], 'usage.json', {
+      type: 'application/json',
+    })
+
+    fireEvent.change(input, { target: { files: [file] } })
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('Upload failed')).toBeInTheDocument()
     expect(screen.queryByText('Could not read file')).not.toBeInTheDocument()
   })
 

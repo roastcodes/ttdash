@@ -1,28 +1,18 @@
 import type { DailyUsage, ProviderLimitConfig, ProviderLimits } from '@/types'
 import { getModelProvider } from '@/lib/model-utils'
+import {
+  DEFAULT_PROVIDER_LIMIT_CONFIG as SHARED_DEFAULT_PROVIDER_LIMIT_CONFIG,
+  normalizeProviderLimitConfig as normalizeSharedProviderLimitConfig,
+} from '../../shared/app-settings.js'
 
 /** Defines the default provider limit configuration. */
 export const DEFAULT_PROVIDER_LIMIT_CONFIG: ProviderLimitConfig = {
-  hasSubscription: false,
-  subscriptionPrice: 0,
-  monthlyLimit: 0,
-}
-
-function sanitizeCurrency(value: unknown): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 0
-  return Math.max(0, Number(value.toFixed(2)))
+  ...SHARED_DEFAULT_PROVIDER_LIMIT_CONFIG,
 }
 
 /** Normalizes an unknown provider limit object to the app shape. */
 export function normalizeProviderLimitConfig(value: unknown): ProviderLimitConfig {
-  if (!value || typeof value !== 'object') return { ...DEFAULT_PROVIDER_LIMIT_CONFIG }
-
-  const config = value as Partial<ProviderLimitConfig>
-  return {
-    hasSubscription: Boolean(config.hasSubscription),
-    subscriptionPrice: sanitizeCurrency(config.subscriptionPrice),
-    monthlyLimit: sanitizeCurrency(config.monthlyLimit),
-  }
+  return normalizeSharedProviderLimitConfig(value)
 }
 
 /** Synchronizes provider limits with the currently available providers. */

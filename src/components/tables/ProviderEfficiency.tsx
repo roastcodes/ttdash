@@ -13,31 +13,23 @@ import {
 } from '@/lib/formatters'
 import { getProviderBadgeClasses } from '@/lib/model-utils'
 import { cn } from '@/lib/cn'
+import {
+  deriveProviderEfficiencyRows,
+  findMostEfficientProvider,
+  getAriaSort as getSortAria,
+  getProviderTotalRequests,
+  resolveNextSortState,
+  sortProviderEfficiencyRows,
+  type ProviderEfficiencySortKey,
+} from '@/lib/sortable-table-data'
 import { ArrowUpDown } from 'lucide-react'
 import type { AggregateMetrics, ViewMode } from '@/types'
-
-interface ProviderRow extends AggregateMetrics {
-  name: string
-  share: number
-  costPerRequest: number
-  costPerMillion: number
-  cacheShare: number
-}
 
 interface ProviderEfficiencyProps {
   providerMetrics: Map<string, AggregateMetrics>
   totalCost: number
   viewMode?: ViewMode
 }
-
-type SortKey =
-  | 'cost'
-  | 'share'
-  | 'requests'
-  | 'tokens'
-  | 'costPerRequest'
-  | 'costPerMillion'
-  | 'cacheShare'
 
 /** Renders the sortable provider efficiency table. */
 export function ProviderEfficiency({
@@ -46,53 +38,32 @@ export function ProviderEfficiency({
   viewMode = 'daily',
 }: ProviderEfficiencyProps) {
   const { t } = useTranslation()
-  const [sortKey, setSortKey] = useState<SortKey>('cost')
+  const [sortKey, setSortKey] = useState<ProviderEfficiencySortKey>('cost')
   const [sortAsc, setSortAsc] = useState(false)
 
-  const rows = useMemo<ProviderRow[]>(
-    () =>
-      Array.from(providerMetrics.entries()).map(([name, value]) => ({
-        name,
-        ...value,
-        share: totalCost > 0 ? (value.cost / totalCost) * 100 : 0,
-        costPerRequest: value.requests > 0 ? value.cost / value.requests : 0,
-        costPerMillion: value.tokens > 0 ? value.cost / (value.tokens / 1_000_000) : 0,
-        cacheShare: value.tokens > 0 ? (value.cacheRead / value.tokens) * 100 : 0,
-      })),
+  const rows = useMemo(
+    () => deriveProviderEfficiencyRows(providerMetrics, totalCost),
     [providerMetrics, totalCost],
   )
 
   const sorted = useMemo(
-    () =>
-      [...rows].sort((a, b) => {
-        const diff = a[sortKey] - b[sortKey]
-        return sortAsc ? diff : -diff
-      }),
+    () => sortProviderEfficiencyRows(rows, sortKey, sortAsc),
     [rows, sortAsc, sortKey],
   )
 
   const lead = sorted[0] ?? null
-  const efficient = useMemo(
-    () =>
-      [...rows]
-        .filter((row) => row.tokens > 0)
-        .sort((a, b) => a.costPerMillion - b.costPerMillion)[0] ?? null,
-    [rows],
-  )
-  const totalRequests = useMemo(() => rows.reduce((sum, row) => sum + row.requests, 0), [rows])
+  const efficient = useMemo(() => findMostEfficientProvider(rows), [rows])
+  const totalRequests = useMemo(() => getProviderTotalRequests(rows), [rows])
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortAsc(!sortAsc)
-    else {
-      setSortKey(key)
-      setSortAsc(false)
-    }
+  const handleSort = (key: ProviderEfficiencySortKey) => {
+    const next = resolveNextSortState({ sortKey, sortAsc }, key)
+    setSortKey(next.sortKey)
+    setSortAsc(next.sortAsc)
   }
 
-  const getAriaSort = (field: SortKey): 'ascending' | 'descending' | 'none' =>
-    sortKey === field ? (sortAsc ? 'ascending' : 'descending') : 'none'
+  const getAriaSort = (field: ProviderEfficiencySortKey) => getSortAria(field, { sortKey, sortAsc })
 
-  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
+  const SortHeader = ({ label, field }: { label: string; field: ProviderEfficiencySortKey }) => (
     <th
       aria-sort={getAriaSort(field)}
       className={cn(

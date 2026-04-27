@@ -1,11 +1,32 @@
 // @vitest-environment jsdom
 
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RequestQuality } from '@/components/features/request-quality/RequestQuality'
 import { initI18n } from '@/lib/i18n'
 import type { DashboardMetrics } from '@/types'
+import type * as RequestQualityDataModule from '@/lib/request-quality-data'
 import { renderWithTooltip } from '../test-utils'
+
+const requestQualityMock = vi.hoisted(() => ({
+  deriveOverride: undefined as undefined | ((...args: unknown[]) => unknown),
+}))
+
+vi.mock('@/lib/request-quality-data', async (importOriginal) => {
+  const actual = await importOriginal<typeof RequestQualityDataModule>()
+  return {
+    ...actual,
+    deriveRequestQualityData: (...args: Parameters<typeof actual.deriveRequestQualityData>) => {
+      const override = requestQualityMock.deriveOverride as
+        | ((
+            ...args: Parameters<typeof actual.deriveRequestQualityData>
+          ) => ReturnType<typeof actual.deriveRequestQualityData>)
+        | undefined
+
+      return override ? override(...args) : actual.deriveRequestQualityData(...args)
+    },
+  }
+})
 
 class MockIntersectionObserver {
   static instances: MockIntersectionObserver[] = []
@@ -73,6 +94,7 @@ describe('RequestQuality', () => {
   })
 
   afterEach(() => {
+    requestQualityMock.deriveOverride = undefined
     vi.unstubAllGlobals()
   })
 
@@ -104,6 +126,27 @@ describe('RequestQuality', () => {
     expect(screen.queryByText('n/a')).not.toBeInTheDocument()
   })
 
+  it('renders a safe fallback card for unexpected request-quality metric ids', () => {
+    requestQualityMock.deriveOverride = () => ({
+      qualityMetrics: [
+        {
+          id: 'unexpectedMetric',
+          value: 42,
+          progress: 0.5,
+          accent: '210 80% 50%',
+        },
+      ],
+      requestDensity: 0,
+      averageUnit: 'day',
+      inputOutputRatio: 0,
+    })
+
+    renderWithTooltip(<RequestQuality metrics={baseMetrics} viewMode="daily" />)
+
+    expect(screen.getByText('unexpectedMetric')).toBeInTheDocument()
+    expect(screen.getAllByText('n/a').length).toBeGreaterThanOrEqual(1)
+  })
+
   it('animates request-quality bars only after the metric cards become visible', async () => {
     const { container } = renderWithTooltip(
       <RequestQuality
@@ -127,7 +170,9 @@ describe('RequestQuality', () => {
       false,
     )
 
-    MockIntersectionObserver.instances.forEach((observer) => observer.trigger(true))
+    act(() => {
+      MockIntersectionObserver.instances.forEach((observer) => observer.trigger(true))
+    })
 
     await waitFor(() => {
       expect(

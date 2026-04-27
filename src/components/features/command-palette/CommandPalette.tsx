@@ -27,45 +27,10 @@ import {
   Languages,
 } from 'lucide-react'
 import { DASHBOARD_SECTION_DEFINITION_MAP } from '@/lib/dashboard-preferences'
-import type {
-  AppLanguage,
-  DashboardSectionId,
-  DashboardSectionOrder,
-  DashboardSectionVisibility,
-  ViewMode,
-} from '@/types'
+import type { DashboardCommandPaletteViewModel } from '@/types/dashboard-view-model'
+import type { DashboardSectionId } from '@/types'
 
-interface CommandPaletteProps {
-  isDark: boolean
-  availableProviders: string[]
-  selectedProviders: string[]
-  availableModels: string[]
-  selectedModels: string[]
-  hasTodaySection: boolean
-  hasMonthSection: boolean
-  hasRequestSection: boolean
-  sectionVisibility: DashboardSectionVisibility
-  sectionOrder: DashboardSectionOrder
-  reportGenerating: boolean
-  onToggleTheme: () => void
-  onExportCSV: () => void
-  onGenerateReport: () => void
-  onDelete: () => void
-  onUpload: () => void
-  onAutoImport: () => void
-  onOpenSettings: () => void
-  onScrollTo: (section: string) => void
-  onViewModeChange: (mode: ViewMode) => void
-  onApplyPreset: (preset: string) => void
-  onToggleProvider: (provider: string) => void
-  onToggleModel: (model: string) => void
-  onClearProviders: () => void
-  onClearModels: () => void
-  onClearDateRange: () => void
-  onResetAll: () => void
-  onHelp: () => void
-  onLanguageChange: (language: AppLanguage) => void
-}
+type CommandPaletteProps = DashboardCommandPaletteViewModel
 
 interface CommandItem {
   id: string
@@ -289,17 +254,18 @@ export function CommandPalette({
         aliases: ['auto import', 'daten importieren'],
         icon: <Zap className="h-4 w-4" />,
         action: onAutoImport,
-        group: t('commandPalette.groups.actions'),
+        group: t('commandPalette.groups.loadData'),
       },
       {
-        id: 'settings-open',
-        label: t('commandPalette.commands.openSettings.label'),
-        description: t('commandPalette.commands.openSettings.description'),
-        keywords: ['settings', 'limits', 'subscription', 'anbieter limit', 'backup'],
-        aliases: ['settings dialog', 'einstellungen öffnen', 'provider limits'],
-        icon: <SlidersHorizontal className="h-4 w-4" />,
-        action: onOpenSettings,
-        group: t('commandPalette.groups.actions'),
+        id: 'upload',
+        label: t('commandPalette.commands.upload.label'),
+        description: t('commandPalette.commands.upload.description'),
+        keywords: ['upload', 'file', 'json', 'import'],
+        aliases: ['datei laden', 'json import'],
+        shortcut: '⌘U',
+        icon: <Upload className="h-4 w-4" />,
+        action: onUpload,
+        group: t('commandPalette.groups.loadData'),
       },
       {
         id: 'csv',
@@ -310,7 +276,7 @@ export function CommandPalette({
         shortcut: '⌘E',
         icon: <Download className="h-4 w-4" />,
         action: onExportCSV,
-        group: t('commandPalette.groups.actions'),
+        group: t('commandPalette.groups.exports'),
       },
       {
         id: 'report',
@@ -322,18 +288,17 @@ export function CommandPalette({
         aliases: ['report export', 'pdf export', 'bericht generieren'],
         icon: <Download className="h-4 w-4" />,
         action: onGenerateReport,
-        group: t('commandPalette.groups.actions'),
+        group: t('commandPalette.groups.exports'),
       },
       {
-        id: 'upload',
-        label: t('commandPalette.commands.upload.label'),
-        description: t('commandPalette.commands.upload.description'),
-        keywords: ['upload', 'file', 'json', 'import'],
-        aliases: ['datei laden', 'json import'],
-        shortcut: '⌘U',
-        icon: <Upload className="h-4 w-4" />,
-        action: onUpload,
-        group: t('commandPalette.groups.actions'),
+        id: 'settings-open',
+        label: t('commandPalette.commands.openSettings.label'),
+        description: t('commandPalette.commands.openSettings.description'),
+        keywords: ['settings', 'limits', 'subscription', 'anbieter limit', 'backup'],
+        aliases: ['settings dialog', 'einstellungen öffnen', 'provider limits'],
+        icon: <SlidersHorizontal className="h-4 w-4" />,
+        action: onOpenSettings,
+        group: t('commandPalette.groups.maintenance'),
       },
       {
         id: 'delete',
@@ -343,7 +308,7 @@ export function CommandPalette({
         aliases: ['daten reset', 'alles loeschen'],
         icon: <Trash2 className="h-4 w-4" />,
         action: onDelete,
-        group: t('commandPalette.groups.actions'),
+        group: t('commandPalette.groups.maintenance'),
       },
 
       {

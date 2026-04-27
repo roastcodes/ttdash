@@ -52,79 +52,60 @@ export function getProviderBadgeClasses(provider: string): string {
   }
 }
 
-/** Returns inline badge styles for provider swatches and tooltips. */
-export function getProviderBadgeStyle(provider: string): {
+interface ProviderBadgeStyleOptions {
+  backgroundAlpha?: number
+  borderAlpha?: number
+}
+
+interface ProviderBadgeStyle {
   color: string
   backgroundColor: string
   borderColor: string
-} {
+}
+
+function formatProviderBadgeStyle(
+  color: string,
+  rgb: string,
+  options?: ProviderBadgeStyleOptions,
+): ProviderBadgeStyle {
+  const backgroundAlpha = (options?.backgroundAlpha ?? 0.1).toFixed(2)
+  const borderAlpha = (options?.borderAlpha ?? 0.2).toFixed(2)
+
+  return {
+    color,
+    backgroundColor: `rgba(${rgb}, ${backgroundAlpha})`,
+    borderColor: `rgba(${rgb}, ${borderAlpha})`,
+  }
+}
+
+/** Returns inline badge styles for provider swatches and tooltips. */
+export function getProviderBadgeStyle(
+  provider: string,
+  options?: ProviderBadgeStyleOptions,
+): ProviderBadgeStyle {
   switch (provider) {
     case 'OpenAI':
-      return {
-        color: 'rgb(52, 211, 153)',
-        backgroundColor: 'rgba(16, 185, 129, 0.10)',
-        borderColor: 'rgba(16, 185, 129, 0.20)',
-      }
+      return formatProviderBadgeStyle('rgb(52, 211, 153)', '16, 185, 129', options)
     case 'Anthropic':
-      return {
-        color: 'rgb(251, 146, 60)',
-        backgroundColor: 'rgba(249, 115, 22, 0.10)',
-        borderColor: 'rgba(249, 115, 22, 0.20)',
-      }
+      return formatProviderBadgeStyle('rgb(251, 146, 60)', '249, 115, 22', options)
     case 'Google':
-      return {
-        color: 'rgb(56, 189, 248)',
-        backgroundColor: 'rgba(14, 165, 233, 0.10)',
-        borderColor: 'rgba(14, 165, 233, 0.20)',
-      }
+      return formatProviderBadgeStyle('rgb(56, 189, 248)', '14, 165, 233', options)
     case 'xAI':
-      return {
-        color: 'rgb(232, 121, 249)',
-        backgroundColor: 'rgba(217, 70, 239, 0.10)',
-        borderColor: 'rgba(217, 70, 239, 0.20)',
-      }
+      return formatProviderBadgeStyle('rgb(232, 121, 249)', '217, 70, 239', options)
     case 'Meta':
-      return {
-        color: 'rgb(96, 165, 250)',
-        backgroundColor: 'rgba(59, 130, 246, 0.10)',
-        borderColor: 'rgba(59, 130, 246, 0.20)',
-      }
+      return formatProviderBadgeStyle('rgb(96, 165, 250)', '59, 130, 246', options)
     case 'Cohere':
-      return {
-        color: 'rgb(163, 230, 53)',
-        backgroundColor: 'rgba(132, 204, 22, 0.10)',
-        borderColor: 'rgba(132, 204, 22, 0.20)',
-      }
+      return formatProviderBadgeStyle('rgb(163, 230, 53)', '132, 204, 22', options)
     case 'Mistral':
-      return {
-        color: 'rgb(252, 211, 77)',
-        backgroundColor: 'rgba(245, 158, 11, 0.10)',
-        borderColor: 'rgba(245, 158, 11, 0.20)',
-      }
+      return formatProviderBadgeStyle('rgb(252, 211, 77)', '245, 158, 11', options)
     case 'DeepSeek':
-      return {
-        color: 'rgb(45, 212, 191)',
-        backgroundColor: 'rgba(20, 184, 166, 0.10)',
-        borderColor: 'rgba(20, 184, 166, 0.20)',
-      }
+      return formatProviderBadgeStyle('rgb(45, 212, 191)', '20, 184, 166', options)
     case 'Alibaba':
-      return {
-        color: 'rgb(250, 204, 21)',
-        backgroundColor: 'rgba(234, 179, 8, 0.10)',
-        borderColor: 'rgba(234, 179, 8, 0.20)',
-      }
+      return formatProviderBadgeStyle('rgb(250, 204, 21)', '234, 179, 8', options)
     case 'OpenCode':
-      return {
-        color: 'rgb(34, 211, 238)',
-        backgroundColor: 'rgba(6, 182, 212, 0.10)',
-        borderColor: 'rgba(6, 182, 212, 0.20)',
-      }
+      return formatProviderBadgeStyle('rgb(34, 211, 238)', '6, 182, 212', options)
     default:
-      return {
-        color: 'rgb(148, 163, 184)',
-        backgroundColor: 'rgba(100, 116, 139, 0.10)',
-        borderColor: 'rgba(100, 116, 139, 0.20)',
-      }
+      return formatProviderBadgeStyle('rgb(148, 163, 184)', '100, 116, 139', options)
   }
 }
 

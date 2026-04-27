@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act } from '@testing-library/react'
 import { initI18n } from '@/lib/i18n'
 import { useDashboardControllerWithBootstrap } from '@/hooks/use-dashboard-controller'
+import { createDailyUsage } from '../factories'
 import { createTestQueryClient, renderHookWithQueryClient } from '../test-utils'
 import {
   createComputedState,
@@ -128,7 +130,7 @@ describe('useDashboardControllerWithBootstrap actions', () => {
       { client },
     )
 
-    await result.current.handleGenerateReport()
+    await result.current.report.onGenerate()
 
     expect(apiMocks.generatePdfReport).toHaveBeenCalledWith({
       viewMode: 'daily',
@@ -169,8 +171,8 @@ describe('useDashboardControllerWithBootstrap actions', () => {
       useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
     )
 
-    result.current.handleExportSettings()
-    result.current.handleExportData()
+    result.current.settingsModal.onExportSettings()
+    result.current.settingsModal.onExportData()
 
     expect(downloads).toHaveLength(2)
     expect(downloads[0].filename).toMatch(/^ttdash-settings-backup-/)
@@ -203,12 +205,125 @@ describe('useDashboardControllerWithBootstrap actions', () => {
       },
     )
 
-    await result.current.handleDataImportChange({
+    await result.current.fileInputs.onDataImportChange({
       target: { files: [file], value: 'backup.json' },
     } as never)
 
     expect(apiMocks.importUsageData).toHaveBeenCalledTimes(1)
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['usage'] })
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings'] })
+  })
+
+  it('resets the usage upload file input after upload failures', async () => {
+    const uploadUsageData = vi.fn().mockRejectedValue(new Error('Upload rejected'))
+    usageHookMocks.useUploadData.mockReturnValue({ mutateAsync: uploadUsageData })
+
+    const { result } = renderHookWithQueryClient(() =>
+      useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
+    )
+    const file = new File([JSON.stringify({ daily: [] })], 'usage.json', {
+      type: 'application/json',
+    })
+    const target = { files: [file], value: 'usage.json' }
+
+    await result.current.fileInputs.onUsageUploadChange({ target } as never)
+
+    expect(uploadUsageData).toHaveBeenCalledTimes(1)
+    expect(target.value).toBe('')
+    expect(toastMocks.addToast).toHaveBeenCalledWith('Upload rejected', 'error')
+  })
+
+  it('wires composed dashboard callbacks across header, filters, settings, and commands', async () => {
+    const setStartDate = vi.fn()
+    const setEndDate = vi.fn()
+    const toggleProvider = vi.fn()
+    const toggleModel = vi.fn()
+    const applyPreset = vi.fn()
+    const resetAll = vi.fn()
+    const saveSettings = vi.fn().mockResolvedValue(createSettings())
+    const deleteUsageData = vi.fn().mockResolvedValue(undefined)
+    usageHookMocks.useDeleteData.mockReturnValue({ mutateAsync: deleteUsageData })
+    settingsHookMocks.useAppSettings.mockReturnValue({
+      settings: createSettings(),
+      providerLimits: {},
+      setTheme: vi.fn(),
+      setLanguage: vi.fn(),
+      saveSettings,
+      isSaving: false,
+      isLoading: false,
+      error: null,
+      isError: false,
+      hasFetchedAfterMount: false,
+    })
+    filterHookMocks.useDashboardFilters.mockReturnValue(
+      createFilterState({
+        setStartDate,
+        setEndDate,
+        toggleProvider,
+        toggleModel,
+        applyPreset,
+        resetAll,
+      }),
+    )
+
+    const { result } = renderHookWithQueryClient(() =>
+      useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
+    )
+
+    result.current.filterBar.onStartDateChange('2026-04-03')
+    result.current.filterBar.onEndDateChange(undefined)
+    result.current.filterBar.onToggleProvider('OpenAI')
+    result.current.commandPalette.onToggleModel('GPT-4o')
+    result.current.commandPalette.onApplyPreset('30d')
+    result.current.commandPalette.onClearDateRange()
+    result.current.commandPalette.onResetAll()
+    await result.current.settingsModal.onSaveSettings(createSettings())
+    result.current.header.onDelete()
+    result.current.commandPalette.onDelete()
+
+    expect(setStartDate).toHaveBeenCalledWith('2026-04-03')
+    expect(setStartDate).toHaveBeenCalledWith(undefined)
+    expect(setEndDate).toHaveBeenCalledWith(undefined)
+    expect(toggleProvider).toHaveBeenCalledWith('OpenAI')
+    expect(toggleModel).toHaveBeenCalledWith('GPT-4o')
+    expect(applyPreset).toHaveBeenCalledWith('30d')
+    expect(resetAll).toHaveBeenCalledTimes(1)
+    expect(saveSettings).toHaveBeenCalledTimes(1)
+    expect(deleteUsageData).toHaveBeenCalledTimes(2)
+  })
+
+  it('drives drill-down navigation from the controller view-model bundle', () => {
+    filterHookMocks.useDashboardFilters.mockReturnValue(
+      createFilterState({
+        filteredData: [
+          createDailyUsage({ date: '2026-04-01', totalCost: 1 }),
+          createDailyUsage({ date: '2026-04-02', totalCost: 2 }),
+          createDailyUsage({ date: '2026-04-03', totalCost: 3 }),
+        ],
+      }),
+    )
+
+    const { result } = renderHookWithQueryClient(() =>
+      useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
+    )
+
+    act(() => {
+      result.current.sections.interactions.onDrillDownDateChange('2026-04-02')
+    })
+
+    expect(result.current.dialogs.drillDown).toMatchObject({
+      open: true,
+      hasPrevious: true,
+      hasNext: true,
+      currentIndex: 2,
+      totalCount: 3,
+    })
+    expect(result.current.dialogs.drillDown.day?.date).toBe('2026-04-02')
+
+    act(() => {
+      result.current.dialogs.drillDown.onNext?.()
+    })
+
+    expect(result.current.dialogs.drillDown.day?.date).toBe('2026-04-03')
   })
 })

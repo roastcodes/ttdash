@@ -17,6 +17,7 @@ describe('FilterBar date picker interactions', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.restoreAllMocks()
   })
 
   it('renders a separate clear button for populated date fields and clears the value', () => {
@@ -67,5 +68,94 @@ describe('FilterBar date picker interactions', () => {
 
     expect(onStartDateChange).toHaveBeenLastCalledWith('2026-04-07')
     expect(trigger).toHaveFocus()
+  })
+
+  it('focuses today when opening an empty date field', async () => {
+    renderFilterBar()
+
+    const trigger = screen.getByRole('button', { name: 'Start date' })
+    fireEvent.click(trigger)
+    await vi.runAllTimersAsync()
+
+    const dialog = screen.getByRole('dialog', { name: 'Start date' })
+    const today = within(dialog).getByRole('button', { name: /^Mon, 04\/06\/2026$/ })
+
+    expect(today).toHaveFocus()
+    expect(today).toHaveAttribute('aria-current', 'date')
+  })
+
+  it('keeps the calendar overlay inside short viewports', async () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 200 })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800 })
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 10,
+      right: 180,
+      bottom: 40,
+      left: 20,
+      width: 160,
+      height: 30,
+      x: 20,
+      y: 10,
+      toJSON: () => ({}),
+    } as DOMRect)
+
+    renderFilterBar()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start date' }))
+    await vi.runAllTimersAsync()
+
+    expect(screen.getByRole('dialog', { name: 'Start date' })).toHaveStyle({ top: '12px' })
+  })
+
+  it('cancels queued focus restoration when the date picker unmounts', async () => {
+    const onStartDateChange = vi.fn()
+    const scheduledFrames = new Map<number, FrameRequestCallback>()
+    let nextFrameId = 1
+    const requestAnimationFrameSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((callback: FrameRequestCallback) => {
+        const frameId = nextFrameId++
+        scheduledFrames.set(frameId, callback)
+        return frameId
+      })
+    const cancelAnimationFrameSpy = vi
+      .spyOn(window, 'cancelAnimationFrame')
+      .mockImplementation((frameId: number) => {
+        scheduledFrames.delete(frameId)
+      })
+    const flushScheduledFrames = () => {
+      const pendingFrames = [...scheduledFrames.values()]
+      scheduledFrames.clear()
+      pendingFrames.forEach((callback) => callback(performance.now()))
+    }
+
+    const { unmount } = renderFilterBar({
+      startDate: '2026-04-06',
+      onStartDateChange,
+    })
+
+    const trigger = screen.getByRole('button', { name: /Mon, 04\/06\/2026|06\/04\/2026/i })
+    fireEvent.click(trigger)
+    flushScheduledFrames()
+
+    const dialog = screen.getByRole('dialog', { name: 'Start date' })
+    const daySix = within(dialog).getByRole('button', { name: /^Mon, 04\/06\/2026$/ })
+    fireEvent.keyDown(daySix, { key: 'ArrowRight' })
+    flushScheduledFrames()
+
+    const daySeven = within(dialog).getByRole('button', { name: /^Tue, 04\/07\/2026$/ })
+    fireEvent.keyDown(daySeven, { key: 'Enter' })
+
+    expect(onStartDateChange).toHaveBeenLastCalledWith('2026-04-07')
+    expect(scheduledFrames.size).toBe(1)
+
+    const [pendingFrameId] = [...scheduledFrames.keys()]
+    unmount()
+
+    expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(pendingFrameId)
+    expect(scheduledFrames.size).toBe(0)
+
+    requestAnimationFrameSpy.mockRestore()
+    cancelAnimationFrameSpy.mockRestore()
   })
 })

@@ -6,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ChartCard, useChartAnimationState } from '@/components/charts/ChartCard'
 import {
   AnimatedDashboardSection,
+  DASHBOARD_MOTION,
   DashboardMotionItem,
+  scheduleDashboardPreloads,
   useDashboardElementMotion,
   useDashboardSectionMotion,
 } from '@/components/dashboard/DashboardMotion'
@@ -80,6 +82,104 @@ function ItemMotionProbe() {
   )
 }
 
+describe('scheduleDashboardPreloads', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('runs deduplicated preload tasks through the idle scheduler with bounded concurrency', async () => {
+    const idleCallbacks: Array<
+      (deadline: { didTimeout: boolean; timeRemaining: () => number }) => void
+    > = []
+    const requestIdleCallback = vi.fn(
+      (callback: (deadline: { didTimeout: boolean; timeRemaining: () => number }) => void) => {
+        idleCallbacks.push(callback)
+        return idleCallbacks.length
+      },
+    )
+    const cancelIdleCallback = vi.fn()
+    const firstTask = vi.fn()
+    const secondTask = vi.fn()
+
+    vi.stubGlobal('requestIdleCallback', requestIdleCallback)
+    vi.stubGlobal('cancelIdleCallback', cancelIdleCallback)
+
+    scheduleDashboardPreloads([firstTask, firstTask, secondTask], { concurrency: 1 })
+
+    expect(requestIdleCallback).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      idleCallbacks.shift()?.({
+        didTimeout: false,
+        timeRemaining: () => DASHBOARD_MOTION.sectionPreloadMinimumIdleMs,
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(firstTask).toHaveBeenCalledTimes(1)
+    expect(secondTask).not.toHaveBeenCalled()
+    expect(requestIdleCallback).toHaveBeenCalledTimes(2)
+
+    await act(async () => {
+      idleCallbacks.shift()?.({
+        didTimeout: true,
+        timeRemaining: () => 0,
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(secondTask).toHaveBeenCalledTimes(1)
+  })
+
+  it('falls back to requestAnimationFrame when idle callbacks are unavailable', async () => {
+    const frameCallbacks: FrameRequestCallback[] = []
+    const preloadTask = vi.fn()
+    const requestAnimationFrame = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((callback) => {
+        frameCallbacks.push(callback)
+        return frameCallbacks.length
+      })
+    const cancelAnimationFrame = vi
+      .spyOn(window, 'cancelAnimationFrame')
+      .mockImplementation(() => {})
+
+    delete (window as Window & { requestIdleCallback?: unknown }).requestIdleCallback
+    delete (globalThis as typeof globalThis & { requestIdleCallback?: unknown }).requestIdleCallback
+
+    scheduleDashboardPreloads([preloadTask])
+
+    expect(requestAnimationFrame).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      frameCallbacks.shift()?.(performance.now())
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(preloadTask).toHaveBeenCalledTimes(1)
+    expect(cancelAnimationFrame).not.toHaveBeenCalled()
+  })
+
+  it('cancels queued idle work before it starts', () => {
+    const requestIdleCallback = vi.fn(() => 42)
+    const cancelIdleCallback = vi.fn()
+    const preloadTask = vi.fn()
+
+    vi.stubGlobal('requestIdleCallback', requestIdleCallback)
+    vi.stubGlobal('cancelIdleCallback', cancelIdleCallback)
+
+    const handle = scheduleDashboardPreloads([preloadTask])
+    handle.cancel()
+
+    expect(cancelIdleCallback).toHaveBeenCalledWith(42)
+    expect(preloadTask).not.toHaveBeenCalled()
+  })
+})
+
 describe('AnimatedDashboardSection', () => {
   beforeEach(async () => {
     MockIntersectionObserver.instances = []
@@ -113,7 +213,9 @@ describe('AnimatedDashboardSection', () => {
     expect(screen.queryByTestId('section-visible')).not.toBeInTheDocument()
 
     act(() => {
-      getObserver((observer) => observer.options?.rootMargin === '0px 0px 45% 0px').trigger(true)
+      getObserver(
+        (observer) => observer.options?.rootMargin === DASHBOARD_MOTION.sectionPreloadMargin,
+      ).trigger(true)
     })
 
     await act(async () => {
@@ -140,7 +242,7 @@ describe('AnimatedDashboardSection', () => {
     act(() => {
       getObservers(
         (observer) =>
-          observer.options?.rootMargin !== '0px 0px 45% 0px' &&
+          observer.options?.rootMargin !== DASHBOARD_MOTION.sectionPreloadMargin &&
           observer.options?.threshold !== 0.14,
       ).forEach((observer) => observer.trigger(true))
     })
@@ -164,7 +266,9 @@ describe('AnimatedDashboardSection', () => {
     )
 
     act(() => {
-      getObserver((observer) => observer.options?.rootMargin === '0px 0px 45% 0px').trigger(true)
+      getObserver(
+        (observer) => observer.options?.rootMargin === DASHBOARD_MOTION.sectionPreloadMargin,
+      ).trigger(true)
     })
 
     await act(async () => {
@@ -200,7 +304,9 @@ describe('AnimatedDashboardSection', () => {
     )
 
     act(() => {
-      getObserver((observer) => observer.options?.rootMargin === '0px 0px 45% 0px').trigger(true)
+      getObserver(
+        (observer) => observer.options?.rootMargin === DASHBOARD_MOTION.sectionPreloadMargin,
+      ).trigger(true)
       getObserver((observer) => observer.options?.threshold === 0.14).trigger(true)
     })
 

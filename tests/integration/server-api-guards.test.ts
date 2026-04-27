@@ -14,10 +14,22 @@ describe('local server API guards', () => {
     expect(wrongContentTypeResponse.status).toBe(415)
   })
 
+  it('sends a strict style CSP on API responses', async () => {
+    const response = await fetchTrusted(`${sharedServer.baseUrl}/api/usage`)
+    const csp = response.headers.get('content-security-policy') || ''
+
+    expect(response.status).toBe(200)
+    expect(csp).toContain("style-src 'self'")
+    expect(csp).toContain("style-src-elem 'self'")
+    expect(csp).toContain("style-src-attr 'none'")
+    expect(csp).not.toContain("'unsafe-inline'")
+  })
+
   it('blocks cross-site upload requests', async () => {
     const crossSiteUploadResponse = await fetch(`${sharedServer.baseUrl}/api/upload`, {
       method: 'POST',
       headers: {
+        ...sharedServer.authHeaders,
         'Content-Type': 'application/json',
         Origin: 'https://evil.example',
       },
@@ -29,7 +41,7 @@ describe('local server API guards', () => {
   it('blocks cross-site usage deletion', async () => {
     const crossSiteDeleteResponse = await fetch(`${sharedServer.baseUrl}/api/usage`, {
       method: 'DELETE',
-      headers: { Origin: 'https://evil.example' },
+      headers: { ...sharedServer.authHeaders, Origin: 'https://evil.example' },
     })
     expect(crossSiteDeleteResponse.status).toBe(403)
   })
@@ -37,12 +49,15 @@ describe('local server API guards', () => {
   it('blocks usage deletion without Origin', async () => {
     const missingOriginDeleteResponse = await fetch(`${sharedServer.baseUrl}/api/usage`, {
       method: 'DELETE',
+      headers: sharedServer.authHeaders,
     })
     expect(missingOriginDeleteResponse.status).toBe(403)
   })
 
   it('disallows GET requests on the auto-import stream endpoint', async () => {
-    const autoImportGetResponse = await fetch(`${sharedServer.baseUrl}/api/auto-import/stream`)
+    const autoImportGetResponse = await fetch(`${sharedServer.baseUrl}/api/auto-import/stream`, {
+      headers: sharedServer.authHeaders,
+    })
     expect(autoImportGetResponse.status).toBe(405)
   })
 

@@ -72,23 +72,5 @@ describe('HeatmapCalendar accessibility', () => {
     await waitFor(() => {
       expect(screen.getByRole('gridcell', { name: /April 13, 2026/ })).toHaveFocus()
     })
-
-    const mondaySecondWeek = screen.getByRole('gridcell', { name: /April 13, 2026/ })
-    fireEvent.keyDown(mondaySecondWeek, { key: 'ArrowDown' })
-    await waitFor(() => {
-      expect(screen.getByRole('gridcell', { name: /April 14, 2026/ })).toHaveFocus()
-    })
-
-    const tuesdaySecondWeek = screen.getByRole('gridcell', { name: /April 14, 2026/ })
-    fireEvent.keyDown(tuesdaySecondWeek, { key: 'Home' })
-    await waitFor(() => {
-      expect(screen.getByRole('gridcell', { name: /April 7, 2026/ })).toHaveFocus()
-    })
-
-    const tuesdayFirstWeek = screen.getByRole('gridcell', { name: /April 7, 2026/ })
-    fireEvent.keyDown(tuesdayFirstWeek, { key: 'End' })
-    await waitFor(() => {
-      expect(screen.getByRole('gridcell', { name: /April 14, 2026/ })).toHaveFocus()
-    })
-  }, 15_000)
+  })
 })

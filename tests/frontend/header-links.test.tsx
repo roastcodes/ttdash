@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { useState } from 'react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { HelpPanel } from '@/components/features/help/HelpPanel'
@@ -25,6 +25,8 @@ function HeaderTestHarness() {
         onDelete={noop}
         onUpload={noop}
         onAutoImport={noop}
+        settingsButton={<button type="button">Settings</button>}
+        pdfButton={<button type="button">Report</button>}
       />
       <HelpPanel open={helpOpen} onOpenChange={setHelpOpen} />
     </>
@@ -79,5 +81,35 @@ describe('Header external links', () => {
 
     expect(screen.getByRole('button', { name: 'EN' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'DE' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('groups header actions by user intent and localizes the group labels', async () => {
+    const currentLanguage = document.documentElement.lang
+
+    try {
+      const { unmount } = render(<HeaderTestHarness />)
+
+      const loadDataGroup = screen.getByRole('group', { name: 'Load data' })
+      expect(within(loadDataGroup).getByRole('button', { name: 'Import' })).toBeInTheDocument()
+      expect(within(loadDataGroup).getByRole('button', { name: 'Upload' })).toBeInTheDocument()
+
+      const useExportGroup = screen.getByRole('group', { name: 'Use & export' })
+      expect(within(useExportGroup).getByRole('button', { name: 'Settings' })).toBeInTheDocument()
+      expect(within(useExportGroup).getByRole('button', { name: 'Report' })).toBeInTheDocument()
+      expect(within(useExportGroup).getByRole('button', { name: 'CSV' })).toBeInTheDocument()
+
+      const maintenanceGroup = screen.getByRole('group', { name: 'Maintenance' })
+      expect(within(maintenanceGroup).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+
+      unmount()
+      await initI18n('de')
+      render(<HeaderTestHarness />)
+
+      expect(screen.getByRole('group', { name: 'Daten laden' })).toBeInTheDocument()
+      expect(screen.getByRole('group', { name: 'Nutzen & exportieren' })).toBeInTheDocument()
+      expect(screen.getByRole('group', { name: 'Wartung' })).toBeInTheDocument()
+    } finally {
+      await initI18n(currentLanguage || 'en')
+    }
   })
 })

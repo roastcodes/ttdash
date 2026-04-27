@@ -1,95 +1,34 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useCallback, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useUsageData, useUploadData, useDeleteData } from '@/hooks/use-usage-data'
+import { useTranslation } from 'react-i18next'
 import { useAppSettings } from '@/hooks/use-app-settings'
-import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
-import { useComputedMetrics } from '@/hooks/use-computed-metrics'
-import { useToast } from '@/lib/toast'
-import { applyTheme, DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
+import { useDashboardControllerActions } from '@/hooks/use-dashboard-controller-actions'
+import { useDashboardControllerDerivedState } from '@/hooks/use-dashboard-controller-derived-state'
+import { useDashboardControllerDialogs } from '@/hooks/use-dashboard-controller-dialogs'
+import { useDashboardControllerDrillDown } from '@/hooks/use-dashboard-controller-drill-down'
+import { useDashboardControllerEffects } from '@/hooks/use-dashboard-controller-effects'
+import { useDashboardControllerShellState } from '@/hooks/use-dashboard-controller-shell-state'
+import type { DashboardControllerViewModel } from '@/types/dashboard-controller'
+import { useDeleteData, useUploadData, useUsageData } from '@/hooks/use-usage-data'
+import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { downloadCSV } from '@/lib/csv-export'
-import { VERSION } from '@/lib/constants'
-import {
-  deleteSettings,
-  generatePdfReport,
-  importSettings,
-  importUsageData,
-  type PdfReportRequest,
-} from '@/lib/api'
-import {
-  formatDateTimeCompact,
-  formatDateTimeFull,
-  localToday,
-  toLocalDateStr,
-} from '@/lib/formatters'
-import { getCurrentLocale } from '@/lib/i18n'
-import { getCurrentMonthForecastData } from '@/lib/data-transforms'
-import { computeDashboardForecastState } from '@/lib/calculations'
 import { getUniqueModels, getUniqueProviders } from '@/lib/model-utils'
-import type {
-  AppLanguage,
-  AppSettings,
-  DashboardDefaultFilters,
-  DashboardSectionOrder,
-  DashboardSectionVisibility,
-  ProviderLimits,
-  ReducedMotionPreference,
-} from '@/types'
+import { useToast } from '@/lib/toast'
+import type { AppSettings } from '@/types'
 
-const SETTINGS_BACKUP_KIND = 'ttdash-settings-backup'
-const USAGE_BACKUP_KIND = 'ttdash-usage-backup'
-const BACKUP_FORMAT_VERSION = 1
-const CORRUPT_SETTINGS_MESSAGE = 'Settings file is unreadable or corrupted.'
-const CORRUPT_USAGE_MESSAGE = 'Usage data file is unreadable or corrupted.'
-
-/** Captures one JSON download emitted by the dashboard controller. */
-export type JsonDownloadRecord = {
-  filename: string
-  mimeType: string
-  size: number
-  text: string
-}
-
-/** Exposes optional browser hooks used by frontend tests. */
-export type DashboardTestHooks = {
-  onJsonDownload?: (record: JsonDownloadRecord) => void
-  openSettings?: () => void
-}
-
-function normalizeErrorMessage(error: unknown): string | null {
-  return error instanceof Error && error.message.trim() ? error.message : null
-}
-
-function describeLoadError(message: string, fallback: string): string {
-  if (message === CORRUPT_SETTINGS_MESSAGE) return fallback
-  if (message === CORRUPT_USAGE_MESSAGE) return fallback
-  return message
-}
-
-function downloadJsonFile(filename: string, data: unknown) {
-  const text = JSON.stringify(data, null, 2)
-  const blob = new Blob([text], { type: 'application/json' })
-  const globalWindow = window as Window & {
-    __TTDASH_TEST_HOOKS__?: DashboardTestHooks
-  }
-  globalWindow.__TTDASH_TEST_HOOKS__?.onJsonDownload?.({
-    filename,
-    mimeType: blob.type,
-    size: blob.size,
-    text,
-  })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = filename
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
+export type {
+  DashboardControllerViewModel,
+  DashboardDialogsViewModel,
+  DashboardFileInputsViewModel,
+  DashboardShellViewModel,
+  DashboardTestHooks,
+  JsonDownloadRecord,
+} from '@/types/dashboard-controller'
 
 /** Creates the dashboard controller with default bootstrap settings. */
-export function useDashboardController(initialSettingsError: string | null = null) {
+export function useDashboardController(
+  initialSettingsError: string | null = null,
+): DashboardControllerViewModel {
   return useDashboardControllerWithBootstrap(
     DEFAULT_APP_SETTINGS,
     false,
@@ -104,30 +43,13 @@ export function useDashboardControllerWithBootstrap(
   initialSettingsLoadedFromServer = false,
   initialSettingsFetchedAt: number | null = null,
   initialSettingsError: string | null = null,
-) {
+): DashboardControllerViewModel {
   const { t, i18n } = useTranslation()
   const { data: usageData, isLoading, error: usageError } = useUsageData()
   const uploadMutation = useUploadData()
   const deleteMutation = useDeleteData()
   const queryClient = useQueryClient()
   const { addToast } = useToast()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const settingsImportInputRef = useRef<HTMLInputElement>(null)
-  const dataImportInputRef = useRef<HTMLInputElement>(null)
-  const [drillDownDate, setDrillDownDate] = useState<string | null>(null)
-  const [helpOpen, setHelpOpen] = useState(false)
-  const [autoImportOpen, setAutoImportOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [reportGenerating, setReportGenerating] = useState(false)
-  const [settingsTransferBusy, setSettingsTransferBusy] = useState(false)
-  const [dataTransferBusy, setDataTransferBusy] = useState(false)
-  const [dataSource, setDataSource] = useState<{
-    type: 'stored' | 'auto-import' | 'file'
-    label?: string
-    time?: string
-    title?: string
-  } | null>(null)
-  const [animationSeed, setAnimationSeed] = useState(0)
   const [bootstrapSettingsError, setBootstrapSettingsError] = useState(initialSettingsError)
 
   const daily = useMemo(() => usageData?.daily ?? [], [usageData])
@@ -157,607 +79,265 @@ export function useDashboardControllerWithBootstrap(
     initialSettingsLoadedFromServer,
     initialSettingsFetchedAt,
   )
+
   const isDark = settings.theme === 'dark'
+  const dialogs = useDashboardControllerDialogs()
 
-  useEffect(() => {
-    if (bootstrapSettingsError && hasFetchedAfterMount && !settingsError) {
-      setBootstrapSettingsError(null)
-    }
-  }, [bootstrapSettingsError, hasFetchedAfterMount, settingsError])
+  useDashboardControllerEffects({
+    theme: settings.theme,
+    language: settings.language,
+    i18n,
+    bootstrapSettingsError,
+    hasFetchedAfterMount,
+    settingsError,
+    onClearBootstrapSettingsError: () => setBootstrapSettingsError(null),
+    onOpenSettings: dialogs.openSettings,
+  })
 
-  useEffect(() => {
-    applyTheme(settings.theme)
-  }, [settings.theme])
-
-  useEffect(() => {
-    if (i18n.resolvedLanguage !== settings.language) {
-      void i18n.changeLanguage(settings.language)
-    }
-  }, [i18n, settings.language])
-
-  useEffect(() => {
-    const globalWindow = window as Window & {
-      __TTDASH_TEST_HOOKS__?: DashboardTestHooks
-    }
-
-    if (!globalWindow.__TTDASH_TEST_HOOKS__) {
-      return undefined
-    }
-
-    globalWindow.__TTDASH_TEST_HOOKS__.openSettings = () => {
-      setSettingsOpen(true)
-    }
-
-    return () => {
-      if (globalWindow.__TTDASH_TEST_HOOKS__?.openSettings) {
-        delete globalWindow.__TTDASH_TEST_HOOKS__.openSettings
-      }
-    }
-  }, [])
-
-  const persistedLoadedTime = useMemo(
-    () => (settings.lastLoadedAt ? formatDateTimeCompact(settings.lastLoadedAt) : undefined),
-    [settings.lastLoadedAt],
-  )
-  const persistedLoadedTitle = useMemo(
-    () =>
-      settings.lastLoadedAt
-        ? t('header.loadedAt', { time: formatDateTimeFull(settings.lastLoadedAt) })
-        : undefined,
-    [settings.lastLoadedAt, t],
-  )
-  const persistedDataSource = useMemo(() => {
-    if (!hasData) return null
-
-    return {
-      type: 'stored' as const,
-      ...(persistedLoadedTime ? { time: persistedLoadedTime } : {}),
-      ...(persistedLoadedTitle ? { title: persistedLoadedTitle } : {}),
-    }
-  }, [hasData, persistedLoadedTime, persistedLoadedTitle])
-  const headerDataSource = dataSource ?? persistedDataSource
-  const startupAutoLoadBadge = useMemo(
-    () =>
-      settings.cliAutoLoadActive
-        ? {
-            active: true,
-            ...(persistedLoadedTime ? { time: persistedLoadedTime } : {}),
-            title: settings.lastLoadedAt
-              ? t('header.autoLoadAt', { time: formatDateTimeFull(settings.lastLoadedAt) })
-              : t('header.autoLoadActive'),
-          }
-        : null,
-    [settings.cliAutoLoadActive, settings.lastLoadedAt, persistedLoadedTime, t],
-  )
-
-  const filters = useDashboardFilters(daily, settings.defaultFilters)
-  const {
-    viewMode,
-    setViewMode,
-    selectedMonth,
-    setSelectedMonth,
-    selectedProviders,
-    toggleProvider,
-    clearProviders,
-    selectedModels,
-    toggleModel,
-    clearModels,
-    startDate,
-    setStartDate,
-    endDate,
-    setEndDate,
-    resetAll,
-    applyDefaultFilters,
-    applyPreset,
-    filteredDailyData,
-    filteredData,
-    availableMonths,
-    availableProviders,
-    availableModels,
-    dateRange,
-  } = filters
-
-  const computed = useComputedMetrics(filteredData, i18n.resolvedLanguage ?? i18n.language)
-  const {
-    metrics,
-    modelCosts,
-    providerMetrics,
-    costChartData,
-    modelCostChartData,
-    tokenChartData,
-    requestChartData,
-    weekdayData,
-    allModels,
-    modelPieData,
-    tokenPieData,
-  } = computed
-
-  const comparisonData = filteredDailyData
-  const totalCalendarDays = useMemo(() => {
-    if (!dateRange || viewMode !== 'daily') return 0
-    const start = new Date(dateRange.start + 'T00:00:00')
-    const end = new Date(dateRange.end + 'T00:00:00')
-    return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
-  }, [dateRange, viewMode])
-
-  const todayStr = localToday()
-  const todayData = useMemo(
-    () => filteredDailyData.find((entry) => entry.date === todayStr) ?? null,
-    [filteredDailyData, todayStr],
-  )
-  const hasCurrentMonthData = useMemo(
-    () => filteredDailyData.some((entry) => entry.date.startsWith(todayStr.slice(0, 7))),
-    [filteredDailyData, todayStr],
-  )
-  const visibleLimitProviders = useMemo(
-    () => (selectedProviders.length > 0 ? selectedProviders : allProviders),
-    [selectedProviders, allProviders],
-  )
-  const forecastData = useMemo(
-    () => getCurrentMonthForecastData(daily, selectedProviders, selectedModels),
-    [daily, selectedProviders, selectedModels],
-  )
-  const forecastState = useMemo(() => computeDashboardForecastState(forecastData), [forecastData])
-  const settingsProviderOptions = useMemo(
-    () =>
-      [...new Set([...allProviders, ...settings.defaultFilters.providers])].sort((left, right) =>
-        left.localeCompare(right),
-      ),
-    [allProviders, settings.defaultFilters.providers],
-  )
-  const settingsModelOptions = useMemo(
-    () =>
-      [...new Set([...allModelsFromData, ...settings.defaultFilters.models])].sort((left, right) =>
-        left.localeCompare(right),
-      ),
-    [allModelsFromData, settings.defaultFilters.models],
-  )
-  const sectionVisibility = settings.sectionVisibility
-  const sectionOrder = settings.sectionOrder
-
-  const streak = useMemo(() => {
-    const dates = new Set(filteredDailyData.map((entry) => entry.date))
-    let count = 0
-    const date = new Date(todayStr + 'T00:00:00')
-    while (dates.has(toLocalDateStr(date))) {
-      count += 1
-      date.setDate(date.getDate() - 1)
-    }
-    return count
-  }, [filteredDailyData, todayStr])
-
-  const drillDownDay = useMemo(() => {
-    if (!drillDownDate) return null
-    return filteredData.find((entry) => entry.date === drillDownDate) ?? null
-  }, [drillDownDate, filteredData])
-
-  const handleUpload = useCallback(() => {
-    fileInputRef.current?.click()
-  }, [])
-
-  const handleOpenSettings = useCallback(() => {
-    setSettingsOpen(true)
-  }, [])
-
-  const handleRetryLoad = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['settings'] }),
-      queryClient.invalidateQueries({ queryKey: ['usage'] }),
-    ])
-  }, [queryClient])
-
-  const handleResetSettings = useCallback(async () => {
-    try {
-      const nextSettings = await deleteSettings()
-      queryClient.setQueryData<AppSettings>(['settings'], nextSettings)
-      setBootstrapSettingsError(null)
-      await queryClient.invalidateQueries({ queryKey: ['settings'] })
-      addToast(t('toasts.settingsReset'), 'success')
-    } catch (error) {
-      addToast(error instanceof Error ? error.message : t('api.deleteSettingsFailed'), 'error')
-    }
-  }, [queryClient, addToast, t])
-
-  const handleToggleTheme = useCallback(() => {
-    void setTheme(isDark ? 'light' : 'dark')
-  }, [isDark, setTheme])
-
-  const handleSaveSettings = useCallback(
-    async (nextSettings: {
-      language: AppLanguage
-      reducedMotionPreference: ReducedMotionPreference
-      providerLimits: ProviderLimits
-      defaultFilters: DashboardDefaultFilters
-      sectionVisibility: DashboardSectionVisibility
-      sectionOrder: DashboardSectionOrder
-    }) => {
-      const updatedSettings = await saveSettings(nextSettings)
-      applyDefaultFilters(updatedSettings.defaultFilters)
-      addToast(t('toasts.settingsSaved'), 'success')
-    },
-    [saveSettings, applyDefaultFilters, addToast, t],
-  )
-
-  const handleLanguageChange = useCallback(
-    (language: AppLanguage) => {
-      if (settings.language !== language) {
-        void setLanguage(language)
-      }
-      if (i18n.resolvedLanguage !== language) {
-        void i18n.changeLanguage(language)
-      }
-    },
-    [i18n, setLanguage, settings.language],
-  )
-
-  const handleFileChange = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      if (!file) return
-
-      try {
-        const parsed: unknown = JSON.parse(await file.text())
-        try {
-          await uploadMutation.mutateAsync(parsed)
-        } catch (error) {
-          addToast(normalizeErrorMessage(error) ?? t('toasts.fileReadFailed'), 'error')
-          return
-        }
-        void queryClient.invalidateQueries({ queryKey: ['settings'] })
-        setAnimationSeed((previous) => previous + 1)
-        const now = new Date()
-        const time = now.toLocaleTimeString(getCurrentLocale(), {
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-        setDataSource({
-          type: 'file',
-          label: file.name,
-          time,
-          title: `${file.name} · ${t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) })}`,
-        })
-        addToast(t('toasts.fileLoaded', { name: file.name }), 'success')
-      } catch {
-        addToast(t('toasts.fileReadFailed'), 'error')
-      }
-
-      event.target.value = ''
-    },
-    [uploadMutation, queryClient, addToast, t],
-  )
-
-  const handleDelete = useCallback(async () => {
-    try {
-      await deleteMutation.mutateAsync()
-      void queryClient.invalidateQueries({ queryKey: ['settings'] })
-      setAnimationSeed((previous) => previous + 1)
-      setDataSource(null)
-      addToast(t('toasts.dataDeleted'), 'info')
-    } catch (error) {
-      addToast(normalizeErrorMessage(error) ?? t('toasts.deleteFailed'), 'error')
-    }
-  }, [deleteMutation, queryClient, addToast, t])
-
-  const settingsErrorMessage =
-    bootstrapSettingsError ?? normalizeErrorMessage(settingsError) ?? null
-  const usageErrorMessage = normalizeErrorMessage(usageError)
-  const fatalLoadState = useMemo(() => {
-    const details: string[] = []
-    const hasSettingsError = Boolean(settingsErrorMessage)
-    const hasUsageError = Boolean(usageErrorMessage)
-
-    if (settingsErrorMessage) {
-      details.push(describeLoadError(settingsErrorMessage, t('loadError.settingsCorrupted')))
-    }
-
-    if (usageErrorMessage) {
-      details.push(describeLoadError(usageErrorMessage, t('loadError.usageCorrupted')))
-    }
-
-    if (!hasSettingsError && !hasUsageError) {
-      return null
-    }
-
-    return {
-      title: t('loadError.title'),
-      description:
-        hasSettingsError && hasUsageError
-          ? t('loadError.multipleDescription')
-          : hasSettingsError
-            ? t('loadError.settingsDescription')
-            : t('loadError.usageDescription'),
-      details,
-      canResetSettings: hasSettingsError,
-      canResetUsage: hasUsageError,
-    }
-  }, [settingsErrorMessage, usageErrorMessage, t])
-
-  const handleExportCSV = useCallback(() => {
-    downloadCSV(filteredData)
-    addToast(t('toasts.csvExported'), 'success')
-  }, [filteredData, addToast, t])
-
-  const handleGenerateReport = useCallback(async () => {
-    if (reportGenerating) return
-    setReportGenerating(true)
-
-    try {
-      const requestLanguage: PdfReportRequest['language'] = i18n.language === 'en' ? 'en' : 'de'
-      const request: PdfReportRequest = {
-        viewMode,
-        selectedMonth,
-        selectedProviders,
-        selectedModels,
-        language: requestLanguage,
-        ...(startDate ? { startDate } : {}),
-        ...(endDate ? { endDate } : {}),
-      }
-      const blob = await generatePdfReport(request)
-      const objectUrl = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = objectUrl
-      anchor.download = `ttdash-report-${new Date().toISOString().slice(0, 10)}.pdf`
-      document.body.appendChild(anchor)
-      anchor.click()
-      anchor.remove()
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
-      addToast(t('commandPalette.commands.generateReport.label'), 'success')
-    } catch (error) {
-      console.error('PDF generation failed:', error)
-      addToast(
-        `${t('api.pdfFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'error',
-      )
-    } finally {
-      setReportGenerating(false)
-    }
-  }, [
-    reportGenerating,
-    viewMode,
-    selectedMonth,
-    selectedProviders,
-    selectedModels,
-    startDate,
-    endDate,
-    addToast,
-    i18n.language,
-    t,
-  ])
-
-  const handleAutoImport = useCallback(() => {
-    setAutoImportOpen(true)
-  }, [])
-
-  const handleAutoImportSuccess = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['usage'] })
-    void queryClient.invalidateQueries({ queryKey: ['settings'] })
-    setAnimationSeed((previous) => previous + 1)
-    const now = new Date()
-    const time = now.toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit' })
-    setDataSource({
-      type: 'auto-import',
-      ...(time ? { time } : {}),
-      title: t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) }),
-    })
-    addToast(t('toasts.dataImported'), 'success')
-  }, [queryClient, addToast, t])
-
-  const handleExportSettings = useCallback(() => {
-    downloadJsonFile(`ttdash-settings-backup-${localToday()}.json`, {
-      kind: SETTINGS_BACKUP_KIND,
-      version: BACKUP_FORMAT_VERSION,
-      exportedAt: new Date().toISOString(),
-      appVersion: VERSION,
-      settings: {
-        language: settings.language,
-        theme: settings.theme,
-        reducedMotionPreference: settings.reducedMotionPreference,
-        providerLimits: settings.providerLimits,
-        defaultFilters: settings.defaultFilters,
-        sectionVisibility: settings.sectionVisibility,
-        sectionOrder: settings.sectionOrder,
-        lastLoadedAt: settings.lastLoadedAt,
-        lastLoadSource: settings.lastLoadSource,
-      },
-    })
-    addToast(t('toasts.settingsExported'), 'success')
-  }, [settings, addToast, t])
-
-  const handleExportData = useCallback(() => {
-    if (!usageData || usageData.daily.length === 0) {
-      addToast(t('toasts.noDataToExport'), 'info')
-      return
-    }
-
-    downloadJsonFile(`ttdash-data-backup-${localToday()}.json`, {
-      kind: USAGE_BACKUP_KIND,
-      version: BACKUP_FORMAT_VERSION,
-      exportedAt: new Date().toISOString(),
-      appVersion: VERSION,
-      data: usageData,
-    })
-    addToast(t('toasts.dataExported'), 'success')
-  }, [usageData, addToast, t])
-
-  const handleImportSettings = useCallback(() => {
-    settingsImportInputRef.current?.click()
-  }, [])
-
-  const handleImportData = useCallback(() => {
-    dataImportInputRef.current?.click()
-  }, [])
-
-  const handleSettingsImportChange = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      if (!file) return
-
-      setSettingsTransferBusy(true)
-      try {
-        const parsed: unknown = JSON.parse(await file.text())
-        const imported = await importSettings(parsed)
-        queryClient.setQueryData(['settings'], imported)
-        applyDefaultFilters(imported.defaultFilters)
-        addToast(t('toasts.settingsImported', { name: file.name }), 'success')
-      } catch (error) {
-        addToast(error instanceof Error ? error.message : t('toasts.fileReadFailed'), 'error')
-      } finally {
-        setSettingsTransferBusy(false)
-        event.target.value = ''
-      }
-    },
-    [queryClient, applyDefaultFilters, addToast, t],
-  )
-
-  const handleDataImportChange = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      if (!file) return
-
-      setDataTransferBusy(true)
-      try {
-        const parsed: unknown = JSON.parse(await file.text())
-        const summary = await importUsageData(parsed)
-        await queryClient.invalidateQueries({ queryKey: ['usage'] })
-        await queryClient.invalidateQueries({ queryKey: ['settings'] })
-        setAnimationSeed((previous) => previous + 1)
-        const now = new Date()
-        const time = now.toLocaleTimeString(getCurrentLocale(), {
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-        setDataSource({
-          type: 'file',
-          label: file.name,
-          ...(time ? { time } : {}),
-          title: `${file.name} · ${t('header.loadedAt', { time: formatDateTimeFull(now.toISOString()) })}`,
-        })
-
-        const toastType: 'info' | 'success' = summary.conflictingDays > 0 ? 'info' : 'success'
-        const toastKey =
-          summary.conflictingDays > 0
-            ? 'toasts.dataBackupImportedWithConflicts'
-            : 'toasts.dataBackupImported'
-
-        addToast(
-          t(toastKey, {
-            added: summary.addedDays,
-            unchanged: summary.unchangedDays,
-            conflicts: summary.conflictingDays,
-          }),
-          toastType,
-        )
-      } catch (error) {
-        addToast(error instanceof Error ? error.message : t('toasts.fileReadFailed'), 'error')
-      } finally {
-        setDataTransferBusy(false)
-        event.target.value = ''
-      }
-    },
-    [queryClient, addToast, t],
-  )
-
-  const handleScrollTo = useCallback((section: string) => {
-    const element = document.getElementById(section)
-    element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
-
-  return {
-    fileInputRef,
-    settingsImportInputRef,
-    dataImportInputRef,
-    settings,
-    providerLimits,
-    isLoading,
-    settingsLoading,
-    isSaving,
-    isDark,
-    hasData,
-    helpOpen,
-    setHelpOpen,
-    autoImportOpen,
-    setAutoImportOpen,
-    settingsOpen,
-    setSettingsOpen,
-    drillDownDate,
-    setDrillDownDate,
-    drillDownDay,
-    reportGenerating,
-    settingsTransferBusy,
-    dataTransferBusy,
-    dataSource,
-    headerDataSource,
-    startupAutoLoadBadge,
-    animationSeed,
+  const derived = useDashboardControllerDerivedState({
     daily,
-    usageData,
+    hasData,
     allProviders,
     allModelsFromData,
-    settingsProviderOptions,
-    settingsModelOptions,
-    viewMode,
-    setViewMode,
-    selectedMonth,
-    setSelectedMonth,
-    selectedProviders,
-    toggleProvider,
-    clearProviders,
-    selectedModels,
-    toggleModel,
-    clearModels,
-    startDate,
-    setStartDate,
-    endDate,
-    setEndDate,
-    resetAll,
-    applyPreset,
-    forecastData,
-    forecastState,
-    filteredDailyData,
-    filteredData,
-    availableMonths,
-    availableProviders,
-    availableModels,
-    dateRange,
-    metrics,
-    modelCosts,
-    providerMetrics,
-    costChartData,
-    modelCostChartData,
-    tokenChartData,
-    requestChartData,
-    weekdayData,
-    allModels,
-    modelPieData,
-    tokenPieData,
-    comparisonData,
-    totalCalendarDays,
-    todayData,
-    hasCurrentMonthData,
-    visibleLimitProviders,
-    sectionVisibility,
-    sectionOrder,
-    streak,
-    fatalLoadState,
-    handleUpload,
-    handleOpenSettings,
-    handleRetryLoad,
-    handleResetSettings,
-    handleToggleTheme,
-    handleSaveSettings,
-    handleLanguageChange,
-    handleFileChange,
-    handleDelete,
-    handleExportCSV,
-    handleGenerateReport,
-    handleAutoImport,
-    handleAutoImportSuccess,
-    handleExportSettings,
-    handleExportData,
-    handleImportSettings,
-    handleImportData,
-    handleSettingsImportChange,
-    handleDataImportChange,
-    handleScrollTo,
+    settings,
+    locale: i18n.resolvedLanguage ?? i18n.language,
+  })
+
+  const actions = useDashboardControllerActions({
+    settings,
+    usageData,
+    isDark,
+    viewMode: derived.filters.viewMode,
+    selectedMonth: derived.filters.selectedMonth,
+    selectedProviders: derived.filters.selectedProviders,
+    selectedModels: derived.filters.selectedModels,
+    ...(derived.filters.startDate ? { startDate: derived.filters.startDate } : {}),
+    ...(derived.filters.endDate ? { endDate: derived.filters.endDate } : {}),
+    setStartDate: derived.filters.setStartDate,
+    setEndDate: derived.filters.setEndDate,
+    applyDefaultFilters: derived.filters.applyDefaultFilters,
+    applyPreset: derived.filters.applyPreset,
+    setTheme,
+    setLanguage,
+    saveSettings,
+    isSaving,
+    queryClient,
+    addToast,
+    t,
+    i18n,
+    uploadUsageData: uploadMutation.mutateAsync,
+    deleteUsageData: deleteMutation.mutateAsync,
+    onClearBootstrapSettingsError: () => setBootstrapSettingsError(null),
+  })
+
+  const drillDown = useDashboardControllerDrillDown(derived.filters.filteredData)
+
+  const shellState = useDashboardControllerShellState({
+    settings,
+    hasData: derived.hasData,
+    dataSource: actions.dataSource,
+    bootstrapSettingsError,
+    settingsError,
+    usageError,
+    t,
+    onRetryLoad: actions.onRetryLoad,
+    onResetSettings: actions.onResetSettings,
+    onDelete: actions.onDelete,
+  })
+
+  const handleExportCSV = useCallback(() => {
+    downloadCSV(derived.filters.filteredData)
+    addToast(t('toasts.csvExported'), 'success')
+  }, [derived.filters.filteredData, addToast, t])
+
+  return {
+    fileInputs: actions.fileInputs,
+    shell: {
+      isLoading,
+      settingsLoading,
+      hasData: derived.hasData,
+      isDark,
+      animationKey: actions.animationKey,
+      modelPaletteModelNames: allModelsFromData,
+    },
+    loadError: shellState.loadError,
+    emptyState: {
+      onUpload: actions.onUpload,
+      onAutoImport: dialogs.openAutoImport,
+      onOpenSettings: dialogs.openSettings,
+    },
+    header: {
+      dateRange: derived.filters.dateRange,
+      isDark,
+      currentLanguage: settings.language,
+      streak: derived.streak,
+      dataSource: shellState.headerDataSource,
+      startupAutoLoad: shellState.startupAutoLoadBadge,
+      onHelpOpenChange: dialogs.setHelpOpen,
+      onLanguageChange: actions.onLanguageChange,
+      onToggleTheme: actions.onToggleTheme,
+      onExportCSV: handleExportCSV,
+      onDelete: () => void actions.onDelete(),
+      onUpload: actions.onUpload,
+      onAutoImport: dialogs.openAutoImport,
+    },
+    report: actions.report,
+    filterBar: {
+      viewMode: derived.filters.viewMode,
+      onViewModeChange: derived.filters.setViewMode,
+      selectedMonth: derived.filters.selectedMonth,
+      onMonthChange: derived.filters.setSelectedMonth,
+      availableMonths: derived.filters.availableMonths,
+      availableProviders: derived.filters.availableProviders,
+      selectedProviders: derived.filters.selectedProviders,
+      onToggleProvider: derived.filters.toggleProvider,
+      onClearProviders: derived.filters.clearProviders,
+      allModels: derived.filterBarModels,
+      selectedModels: derived.filters.selectedModels,
+      onToggleModel: derived.filters.toggleModel,
+      onClearModels: derived.filters.clearModels,
+      ...(derived.filters.startDate ? { startDate: derived.filters.startDate } : {}),
+      ...(derived.filters.endDate ? { endDate: derived.filters.endDate } : {}),
+      onStartDateChange: derived.filters.setStartDate,
+      onEndDateChange: derived.filters.setEndDate,
+      onApplyPreset: actions.onApplyPreset,
+      onResetAll: derived.filters.resetAll,
+    },
+    sections: {
+      layout: {
+        sectionOrder: settings.sectionOrder,
+        sectionVisibility: settings.sectionVisibility,
+      },
+      overview: {
+        metrics: derived.computed.metrics,
+        viewMode: derived.filters.viewMode,
+        totalCalendarDays: derived.totalCalendarDays,
+        filteredData: derived.filters.filteredData,
+        filteredDailyData: derived.filters.filteredDailyData,
+        todayData: derived.todayData,
+        hasCurrentMonthData: derived.hasCurrentMonthData,
+        isDark,
+      },
+      forecast: {
+        filteredData: derived.filters.filteredData,
+        forecastState: derived.forecastState,
+        metrics: derived.computed.metrics,
+        viewMode: derived.filters.viewMode,
+      },
+      limits: {
+        filteredDailyData: derived.filters.filteredDailyData,
+        visibleLimitProviders: derived.visibleLimitProviders,
+        providerLimits,
+        selectedMonth: derived.filters.selectedMonth,
+      },
+      costAnalysis: {
+        filteredData: derived.filters.filteredData,
+        forecastState: derived.forecastState,
+        allModels: derived.computed.allModels,
+        costChartData: derived.computed.costChartData,
+        modelPieData: derived.computed.modelPieData,
+        modelCostChartData: derived.computed.modelCostChartData,
+        weekdayData: derived.computed.weekdayData,
+      },
+      tokenAnalysis: {
+        tokenChartData: derived.computed.tokenChartData,
+        tokenPieData: derived.computed.tokenPieData,
+      },
+      requestAnalysis: {
+        metrics: derived.computed.metrics,
+        requestChartData: derived.computed.requestChartData,
+        filteredData: derived.filters.filteredData,
+        filteredDailyData: derived.filters.filteredDailyData,
+        viewMode: derived.filters.viewMode,
+      },
+      advancedAnalysis: {
+        metrics: derived.computed.metrics,
+        filteredData: derived.filters.filteredData,
+        viewMode: derived.filters.viewMode,
+      },
+      comparisons: {
+        metrics: derived.computed.metrics,
+        filteredData: derived.filters.filteredData,
+        comparisonData: derived.filters.filteredDailyData,
+        viewMode: derived.filters.viewMode,
+      },
+      tables: {
+        metrics: derived.computed.metrics,
+        filteredData: derived.filters.filteredData,
+        modelCosts: derived.computed.modelCosts,
+        providerMetrics: derived.computed.providerMetrics,
+        viewMode: derived.filters.viewMode,
+      },
+      interactions: {
+        onDrillDownDateChange: drillDown.onDrillDownDateChange,
+      },
+    },
+    settingsModal: {
+      open: dialogs.settingsOpen,
+      onOpenChange: dialogs.setSettingsOpen,
+      language: settings.language,
+      reducedMotionPreference: settings.reducedMotionPreference,
+      limitProviders: allProviders,
+      filterProviders: derived.settingsProviderOptions,
+      models: derived.settingsModelOptions,
+      limits: settings.providerLimits,
+      defaultFilters: settings.defaultFilters,
+      sectionVisibility: settings.sectionVisibility,
+      sectionOrder: settings.sectionOrder,
+      lastLoadedAt: settings.lastLoadedAt,
+      lastLoadSource: settings.lastLoadSource,
+      cliAutoLoadActive: settings.cliAutoLoadActive,
+      hasData: derived.hasData,
+      onSaveSettings: actions.onSaveSettings,
+      onExportSettings: actions.onExportSettings,
+      onImportSettings: actions.onImportSettings,
+      onExportData: actions.onExportData,
+      onImportData: actions.onImportData,
+      settingsBusy: actions.settingsBusy,
+      dataBusy: actions.dataBusy,
+    },
+    dialogs: {
+      helpPanel: {
+        open: dialogs.helpOpen,
+        onOpenChange: dialogs.setHelpOpen,
+      },
+      autoImport: {
+        open: dialogs.autoImportOpen,
+        onOpenChange: dialogs.setAutoImportOpen,
+        onSuccess: actions.onAutoImportSuccess,
+      },
+      drillDown: drillDown.dialog,
+    },
+    commandPalette: {
+      isDark,
+      availableProviders: derived.filters.availableProviders,
+      selectedProviders: derived.filters.selectedProviders,
+      availableModels: derived.filters.availableModels,
+      selectedModels: derived.filters.selectedModels,
+      hasTodaySection: Boolean(derived.todayData),
+      hasMonthSection: derived.hasCurrentMonthData,
+      hasRequestSection: derived.computed.metrics.hasRequestData,
+      sectionVisibility: settings.sectionVisibility,
+      sectionOrder: settings.sectionOrder,
+      reportGenerating: actions.report.generating,
+      onToggleTheme: actions.onToggleTheme,
+      onExportCSV: handleExportCSV,
+      onGenerateReport: () => void actions.report.onGenerate(),
+      onDelete: () => void actions.onDelete(),
+      onUpload: actions.onUpload,
+      onAutoImport: dialogs.openAutoImport,
+      onOpenSettings: dialogs.openSettings,
+      onScrollTo: actions.onScrollTo,
+      onViewModeChange: derived.filters.setViewMode,
+      onApplyPreset: actions.onApplyPreset,
+      onToggleProvider: derived.filters.toggleProvider,
+      onToggleModel: derived.filters.toggleModel,
+      onClearProviders: derived.filters.clearProviders,
+      onClearModels: derived.filters.clearModels,
+      onClearDateRange: actions.onClearDateRange,
+      onResetAll: derived.filters.resetAll,
+      onHelp: dialogs.openHelp,
+      onLanguageChange: actions.onLanguageChange,
+    },
   }
 }

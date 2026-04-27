@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   getShowAllInitialVisibleCount,
   scheduleProgressiveRowReveal,
-} from '@/components/tables/RecentDays'
+} from '@/lib/sortable-table-data'
 
 describe('RecentDays progressive reveal helpers', () => {
   it('computes the initial show-all batch size from the configured limits', () => {

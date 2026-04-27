@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+reviews:
+  profile: 'assertive'
+
+  auto_review:
+    ignore_title_keywords:
+      - 'WIP'
+      - '[skip review]'
+    ignore_usernames:
+      - 'dependabot[bot]'
+      - 'renovate[bot]'
+      - 'github-actions[bot]'
+
+  path_filters:
+    - '!**/*.lock'
+    - '!**/package-lock.json'
+    - '!**/pnpm-lock.yaml'
+    - '!**/generated/**'
+    - '!**/*.snap'
+
+  path_instructions:
+    - path: '.github/workflows/**'
+      instructions: |
+        Review GitHub Actions workflows for:
+        - All actions must be pinned to a full commit SHA (not a version tag)
+        - No secrets echoed or logged in run steps
+        - Every job must have timeout-minutes set
+        - pull_request_target must have a security guard restricting to trusted actors

@@ -5,6 +5,7 @@ import type {
   RequestChartDataPoint,
   WeekdayData,
   ViewMode,
+  ModelCostChartPoint,
 } from '@/types'
 import { computeMovingAverage } from './calculations'
 import {
@@ -121,11 +122,6 @@ function createWeekdayLabels(locale: string) {
   )
 }
 
-/** Describes a chart point with dynamic per-model cost series and optional moving averages. */
-export interface ModelCostChartPoint extends ChartDataPoint {
-  [key: string]: string | number | undefined
-}
-
 /** Describes the chart transform bundle built from filtered usage data. */
 export interface DashboardChartTransforms {
   costChartData: ChartDataPoint[]
@@ -151,14 +147,30 @@ export function buildDashboardChartTransforms(
     }
   }
 
-  const costs = sorted.map((entry) => entry.totalCost)
-  const totals = sorted.map((entry) => entry.totalTokens)
-  const inputs = sorted.map((entry) => entry.inputTokens)
-  const outputs = sorted.map((entry) => entry.outputTokens)
-  const cacheWrites = sorted.map((entry) => entry.cacheCreationTokens)
-  const cacheReads = sorted.map((entry) => entry.cacheReadTokens)
-  const thinking = sorted.map((entry) => entry.thinkingTokens)
-  const totalRequests = sorted.map((entry) => entry.requestCount)
+  const costs: number[] = []
+  const totals: number[] = []
+  const inputs: number[] = []
+  const outputs: number[] = []
+  const cacheWrites: number[] = []
+  const cacheReads: number[] = []
+  const thinking: number[] = []
+  const totalRequests: number[] = []
+  const modelNameSet = new Set<string>()
+
+  for (const entry of sorted) {
+    costs.push(entry.totalCost)
+    totals.push(entry.totalTokens)
+    inputs.push(entry.inputTokens)
+    outputs.push(entry.outputTokens)
+    cacheWrites.push(entry.cacheCreationTokens)
+    cacheReads.push(entry.cacheReadTokens)
+    thinking.push(entry.thinkingTokens)
+    totalRequests.push(entry.requestCount)
+
+    for (const mb of entry.modelBreakdowns) {
+      modelNameSet.add(normalizeModelName(mb.modelName))
+    }
+  }
 
   const costMA7 = computeMovingAverage(costs)
   const tokenMA7 = computeMovingAverage(totals)
@@ -169,13 +181,7 @@ export function buildDashboardChartTransforms(
   const thinkingMA7 = computeMovingAverage(thinking)
   const totalRequestMA7 = computeMovingAverage(totalRequests)
 
-  const modelNames = Array.from(
-    new Set(
-      sorted.flatMap((entry) =>
-        entry.modelBreakdowns.map((mb) => normalizeModelName(mb.modelName)),
-      ),
-    ),
-  ).sort()
+  const modelNames = Array.from(modelNameSet).sort()
 
   const modelCostArrays: Record<string, number[]> = {}
   const modelRequestArrays: Record<string, number[]> = {}

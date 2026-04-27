@@ -1,5 +1,34 @@
 # Changelog
 
+## [6.2.8] - 2026-04-27
+
+### Added
+
+- **Command-Palette-E2E-Abdeckung für zentrale Dashboard-Journeys** — neue Browser-Tests sichern die vollständige Kommandoliste, Aktions-, Filter-, View-, Provider-, Modell-, Navigations-, Theme-, Sprach- und Quick-Select-Flows gegen Regressionen ab
+- **Verbindliche Architektur- und Test-Review-Gates** — neue Review-Dokumente, Architekturtests und Vertragsprüfungen decken Server-Runtime-Grenzen, Dashboard-Sektionsverträge, ungenutzte Hooks, HTTP-Request-Guard-Zuständigkeiten und Runtime-State-Isolation explizit ab
+- **Produktweite Coverage-Transparenz** — die Coverage-Denominator umfasst jetzt Frontend-Runtime, lokalen Server, Shared-Verträge und `usage-normalizer.js`, mit dokumentierten Schwellen und einem Guardrail-Test gegen versehentliches Verengen der Coverage-Sicht
+
+### Improved
+
+- **Modularisierte Server-Runtime und klarer Entrypoint** — `server.js` ist jetzt ein schlanker CLI-/Bin-Shim; CLI-Parsing, Startup, HTTP-Lifecycle, Auto-Import, Background-Prozesse, Datenzugriff, Request-Routing, Runtime-State und Request-Guards liegen in fokussierten Server-Modulen mit gezielter Testabdeckung
+- **Gemeinsame App-Settings- und Dashboard-Preference-Verträge** — Settings-, Provider-Limits-, Dashboard-Preference- und View-Model-Verträge wurden in gemeinsame Shared-/Boundary-Module überführt, sodass Frontend und Server dieselben Strukturen verwenden und Dependency-Regeln diese Grenzen absichern
+- **Entkoppelter Dashboard-Controller und fokussierte UI-Bereiche** — Dashboard-Controller, Dashboard-View-Model, Settings-Modal, Filterbar, Header-Actions und Command-Palette wurden in kleinere, zuständigkeitsklare Slices aufgeteilt, ohne bestehende Dashboard-Funktionalität, UI oder Animationen zu entfernen
+- **Performance auf Dashboard- und UI-Hotspots** — adaptive Section-Preloads, reduzierte Filter-Datenpässe, extrahierte Chart-/Table-/Datepicker-/Heatmap-/Drilldown-Datenableitungen und ein entkoppelter Settings-Version-Check senken wiederholte Arbeit auf großen Datensätzen
+- **Stabilere und schnellere Teststruktur** — Architekturtests teilen sich einen gecachten Source-Graph, Background-/Startup-Integrationstests sind in deterministische Teilbereiche gesplittet, Playwright-Dashboard-Coverage liegt jetzt in Journey-Dateien statt in einem Monolithen, und Coverage-/Timing-Läufe geben im non-interactive Gate sichtbaren Fortschritt aus
+- **Dokumentierte Review- und Qualitätskonventionen** — Architektur-, Testing- und Review-Dokumentation beschreibt die neuen Grenzen, Guardrails, Playwright-Journey-Struktur, Subprozess-Cleanup-Anforderungen und reproduzierbaren Validierungspfade für behobene Findings
+
+### Fixed
+
+- **Lokale und Remote-API-Vertrauensgrenzen** — Remote-Zugriff erfordert jetzt ein explizites Auth-Token, lokale API-Mutationen laufen über eine lokale Session-/Trusted-Mutation-Prüfung, und Style-CSP sowie HTTP-Host-/Origin-/Content-Type-Guards sind fokussiert gehärtet
+- **Server-State- und Entrypoint-Drift** — mutable Runtime-Singletons, Auto-Import-Leases, Toktrack-Version-Cache und Startup-State sind gekapselt; der alte `server.js`-Export-Surface ist entfernt und durch explizite Runtime-Komposition ersetzt
+- **Versteckte Dead-Code- und Architekturdrift** — ungenutzte Hooks wurden entfernt, Hook-Erreichbarkeit wird ab dem App-Entrypoint geprüft, Dashboard-Sektionsverträge blockieren strukturelle Regressionen, und einfache Architekturregeln hängen nicht mehr an wiederholten schweren ArchUnit-Scans
+- **Hängende oder schwer diagnostizierbare Tests** — subprocessbasierte Server-/Background-Tests haben bounded Startup-, Probe-, Shutdown- und Cleanup-Pfade; Coverage- und Timing-Kommandos kombinieren JUnit-Artefakte mit einem Fortschritts-Reporter, damit Läufe sauber abschließen und nicht still wirken
+- **Review-Findings aus Performance-, Security-, Server- und Test-Reviews** — die Branch-Arbeit schließt die dokumentierten Findings aus `performance-review.md`, `security-review.md`, `server-review.md` und `test-review.md` mit Validierungsnachweisen in `docs/review/fixed-findings.md`
+
+### Commits
+
+- Enthält alle Branch-Commits seit `6.2.7`: `e0625a2`, `b916c88`, `12869aa`, `20f5ccb`, `78c50aa`, `e1513f1`, `defaaf6`, `62062a9`, `ed89ba6`, `234e855`, `7aa8c30`, `b2707be`, `e5dd3a4`, `898afc6`, `fb9b0ee`, `36b5ad7`, `5cf3eef`, `4fa2304`, `7735cd1`, `e473e9c`, `f588a41`, `1e70e70`, `e850ee3`, `bf05784`, `5b64f62`, `7f6e10c`, `8f8d1cc`, `9b6a6f1`, `33d2107`
+
 ## [6.2.7] - 2026-04-21
 
 ### Added

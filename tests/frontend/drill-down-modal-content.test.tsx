@@ -33,11 +33,9 @@ describe('DrillDownModal content', () => {
     expect(screen.getByText('Provider summary')).toBeInTheDocument()
     expect(screen.getByText('Top 3 cost share')).toBeInTheDocument()
     expect(screen.getByText('Cost vs. previous')).toBeInTheDocument()
-    expect(screen.getByText('Tokens vs. 1D avg')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Previous day' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Next day' })).toBeDisabled()
     expect(screen.getByText('2 / 2')).toBeInTheDocument()
-    expect(screen.getByText('Use ← / →')).toBeInTheDocument()
 
     const modelSection = screen.getByText('Model breakdown').closest('section')
     expect(modelSection).not.toBeNull()
@@ -48,11 +46,8 @@ describe('DrillDownModal content', () => {
     if (!gptCard) throw new Error('Expected GPT-5.4 card')
     expect(within(gptCard).getByText('Cost share')).toBeInTheDocument()
     expect(within(gptCard).getByText('64.3%')).toBeInTheDocument()
-    expect(within(gptCard).getByText('Token share')).toBeInTheDocument()
-    expect(within(gptCard).getByText('63.6%')).toBeInTheDocument()
-    expect(within(gptCard).getByText('700')).toBeInTheDocument()
-    expect(within(gptCard).getByText('Input')).toBeInTheDocument()
-    expect(within(gptCard).getByText('450')).toBeInTheDocument()
+    expect(within(gptCard).getByText('Cache Read')).toBeInTheDocument()
+    expect(within(gptCard).getByText('Cache Write')).toBeInTheDocument()
 
     const providerSection = screen.getByText('Provider summary').closest('section')
     expect(providerSection).not.toBeNull()
@@ -63,10 +58,9 @@ describe('DrillDownModal content', () => {
     if (!openAiProviderCard) throw new Error('Expected OpenAI provider card')
     expect(within(openAiProviderCard).getByText('1 active model')).toBeInTheDocument()
     expect(within(openAiProviderCard).getByLabelText('$18.00')).toBeInTheDocument()
-    expect(within(openAiProviderCard).getAllByText('6').length).toBeGreaterThan(0)
 
     expect(screen.getByLabelText(/^Input: /)).toBeInTheDocument()
-  }, 15_000)
+  })
 
   it('shows unavailable request ranking and top request model when request counts are missing', () => {
     const selectedDay: DailyUsage = {

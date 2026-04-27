@@ -1,14 +1,19 @@
 import type {
   AggregateMetrics,
   CacheHitRateByModelChartDataPoint,
+  CurrentMonthForecast,
+  CurrentMonthProviderForecasts,
   DailyUsage,
+  DashboardForecastState,
   DashboardMetrics,
+  ForecastConfidence,
 } from '@/types'
 import {
   computeMetrics as computeSharedMetrics,
   computeMovingAverage as computeSharedMovingAverage,
   computeWeekOverWeekChange as computeSharedWeekOverWeekChange,
 } from '../../shared/dashboard-domain.js'
+import { summarizeUsageBreakdowns } from './dashboard-aggregation'
 import { getModelProvider, normalizeModelName } from './model-utils'
 
 /** Computes the core dashboard metrics for a dataset. */
@@ -30,133 +35,13 @@ export function computeMovingAverage(
 }
 
 /** Aggregates per-model cost and token metrics across the dataset. */
-export function computeModelCosts(data: DailyUsage[]): Map<
-  string,
-  {
-    cost: number
-    tokens: number
-    input: number
-    output: number
-    cacheRead: number
-    cacheCreate: number
-    thinking: number
-    requests: number
-    days: number
-  }
-> {
-  const map = new Map<
-    string,
-    {
-      cost: number
-      tokens: number
-      input: number
-      output: number
-      cacheRead: number
-      cacheCreate: number
-      thinking: number
-      requests: number
-      days: number
-      _dates: Set<string>
-    }
-  >()
-  for (const d of data) {
-    const entryDays = d._aggregatedDays ?? 1
-    for (const mb of d.modelBreakdowns) {
-      const name = normalizeModelName(mb.modelName)
-      const existing = map.get(name) ?? {
-        cost: 0,
-        tokens: 0,
-        input: 0,
-        output: 0,
-        cacheRead: 0,
-        cacheCreate: 0,
-        thinking: 0,
-        requests: 0,
-        days: 0,
-        _dates: new Set<string>(),
-      }
-      existing.cost += mb.cost
-      existing.tokens +=
-        mb.inputTokens +
-        mb.outputTokens +
-        mb.cacheCreationTokens +
-        mb.cacheReadTokens +
-        mb.thinkingTokens
-      existing.input += mb.inputTokens
-      existing.output += mb.outputTokens
-      existing.cacheRead += mb.cacheReadTokens
-      existing.cacheCreate += mb.cacheCreationTokens
-      existing.thinking += mb.thinkingTokens
-      existing.requests += mb.requestCount
-      if (!existing._dates.has(d.date)) {
-        existing._dates.add(d.date)
-        existing.days += entryDays
-      }
-      map.set(name, existing)
-    }
-  }
-  return map
+export function computeModelCosts(data: DailyUsage[]): Map<string, AggregateMetrics> {
+  return summarizeUsageBreakdowns(data).modelCosts
 }
 
 /** Aggregates provider-level metrics across the dataset. */
 export function computeProviderMetrics(data: DailyUsage[]): Map<string, AggregateMetrics> {
-  const map = new Map<string, AggregateMetrics & { _dates: Set<string> }>()
-
-  for (const day of data) {
-    const entryDays = day._aggregatedDays ?? 1
-
-    for (const breakdown of day.modelBreakdowns) {
-      const provider = getModelProvider(breakdown.modelName)
-      const existing = map.get(provider) ?? {
-        cost: 0,
-        tokens: 0,
-        input: 0,
-        output: 0,
-        cacheRead: 0,
-        cacheCreate: 0,
-        thinking: 0,
-        requests: 0,
-        days: 0,
-        _dates: new Set<string>(),
-      }
-
-      existing.cost += breakdown.cost
-      existing.input += breakdown.inputTokens
-      existing.output += breakdown.outputTokens
-      existing.cacheRead += breakdown.cacheReadTokens
-      existing.cacheCreate += breakdown.cacheCreationTokens
-      existing.thinking += breakdown.thinkingTokens
-      existing.requests += breakdown.requestCount
-      existing.tokens +=
-        breakdown.inputTokens +
-        breakdown.outputTokens +
-        breakdown.cacheReadTokens +
-        breakdown.cacheCreationTokens +
-        breakdown.thinkingTokens
-      if (!existing._dates.has(day.date)) {
-        existing._dates.add(day.date)
-        existing.days += entryDays
-      }
-      map.set(provider, existing)
-    }
-  }
-
-  return new Map(
-    Array.from(map.entries()).map(([provider, value]) => [
-      provider,
-      {
-        cost: value.cost,
-        tokens: value.tokens,
-        input: value.input,
-        output: value.output,
-        cacheRead: value.cacheRead,
-        cacheCreate: value.cacheCreate,
-        thinking: value.thinking,
-        requests: value.requests,
-        days: value.days,
-      },
-    ]),
-  )
+  return summarizeUsageBreakdowns(data).providerMetrics
 }
 
 function computeCacheHitRate(
@@ -407,58 +292,6 @@ function winsorizedAverage(values: number[], limit = 0.15): number {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
-}
-
-/** Labels the confidence attached to a current-month forecast. */
-export type ForecastConfidence = 'low' | 'medium' | 'high'
-
-/** Describes one elapsed calendar day in the month-to-date forecast series. */
-export interface CurrentMonthForecastPoint {
-  date: string
-  cost: number
-}
-
-/** Captures the shared current-month forecast used by dashboard forecast views. */
-export interface CurrentMonthForecast {
-  currentMonth: string
-  monthData: DailyUsage[]
-  currentMonthTotal: number
-  elapsedDays: number
-  elapsedCalendarSeries: CurrentMonthForecastPoint[]
-  daysInMonth: number
-  remainingDays: number
-  projectedDailyBurn: number
-  volatility: number
-  lowerDaily: number
-  upperDaily: number
-  forecastTotal: number
-  dailyAvgTrend: {
-    avg: number
-    change: number
-  }
-  confidence: ForecastConfidence
-}
-
-/** Extends the shared current-month forecast with its owning provider. */
-export interface ProviderCurrentMonthForecast extends CurrentMonthForecast {
-  provider: string
-}
-
-/** Groups the current-month forecast results for all visible providers. */
-export interface CurrentMonthProviderForecasts {
-  currentMonth: string
-  elapsedDays: number
-  daysInMonth: number
-  remainingDays: number
-  providers: ProviderCurrentMonthForecast[]
-  currentMonthTotal: number
-  forecastTotal: number
-}
-
-/** Bundles the shared dashboard forecast outputs derived from one month-to-date input. */
-export interface DashboardForecastState {
-  costForecast: CurrentMonthForecast | null
-  providerForecast: CurrentMonthProviderForecasts | null
 }
 
 /** Forecasts the current month total from elapsed daily costs. */

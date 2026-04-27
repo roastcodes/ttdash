@@ -208,10 +208,67 @@ export interface CacheHitRateByModelChartDataPoint {
   trailing7BaseTokens: number
 }
 
+/** Describes a chart point with dynamic per-model cost series and optional moving averages. */
+export interface ModelCostChartPoint extends ChartDataPoint {
+  [key: string]: string | number | undefined
+}
+
 /** Describes one cost bucket in the weekday chart. */
 export interface WeekdayData {
   day: string
   cost: number
+}
+
+/** Grades the forecast quality based on data density and volatility. */
+export type ForecastConfidence = 'low' | 'medium' | 'high'
+
+/** Captures one elapsed-calendar forecast point. */
+export interface CurrentMonthForecastPoint {
+  date: string
+  cost: number
+}
+
+/** Captures the shared current-month forecast used by dashboard forecast views. */
+export interface CurrentMonthForecast {
+  currentMonth: string
+  monthData: DailyUsage[]
+  currentMonthTotal: number
+  elapsedDays: number
+  elapsedCalendarSeries: CurrentMonthForecastPoint[]
+  daysInMonth: number
+  remainingDays: number
+  projectedDailyBurn: number
+  volatility: number
+  lowerDaily: number
+  upperDaily: number
+  forecastTotal: number
+  dailyAvgTrend: {
+    avg: number
+    change: number
+  }
+  confidence: ForecastConfidence
+}
+
+/** Extends the shared current-month forecast with its owning provider. */
+export interface ProviderCurrentMonthForecast extends CurrentMonthForecast {
+  provider: string
+}
+
+/** Groups the current-month forecast results for all visible providers. */
+export interface CurrentMonthProviderForecasts {
+  currentMonth: string
+  elapsedDays: number
+  daysInMonth: number
+  remainingDays: number
+  providers: ProviderCurrentMonthForecast[]
+  currentMonthTotal: number
+  forecastTotal: number
+}
+
+/** Bundles the shared dashboard forecast outputs derived from one month-to-date input. */
+export interface DashboardForecastState {
+  costForecast: CurrentMonthForecast | null
+  providerForecast: CurrentMonthProviderForecasts | null
 }
 
 /** Collects aggregate metrics for one model or provider. */
