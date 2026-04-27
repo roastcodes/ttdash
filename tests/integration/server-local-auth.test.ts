@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  fetchLocalBootstrap,
   fetchTrusted,
   getLocalAuthSessionPath,
   isPosix,
@@ -46,10 +47,19 @@ describe('local server session authentication', () => {
 
   it('protects loopback read APIs and accepts bearer or bootstrap cookie credentials', async () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-local-auth-test-'))
+    const localToken = 'ttdash-local-auth-bootstrap-token-123456'
     let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
 
     try {
-      standaloneServer = await startStandaloneServer({ root: runtimeRoot })
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        envOverrides: {
+          TTDASH_LOCAL_AUTH_TOKEN: localToken,
+        },
+        readinessHeaders: {
+          Authorization: createBearerAuthHeader(localToken),
+        },
+      })
 
       for (const apiPath of [
         '/api/usage',
@@ -66,9 +76,12 @@ describe('local server session authentication', () => {
         expect(authenticatedResponse.status).toBe(200)
       }
 
-      const bootstrapResponse = await fetch(standaloneServer.bootstrapUrl!, {
-        redirect: 'manual',
-      })
+      const bootstrapResponse = await fetchLocalBootstrap(
+        `${standaloneServer.url}/?ttdash_token=${localToken}`,
+        {
+          redirect: 'manual',
+        },
+      )
       expect(bootstrapResponse.status).toBe(303)
       expect(bootstrapResponse.headers.get('location')).toBe('/')
       const cookieHeader = bootstrapResponse.headers.get('set-cookie')?.split(';', 1)[0]

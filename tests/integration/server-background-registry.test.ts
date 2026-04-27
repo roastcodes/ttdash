@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest'
 import {
   createCliEnv,
   createSharedServerContext,
-  fetchWithAuth,
   readBackgroundRegistry,
   registerSharedServerLifecycle,
   runCli,
@@ -21,18 +20,17 @@ describe('local server background registry pruning', () => {
     const backgroundEnv = createCliEnv(backgroundRoot)
 
     try {
-      const runtimeResponse = await fetchWithAuth(`${sharedServer.baseUrl}/api/runtime`)
-      const runtime = await runtimeResponse.json()
       const sharedServerPid = sharedServer.child?.pid
       if (!sharedServerPid) {
         throw new Error('Shared server child process was not started.')
       }
+      const sharedServerPort = Number.parseInt(new URL(sharedServer.baseUrl).port, 10)
 
       writeBackgroundRegistry(backgroundRoot, [
         {
           id: 'stale-entry',
           pid: sharedServerPid,
-          port: runtime.port,
+          port: sharedServerPort,
           url: sharedServer.baseUrl,
           host: '127.0.0.1',
           authHeader: sharedServer.authHeader,

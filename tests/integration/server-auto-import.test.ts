@@ -178,9 +178,7 @@ describe('local server auto-import integration', () => {
         expect(firstStreamBody).toContain('event: done')
         expect(readFileSync(invocationCountPath, 'utf-8')).toBe('1')
       } finally {
-        if (!existsSync(releaseRunnerPath)) {
-          writeFileSync(releaseRunnerPath, 'release')
-        }
+        writeFileSync(releaseRunnerPath, 'release')
         if (standaloneServer) await stopProcess(standaloneServer.child)
         rmSync(runtimeRoot, { recursive: true, force: true })
       }
