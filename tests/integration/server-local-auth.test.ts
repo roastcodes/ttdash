@@ -10,8 +10,40 @@ import {
   startStandaloneServer,
   stopProcess,
 } from './server-test-helpers'
+import { createBearerAuthHeader } from './server-auth-test-helpers'
 
 describe('local server session authentication', () => {
+  it('accepts an explicit local auth token for package smoke harnesses', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-local-auth-token-test-'))
+    const localToken = 'ttdash-local-auth-smoke-token-123456'
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        envOverrides: {
+          TTDASH_LOCAL_AUTH_TOKEN: localToken,
+        },
+        readinessHeaders: {
+          Authorization: createBearerAuthHeader(localToken),
+        },
+      })
+
+      const unauthenticatedResponse = await fetch(`${standaloneServer.url}/api/usage`)
+      expect(unauthenticatedResponse.status).toBe(401)
+
+      const authenticatedResponse = await fetch(`${standaloneServer.url}/api/usage`, {
+        headers: {
+          Authorization: createBearerAuthHeader(localToken),
+        },
+      })
+      expect(authenticatedResponse.status).toBe(200)
+    } finally {
+      if (standaloneServer) await stopProcess(standaloneServer.child)
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  }, 20_000)
+
   it('protects loopback read APIs and accepts bearer or bootstrap cookie credentials', async () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-local-auth-test-'))
     let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null

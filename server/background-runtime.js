@@ -302,6 +302,15 @@ function createBackgroundRuntime({
     return path.join(backgroundLogDir, `server-${Date.now()}.log`);
   }
 
+  function readBackgroundLogOutput(logFile) {
+    try {
+      return fs.readFileSync(logFile, 'utf-8').trim();
+    } catch {
+      // Startup log output is best-effort; keep the primary error path usable.
+      return '';
+    }
+  }
+
   async function waitForBackgroundInstance(pid, timeoutMs = backgroundStartTimeoutMs) {
     const startedAt = Date.now();
 
@@ -520,7 +529,7 @@ function createBackgroundRuntime({
 
     const instance = await waitForBackgroundInstance(child.pid);
     if (!instance) {
-      const logOutput = fs.existsSync(logFile) ? fs.readFileSync(logFile, 'utf-8').trim() : '';
+      const logOutput = readBackgroundLogOutput(logFile);
       throw new Error(
         logOutput || `Could not start TTDash as a background process. Log: ${logFile}`,
       );

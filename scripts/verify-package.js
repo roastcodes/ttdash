@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const http = require('http');
+const crypto = require('crypto');
 const { execFileSync, spawn } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -100,63 +101,34 @@ function getFreePort() {
   });
 }
 
-function getLocalAuthHeaderFromOutput(output) {
-  const match = output.match(/Local Auth URL:\s+(https?:\/\/[^\s]+)/);
-  if (!match || !match[1]) {
-    return null;
-  }
-
-  try {
-    const bootstrapUrl = new URL(match[1]);
-    const token = bootstrapUrl.searchParams.get('ttdash_token');
-    return token ? `Bearer ${token}` : null;
-  } catch {
-    return null;
-  }
+function createPackageSmokeAuth() {
+  const token = `ttdash-package-smoke-${crypto.randomBytes(32).toString('base64url')}`;
+  return {
+    token,
+    authHeader: `Bearer ${token}`,
+  };
 }
 
-function getLocalAuthHeaderFromStatusFile(statusFile) {
-  if (!statusFile || !fs.existsSync(statusFile)) {
-    return null;
-  }
-
-  try {
-    const status = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
-    if (typeof status.authorizationHeader === 'string' && status.authorizationHeader.trim()) {
-      return status.authorizationHeader.trim();
-    }
-
-    if (typeof status.bootstrapUrl === 'string' && status.bootstrapUrl.trim()) {
-      const bootstrapUrl = new URL(status.bootstrapUrl);
-      const token = bootstrapUrl.searchParams.get('ttdash_token');
-      return token ? `Bearer ${token}` : null;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
+function authorizationHeaders(authHeader) {
+  return authHeader ? { Authorization: authHeader } : undefined;
 }
 
-async function waitForServer(url, child, getOutput, statusFile) {
+async function waitForServer(url, child, authHeader, getOutput) {
   const startedAt = Date.now();
-  let authHeader = null;
 
   while (Date.now() - startedAt < 15000) {
     if (child.exitCode !== null) {
-      throw new Error(`Packaged TTDash exited before startup completed (exit ${child.exitCode}).`);
+      throw new Error(
+        `Packaged TTDash exited before startup completed (exit ${child.exitCode}).\n${getOutput()}`,
+      );
     }
 
-    authHeader =
-      authHeader ||
-      getLocalAuthHeaderFromStatusFile(statusFile) ||
-      getLocalAuthHeaderFromOutput(getOutput());
     try {
       const response = await fetch(`${url}/api/usage`, {
-        headers: authHeader ? { Authorization: authHeader } : undefined,
+        headers: authorizationHeaders(authHeader),
       });
       if (response.ok) {
-        return authHeader;
+        return;
       }
     } catch {
       // Ignore transient startup failures while the server is still booting.
@@ -165,7 +137,7 @@ async function waitForServer(url, child, getOutput, statusFile) {
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
 
-  throw new Error('Timed out waiting for packaged TTDash to start.');
+  throw new Error(`Timed out waiting for packaged TTDash to start.\n${getOutput()}`);
 }
 
 function waitForChildClose(child, timeoutMs) {
@@ -296,7 +268,7 @@ async function main() {
 
   const port = await getFreePort();
   const url = `http://127.0.0.1:${port}`;
-  const authStatusFile = path.join(appDataRoot, 'ttdash-auth-status.json');
+  const { token: localAuthToken, authHeader } = createPackageSmokeAuth();
   const child = spawn(installedCliPath, ['--no-open', '--port', String(port)], {
     cwd: installDir,
     env: {
@@ -305,7 +277,7 @@ async function main() {
       NO_OPEN_BROWSER: '1',
       HOST: '127.0.0.1',
       PORT: String(port),
-      TTDASH_AUTH_STATUS_FILE: authStatusFile,
+      TTDASH_LOCAL_AUTH_TOKEN: localAuthToken,
       XDG_CACHE_HOME: path.join(appDataRoot, 'cache'),
       XDG_CONFIG_HOME: path.join(appDataRoot, 'config'),
       XDG_DATA_HOME: path.join(appDataRoot, 'data'),
@@ -322,9 +294,9 @@ async function main() {
   });
 
   try {
-    const authHeader = await waitForServer(url, child, () => output, authStatusFile);
+    await waitForServer(url, child, authHeader, () => output);
     const usageResponse = await fetch(`${url}/api/usage`, {
-      headers: authHeader ? { Authorization: authHeader } : undefined,
+      headers: authorizationHeaders(authHeader),
     });
     if (!usageResponse.ok) {
       throw new Error(`Packaged server returned ${usageResponse.status} from /api/usage.`);

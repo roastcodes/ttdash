@@ -11,6 +11,9 @@ const { createBackgroundRuntime } = require('../../server/background-runtime.js'
       mkdirSync: (dirPath: string, options?: unknown) => void
       chmodSync: (filePath: string, mode: number) => void
       rmSync: (targetPath: string, options?: unknown) => void
+      openSync?: (filePath: string, flags: string, mode: number) => number
+      fchmodSync?: (fd: number, mode: number) => void
+      closeSync?: (fd: number) => void
     }
     path: typeof path
     processObject: NodeJS.Process
@@ -50,6 +53,7 @@ const { createBackgroundRuntime } = require('../../server/background-runtime.js'
     pruneBackgroundInstances: () => Promise<
       Array<{ id: string; pid: number; port: number; url: string; startedAt: string }>
     >
+    startInBackground: () => Promise<void>
   }
 }
 
@@ -157,5 +161,75 @@ describe('background runtime', () => {
         }),
       ],
     )
+  })
+
+  it('reports the background log path when startup fails before the log can be read', async () => {
+    const readFileSync = vi.fn(() => {
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' })
+    })
+    const spawnImpl = vi.fn(() => ({
+      pid: 123,
+      unref: vi.fn(),
+    }))
+    const fsMock = {
+      readFileSync,
+      mkdirSync: vi.fn(),
+      chmodSync: vi.fn(),
+      rmSync: vi.fn(),
+      openSync: vi.fn(() => 42),
+      fchmodSync: vi.fn(),
+      closeSync: vi.fn(),
+    }
+    const runtime = createBackgroundRuntime({
+      fs: fsMock,
+      path,
+      processObject: {
+        ...process,
+        env: {},
+        execPath: '/usr/bin/node',
+      } as NodeJS.Process,
+      fetchImpl: vi.fn(),
+      spawnImpl,
+      readlinePromises: {} as typeof readlinePromisesModule,
+      entrypointPath: '/tmp/server.js',
+      appPaths: {
+        configDir: '/tmp/ttdash-config',
+        cacheDir: '/tmp/ttdash-cache',
+      },
+      ensureAppDirs: vi.fn(),
+      ensureDir: vi.fn(),
+      writeJsonAtomic: vi.fn(),
+      normalizeIsoTimestamp: (value: string) => value,
+      bindHost: '127.0.0.1',
+      apiPrefix: '/api',
+      runtimeInstance: {
+        id: 'runtime-id',
+        pid: 999,
+        startedAt: '2026-04-01T07:00:00.000Z',
+      },
+      normalizedCliArgs: ['--background', '--no-open'],
+      cliOptions: {
+        noOpen: true,
+      },
+      forceOpenBrowser: false,
+      isWindows: false,
+      secureDirMode: 0o700,
+      secureFileMode: 0o600,
+      backgroundStartTimeoutMs: 15_000,
+      backgroundInstancesLockTimeoutMs: 5_000,
+      backgroundInstancesLockStaleMs: 10_000,
+      sleep: async () => {},
+      isProcessRunning: () => false,
+      formatDateTime: (value: string) => value,
+    })
+
+    await expect(runtime.startInBackground()).rejects.toThrow(
+      'Could not start TTDash as a background process. Log: /tmp/ttdash-cache/background/server-',
+    )
+    expect(readFileSync).toHaveBeenCalledWith(
+      expect.stringContaining('/tmp/ttdash-cache/background/server-'),
+      'utf-8',
+    )
+    expect(fsMock.closeSync).toHaveBeenCalledWith(42)
   })
 })

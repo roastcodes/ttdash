@@ -69,6 +69,7 @@ function createAppRuntime({
   const bindHost = env.HOST || '127.0.0.1';
   const allowRemoteBind = env.TTDASH_ALLOW_REMOTE === '1';
   const remoteAuthToken = env.TTDASH_REMOTE_TOKEN || '';
+  const localAuthToken = env.TTDASH_LOCAL_AUTH_TOKEN || '';
   const apiPrefix = env.API_PREFIX || '/api';
   const isWindows = processObject.platform === 'win32';
   const toktrackLocalBin =
@@ -110,6 +111,7 @@ function createAppRuntime({
     bindHost,
     allowRemoteBind,
     remoteToken: remoteAuthToken,
+    localToken: localAuthToken || undefined,
   });
   const authorizationHeader = serverAuth.getAuthorizationHeader();
 
