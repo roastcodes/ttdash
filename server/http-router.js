@@ -353,10 +353,11 @@ function createHttpRouter({
       }
 
       try {
-        await withFileMutationLock(settingsFile, async () => {
+        const settings = await withFileMutationLock(settingsFile, async () => {
           await writeSettings(importedSettings);
+          return readSettings();
         });
-        return json(res, 200, readSettings());
+        return json(res, 200, settings);
       } catch (error) {
         if (isPersistedStateError(error, 'settings')) {
           return json(res, 500, { message: error.message });

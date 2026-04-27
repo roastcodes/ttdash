@@ -17,7 +17,7 @@ const {
 const { parseCliArgs, normalizeCliArgs } = require('./cli');
 const { createHttpUtils } = require('./http-utils');
 const { createDataRuntime } = require('./data-runtime');
-const { createBackgroundRuntime } = require('./background-runtime');
+const { createBackgroundRuntime } = require('./background-runtime.js');
 const { createAutoImportRuntime } = require('./auto-import-runtime');
 const { createHttpRouter } = require('./http-router');
 const { createServerAuth } = require('./remote-auth');
@@ -111,6 +111,7 @@ function createAppRuntime({
     allowRemoteBind,
     remoteToken: remoteAuthToken,
   });
+  const authorizationHeader = serverAuth.getAuthorizationHeader();
 
   const backgroundRuntime = createBackgroundRuntime({
     fs,
@@ -127,7 +128,8 @@ function createAppRuntime({
     normalizeIsoTimestamp: dataRuntime.normalizeIsoTimestamp,
     bindHost,
     apiPrefix,
-    authHeader: serverAuth.getAuthorizationHeader(),
+    authHeader: authorizationHeader,
+    remoteAuthHeader: authorizationHeader,
     runtimeInstance,
     normalizedCliArgs,
     cliOptions,

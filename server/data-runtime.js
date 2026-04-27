@@ -108,6 +108,10 @@ function createDataRuntime({
     }
   }
 
+  function isMissingFileError(error) {
+    return error?.code === 'ENOENT' || /no such file/i.test(String(error?.message || error));
+  }
+
   function writeJsonAtomic(filePath, data) {
     ensureDir(path.dirname(filePath));
     const tempPath = `${filePath}.${processObject.pid}.${Date.now()}.tmp`;
@@ -717,8 +721,23 @@ function createDataRuntime({
       fs.renameSync(legacyDataFile, dataFile);
       applySecureFileMode(dataFile);
       log(`Migrating existing data to ${dataFile}`);
-    } catch {
-      fs.copyFileSync(legacyDataFile, dataFile);
+    } catch (renameError) {
+      if (isMissingFileError(renameError) && fs.existsSync(dataFile)) {
+        applySecureFileMode(dataFile);
+        log(`Existing data already migrated to ${dataFile}`);
+        return;
+      }
+
+      try {
+        fs.copyFileSync(legacyDataFile, dataFile);
+      } catch (copyError) {
+        if (isMissingFileError(copyError) && fs.existsSync(dataFile)) {
+          applySecureFileMode(dataFile);
+          log(`Existing data already migrated to ${dataFile}`);
+          return;
+        }
+        throw copyError;
+      }
       applySecureFileMode(dataFile);
       try {
         fs.unlinkSync(legacyDataFile);

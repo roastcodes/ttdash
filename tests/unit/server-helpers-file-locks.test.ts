@@ -579,6 +579,111 @@ dataRuntime.withFileMutationLock(filePath, async () => {
     }
   })
 
+  it('treats missing legacy data during rename as already migrated when the target exists', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-legacy-race-rename-'))
+    const legacyDataFile = path.join(runtimeRoot, 'data.json')
+    const runtime = createFileModeRuntime(runtimeRoot, legacyDataFile)
+    const logs: string[] = []
+    const originalRenameSync = fs.renameSync.bind(fs)
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation((from, to) => {
+      if (from === legacyDataFile && to === runtime.paths.dataFile) {
+        fs.unlinkSync(legacyDataFile)
+        fs.mkdirSync(path.dirname(runtime.paths.dataFile), { recursive: true })
+        fs.writeFileSync(runtime.paths.dataFile, '{"daily":[]}', { mode: 0o644 })
+        if (process.platform !== 'win32') {
+          fs.chmodSync(runtime.paths.dataFile, 0o644)
+        }
+        throw Object.assign(new Error('no such file or directory'), { code: 'ENOENT' })
+      }
+      return originalRenameSync(from, to)
+    })
+
+    try {
+      await fsPromises.writeFile(legacyDataFile, '{"daily":[]}', { mode: 0o644 })
+
+      expect(() => runtime.migrateLegacyDataFile((message) => logs.push(message))).not.toThrow()
+
+      expect(renameSpy).toHaveBeenCalledWith(legacyDataFile, runtime.paths.dataFile)
+      expect(existsSync(runtime.paths.dataFile)).toBe(true)
+      expect(logs).toEqual([`Existing data already migrated to ${runtime.paths.dataFile}`])
+      if (process.platform !== 'win32') {
+        expect(getMode(runtime.paths.dataFile)).toBe(0o600)
+      }
+    } finally {
+      renameSpy.mockRestore()
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('treats missing legacy data during copy fallback as already migrated when the target exists', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-legacy-race-copy-'))
+    const legacyDataFile = path.join(runtimeRoot, 'data.json')
+    const runtime = createFileModeRuntime(runtimeRoot, legacyDataFile)
+    const logs: string[] = []
+    const originalRenameSync = fs.renameSync.bind(fs)
+    const originalCopyFileSync = fs.copyFileSync.bind(fs)
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation((from, to) => {
+      if (from === legacyDataFile && to === runtime.paths.dataFile) {
+        throw Object.assign(new Error('cross-device rename'), { code: 'EXDEV' })
+      }
+      return originalRenameSync(from, to)
+    })
+    const copySpy = vi.spyOn(fs, 'copyFileSync').mockImplementation((from, to) => {
+      if (from === legacyDataFile && to === runtime.paths.dataFile) {
+        fs.unlinkSync(legacyDataFile)
+        fs.mkdirSync(path.dirname(runtime.paths.dataFile), { recursive: true })
+        fs.writeFileSync(runtime.paths.dataFile, '{"daily":[]}', { mode: 0o644 })
+        if (process.platform !== 'win32') {
+          fs.chmodSync(runtime.paths.dataFile, 0o644)
+        }
+        throw Object.assign(new Error('no such file or directory'), { code: 'ENOENT' })
+      }
+      return originalCopyFileSync(from, to)
+    })
+
+    try {
+      await fsPromises.writeFile(legacyDataFile, '{"daily":[]}', { mode: 0o644 })
+
+      expect(() => runtime.migrateLegacyDataFile((message) => logs.push(message))).not.toThrow()
+
+      expect(renameSpy).toHaveBeenCalledWith(legacyDataFile, runtime.paths.dataFile)
+      expect(copySpy).toHaveBeenCalledWith(legacyDataFile, runtime.paths.dataFile)
+      expect(existsSync(runtime.paths.dataFile)).toBe(true)
+      expect(logs).toEqual([`Existing data already migrated to ${runtime.paths.dataFile}`])
+      if (process.platform !== 'win32') {
+        expect(getMode(runtime.paths.dataFile)).toBe(0o600)
+      }
+    } finally {
+      renameSpy.mockRestore()
+      copySpy.mockRestore()
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('keeps missing legacy data migration failures visible when the target was not created', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-legacy-missing-'))
+    const legacyDataFile = path.join(runtimeRoot, 'data.json')
+    const runtime = createFileModeRuntime(runtimeRoot, legacyDataFile)
+    const originalRenameSync = fs.renameSync.bind(fs)
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation((from, to) => {
+      if (from === legacyDataFile && to === runtime.paths.dataFile) {
+        fs.unlinkSync(legacyDataFile)
+        throw Object.assign(new Error('no such file or directory'), { code: 'ENOENT' })
+      }
+      return originalRenameSync(from, to)
+    })
+
+    try {
+      await fsPromises.writeFile(legacyDataFile, '{"daily":[]}', { mode: 0o644 })
+
+      expect(() => runtime.migrateLegacyDataFile(vi.fn())).toThrow('no such file')
+      expect(existsSync(runtime.paths.dataFile)).toBe(false)
+    } finally {
+      renameSpy.mockRestore()
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
   it('swallows missing-file deletes but rethrows other unlink failures', async () => {
     await expect(unlinkIfExists('/tmp/does-not-exist.json')).resolves.toBeUndefined()
 

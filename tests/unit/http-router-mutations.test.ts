@@ -251,6 +251,36 @@ describe('HTTP router mutation errors', () => {
     expect(body).toEqual({ message: 'Server error' })
   })
 
+  it('reads imported settings while the settings import lock is still held', async () => {
+    const events: string[] = []
+    const { router } = createRouter({
+      readBody: vi.fn(async () => ({ settings: { language: 'de' } })),
+      dataRuntimeOverrides: {
+        readSettings: vi.fn(() => {
+          events.push('readSettings')
+          return { language: 'de' }
+        }),
+        writeSettings: vi.fn(async () => {
+          events.push('writeSettings')
+        }),
+        withFileMutationLock: vi.fn(
+          async (_filePath: string, operation: () => Promise<unknown>) => {
+            events.push('lock:start')
+            const result = await operation()
+            events.push('lock:end')
+            return result
+          },
+        ),
+      },
+    })
+
+    const { res, body } = await request(router, '/api/settings/import', 'POST')
+
+    expect(res.status).toBe(200)
+    expect(body).toEqual({ language: 'de' })
+    expect(events).toEqual(['lock:start', 'writeSettings', 'readSettings', 'lock:end'])
+  })
+
   it('returns server errors for upload write failures', async () => {
     const usageData = { daily: [{ date: '2026-04-27' }], totals: { totalCost: 1 } }
     const { router } = createRouter({
