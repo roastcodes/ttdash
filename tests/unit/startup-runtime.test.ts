@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module'
 import { describe, expect, it, vi } from 'vitest'
+import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 
 const require = createRequire(import.meta.url)
 const { createStartupRuntime, formatCurrency, formatInteger } =
@@ -72,7 +73,7 @@ function createStartupRuntimeFixture(overrides: Record<string, unknown> = {}) {
     autoImportRuntime: {
       formatAutoImportMessageEvent: (event: { key: string }) => event.key,
       performAutoImport: vi.fn(async ({ onCheck, onProgress, onOutput }) => {
-        onCheck({ status: 'found', method: 'local', version: '2.5.0' })
+        onCheck({ status: 'found', method: 'local', version: TOKTRACK_VERSION })
         onProgress({ key: 'processingUsageData' })
         onOutput('toktrack output')
         return { days: 2, totalCost: 1.23 }
@@ -243,7 +244,7 @@ describe('startup runtime', () => {
     await runtime.runStartupAutoLoad()
 
     expect(markStartupAutoLoadCompleted).toHaveBeenCalledTimes(1)
-    expect(logs).toContain('toktrack found (local, v2.5.0)')
+    expect(logs).toContain(`toktrack found (local, v${TOKTRACK_VERSION})`)
     expect(logs).toContain('processingUsageData')
     expect(logs).toContain('Auto-load complete: imported 2 days, $ 1.23.')
   })

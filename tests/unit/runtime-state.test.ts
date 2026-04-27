@@ -109,13 +109,13 @@ describe('server runtime state services', () => {
     expect(load).toHaveBeenCalledWith('first')
     expect(requestedLabels).toEqual(['first'])
 
-    resolveLookup({ status: 'ok', value: '2.5.0' })
+    resolveLookup({ status: 'ok', value: 'fresh-value' })
 
-    await expect(firstLookup).resolves.toEqual({ status: 'ok', value: '2.5.0' })
-    await expect(secondLookup).resolves.toEqual({ status: 'ok', value: '2.5.0' })
+    await expect(firstLookup).resolves.toEqual({ status: 'ok', value: 'fresh-value' })
+    await expect(secondLookup).resolves.toEqual({ status: 'ok', value: 'fresh-value' })
 
     now.mockReturnValue(1099)
-    await expect(cache.lookup('cached')).resolves.toEqual({ status: 'ok', value: '2.5.0' })
+    await expect(cache.lookup('cached')).resolves.toEqual({ status: 'ok', value: 'fresh-value' })
     expect(load).toHaveBeenCalledTimes(1)
 
     now.mockReturnValue(1101)
