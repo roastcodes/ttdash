@@ -23,9 +23,11 @@ const { normalizeIncomingData } = require('../../usage-normalizer.js') as {
 }
 const { createDataRuntime } = require('../../server/data-runtime.js') as {
   createDataRuntime: (options: Record<string, unknown>) => {
-    paths: { dataFile: string }
+    paths: { dataFile: string; settingsFile: string }
     getFileMutationLockDir: (filePath: string) => string
     migrateLegacyDataFile: (log?: (message: string) => void) => void
+    readSettings: () => { lastLoadedAt?: string | null; lastLoadSource?: string | null }
+    updateDataLoadState: (patch: Record<string, unknown>) => Promise<unknown>
     writeJsonAtomic: (filePath: string, data: unknown) => void
     withFileMutationLock: <T>(filePath: string, operation: () => Promise<T>) => Promise<T>
   }
@@ -458,6 +460,67 @@ dataRuntime.withFileMutationLock(filePath, async () => {
     unlinkSpy.mockRestore()
     nowSpy.mockRestore()
     await fsPromises.rm(targetDir, { recursive: true, force: true })
+  })
+
+  it.runIf(process.platform !== 'win32')(
+    'normalizes parent directory permissions before async atomic writes',
+    async () => {
+      const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-write-dir-mode-'))
+      const targetFile = path.join(targetDir, 'settings.json')
+
+      try {
+        await fsPromises.chmod(targetDir, 0o755)
+
+        await writeJsonAtomicAsync(targetFile, { ok: true })
+
+        expect(getMode(targetDir)).toBe(0o700)
+        expect(getMode(targetFile)).toBe(0o600)
+      } finally {
+        await fsPromises.rm(targetDir, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it('serializes public data-load-state updates through the settings file lock', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-data-load-lock-'))
+    const runtime = createFileModeRuntime(runtimeRoot, path.join(runtimeRoot, 'legacy-data.json'))
+    const events: string[] = []
+    let releaseFirst: (() => void) | null = null
+
+    try {
+      const first = runtime.withFileMutationLock(runtime.paths.settingsFile, async () => {
+        events.push('lock:start')
+        await new Promise<void>((resolve) => {
+          releaseFirst = () => {
+            events.push('lock:end')
+            resolve()
+          }
+        })
+      })
+
+      await vi.waitFor(() => {
+        expect(events).toEqual(['lock:start'])
+      })
+
+      const update = runtime.updateDataLoadState({
+        lastLoadedAt: '2026-04-27T12:00:00.000Z',
+        lastLoadSource: 'file',
+      })
+
+      await Promise.resolve()
+      expect(events).toEqual(['lock:start'])
+
+      releaseFirst?.()
+      await Promise.all([first, update])
+
+      expect(events).toEqual(['lock:start', 'lock:end'])
+      expect(runtime.readSettings()).toMatchObject({
+        lastLoadedAt: '2026-04-27T12:00:00.000Z',
+        lastLoadSource: 'file',
+      })
+    } finally {
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
   })
 
   it('normalizes migrated legacy data file permissions after rename', async () => {

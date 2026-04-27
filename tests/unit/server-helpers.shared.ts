@@ -32,7 +32,8 @@ const { createDataRuntime } = require('../../server/data-runtime.js') as {
     ) => Promise<T>
     withSettingsAndDataMutationLock: <T>(operation: () => Promise<T>) => Promise<T>
     writeData: (data: unknown) => void
-    updateDataLoadState: (patch: unknown) => void
+    _updateDataLoadStateUnlocked: (patch: unknown) => Promise<unknown>
+    updateDataLoadState: (patch: unknown) => Promise<unknown>
     getPendingFileMutationLockCount: () => number
   }
 }
@@ -155,7 +156,7 @@ const autoImportRuntime = createAutoImportRuntime({
   normalizeIncomingData,
   withSettingsAndDataMutationLock: dataRuntime.withSettingsAndDataMutationLock,
   writeData: dataRuntime.writeData,
-  updateDataLoadState: dataRuntime.updateDataLoadState,
+  updateDataLoadState: dataRuntime._updateDataLoadStateUnlocked,
   toktrackPackageName: TOKTRACK_PACKAGE_NAME,
   toktrackPackageSpec: TOKTRACK_PACKAGE_SPEC,
   toktrackVersion: TOKTRACK_VERSION,

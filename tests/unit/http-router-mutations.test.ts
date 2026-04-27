@@ -28,9 +28,11 @@ class MockResponse {
 }
 
 function createRouter({
+  autoImportRuntimeOverrides = {},
   dataRuntimeOverrides = {},
   readBody = vi.fn(async () => ({})),
 }: {
+  autoImportRuntimeOverrides?: Record<string, unknown>
   dataRuntimeOverrides?: Record<string, unknown>
   readBody?: () => Promise<unknown>
 } = {}) {
@@ -58,6 +60,7 @@ function createRouter({
     readData: vi.fn(() => null),
     readSettings: vi.fn(() => ({ language: 'en' })),
     unlinkIfExists: vi.fn(),
+    _updateDataLoadStateUnlocked: vi.fn(async () => undefined),
     updateDataLoadState: vi.fn(async () => undefined),
     updateSettings: vi.fn(async (body) => ({ ok: true, body })),
     withFileMutationLock: vi.fn(async (_filePath: string, operation: () => Promise<unknown>) =>
@@ -101,7 +104,15 @@ function createRouter({
       validateApiRequest: () => null,
     },
     dataRuntime,
-    autoImportRuntime: {},
+    autoImportRuntime: {
+      lookupLatestToktrackVersion: vi.fn(async () => ({
+        configuredVersion: '1.0.0',
+        latestVersion: '1.0.0',
+        isLatest: true,
+        lookupStatus: 'ok',
+      })),
+      ...autoImportRuntimeOverrides,
+    },
     generatePdfReport: vi.fn(),
     getRuntimeSnapshot: vi.fn(),
   })
@@ -165,6 +176,65 @@ describe('HTTP router mutation errors', () => {
     expect(body).toEqual({ message: 'Server error' })
   })
 
+  it('returns server errors for usage delete persistence failures', async () => {
+    const { router } = createRouter({
+      dataRuntimeOverrides: {
+        withSettingsAndDataMutationLock: vi.fn(async () => {
+          throw Object.assign(new Error('disk full'), { code: 'ENOSPC' })
+        }),
+      },
+    })
+
+    const { res, body } = await request(router, '/api/usage', 'DELETE')
+
+    expect(res.status).toBe(500)
+    expect(body).toEqual({ message: 'Server error' })
+  })
+
+  it('returns server errors for settings delete persistence failures', async () => {
+    const { router } = createRouter({
+      dataRuntimeOverrides: {
+        withFileMutationLock: vi.fn(async () => {
+          throw Object.assign(new Error('permission denied'), { code: 'EACCES' })
+        }),
+      },
+    })
+
+    const { res, body } = await request(router, '/api/settings', 'DELETE')
+
+    expect(res.status).toBe(500)
+    expect(body).toEqual({ message: 'Server error' })
+  })
+
+  it('reads reset settings while the settings delete lock is still held', async () => {
+    const events: string[] = []
+    const { router } = createRouter({
+      dataRuntimeOverrides: {
+        readSettings: vi.fn(() => {
+          events.push('readSettings')
+          return { language: 'en' }
+        }),
+        unlinkIfExists: vi.fn(async () => {
+          events.push('unlink')
+        }),
+        withFileMutationLock: vi.fn(
+          async (_filePath: string, operation: () => Promise<unknown>) => {
+            events.push('lock:start')
+            const result = await operation()
+            events.push('lock:end')
+            return result
+          },
+        ),
+      },
+    })
+
+    const { res, body } = await request(router, '/api/settings', 'DELETE')
+
+    expect(res.status).toBe(200)
+    expect(body).toEqual({ success: true, settings: { language: 'en' } })
+    expect(events).toEqual(['lock:start', 'unlink', 'readSettings', 'lock:end'])
+  })
+
   it('returns server errors for settings import write failures', async () => {
     const { router } = createRouter({
       readBody: vi.fn(async () => ({ settings: { language: 'en' } })),
@@ -213,5 +283,23 @@ describe('HTTP router mutation errors', () => {
 
     expect(res.status).toBe(500)
     expect(body).toEqual({ message: 'Server error' })
+  })
+
+  it('returns service unavailable when toktrack version lookup throws', async () => {
+    const { router } = createRouter({
+      autoImportRuntimeOverrides: {
+        lookupLatestToktrackVersion: vi.fn(async () => {
+          throw new Error('registry unavailable')
+        }),
+      },
+    })
+
+    const { res, body } = await request(router, '/api/toktrack/version-status', 'GET')
+
+    expect(res.status).toBe(503)
+    expect(body).toEqual({
+      message: 'Service Unavailable',
+      detail: 'registry unavailable',
+    })
   })
 })

@@ -132,9 +132,13 @@ function createDataRuntime({
   async function writeJsonAtomicAsync(filePath, data) {
     const tempPath = `${filePath}.${processObject.pid}.${Date.now()}.tmp`;
     let tempPathCreated = false;
+    const parentDir = path.dirname(filePath);
 
     try {
-      await fsPromises.mkdir(path.dirname(filePath), { recursive: true, mode: secureDirMode });
+      await fsPromises.mkdir(parentDir, { recursive: true, mode: secureDirMode });
+      if (!isWindows) {
+        await fsPromises.chmod(parentDir, secureDirMode);
+      }
       tempPathCreated = true;
       await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), {
         mode: secureFileMode,
@@ -674,7 +678,7 @@ function createDataRuntime({
     await writeJsonAtomicAsync(settingsFile, normalizeSettings(settings));
   }
 
-  async function updateDataLoadState(patch) {
+  async function _updateDataLoadStateUnlocked(patch) {
     const current = readSettingsForWrite();
     const next = {
       ...current,
@@ -683,6 +687,10 @@ function createDataRuntime({
 
     await writeSettings(next);
     return toSettingsResponse(next);
+  }
+
+  async function updateDataLoadState(patch) {
+    return withFileMutationLock(settingsFile, () => _updateDataLoadStateUnlocked(patch));
   }
 
   async function updateSettings(patch) {
@@ -755,6 +763,7 @@ function createDataRuntime({
     readSettings,
     readSettingsForWrite,
     writeSettings,
+    _updateDataLoadStateUnlocked,
     updateDataLoadState,
     updateSettings,
   };

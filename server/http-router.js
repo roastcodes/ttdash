@@ -28,7 +28,7 @@ function createHttpRouter({
     readData,
     readSettings,
     unlinkIfExists,
-    updateDataLoadState,
+    _updateDataLoadStateUnlocked,
     updateSettings,
     withFileMutationLock,
     withSettingsAndDataMutationLock,
@@ -242,13 +242,20 @@ function createHttpRouter({
         if (validationError) {
           return json(res, validationError.status, { message: validationError.message });
         }
-        await withSettingsAndDataMutationLock(async () => {
-          await unlinkIfExists(dataFile);
-          await updateDataLoadState({
-            lastLoadedAt: null,
-            lastLoadSource: null,
+        try {
+          await withSettingsAndDataMutationLock(async () => {
+            await unlinkIfExists(dataFile);
+            await _updateDataLoadStateUnlocked({
+              lastLoadedAt: null,
+              lastLoadSource: null,
+            });
           });
-        });
+        } catch (error) {
+          if (isPersistedStateError(error, 'usage') || isPersistedStateError(error, 'settings')) {
+            return json(res, 500, { message: error.message });
+          }
+          return writeMutationServerError(res);
+        }
         return json(res, 200, { success: true });
       }
       return json(res, 405, { message: 'Method Not Allowed' });
@@ -279,10 +286,18 @@ function createHttpRouter({
         if (validationError) {
           return json(res, validationError.status, { message: validationError.message });
         }
-        await withFileMutationLock(settingsFile, async () => {
-          await unlinkIfExists(settingsFile);
-        });
-        return json(res, 200, { success: true, settings: readSettings() });
+        try {
+          const settings = await withFileMutationLock(settingsFile, async () => {
+            await unlinkIfExists(settingsFile);
+            return readSettings();
+          });
+          return json(res, 200, { success: true, settings });
+        } catch (error) {
+          if (isPersistedStateError(error, 'settings')) {
+            return json(res, 500, { message: error.message });
+          }
+          return writeMutationServerError(res);
+        }
       }
 
       if (req.method === 'PATCH') {
@@ -378,7 +393,7 @@ function createHttpRouter({
         try {
           await withSettingsAndDataMutationLock(async () => {
             await writeData(nextData);
-            await updateDataLoadState({
+            await _updateDataLoadStateUnlocked({
               lastLoadedAt: new Date().toISOString(),
               lastLoadSource: 'file',
             });
@@ -430,7 +445,7 @@ function createHttpRouter({
           const currentData = readData();
           const merged = mergeUsageData(currentData, importedData);
           await writeData(merged.data);
-          await updateDataLoadState({
+          await _updateDataLoadStateUnlocked({
             lastLoadedAt: new Date().toISOString(),
             lastLoadSource: 'file',
           });
@@ -529,7 +544,14 @@ function createHttpRouter({
         return json(res, 405, { message: 'Method Not Allowed' });
       }
 
-      return json(res, 200, await lookupLatestToktrackVersion());
+      try {
+        return json(res, 200, await lookupLatestToktrackVersion());
+      } catch (error) {
+        return json(res, 503, {
+          message: 'Service Unavailable',
+          detail: getErrorMessage(error, 'Could not determine the latest toktrack version.'),
+        });
+      }
     }
 
     if (apiPath === '/report/pdf') {

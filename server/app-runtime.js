@@ -150,7 +150,7 @@ function createAppRuntime({
     normalizeIncomingData,
     withSettingsAndDataMutationLock: dataRuntime.withSettingsAndDataMutationLock,
     writeData: dataRuntime.writeData,
-    updateDataLoadState: dataRuntime.updateDataLoadState,
+    updateDataLoadState: dataRuntime._updateDataLoadStateUnlocked,
     toktrackPackageName: TOKTRACK_PACKAGE_NAME,
     toktrackPackageSpec: TOKTRACK_PACKAGE_SPEC,
     toktrackVersion: TOKTRACK_VERSION,
