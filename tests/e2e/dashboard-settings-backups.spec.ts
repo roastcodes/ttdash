@@ -247,7 +247,13 @@ test('manages settings and backup imports through the settings dialog using isol
     ),
   )
 
+  const settingsImportResponsePromise = page.waitForResponse((response) => {
+    const url = new URL(response.url())
+    return url.pathname === '/api/settings/import' && response.request().method() === 'POST'
+  })
   await page.locator('[data-testid="settings-import-input"]').setInputFiles(importSettingsPath)
+  const settingsImportResponse = await settingsImportResponsePromise
+  expect(settingsImportResponse.ok()).toBe(true)
   await expect(page.getByRole('button', { name: exportSettingsButtonPattern })).toBeVisible()
 
   const importedSettingsResponse = await page.request.get('/api/settings', {
