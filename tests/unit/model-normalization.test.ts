@@ -28,6 +28,14 @@ const MODEL_CASES = [
   { raw: 'gpt-5.3-codex', name: 'GPT-5.3 Codex', provider: 'OpenAI' },
   { raw: 'gpt-5-4-codex', name: 'GPT-5.4 Codex', provider: 'OpenAI' },
   { raw: 'gpt-5.4', name: 'GPT-5.4', provider: 'OpenAI' },
+  { raw: 'GPT-5 4::openai', name: 'GPT-5.4', provider: 'OpenAI' },
+  { raw: 'gpt-5.4::openai', name: 'GPT-5.4', provider: 'OpenAI' },
+  { raw: 'gpt-5-4::openai', name: 'GPT-5.4', provider: 'OpenAI' },
+  {
+    raw: 'claude-sonnet-4-5::anthropic',
+    name: 'Claude Sonnet 4.5',
+    provider: 'Anthropic',
+  },
   { raw: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },
   { raw: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' },
   {

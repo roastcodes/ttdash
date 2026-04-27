@@ -10,6 +10,19 @@ const PROVIDER_MATCHERS = modelNormalizationSpec.providerMatchers.map((matcher) 
   matcher: new RegExp(matcher.pattern, 'i'),
 }))
 
+const TOKTRACK_PROVIDER_SUFFIXES = new Map([
+  ['alibaba', 'Alibaba'],
+  ['anthropic', 'Anthropic'],
+  ['cohere', 'Cohere'],
+  ['deepseek', 'DeepSeek'],
+  ['google', 'Google'],
+  ['mistral', 'Mistral'],
+  ['opencode', 'OpenCode'],
+  ['openai', 'OpenAI'],
+  ['xai', 'xAI'],
+  ['meta', 'Meta'],
+])
+
 function titleCaseSegment(segment) {
   if (!segment) return segment
   if (/^\d+([.-]\d+)*$/.test(segment)) return segment.replace(/-/g, '.')
@@ -26,9 +39,25 @@ function formatVersion(version) {
   return version.replace(/-/g, '.')
 }
 
+function splitToktrackProviderSuffix(raw) {
+  const value = String(raw || '').trim()
+  const match = value.match(/^(.*)::([a-z][a-z0-9_-]*)$/i)
+  if (!match) {
+    return { model: value, provider: null }
+  }
+
+  const model = match[1].trim()
+  const provider = TOKTRACK_PROVIDER_SUFFIXES.get(match[2].toLowerCase()) ?? null
+  if (!model || !provider) {
+    return { model: value, provider: null }
+  }
+
+  return { model, provider }
+}
+
 function canonicalizeModelName(raw) {
-  const normalized = String(raw || '')
-    .trim()
+  const { model } = splitToktrackProviderSuffix(raw)
+  const normalized = model
     .toLowerCase()
     .replace(/^model[:/ -]*/i, '')
     .replace(/^(anthropic|openai|google|vertex|models)[/-]/i, '')
@@ -191,6 +220,9 @@ function normalizeModelName(raw) {
  * @returns The normalized provider name.
  */
 function getModelProvider(raw) {
+  const suffixProvider = splitToktrackProviderSuffix(raw).provider
+  if (suffixProvider) return suffixProvider
+
   const canonical = canonicalizeModelName(raw)
   for (const matcher of PROVIDER_MATCHERS) {
     if (matcher.matcher.test(canonical)) return matcher.provider
