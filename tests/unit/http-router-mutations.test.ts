@@ -14,10 +14,10 @@ const { createHttpRouter } = require('../../server/http-router.js') as {
 
 class MockResponse {
   status = 0
-  headers: Record<string, string> = {}
+  headers: Record<string, string | number | string[]> = {}
   body = ''
 
-  writeHead(status: number, headers: Record<string, string>) {
+  writeHead(status: number, headers: Record<string, string | number | string[]>) {
     this.status = status
     this.headers = headers
   }
@@ -30,11 +30,24 @@ class MockResponse {
 function createRouter({
   autoImportRuntimeOverrides = {},
   dataRuntimeOverrides = {},
+  generatePdfReport = vi.fn(),
+  getRuntimeSnapshot = vi.fn(() => ({
+    id: 'runtime-1',
+    mode: 'foreground',
+    port: 3000,
+    url: 'http://127.0.0.1:3000',
+  })),
+  httpUtilsOverrides = {},
   readBody = vi.fn(async () => ({})),
+  remoteAuthOverrides = {},
 }: {
   autoImportRuntimeOverrides?: Record<string, unknown>
   dataRuntimeOverrides?: Record<string, unknown>
+  generatePdfReport?: () => Promise<{ buffer: Buffer; filename: string }>
+  getRuntimeSnapshot?: () => unknown
+  httpUtilsOverrides?: Record<string, unknown>
   readBody?: () => Promise<unknown>
+  remoteAuthOverrides?: Record<string, unknown>
 } = {}) {
   const dataRuntime = {
     extractSettingsImportPayload: vi.fn(
@@ -84,8 +97,16 @@ function createRouter({
     staticRoot: '/app/dist',
     securityHeaders: { 'X-Test-Security': '1' },
     httpUtils: {
-      json: (res: MockResponse, status: number, payload: unknown) => {
-        res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' })
+      json: (
+        res: MockResponse,
+        status: number,
+        payload: unknown,
+        headers: Record<string, string> = {},
+      ) => {
+        res.writeHead(status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          ...headers,
+        })
         res.end(JSON.stringify(payload))
       },
       readBody,
@@ -95,13 +116,23 @@ function createRouter({
           : pathname.startsWith('/api/')
             ? pathname.slice('/api'.length)
             : null,
-      sendBuffer: vi.fn(),
+      sendBuffer: (
+        res: MockResponse,
+        status: number,
+        headers: Record<string, string>,
+        buffer: Buffer,
+      ) => {
+        res.writeHead(status, headers)
+        res.end(buffer)
+      },
       validateMutationRequest: vi.fn(() => null),
       validateRequestHost: vi.fn(() => null),
+      ...httpUtilsOverrides,
     },
     remoteAuth: {
       resolveBootstrapResponse: () => null,
       validateApiRequest: () => null,
+      ...remoteAuthOverrides,
     },
     dataRuntime,
     autoImportRuntime: {
@@ -113,14 +144,14 @@ function createRouter({
       })),
       ...autoImportRuntimeOverrides,
     },
-    generatePdfReport: vi.fn(),
-    getRuntimeSnapshot: vi.fn(),
+    generatePdfReport,
+    getRuntimeSnapshot,
   })
 
-  return { dataRuntime, readBody, router }
+  return { dataRuntime, generatePdfReport, getRuntimeSnapshot, readBody, router }
 }
 
-async function request(
+async function requestRaw(
   router: ReturnType<typeof createRouter>['router'],
   url: string,
   method: string,
@@ -130,6 +161,15 @@ async function request(
     { url, method, headers: { 'content-type': 'application/json' } },
     res,
   )
+  return { res }
+}
+
+async function request(
+  router: ReturnType<typeof createRouter>['router'],
+  url: string,
+  method: string,
+) {
+  const { res } = await requestRaw(router, url, method)
   return { res, body: JSON.parse(res.body) }
 }
 
@@ -331,5 +371,153 @@ describe('HTTP router mutation errors', () => {
       message: 'Service Unavailable',
       detail: 'registry unavailable',
     })
+  })
+
+  it('rejects untrusted hosts before API auth is evaluated', async () => {
+    const validateApiRequest = vi.fn(() => ({
+      status: 401,
+      message: 'Authentication required',
+    }))
+    const { router } = createRouter({
+      httpUtilsOverrides: {
+        validateRequestHost: vi.fn(() => ({
+          status: 403,
+          message: 'Untrusted host header',
+        })),
+      },
+      remoteAuthOverrides: {
+        validateApiRequest,
+      },
+    })
+
+    const { res, body } = await request(router, '/api/runtime', 'GET')
+
+    expect(res.status).toBe(403)
+    expect(body).toEqual({ message: 'Untrusted host header' })
+    expect(validateApiRequest).not.toHaveBeenCalled()
+  })
+
+  it('forwards API authentication failures with challenge headers', async () => {
+    const { router } = createRouter({
+      remoteAuthOverrides: {
+        validateApiRequest: vi.fn(() => ({
+          headers: { 'WWW-Authenticate': 'Bearer realm="TTDash API"' },
+          status: 401,
+          message: 'Authentication required',
+        })),
+      },
+    })
+
+    const { res, body } = await request(router, '/api/runtime', 'GET')
+
+    expect(res.status).toBe(401)
+    expect(res.headers['WWW-Authenticate']).toBe('Bearer realm="TTDash API"')
+    expect(body).toEqual({ message: 'Authentication required' })
+  })
+
+  it('serves runtime snapshots only through GET', async () => {
+    const snapshot = {
+      id: 'runtime-2',
+      mode: 'background',
+      port: 3020,
+      url: 'http://localhost:3020',
+    }
+    const { getRuntimeSnapshot, router } = createRouter({
+      getRuntimeSnapshot: vi.fn(() => snapshot),
+    })
+
+    const runtimeResponse = await request(router, '/api/runtime', 'GET')
+    const rejectedMethod = await request(router, '/api/runtime', 'POST')
+
+    expect(runtimeResponse.res.status).toBe(200)
+    expect(runtimeResponse.body).toEqual(snapshot)
+    expect(getRuntimeSnapshot).toHaveBeenCalledTimes(1)
+    expect(rejectedMethod.res.status).toBe(405)
+    expect(rejectedMethod.body).toEqual({ message: 'Method Not Allowed' })
+  })
+
+  it('keeps unknown API endpoints distinct from stale API prefixes', async () => {
+    const { router } = createRouter({
+      httpUtilsOverrides: {
+        // Simulate a configured API prefix with no handler separately from a stale /api URL.
+        resolveApiPath: (pathname: string) => (pathname === '/custom/unknown' ? '/unknown' : null),
+      },
+    })
+
+    const unknownEndpoint = await request(router, '/custom/unknown', 'GET')
+    const stalePrefix = await request(router, '/api/not-configured', 'GET')
+
+    expect(unknownEndpoint.res.status).toBe(404)
+    expect(unknownEndpoint.body).toEqual({ message: 'API endpoint not found' })
+    expect(stalePrefix.res.status).toBe(404)
+    expect(stalePrefix.body).toEqual({ message: 'Not Found' })
+  })
+
+  it('rejects PDF reports without usage data before reading the request body', async () => {
+    const readBody = vi.fn(async () => ({ title: 'Usage' }))
+    const { router } = createRouter({
+      dataRuntimeOverrides: {
+        readData: vi.fn(() => null),
+      },
+      readBody,
+    })
+
+    const { res, body } = await request(router, '/api/report/pdf', 'POST')
+
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ message: 'No data available for the report.' })
+    expect(readBody).not.toHaveBeenCalled()
+  })
+
+  it('maps PDF body and generator failures to client or service errors', async () => {
+    const usageData = { daily: [{ date: '2026-04-27' }], totals: { totalCost: 1 } }
+    const oversizedRouter = createRouter({
+      dataRuntimeOverrides: {
+        readData: vi.fn(() => usageData),
+      },
+      readBody: vi.fn(async () => {
+        throw Object.assign(new Error('too large'), { code: 'PAYLOAD_TOO_LARGE' })
+      }),
+    }).router
+    const typstMissingRouter = createRouter({
+      dataRuntimeOverrides: {
+        readData: vi.fn(() => usageData),
+      },
+      generatePdfReport: vi.fn(async () => {
+        throw Object.assign(new Error('Typst not found'), { code: 'TYPST_MISSING' })
+      }),
+      readBody: vi.fn(async () => ({ locale: 'de-CH' })),
+    }).router
+
+    const oversized = await request(oversizedRouter, '/api/report/pdf', 'POST')
+    const typstMissing = await request(typstMissingRouter, '/api/report/pdf', 'POST')
+
+    expect(oversized.res.status).toBe(413)
+    expect(oversized.body).toEqual({ message: 'Report request too large' })
+    expect(typstMissing.res.status).toBe(503)
+    expect(typstMissing.body).toEqual({ message: 'Typst not found' })
+  })
+
+  it('sends generated PDF buffers with attachment headers', async () => {
+    const usageData = { daily: [{ date: '2026-04-27' }], totals: { totalCost: 1 } }
+    const generatePdfReport = vi.fn(async () => ({
+      buffer: Buffer.from('%PDF-1.4'),
+      filename: 'ttdash-report.pdf',
+    }))
+    const { router } = createRouter({
+      dataRuntimeOverrides: {
+        readData: vi.fn(() => usageData),
+      },
+      generatePdfReport,
+      readBody: vi.fn(async () => ({ locale: 'de-CH' })),
+    })
+
+    const { res } = await requestRaw(router, '/api/report/pdf', 'POST')
+
+    expect(res.status).toBe(200)
+    expect(res.headers['Content-Type']).toBe('application/pdf')
+    expect(res.headers['Content-Disposition']).toBe('attachment; filename="ttdash-report.pdf"')
+    expect(res.body).toBe('%PDF-1.4')
+    expect(generatePdfReport).toHaveBeenCalledWith(usageData.daily, { locale: 'de-CH' })
   })
 })
