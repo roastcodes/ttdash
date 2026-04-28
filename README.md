@@ -352,7 +352,7 @@ If you want to run the steps individually, use:
 npm run check:deps
 npm run test:architecture
 npm run test:unit:coverage
-npm run test:e2e
+npm run test:e2e:ci
 ```
 
 To inspect the slowest suites and test cases after a Vitest run:
@@ -361,7 +361,7 @@ To inspect the slowest suites and test cases after a Vitest run:
 npm run test:timings
 ```
 
-The Playwright suite uses its own isolated local app directory. If port `3015` is already occupied locally, run it on another isolated port:
+The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/`. If the base port `3015` is already occupied locally, run it from another base port:
 
 ```bash
 PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e

@@ -45,7 +45,7 @@ Run the main local checks:
 
 ```bash
 npm run verify
-npm run test:e2e
+npm run test:e2e:ci
 ```
 
 `npm run verify` covers formatting, ESLint, `tsc --noEmit`, unit tests, the production bundle, and packaged-artifact verification. If you want the same coverage gate used in release preparation, also run:
@@ -66,7 +66,7 @@ If local port `3015` is already occupied, run Playwright on another isolated por
 PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e
 ```
 
-The Playwright suite uses an isolated local app directory under `.tmp-playwright/` and should not reuse your normal local dashboard data. `npm run verify:package` builds the real tarball and verifies that the packaged CLI can start outside the repo checkout.
+The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/` and should not reuse your normal local dashboard data. `npm run verify:package` builds the real tarball and verifies that the packaged CLI can start outside the repo checkout.
 
 Then manually verify the main user flows touched by your change:
 

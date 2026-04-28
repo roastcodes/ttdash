@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import packageJson from '../../package.json'
 
 type PlaywrightConfig = {
+  fullyParallel?: boolean
+  webServer?: unknown
   workers?: number
 }
 
@@ -28,14 +30,23 @@ describe('playwright config', () => {
     }
   })
 
-  it('keeps single-worker mode for CI only', async () => {
-    await expect(importPlaywrightConfig(undefined)).resolves.toMatchObject({
+  it('uses worker-scoped servers instead of the global Playwright web server', async () => {
+    const localConfig = await importPlaywrightConfig(undefined)
+
+    expect(localConfig).toMatchObject({
+      fullyParallel: true,
       workers: undefined,
     })
-    await expect(importPlaywrightConfig('true')).resolves.toMatchObject({
-      workers: 1,
+    expect(localConfig.webServer).toBeUndefined()
+
+    const ciConfig = await importPlaywrightConfig('true')
+
+    expect(ciConfig).toMatchObject({
+      fullyParallel: true,
+      workers: 2,
     })
-    expect(packageJson.scripts['test:e2e:ci']).toBe('playwright test --workers=1')
+    expect(ciConfig.webServer).toBeUndefined()
+    expect(packageJson.scripts['test:e2e:ci']).toBe('playwright test --workers=2')
     expect(packageJson.scripts['test:e2e:ci']).not.toContain('CI=1')
   })
 })

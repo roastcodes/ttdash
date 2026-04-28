@@ -60,7 +60,7 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
   - motion/reveal behavior
 - For large server helper or integration suites, group tests by subsystem so Vitest can schedule them more efficiently.
 - Keep background-process integration files focused by behavior; the background Vitest project intentionally uses a small worker cap instead of one serial catch-all file or unbounded process fan-out.
-- Keep Playwright files grouped by end-to-end journey, such as load/upload, forecast/filter interaction, settings/backups, reporting, and command palette behavior. Share authentication, server reset, seeding, and download helpers through `tests/e2e/helpers.ts` instead of creating new browser catch-all files.
+- Keep Playwright files grouped by end-to-end journey, such as load/upload, forecast/filter interaction, settings/backups, reporting, and command palette behavior. Import `test` and `expect` from `tests/e2e/fixtures.ts` so each worker gets its own server, port, auth session, and runtime directory. Share authentication, server reset, seeding, and download helpers through `tests/e2e/helpers.ts` instead of creating new browser catch-all files.
 
 ## Choosing the Right Layer
 
@@ -135,6 +135,7 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 - Dependency graph gate: `npm run check:deps`
 - Coverage-only unit/integration gate: `npm run test:unit:coverage`
 - Playwright only: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`
+- CI-style Playwright smoke: `npm run test:e2e:ci`
 
 ## Architecture Guardrails
 

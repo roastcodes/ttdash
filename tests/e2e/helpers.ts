@@ -6,13 +6,12 @@ import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 
 export const sampleUsagePath = path.join(process.cwd(), 'examples', 'sample-usage.json')
 
-const localAuthSessionPath = path.join(
-  process.cwd(),
-  '.tmp-playwright',
-  'app',
-  'config',
-  'session-auth.json',
-)
+function getLocalAuthSessionPath(): string {
+  return (
+    process.env.PLAYWRIGHT_TEST_AUTH_SESSION_PATH ||
+    path.join(process.cwd(), '.tmp-playwright', 'app', 'config', 'session-auth.json')
+  )
+}
 
 export const uploadToastPattern =
   /^(Datei sample-usage\.json erfolgreich geladen|File sample-usage\.json loaded successfully)$/
@@ -50,7 +49,7 @@ type InitScriptTarget = {
 export const sampleUsage = JSON.parse(fs.readFileSync(sampleUsagePath, 'utf-8')) as SampleUsage
 
 export function readLocalAuthSession() {
-  return JSON.parse(fs.readFileSync(localAuthSessionPath, 'utf-8')) as LocalAuthSession
+  return JSON.parse(fs.readFileSync(getLocalAuthSessionPath(), 'utf-8')) as LocalAuthSession
 }
 
 export function createApiAuthHeaders() {

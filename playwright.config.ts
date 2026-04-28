@@ -6,8 +6,11 @@ const baseURL = `http://${host}:${port}`
 
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: false,
-  workers: process.env.CI ? 1 : undefined,
+  fullyParallel: true,
+  // fullyParallel is safe because tests/e2e/fixtures.ts starts a separate app per
+  // worker. process.env.CI caps workers at 2 to avoid hosted-runner CPU
+  // contention; pass --workers=1 if CI flakiness needs to be debugged.
+  workers: process.env.CI ? 2 : undefined,
   timeout: 30_000,
   reporter: [
     ['list'],
@@ -19,11 +22,5 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-  },
-  webServer: {
-    command: 'npm run start:test-server',
-    url: baseURL,
-    reuseExistingServer: false,
-    timeout: 120_000,
   },
 })

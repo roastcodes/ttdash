@@ -4,7 +4,19 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const runtimeRoot = path.join(root, '.tmp-playwright', 'app');
+const playwrightRoot = path.join(root, '.tmp-playwright');
+const runtimeRoot = process.env.PLAYWRIGHT_TEST_RUNTIME_ROOT
+  ? path.resolve(process.env.PLAYWRIGHT_TEST_RUNTIME_ROOT)
+  : path.join(root, '.tmp-playwright', 'app');
+
+function isPathInside(parent, child) {
+  const relative = path.relative(parent, child);
+  return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
+if (!isPathInside(playwrightRoot, runtimeRoot)) {
+  throw new Error(`Refusing to delete unsafe Playwright runtime root: ${runtimeRoot}`);
+}
 
 fs.rmSync(runtimeRoot, { recursive: true, force: true });
 fs.mkdirSync(path.join(runtimeRoot, 'cache'), { recursive: true });
