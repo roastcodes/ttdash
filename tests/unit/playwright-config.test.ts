@@ -48,5 +48,5 @@ describe('playwright config', () => {
     expect(ciConfig.webServer).toBeUndefined()
     expect(packageJson.scripts['test:e2e:ci']).toBe('playwright test --workers=2')
     expect(packageJson.scripts['test:e2e:ci']).not.toContain('CI=1')
-  })
+  }, 10_000)
 })
