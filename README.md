@@ -98,8 +98,8 @@ Then either:
 The auto-import path prefers:
 
 1. local `toktrack`
-2. `bunx toktrack@2.5.0`
-3. `npx --yes toktrack@2.5.0`
+2. `bunx toktrack@<pinned version>`
+3. `npx --yes toktrack@<pinned version>`
 
 ## Common Commands
 
