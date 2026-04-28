@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const DEFAULT_JUNIT_PATH = path.join(ROOT, 'test-results', 'vitest.junit.xml');
+const DEFAULT_JUNIT_PATH = path.join(ROOT, 'test-results', 'vitest-timings.junit.xml');
 
 function parseAttributes(tag) {
   const attributes = {};

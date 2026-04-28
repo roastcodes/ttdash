@@ -18,6 +18,13 @@ type CoverageConfig = {
 type ResolvedVitestConfig = {
   test?: {
     coverage?: CoverageConfig
+    projects?: Array<{
+      test?: {
+        environment?: string
+        name?: string
+        setupFiles?: string[]
+      }
+    }>
   }
 }
 
@@ -63,15 +70,40 @@ describe('vitest coverage configuration', () => {
   })
 
   it('keeps coverage-heavy scripts on bounded non-interactive reporters', () => {
-    const coverageScripts = [
-      packageJson.scripts['test:unit:coverage'],
-      packageJson.scripts['test:timings'],
-    ]
+    const coverageScript = packageJson.scripts['test:unit:coverage']
+    const timingsScript = packageJson.scripts['test:timings']
+    const coverageScripts = [coverageScript, timingsScript]
 
     for (const script of coverageScripts) {
       expect(script).toContain('--reporter=dot')
       expect(script).toContain('--reporter=junit')
-      expect(script).toContain('--outputFile.junit=./test-results/vitest.junit.xml')
+    }
+
+    expect(coverageScript).toContain('--outputFile.junit=./test-results/vitest-coverage.junit.xml')
+    expect(timingsScript).toContain('--outputFile.junit=./test-results/vitest-timings.junit.xml')
+    expect(timingsScript).toContain(
+      'node scripts/report-test-timings.js ./test-results/vitest-timings.junit.xml',
+    )
+  })
+
+  it('keeps React Testing Library setup out of Node-only projects', async () => {
+    const config = await resolveVitestConfig()
+    const projects = config.test?.projects ?? []
+    const expectedSetupByProject = new Map([
+      ['architecture', ['./vitest.setup.node.ts']],
+      ['unit', ['./vitest.setup.node.ts']],
+      ['frontend', ['./vitest.setup.node.ts', './vitest.setup.frontend.ts']],
+      ['integration', ['./vitest.setup.node.ts']],
+      ['integration-background', ['./vitest.setup.node.ts']],
+    ])
+
+    expect(projects).toHaveLength(expectedSetupByProject.size)
+
+    for (const project of projects) {
+      const name = project.test?.name
+      expect(name).toBeDefined()
+      expect(expectedSetupByProject.has(name ?? '')).toBe(true)
+      expect(project.test?.setupFiles).toEqual(expectedSetupByProject.get(name ?? ''))
     }
   })
 })

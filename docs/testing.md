@@ -31,6 +31,7 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
 
 ## Frontend Defaults
 
+- `vitest.setup.node.ts` is the minimal shared cleanup for Node-only projects.
 - `vitest.setup.frontend.ts` is the shared place for `jsdom` defaults such as:
   - i18n bootstrapping
   - `matchMedia`
@@ -98,7 +99,7 @@ For `tests/architecture`, prefer the shared source graph helper for simple file,
 
 `npm run test:unit:coverage` reports product-runtime coverage. The configured coverage scope intentionally includes frontend runtime modules, the local server runtime, shared runtime contracts, and `usage-normalizer.js` instead of only the historically high-signal frontend subset.
 
-The coverage and timing commands use explicit `dot` and `junit` Vitest reporters. Keep those reporters on both scripts so non-interactive gates emit compact progress and do not depend on silent reporter paths.
+The coverage and timing commands use explicit `dot` and `junit` Vitest reporters. Keep those reporters on both scripts so non-interactive gates emit compact progress and do not depend on silent reporter paths. They intentionally write separate JUnit files, `test-results/vitest-coverage.junit.xml` and `test-results/vitest-timings.junit.xml`, so coverage and timing diagnostics do not contend for the same report path.
 
 The global thresholds are ratchets for that broader denominator:
 

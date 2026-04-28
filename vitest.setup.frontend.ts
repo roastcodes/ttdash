@@ -1,5 +1,11 @@
-import { beforeAll, vi } from 'vitest'
+import '@testing-library/jest-dom/vitest'
+import { cleanup } from '@testing-library/react'
+import { afterEach, beforeAll, vi } from 'vitest'
 import { initI18n } from '@/lib/i18n'
+
+afterEach(() => {
+  cleanup()
+})
 
 beforeAll(async () => {
   await initI18n('de')
