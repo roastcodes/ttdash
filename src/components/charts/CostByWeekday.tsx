@@ -33,7 +33,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
   const peakIndex = data.findIndex((d) => d.cost === maxCost)
   const lowIndex = data.findIndex((d) => d.cost === minCost)
   const weekendCost = data
-    .filter((entry) => entry.day === 'Sa' || entry.day === 'So')
+    .filter((_, index) => index === 5 || index === 6)
     .reduce((sum, entry) => sum + entry.cost, 0)
   const weekTotal = data.reduce((sum, entry) => sum + entry.cost, 0)
 

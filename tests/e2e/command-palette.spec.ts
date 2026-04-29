@@ -64,6 +64,8 @@ test('executes a report action command from the command palette', async ({ page 
   const pdfReport = await mockPdfReport(page)
   const downloadPromise = page.waitForEvent('download')
 
+  await page.getByTestId('language-switcher-de').click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de')
   await runPaletteCommand(page, 'command-report')
   const download = await downloadPromise
 

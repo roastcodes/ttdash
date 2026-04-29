@@ -40,8 +40,16 @@ class MockResponse extends EventEmitter {
   }
 
   end(body?: string | Buffer) {
-    this.body = Buffer.isBuffer(body) ? body.toString('utf8') : (body ?? '')
+    if (body !== undefined) {
+      this.write(body)
+    }
     this.emit('finish')
+  }
+
+  write(chunk: string | Buffer) {
+    this.body += Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk
+    this.headersSent = true
+    return true
   }
 }
 
@@ -84,6 +92,10 @@ describe('app runtime wiring', () => {
   it('composes the real server runtime with isolated paths, API prefix, and auth', async () => {
     const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-app-runtime-'))
     const authToken = 'test-local-auth-token-with-enough-entropy'
+    const stdout = Object.assign(Object.create(process.stdout), {
+      isTTY: false,
+      write: vi.fn(() => true),
+    })
     const processObject = {
       ...process,
       argv: ['node', 'server.js', '--no-open'],
@@ -105,7 +117,7 @@ describe('app runtime wiring', () => {
       on: vi.fn(),
       pid: 42170,
       platform: process.platform,
-      stdout: { isTTY: false },
+      stdout,
     }
 
     try {

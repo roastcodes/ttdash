@@ -186,12 +186,12 @@ function createDailyUsage(
 
 const weekdayData: WeekdayData[] = [
   { day: 'Mo', cost: 3 },
-  { day: 'Di', cost: 9 },
-  { day: 'Mi', cost: 6 },
-  { day: 'Do', cost: 4 },
+  { day: 'Tu', cost: 9 },
+  { day: 'We', cost: 6 },
+  { day: 'Th', cost: 4 },
   { day: 'Fr', cost: 7 },
   { day: 'Sa', cost: 2 },
-  { day: 'So', cost: 5 },
+  { day: 'Su', cost: 5 },
 ]
 
 const tokenData: TokenChartDataPoint[] = [
@@ -236,7 +236,7 @@ describe('lazy dashboard charts', () => {
     renderWithTooltip(<CostByWeekday data={weekdayData} />)
 
     expect(screen.getByText('Cost by weekday')).toBeInTheDocument()
-    expect(screen.getByText('Peak: Di · Low: Sa · Weekend 19%')).toBeInTheDocument()
+    expect(screen.getByText('Peak: Tu · Low: Sa · Weekend 19%')).toBeInTheDocument()
     expect(screen.getByTestId('chart-bar')).toHaveAttribute('data-name', 'Avg cost')
 
     const fills = screen.getAllByTestId('bar-cell').map((cell) => cell.getAttribute('data-fill'))

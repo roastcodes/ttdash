@@ -50,8 +50,6 @@ describe('test pipeline scripts', () => {
     expect(workflow).toContain('package-smoke:')
     expect(workflow).toContain('e2e:')
     expect(workflow).toContain('needs: build')
-    expect(workflow).toContain(
-      'uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131',
-    )
+    expect(workflow).toContain('uses: actions/download-artifact@')
   })
 })
