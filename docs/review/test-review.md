@@ -121,6 +121,10 @@ Das ist robust, aber nicht maximal performant:
 Akzeptanzkriterium: Full-CI-Walltime sinkt deutlich, ohne Testumfang zu reduzieren. Jeder Job laedt
 seine eigenen Reports hoch und blockiert nicht durch gemeinsame Output-Pfade.
 
+**Umsetzungsstand Phase 5:** `ci.yml` ist jetzt als DAG geschnitten: `static`, Vitest-Projektmatrix,
+dedizierter `coverage`-Job und `build` laufen unabhaengig; `package-smoke` und `e2e` verwenden das
+einmal erzeugte `production-dist`-Artifact parallel.
+
 ### H-03 - Command-Palette-E2E mischt zu viele Testarten
 
 **Referenzen:** `tests/e2e/command-palette.spec.ts`,
@@ -288,6 +292,10 @@ werden.
   verwenden.
 - Prettier Cache und TypeScript incremental fuer lokale Gates nutzen.
 
+**Umsetzungsstand Phase 5:** `test:static` nutzt einen einzigen `lint`-Lauf fuer den regulaeren Gate,
+waehrend `lint:docstrings` als gezielter Diagnosebefehl erhalten bleibt. Prettier, ESLint und
+TypeScript schreiben lokale Cache-Dateien unter `.cache/`.
+
 ### M-06 - Package-Smoke ist wichtig, aber gehoert in einen eigenen CI-Job
 
 **Referenzen:** `scripts/verify-package.js`, `package.json`
@@ -304,6 +312,9 @@ Job wie Unit, Integration und E2E blockieren.
 - `build` erzeugt `dist/` einmal.
 - `package-smoke` und `e2e` nutzen dieses Artifact parallel.
 - Package-Smoke bleibt im Full-Gate, aber nicht als serieller Nachklapp nach allen Tests.
+
+**Umsetzungsstand Phase 5:** Der CI-`build`-Job laedt `production-dist` hoch; `package-smoke` und
+`e2e` laden dieses Artifact herunter und laufen nur noch mit `needs: build`.
 
 ### M-07 - Timing-Regressions sind sichtbar, aber nicht budgetiert
 

@@ -29,7 +29,7 @@ describe('ExpandableCard', () => {
         'Erweiterte Kartenansicht mit zusätzlichen Kennzahlen und vollständigem Inhalt.',
       ),
     ).toBeInTheDocument()
-  }, 15_000)
+  })
 
   it('delegates expand handling to an external callback without opening its own dialog', () => {
     const onExpand = vi.fn()

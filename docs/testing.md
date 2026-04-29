@@ -37,6 +37,9 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
   - `matchMedia`
   - `ResizeObserver`
   - default `IntersectionObserver`
+- The `frontend` Vitest project owns the shared `30s` jsdom timeout because coverage instrumentation
+  can make a few otherwise-synchronous render tests exceed Vitest's default `5s` timeout under load.
+  Do not add per-test timeout overrides for routine frontend render tests.
 - Only override `IntersectionObserver` locally when the test explicitly verifies reveal or visibility behavior.
 - Only call `initI18n(...)` inside a test file when locale switching is itself part of the assertion.
 
@@ -97,7 +100,7 @@ For `tests/architecture`, prefer the shared source graph helper for simple file,
 
 ## Coverage Scope
 
-`npm run test:unit:coverage` reports product-runtime coverage. The configured coverage scope intentionally includes frontend runtime modules, the local server runtime, shared runtime contracts, and `usage-normalizer.js` instead of only the historically high-signal frontend subset.
+`npm run test:vitest:coverage` reports product-runtime coverage. `npm run test:unit:coverage` is kept as the underlying compatibility command. The configured coverage scope intentionally includes frontend runtime modules, the local server runtime, shared runtime contracts, and `usage-normalizer.js` instead of only the historically high-signal frontend subset.
 
 The coverage and timing commands use explicit `dot` and `junit` Vitest reporters. Keep those reporters on both scripts so non-interactive gates emit compact progress and do not depend on silent reporter paths. They intentionally write separate JUnit files, `test-results/vitest-coverage.junit.xml` and `test-results/vitest-timings.junit.xml`, so coverage and timing diagnostics do not contend for the same report path.
 
@@ -131,11 +134,14 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 
 - Required pre-PR gate: run `npm run verify:full` before opening a PR to ensure all tests and checks pass.
 - Faster inner-loop gate: `npm run verify`
+- Static gate only: `npm run test:static`
+- All Vitest projects without coverage: `npm run test:vitest`
 - Architecture tests only: `npm run test:architecture`
 - Dependency graph gate: `npm run check:deps`
-- Coverage-only unit/integration gate: `npm run test:unit:coverage`
-- Playwright only: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`
+- Coverage-only unit/integration gate: `npm run test:vitest:coverage`
+- Playwright only, with a fresh app build: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:parallel`
 - CI-style Playwright smoke: `npm run test:e2e:ci`
+- Serial local mirror of the CI gate: `npm run verify:ci`
 
 ## Architecture Guardrails
 
@@ -149,6 +155,8 @@ Do not run `test:timings` in parallel with another Vitest command that writes th
 ## CI Notes
 
 - Keep workflow test paths aligned with the split test structure.
+- The main CI workflow is intentionally a DAG: `static`, Vitest project matrix, `coverage`, and `build` can run independently; `package-smoke` and `e2e` depend only on the `production-dist` artifact from `build`.
+- Keep CI report artifacts job-scoped so parallel jobs do not overwrite each other. Vitest project jobs upload `test-reports-vitest-<project>`, coverage uploads `coverage-reports`, and Playwright uploads `test-reports-e2e`.
 - Do not point CI jobs at deleted catch-all files such as old monolithic `server-helpers` or frontend regression suites.
 - Windows smoke coverage should stay focused on the small, platform-relevant helper suites rather than full subprocess-heavy integration runs unless the workflow explicitly targets Windows process behavior.
 

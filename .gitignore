@@ -2,6 +2,7 @@ node_modules/
 dist/
 data.json
 .DS_Store
+.cache/
 .playwright-mcp/
 .tmp-playwright/
 .tmp-smoke-*/

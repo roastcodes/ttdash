@@ -200,10 +200,12 @@ Reason: the repo has stable layer boundaries, but it is not structured around st
 
 - dependency graph validation: `npm run check:deps`
 - dependency graph visualization: `npm run deps:graph`
+- static quality gate: `npm run test:static`
+- all Vitest projects without coverage: `npm run test:vitest`
 - architecture tests only: `npm run test:architecture`
 - main release-style local gate: `npm run verify:full`
 
-Both `ci.yml` and `release.yml` run `check:deps` and `test:architecture` explicitly so dependency and architecture violations show up as separate CI failures instead of being hidden inside a larger local gate.
+`ci.yml` runs static checks, architecture tests, Vitest projects, coverage, build, package smoke, and Playwright as separate DAG jobs so independent failures are visible without waiting for one serial full-gate job. `release.yml` still runs `check:deps` and `test:architecture` explicitly during the release path so dependency and architecture violations are not hidden inside a larger local gate.
 
 ## Contributor Rules
 

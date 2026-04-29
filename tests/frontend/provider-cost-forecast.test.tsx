@@ -241,7 +241,7 @@ describe('ProviderCostForecast', () => {
         .filter((entry) => entry.getAttribute('data-key')?.endsWith('Lower'))
         .every((entry) => entry.getAttribute('data-legend-type') === 'none'),
     ).toBe(true)
-  }, 15_000)
+  })
 
   it('only renders visible providers from the filtered dataset', () => {
     const openAiOnlyData: DailyUsage[] = [

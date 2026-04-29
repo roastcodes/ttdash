@@ -1,0 +1,57 @@
+import { readFile } from 'node:fs/promises'
+import { describe, expect, it } from 'vitest'
+import packageJson from '../../package.json'
+
+const scripts = packageJson.scripts as Record<string, string>
+
+describe('test pipeline scripts', () => {
+  it('exposes local gates that map to the CI test layers', () => {
+    expect(scripts.check).toBe('npm run test:static')
+    expect(scripts.test).toBe('npm run test:vitest')
+    expect(scripts['test:vitest']).toBe('npm run test:architecture && npm run test:unit')
+    expect(scripts['test:vitest:coverage']).toBe('npm run test:unit:coverage')
+    expect(scripts['test:e2e']).toBe('npm run test:e2e:parallel')
+    expect(scripts['verify:ci']).toBe('npm run verify:release && npm run test:e2e:ci')
+    expect(scripts['verify:full']).toBe('npm run verify:ci')
+  })
+
+  it('keeps the static gate cached and avoids a duplicate docstring lint pass', () => {
+    expect(scripts['test:static']).toBe(
+      'npm run format:check && npm run lint && npm run check:deps && npm run typecheck',
+    )
+    expect(scripts['test:static']).not.toContain('lint:docstrings')
+    expect(scripts.lint).toContain('--cache-location .cache/eslint/full')
+    expect(scripts.lint).toContain('--cache-strategy content')
+    expect(scripts['lint:docstrings']).toContain('--cache-location .cache/eslint/docstrings')
+    expect(scripts.format).toContain('--cache-location .cache/prettier/write')
+    expect(scripts['format:check']).toContain('--cache-location .cache/prettier/check')
+    expect(scripts.typecheck).toContain('--tsBuildInfoFile .cache/tsc/tsconfig.tsbuildinfo')
+  })
+
+  it('keeps CI split into parallel jobs that share one production bundle artifact', async () => {
+    const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
+
+    for (const job of [
+      'static',
+      'vitest',
+      'coverage',
+      'build',
+      'package-smoke',
+      'e2e',
+      'windows-smoke',
+    ]) {
+      expect(workflow).toContain(`\n  ${job}:`)
+    }
+
+    expect(workflow).toContain('run: npm run test:static')
+    expect(workflow).toContain('run: npm run test:vitest:${{ matrix.project }}')
+    expect(workflow).toContain('run: npm run test:vitest:coverage')
+    expect(workflow).toContain('name: production-dist')
+    expect(workflow).toContain('package-smoke:')
+    expect(workflow).toContain('e2e:')
+    expect(workflow).toContain('needs: build')
+    expect(workflow).toContain(
+      'uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131',
+    )
+  })
+})

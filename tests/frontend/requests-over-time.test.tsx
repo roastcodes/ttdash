@@ -162,5 +162,5 @@ describe('RequestsOverTime', () => {
     expect(lineNames).not.toEqual(
       expect.arrayContaining(['Unused Model', 'Unused Model 7-day avg']),
     )
-  }, 15_000)
+  })
 })

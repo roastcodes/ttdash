@@ -82,6 +82,7 @@ export default defineConfig(async () => {
               environment: 'jsdom',
               setupFiles: ['./vitest.setup.node.ts', './vitest.setup.frontend.ts'],
               maxWorkers: '50%',
+              testTimeout: 30_000,
               sequence: {
                 groupOrder: 2,
               },

@@ -23,6 +23,7 @@ type ResolvedVitestConfig = {
         environment?: string
         name?: string
         setupFiles?: string[]
+        testTimeout?: number
       }
     }>
   }
@@ -104,6 +105,19 @@ describe('vitest coverage configuration', () => {
       expect(name).toBeDefined()
       expect(expectedSetupByProject.has(name ?? '')).toBe(true)
       expect(project.test?.setupFiles).toEqual(expectedSetupByProject.get(name ?? ''))
+    }
+  })
+
+  it('centralizes the longer jsdom timeout on the frontend project only', async () => {
+    const config = await resolveVitestConfig()
+    const projects = config.test?.projects ?? []
+    const frontendProject = projects.find((project) => project.test?.name === 'frontend')
+    const nonFrontendProjects = projects.filter((project) => project.test?.name !== 'frontend')
+
+    expect(frontendProject?.test?.testTimeout).toBe(30_000)
+
+    for (const project of nonFrontendProjects) {
+      expect(project.test?.testTimeout).toBeUndefined()
     }
   })
 })

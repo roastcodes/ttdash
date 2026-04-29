@@ -55,7 +55,7 @@ describe('FilterBar preset and chip states', () => {
     )
 
     expect(screen.getByRole('button', { name: 'All' })).not.toHaveClass('bg-primary')
-  }, 15_000)
+  })
 
   it('exposes pressed state for preset, provider, and model toggles', () => {
     renderFilterBar({

@@ -64,7 +64,7 @@ describe('Info heading semantics', () => {
     const infoButton = screen.getByRole('button', { name: 'Show info' })
     expect(infoButton).toBeInTheDocument()
     expect(infoButton).toHaveClass('focus-visible:ring-2')
-  }, 15_000)
+  })
 
   it('keeps feature card titles semantically separate from the info button', () => {
     render(
@@ -75,5 +75,5 @@ describe('Info heading semantics', () => {
 
     expect(screen.getByRole('heading', { name: 'Request quality' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Show info' })).toBeInTheDocument()
-  }, 15_000)
+  })
 })

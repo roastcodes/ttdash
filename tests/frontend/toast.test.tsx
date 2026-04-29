@@ -39,7 +39,7 @@ describe('ToastProvider', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
-  }, 15_000)
+  })
 
   it('announces error toasts as alerts', () => {
     render(
@@ -51,5 +51,5 @@ describe('ToastProvider', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Trigger toast' }))
 
     expect(screen.getByRole('alert')).toHaveTextContent('Saved successfully')
-  }, 15_000)
+  })
 })

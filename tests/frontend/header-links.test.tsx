@@ -48,7 +48,7 @@ describe('Header external links', () => {
     expect(versionLink).toHaveAttribute('href', NPM_PACKAGE_URL)
     expect(versionLink).toHaveAttribute('target', '_blank')
     expect(versionLink).toHaveAttribute('rel', 'noopener noreferrer')
-  }, 15000)
+  })
 
   it('shows npm, GitHub, and GitHub issues links in the help panel', () => {
     render(<HeaderTestHarness />)
