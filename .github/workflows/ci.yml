@@ -64,6 +64,13 @@ jobs:
       - name: Run Vitest project
         run: npm run test:vitest:${{ matrix.project }}
 
+      - name: Check Vitest timing budget
+        run: |
+          node scripts/report-test-timings.js \
+            test-results/vitest-${{ matrix.project }}.junit.xml \
+            --max-suite-seconds=20 \
+            --max-test-seconds=12
+
       - name: Upload Vitest report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

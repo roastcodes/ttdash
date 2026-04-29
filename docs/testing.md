@@ -148,15 +148,28 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 - Keep hook files under `src/hooks/` reachable from the frontend app entrypoint; `npm run test:architecture` fails on unused production hooks so dead hook helpers do not silently remain at `0%` coverage.
 - Timing diagnostics: `npm run test:timings`
 
-`npm run test:timings` generates a fresh Vitest JUnit report and prints the slowest suites and tests. Use it after larger test additions or refactors to catch new hotspots early.
+`npm run test:timings` generates a fresh Vitest JUnit report, prints the slowest suites and tests, and
+lists warning-level timing budget entries. Use it after larger test additions or refactors to catch
+new hotspots early.
+
+`npm run test:timings:budget` runs the same Vitest project set with a separate JUnit output and fails
+when a suite exceeds `20s` or an individual test exceeds `12s`. These hard limits are intentionally
+above the current baseline so they catch pathological regressions without making local and CI runs
+fragile under normal CPU variance. CI applies the same hard budget to each Vitest matrix job by
+evaluating the JUnit report already produced by that job, so the guard does not add another full
+Vitest pass.
 
 Do not run `test:timings` in parallel with another Vitest command that writes the same JUnit file.
+`test:timings:budget` uses `test-results/vitest-timing-budget.junit.xml` so it can be run separately
+from the diagnostic report when needed.
 
 ## CI Notes
 
 - Keep workflow test paths aligned with the split test structure.
 - The main CI workflow is intentionally a DAG: `static`, Vitest project matrix, `coverage`, and `build` can run independently; `package-smoke` and `e2e` depend only on the `production-dist` artifact from `build`.
 - Keep CI report artifacts job-scoped so parallel jobs do not overwrite each other. Vitest project jobs upload `test-reports-vitest-<project>`, coverage uploads `coverage-reports`, and Playwright uploads `test-reports-e2e`.
+- Each Vitest matrix job evaluates its own JUnit report with `scripts/report-test-timings.js` and the
+  same `20s` suite / `12s` test hard budget used by `npm run test:timings:budget`.
 - Do not point CI jobs at deleted catch-all files such as old monolithic `server-helpers` or frontend regression suites.
 - Windows smoke coverage should stay focused on the small, platform-relevant helper suites rather than full subprocess-heavy integration runs unless the workflow explicitly targets Windows process behavior.
 

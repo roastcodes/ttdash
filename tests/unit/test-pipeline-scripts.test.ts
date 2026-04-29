@@ -11,6 +11,8 @@ describe('test pipeline scripts', () => {
     expect(scripts['test:vitest']).toBe('npm run test:architecture && npm run test:unit')
     expect(scripts['test:vitest:coverage']).toBe('npm run test:unit:coverage')
     expect(scripts['test:e2e']).toBe('npm run test:e2e:parallel')
+    expect(scripts['test:timings:budget']).toContain('--max-suite-seconds=20')
+    expect(scripts['test:timings:budget']).toContain('--max-test-seconds=12')
     expect(scripts['verify:ci']).toBe('npm run verify:release && npm run test:e2e:ci')
     expect(scripts['verify:full']).toBe('npm run verify:ci')
   })
@@ -45,6 +47,9 @@ describe('test pipeline scripts', () => {
 
     expect(workflow).toContain('run: npm run test:static')
     expect(workflow).toContain('run: npm run test:vitest:${{ matrix.project }}')
+    expect(workflow).toContain('node scripts/report-test-timings.js')
+    expect(workflow).toContain('--max-suite-seconds=20')
+    expect(workflow).toContain('--max-test-seconds=12')
     expect(workflow).toContain('run: npm run test:vitest:coverage')
     expect(workflow).toContain('name: production-dist')
     expect(workflow).toContain('package-smoke:')

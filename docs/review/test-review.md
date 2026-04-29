@@ -330,6 +330,12 @@ eine Baseline.
   - Separates Ranking nach Projekt.
   - Trendvergleich gegen eine gespeicherte Baseline in CI-Artefakten.
 
+**Umsetzungsstand Phase 6:** `scripts/report-test-timings.js` wertet JUnit-Reports jetzt mit
+Warn- und Hard-Budgets aus. Lokal bleibt `test:timings` diagnostisch; `test:timings:budget` nutzt
+einen separaten JUnit-Output und scheitert bei Suiten > `20s` oder Tests > `12s`. Die CI-Matrix
+wendet denselben Hard-Budget-Check auf die bereits erzeugten Vitest-Projektreports an, ohne eine
+zusaetzliche Vitest-Runde zu starten.
+
 ### N-01 - macOS-Sandbox kann Playwright-False-Negatives erzeugen
 
 Ein sandboxed Playwright-Lauf scheiterte mit Chromium
