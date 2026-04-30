@@ -6,7 +6,12 @@ const require = createRequire(import.meta.url)
 const { createHttpRouter } = require('../../server/http-router.js') as {
   createHttpRouter: (options: Record<string, unknown>) => {
     handleServerRequest: (
-      req: { url: string; method: string; headers: Record<string, string> },
+      req: {
+        url: string
+        method: string
+        headers: Record<string, string>
+        on?: (event: string, listener: () => void) => unknown
+      },
       res: MockResponse,
     ) => Promise<void>
   }
@@ -22,8 +27,14 @@ class MockResponse {
     this.headers = headers
   }
 
+  write(body: string | Buffer) {
+    this.body += Buffer.isBuffer(body) ? body.toString('utf8') : body
+  }
+
   end(body?: string | Buffer) {
-    this.body = Buffer.isBuffer(body) ? body.toString('utf8') : (body ?? '')
+    if (body !== undefined) {
+      this.body += Buffer.isBuffer(body) ? body.toString('utf8') : body
+    }
   }
 }
 
@@ -157,10 +168,13 @@ async function requestRaw(
   method: string,
 ) {
   const res = new MockResponse()
-  await router.handleServerRequest(
-    { url, method, headers: { 'content-type': 'application/json' } },
-    res,
-  )
+  const req = {
+    url,
+    method,
+    headers: { 'content-type': 'application/json' },
+    on: vi.fn(),
+  }
+  await router.handleServerRequest(req, res)
   return { res }
 }
 
@@ -373,6 +387,84 @@ describe('HTTP router mutation errors', () => {
     })
   })
 
+  it('streams auto-import success events and releases the acquired lease', async () => {
+    const lease = { release: vi.fn() }
+    const closeImport = vi.fn()
+    const performAutoImport = vi.fn(async ({ onCheck, onOutput, onProgress, signalOnClose }) => {
+      signalOnClose(closeImport)
+      onCheck({ tool: 'toktrack', status: 'found' })
+      onProgress({ key: 'startingLocalImport', vars: {} })
+      onOutput('runner warning')
+      return { days: 2, totalCost: 3.5 }
+    })
+    const { router } = createRouter({
+      autoImportRuntimeOverrides: {
+        acquireAutoImportLease: vi.fn(() => lease),
+        performAutoImport,
+      },
+    })
+
+    const { res } = await requestRaw(router, '/api/auto-import/stream', 'POST')
+
+    expect(res.status).toBe(200)
+    expect(res.headers['Content-Type']).toBe('text/event-stream')
+    expect(res.body).toContain('event: check')
+    expect(res.body).toContain('"status":"found"')
+    expect(res.body).toContain('event: progress')
+    expect(res.body).toContain('event: stderr')
+    expect(res.body).toContain('runner warning')
+    expect(res.body).toContain('event: success')
+    expect(res.body).toContain('"totalCost":3.5')
+    expect(res.body).toContain('event: done')
+    expect(performAutoImport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: 'auto-import',
+        lease,
+      }),
+    )
+    expect(lease.release).toHaveBeenCalledTimes(1)
+  })
+
+  it('maps concurrent auto-import starts to a localized conflict response', async () => {
+    const { router } = createRouter({
+      autoImportRuntimeOverrides: {
+        acquireAutoImportLease: vi.fn(() => {
+          throw Object.assign(new Error('already running'), { messageKey: 'autoImportRunning' })
+        }),
+        createAutoImportMessageEvent: vi.fn((key: string) => ({ key })),
+        formatAutoImportMessageEvent: vi.fn(() => 'An auto-import is already running.'),
+      },
+    })
+
+    const { res, body } = await request(router, '/api/auto-import/stream', 'POST')
+
+    expect(res.status).toBe(409)
+    expect(body).toEqual({ message: 'An auto-import is already running.' })
+  })
+
+  it('streams structured auto-import errors and releases the lease after failures', async () => {
+    const lease = { release: vi.fn() }
+    const { router } = createRouter({
+      autoImportRuntimeOverrides: {
+        acquireAutoImportLease: vi.fn(() => lease),
+        performAutoImport: vi.fn(async () => {
+          throw new Error('toktrack failed')
+        }),
+        toAutoImportErrorEvent: vi.fn((error: Error) => ({
+          message: error.message,
+        })),
+      },
+    })
+
+    const { res } = await requestRaw(router, '/api/auto-import/stream', 'POST')
+
+    expect(res.status).toBe(200)
+    expect(res.body).toContain('event: error')
+    expect(res.body).toContain('"message":"toktrack failed"')
+    expect(res.body).toContain('event: done')
+    expect(lease.release).toHaveBeenCalledTimes(1)
+  })
+
   it('rejects untrusted hosts before API auth is evaluated', async () => {
     const validateApiRequest = vi.fn(() => ({
       status: 401,
@@ -471,6 +563,14 @@ describe('HTTP router mutation errors', () => {
 
   it('maps PDF body and generator failures to client or service errors', async () => {
     const usageData = { daily: [{ date: '2026-04-27' }], totals: { totalCost: 1 } }
+    const invalidBodyRouter = createRouter({
+      dataRuntimeOverrides: {
+        readData: vi.fn(() => usageData),
+      },
+      readBody: vi.fn(async () => {
+        throw new Error('broken report JSON')
+      }),
+    }).router
     const oversizedRouter = createRouter({
       dataRuntimeOverrides: {
         readData: vi.fn(() => usageData),
@@ -489,9 +589,12 @@ describe('HTTP router mutation errors', () => {
       readBody: vi.fn(async () => ({ locale: 'de-CH' })),
     }).router
 
+    const invalidBody = await request(invalidBodyRouter, '/api/report/pdf', 'POST')
     const oversized = await request(oversizedRouter, '/api/report/pdf', 'POST')
     const typstMissing = await request(typstMissingRouter, '/api/report/pdf', 'POST')
 
+    expect(invalidBody.res.status).toBe(400)
+    expect(invalidBody.body).toEqual({ message: 'Invalid report request' })
     expect(oversized.res.status).toBe(413)
     expect(oversized.body).toEqual({ message: 'Report request too large' })
     expect(typstMissing.res.status).toBe(503)
