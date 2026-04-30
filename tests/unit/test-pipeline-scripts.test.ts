@@ -13,6 +13,10 @@ describe('test pipeline scripts', () => {
     expect(scripts['test:e2e']).toBe('npm run test:e2e:parallel')
     expect(scripts['test:timings:budget']).toContain('--max-suite-seconds=20')
     expect(scripts['test:timings:budget']).toContain('--max-test-seconds=12')
+    expect(scripts['test:timings:projects']).toBe('node scripts/run-vitest-project-timings.js')
+    expect(scripts['test:timings:benchmark']).toBe(
+      'node scripts/run-vitest-project-timings.js --repeat=3',
+    )
     expect(scripts['verify:ci']).toBe('npm run verify:release && npm run test:e2e:ci')
     expect(scripts['verify:full']).toBe('npm run verify:ci')
   })

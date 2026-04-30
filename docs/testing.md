@@ -139,6 +139,8 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 - Architecture tests only: `npm run test:architecture`
 - Dependency graph gate: `npm run check:deps`
 - Coverage-only unit/integration gate: `npm run test:vitest:coverage`
+- Per-project timing budget pass: `npm run test:timings:projects`
+- Three-run timing benchmark: `npm run test:timings:benchmark`
 - Playwright only, with a fresh app build: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:parallel`
 - CI-style Playwright smoke: `npm run test:e2e:ci`
 - Serial local mirror of the CI gate: `npm run verify:ci`
@@ -162,6 +164,17 @@ Vitest pass.
 Do not run `test:timings` in parallel with another Vitest command that writes the same JUnit file.
 `test:timings:budget` uses `test-results/vitest-timing-budget.junit.xml` so it can be run separately
 from the diagnostic report when needed.
+
+`npm run test:timings:projects` runs each Vitest project separately, writes project-scoped JUnit files
+such as `test-results/vitest-frontend.timing.junit.xml`, and checks the same `20s` suite / `12s`
+test hard budget after each project. Use it when you need to identify whether a regression is in
+unit, frontend, integration, or background tests without adding another monolithic timing report.
+
+`npm run test:timings:benchmark` repeats the project timing pass three times and prints median and
+worst observed duration per project. Use those repeated measurements before changing worker counts
+or moving tests between layers; a single run is not enough to separate real improvements from cache,
+CPU, or I/O variance. Repeated runs write `timing-run-N` JUnit files so their reports never overwrite
+the normal project, coverage, or diagnostic reports.
 
 ## CI Notes
 

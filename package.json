@@ -43,6 +43,8 @@
     "test:unit:coverage": "vitest run --coverage --project unit --project frontend --project integration --project integration-background --reporter=dot --reporter=junit --outputFile.junit=./test-results/vitest-coverage.junit.xml",
     "test:timings": "vitest run --project unit --project frontend --project integration --project integration-background --reporter=dot --reporter=junit --outputFile.junit=./test-results/vitest-timings.junit.xml && node scripts/report-test-timings.js ./test-results/vitest-timings.junit.xml",
     "test:timings:budget": "vitest run --project unit --project frontend --project integration --project integration-background --reporter=dot --reporter=junit --outputFile.junit=./test-results/vitest-timing-budget.junit.xml && node scripts/report-test-timings.js ./test-results/vitest-timing-budget.junit.xml --max-suite-seconds=20 --max-test-seconds=12",
+    "test:timings:projects": "node scripts/run-vitest-project-timings.js",
+    "test:timings:benchmark": "node scripts/run-vitest-project-timings.js --repeat=3",
     "test:e2e": "npm run test:e2e:parallel",
     "test:e2e:parallel": "npm run build:app && playwright test",
     "test:e2e:ci": "playwright test --workers=2",
