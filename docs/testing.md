@@ -144,6 +144,8 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 - Playwright only, with a fresh app build: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:parallel`
 - CI-style Playwright smoke: `npm run test:e2e:ci`
 - Serial local mirror of the CI gate: `npm run verify:ci`
+- Optional parallel local gate without Playwright: `npm run verify:parallel`
+- Optional parallel full local gate with Playwright after build: `PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel`
 
 ## Architecture Guardrails
 
@@ -180,6 +182,15 @@ The frontend Vitest project intentionally uses `maxWorkers: '80%'`. Local Phase-
 that the old `50%` setting left jsdom work under-parallelized, while `100%` saturated the machine and
 made imports, setup, tests, and environment time much worse. Re-benchmark with
 `npm run test:timings:benchmark -- --projects=frontend` before changing that worker cap.
+
+`npm run verify:parallel` is an optional local fast path. It overlaps the static gate, API
+integration tests, and `build:app`, then runs the high-contention suites in separate waves: unit,
+frontend/jsdom, architecture, and background-process integration. That keeps the internally
+parallel Vitest projects from over-subscribing the same cores and keeps real background servers away
+from the jsdom/build storm. `verify:package` runs after those waves succeed.
+`npm run verify:full:parallel` adds `test:e2e:ci` to the final wave. The canonical serial gates stay
+unchanged; use the parallel gates for local feedback when the machine has enough CPU and the
+per-project JUnit report paths must stay isolated.
 
 ## CI Notes
 

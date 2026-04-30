@@ -17,6 +17,8 @@ describe('test pipeline scripts', () => {
     expect(scripts['test:timings:benchmark']).toBe(
       'node scripts/run-vitest-project-timings.js --repeat=3',
     )
+    expect(scripts['verify:parallel']).toBe('node scripts/run-parallel-gate.js')
+    expect(scripts['verify:full:parallel']).toBe('node scripts/run-parallel-gate.js --e2e')
     expect(scripts['verify:ci']).toBe('npm run verify:release && npm run test:e2e:ci')
     expect(scripts['verify:full']).toBe('npm run verify:ci')
   })

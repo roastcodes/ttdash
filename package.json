@@ -59,6 +59,8 @@
     "verify:release": "npm run test:static && npm run test:architecture && npm run test:vitest:coverage && npm run build:app && npm run verify:package",
     "verify:ci": "npm run verify:release && npm run test:e2e:ci",
     "verify:full": "npm run verify:ci",
+    "verify:parallel": "node scripts/run-parallel-gate.js",
+    "verify:full:parallel": "node scripts/run-parallel-gate.js --e2e",
     "prepare": "npm run build:app"
   },
   "files": [
