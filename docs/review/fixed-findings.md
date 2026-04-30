@@ -35,6 +35,39 @@
     passed and `1` skipped.
   - `coderabbit review --agent -t uncommitted -c AGENTS.md -c .coderabbit.yaml -f docs/review/fixed-findings.md -f tests/unit/background-runtime.test.ts` -> CodeRabbit raised 0 issues.
 
+### test-review.md / Phase 2 - Frontend/jsdom-Kosten senken
+
+- Status: fixed
+- Scope: Der Chart-Legend-Wrapping-Vertrag wird nicht mehr ueber drei schwere Chart-Integrationen
+  mit Recharts-Mocks und i18n geprueft. `tests/frontend/chart-legend-integration.test.tsx` rendert
+  jetzt direkt `ChartLegend` und deckt Default-Labels, custom `renderLabel`, `filterEntry`,
+  `flex-wrap` und den Verzicht auf horizontales Overflow ab.
+- Fix reference: phase commit `Lighten chart legend frontend test`
+- Closed findings:
+  - `test-review.md / Phase 2` - Frontend/jsdom-Kosten senken, Teil Reduktion schwerer
+    Chart-/Recharts-Importe.
+  - `test-review.md / Bottlenecks / Frontend/jsdom` - pure gemeinsame Legend-Layout-Logik bleibt im
+    jsdom-Layer, aber ohne die nicht noetigen Chart-Integrationen.
+- Guardrails:
+  - Keine Produktionslogik wurde geaendert.
+  - Der User-visible Legend-Vertrag bleibt erhalten: Labels rendern, Wrapping bleibt aktiv,
+    horizontales Scroll-Layout kehrt nicht zurueck.
+  - Die bestehenden chart-spezifischen Tests fuer `CostByModel`, `RequestsOverTime`,
+    `TokenTypes`-nahe Datenpfade und `CostOverTime` bleiben separat erhalten.
+  - `.gitignore` erlaubt nur die getrackten Review-Markdown-Dateien `test-review.md` und
+    `fixed-findings.md`, damit lokale Review-Notizen nicht in scoped CodeRabbit-Laeufe geraten.
+- Validation:
+  - `npm_config_cache=/tmp/ttdash-npm-cache npx vitest run --project frontend tests/frontend/chart-legend-integration.test.tsx --reporter=verbose` -> passed with `3` tests; targeted run reported import `25ms`, tests `86ms`.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run test:vitest:frontend` -> passed with `76`
+    files and `204` tests.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run format:check` -> passed.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run lint` -> passed.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run typecheck` -> passed.
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md -c .coderabbit.yaml -f .gitignore -f docs/review/fixed-findings.md -f tests/frontend/chart-legend-integration.test.tsx` -> CodeRabbit raised 0 issues.
+- Measurement notes:
+  - The frontend project run was load-distorted at `80.80s`; the refactored Legend test itself
+    completed as a small direct component test at `269ms` inside that run.
+
 ## 2026-04-30
 
 ### test-review.md / Phase 1 - Background-Concurrency stabilisieren
@@ -487,17 +520,17 @@
   konkret geschlossenen Findings aus `docs/review/test-review.md` und die Commits, in denen die
   jeweilige Verbesserung gelandet ist.
 
-| Finding | Status | Fix reference | Validation |
-| --- | --- | --- | --- |
-| `test-review.md / H-01` - Playwright ist nicht worker-isoliert | fixed | `ab49513` `Isolate Playwright workers` | `npm run test:e2e:ci` mit 2 Workern gruen; final `verify:full` gruen |
-| `test-review.md / H-02` - CI ist ein monolithischer serieller Full-Gate | fixed | `b5cac6a` `Split CI test pipeline` | CI-DAG in `.github/workflows/ci.yml`; final `verify:full` gruen |
-| `test-review.md / H-03` - Command-Palette-E2E mischt zu viele Testarten | fixed | `cb31d35` `Move command palette contracts to Vitest` | Command-Contract in Vitest, E2E auf Smokes reduziert; final Playwright `11 passed` |
-| `test-review.md / H-04` - Report- und Coverage-Ausgaben sind nicht matrix-sicher | fixed | `c4abb2b` `Make Vitest setup and reports parallel-safe`, `b5cac6a` `Split CI test pipeline` | Projekt-/Job-spezifische JUnit/Artifact-Pfade; CI-Matrix nutzt getrennte Reports |
-| `test-review.md / M-02` - Node-Projekte laden unnoetiges React-Test-Setup | fixed | `c4abb2b` `Make Vitest setup and reports parallel-safe` | `vitest.setup.node.ts` / `vitest.setup.frontend.ts` getrennt; Guardrail in `vitest-coverage-config.test.ts` |
-| `test-review.md / M-03` - Coverage ist global gruen, aber risikogewichtet schwach | fixed | `3a4285d` `Improve runtime and dashboard coverage`, `117cfeb` `Fix CodeRabbit test robustness issues` | Runtime-/Dashboard-Coverage gezielt erhoeht; final Coverage-Gate gruen |
-| `test-review.md / M-05` - Statische Checks haben Doppelarbeit | fixed | `b5cac6a` `Split CI test pipeline` | `test:static` als ein regulaerer Static-Gate, Cache fuer Prettier/ESLint/TypeScript |
-| `test-review.md / M-06` - Package-Smoke gehoert in eigenen CI-Job | fixed | `b5cac6a` `Split CI test pipeline` | `build` erzeugt `production-dist`; `package-smoke` und `e2e` nutzen Artifact parallel |
-| `test-review.md / M-07` - Timing-Regressions sind sichtbar, aber nicht budgetiert | fixed | `e9d54fa` `Add test timing budgets` | `test:timings:budget` gruen; CI-Matrix prueft JUnit-Reports gegen `20s` Suite / `12s` Test Budget |
+| Finding                                                                           | Status | Fix reference                                                                                         | Validation                                                                                                  |
+| --------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `test-review.md / H-01` - Playwright ist nicht worker-isoliert                    | fixed  | `ab49513` `Isolate Playwright workers`                                                                | `npm run test:e2e:ci` mit 2 Workern gruen; final `verify:full` gruen                                        |
+| `test-review.md / H-02` - CI ist ein monolithischer serieller Full-Gate           | fixed  | `b5cac6a` `Split CI test pipeline`                                                                    | CI-DAG in `.github/workflows/ci.yml`; final `verify:full` gruen                                             |
+| `test-review.md / H-03` - Command-Palette-E2E mischt zu viele Testarten           | fixed  | `cb31d35` `Move command palette contracts to Vitest`                                                  | Command-Contract in Vitest, E2E auf Smokes reduziert; final Playwright `11 passed`                          |
+| `test-review.md / H-04` - Report- und Coverage-Ausgaben sind nicht matrix-sicher  | fixed  | `c4abb2b` `Make Vitest setup and reports parallel-safe`, `b5cac6a` `Split CI test pipeline`           | Projekt-/Job-spezifische JUnit/Artifact-Pfade; CI-Matrix nutzt getrennte Reports                            |
+| `test-review.md / M-02` - Node-Projekte laden unnoetiges React-Test-Setup         | fixed  | `c4abb2b` `Make Vitest setup and reports parallel-safe`                                               | `vitest.setup.node.ts` / `vitest.setup.frontend.ts` getrennt; Guardrail in `vitest-coverage-config.test.ts` |
+| `test-review.md / M-03` - Coverage ist global gruen, aber risikogewichtet schwach | fixed  | `3a4285d` `Improve runtime and dashboard coverage`, `117cfeb` `Fix CodeRabbit test robustness issues` | Runtime-/Dashboard-Coverage gezielt erhoeht; final Coverage-Gate gruen                                      |
+| `test-review.md / M-05` - Statische Checks haben Doppelarbeit                     | fixed  | `b5cac6a` `Split CI test pipeline`                                                                    | `test:static` als ein regulaerer Static-Gate, Cache fuer Prettier/ESLint/TypeScript                         |
+| `test-review.md / M-06` - Package-Smoke gehoert in eigenen CI-Job                 | fixed  | `b5cac6a` `Split CI test pipeline`                                                                    | `build` erzeugt `production-dist`; `package-smoke` und `e2e` nutzen Artifact parallel                       |
+| `test-review.md / M-07` - Timing-Regressions sind sichtbar, aber nicht budgetiert | fixed  | `e9d54fa` `Add test timing budgets`                                                                   | `test:timings:budget` gruen; CI-Matrix prueft JUnit-Reports gegen `20s` Suite / `12s` Test Budget           |
 
 Nicht als vollstaendig geschlossen markiert:
 

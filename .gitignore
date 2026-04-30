@@ -22,7 +22,8 @@ coverage/
 requirements/
 docs/security/
 docs/review/*
-!docs/review/*.md
+!docs/review/test-review.md
+!docs/review/fixed-findings.md
 docs/application-stack-reference.md
 /activity-*.png
 /cache-hit-rate-*.png
