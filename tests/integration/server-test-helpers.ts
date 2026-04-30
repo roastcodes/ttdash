@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   statSync,
@@ -46,6 +47,15 @@ export type LocalAuthSession = {
   authorizationHeader: string
   bootstrapUrl: string
   createdAt: string
+}
+
+export type CliResult = {
+  args: string[]
+  code: number | null
+  output: string
+  stdout: string
+  stderr: string
+  signal: NodeJS.Signals | null
 }
 
 const authHeadersByOrigin = new Map<string, string>()
@@ -534,6 +544,18 @@ export function getCliDataDir(root: string) {
   return path.join(root, 'data', 'ttdash')
 }
 
+export function getCliCacheDir(root: string) {
+  if (process.platform === 'darwin') {
+    return path.join(root, 'Library', 'Caches', 'TTDash')
+  }
+
+  if (process.platform === 'win32') {
+    return path.join(root, 'AppData', 'Local', 'TTDash', 'Cache')
+  }
+
+  return path.join(root, 'cache', 'ttdash')
+}
+
 export function getLocalAuthSessionPath(root: string) {
   return path.join(getCliConfigDir(root), 'session-auth.json')
 }
@@ -717,6 +739,66 @@ export function tryReadBackgroundRegistry(root: string) {
   }
 }
 
+function readBackgroundLogSnippets(root: string, entries: BackgroundRegistryEntry[]) {
+  const logFiles = new Set(
+    entries.map((entry) => entry.logFile).filter((logFile): logFile is string => Boolean(logFile)),
+  )
+  const defaultLogDir = path.join(getCliCacheDir(root), 'background')
+
+  try {
+    for (const fileName of readdirSync(defaultLogDir)) {
+      if (fileName.startsWith('server-') && fileName.endsWith('.log')) {
+        logFiles.add(path.join(defaultLogDir, fileName))
+      }
+    }
+  } catch {
+    // Log files are optional diagnostics; missing log directories are expected
+    // when a background child exits before opening its log file.
+  }
+
+  return [...logFiles].map((logFile) => {
+    let content = ''
+    try {
+      content = readFileSync(logFile, 'utf-8').trim()
+    } catch (error) {
+      content = `<unreadable: ${(error as Error).message}>`
+    }
+
+    return {
+      file: logFile,
+      content: content.slice(-4000),
+    }
+  })
+}
+
+export function formatCliResult(result: CliResult) {
+  return [
+    `args: server.js ${result.args.join(' ')}`,
+    `code: ${result.code ?? 'null'}`,
+    `signal: ${result.signal ?? 'null'}`,
+    `stdout:\n${result.stdout.trim() || '<empty>'}`,
+    `stderr:\n${result.stderr.trim() || '<empty>'}`,
+  ].join('\n')
+}
+
+export function formatBackgroundDiagnostics(root: string, label = 'background diagnostics') {
+  const registryPath = path.join(getCliConfigDir(root), 'background-instances.json')
+  const registry = tryReadBackgroundRegistry(root)
+  const logs = readBackgroundLogSnippets(root, registry)
+
+  return [
+    label,
+    `root: ${root}`,
+    `registry: ${registryPath}`,
+    `entries:\n${JSON.stringify(registry, null, 2)}`,
+    `logs:\n${
+      logs.length
+        ? logs.map((log) => `--- ${log.file} ---\n${log.content || '<empty>'}`).join('\n')
+        : '<none>'
+    }`,
+  ].join('\n')
+}
+
 export function writeBackgroundRegistry(root: string, entries: BackgroundRegistryEntry[]) {
   const normalizedEntries = normalizeBackgroundRegistryEntries(entries)
   if (normalizedEntries.length !== entries.length) {
@@ -752,7 +834,10 @@ export async function waitForBackgroundRegistry(
   }
 
   throw new Error(
-    `Timed out waiting for background registry state: ${JSON.stringify(lastEntries, null, 2)}`,
+    [
+      `Timed out waiting for background registry state: ${JSON.stringify(lastEntries, null, 2)}`,
+      formatBackgroundDiagnostics(root),
+    ].join('\n\n'),
   )
 }
 
@@ -781,14 +866,15 @@ export async function runCli(
     timeoutMs = cliCommandTimeoutMs,
   }: { env: NodeJS.ProcessEnv; input?: string; timeoutMs?: number },
 ) {
-  return await new Promise<{ code: number | null; output: string }>((resolve, reject) => {
+  return await new Promise<CliResult>((resolve, reject) => {
     const cli = spawn(process.execPath, ['server.js', ...args], {
       cwd: process.cwd(),
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
     })
 
-    let cliOutput = ''
+    let cliStdout = ''
+    let cliStderr = ''
     let timedOut = false
     let forceKillId: ReturnType<typeof setTimeout> | null = null
     const timeoutId = setTimeout(() => {
@@ -809,27 +895,41 @@ export async function runCli(
     }
 
     cli.stdout.on('data', (chunk) => {
-      cliOutput += chunk.toString()
+      cliStdout += chunk.toString()
     })
 
     cli.stderr.on('data', (chunk) => {
-      cliOutput += chunk.toString()
+      cliStderr += chunk.toString()
     })
 
     cli.on('error', (error) => {
       cleanup()
       reject(error)
     })
-    cli.on('close', (code) => {
+    cli.on('close', (code, signal) => {
       cleanup()
+      const cliOutput = cliStdout + cliStderr
       if (timedOut) {
         reject(
-          new Error(`Timed out waiting for CLI command: server.js ${args.join(' ')}\n${cliOutput}`),
+          new Error(
+            [
+              `Timed out waiting for CLI command: server.js ${args.join(' ')}`,
+              `stdout:\n${cliStdout.trim() || '<empty>'}`,
+              `stderr:\n${cliStderr.trim() || '<empty>'}`,
+            ].join('\n'),
+          ),
         )
         return
       }
 
-      resolve({ code, output: cliOutput })
+      resolve({
+        args,
+        code,
+        output: cliOutput,
+        stdout: cliStdout,
+        stderr: cliStderr,
+        signal,
+      })
     })
 
     if (input) {
