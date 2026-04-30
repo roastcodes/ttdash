@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_APP_SETTINGS, normalizeAppSettings } from '@/lib/app-settings'
+import {
+  DEFAULT_APP_SETTINGS,
+  normalizeAppLanguage,
+  normalizeAppSettings,
+  normalizeAppTheme,
+  normalizeDataLoadSource,
+  normalizeReducedMotionPreference,
+  normalizeStoredProviderLimits,
+  normalizeStoredTimestamp,
+} from '@/lib/app-settings'
 import {
   DEFAULT_DASHBOARD_FILTERS,
   getDefaultDashboardSectionOrder,
@@ -66,6 +75,36 @@ describe('shared app settings contract', () => {
     }
 
     expect(normalizeAppSettings(payload)).toEqual(normalizeSharedAppSettings(payload))
+  })
+
+  it('normalizes frontend app-settings fragments through the shared wrappers', () => {
+    expect(normalizeAppLanguage('en')).toBe('en')
+    expect(normalizeAppLanguage('fr')).toBe('de')
+    expect(normalizeAppTheme('light')).toBe('light')
+    expect(normalizeAppTheme('system')).toBe('dark')
+    expect(normalizeReducedMotionPreference('always')).toBe('always')
+    expect(normalizeReducedMotionPreference('never')).toBe('never')
+    expect(normalizeReducedMotionPreference('sometimes')).toBe('system')
+    expect(normalizeDataLoadSource('file')).toBe('file')
+    expect(normalizeDataLoadSource('cli-auto-load')).toBe('cli-auto-load')
+    expect(normalizeDataLoadSource('manual')).toBeNull()
+    expect(normalizeStoredTimestamp('2026-04-01T12:34:56+02:00')).toBe('2026-04-01T10:34:56.000Z')
+    expect(normalizeStoredTimestamp('not a timestamp')).toBeNull()
+    expect(
+      normalizeStoredProviderLimits({
+        OpenAI: {
+          hasSubscription: true,
+          subscriptionPrice: 12.345,
+          monthlyLimit: -1,
+        },
+      }),
+    ).toEqual({
+      OpenAI: {
+        hasSubscription: true,
+        subscriptionPrice: 12.35,
+        monthlyLimit: 0,
+      },
+    })
   })
 
   it('normalizes dashboard fragments and provider limits through the shared contract', () => {

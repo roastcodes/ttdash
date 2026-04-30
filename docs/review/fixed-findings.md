@@ -94,6 +94,39 @@
   - `npm_config_cache=/tmp/ttdash-npm-cache npm run typecheck` -> passed.
   - `coderabbit review --agent -t uncommitted -c AGENTS.md -c .coderabbit.yaml -f docs/review/fixed-findings.md -f tests/unit/server-helpers-runner-core.test.ts` -> CodeRabbit raised 0 issues.
 
+### test-review.md / Phase 4 - Coverage risikogewichtet erhoehen
+
+- Status: fixed
+- Scope: Guenstige Node-Unit-Coverage wurde fuer die Low-Coverage-Lib-Module
+  `src/lib/app-settings.ts` und `src/lib/csv-export.ts` erhoeht. App-Settings-Wrapper,
+  Timestamp-/Load-Source-Normalisierung, Provider-Limits, leere CSV-Exports, deduplizierte
+  Modellnamen und der Browser-Download-Branch laufen jetzt ohne jsdom und ohne echte Downloads.
+- Fix reference: phase commit `Cover settings and CSV export branches`
+- Closed findings:
+  - `test-review.md / Coverage-Luecken` - `src/lib/app-settings.ts`, Teil Wrapper- und
+    Normalisierungsbranches.
+  - `test-review.md / Coverage-Luecken` - `src/lib/csv-export.ts`, Teil leere Daten,
+    Modell-Dedupe und Download-Side-Effects.
+  - `test-review.md / Phase 4` - Coverage risikogewichtet erhoehen, kleine Lib-Module als
+    schnelle Coverage-Wins.
+- Guardrails:
+  - Keine Produktionslogik wurde geaendert.
+  - `downloadCSV` wird mit Fake-`document`, Fake-`URL`, Fake-Timern und Node `Blob` getestet.
+  - CSV-Assertions pruefen den extern sichtbaren Dateinamen, Blob-Typ, Link-Click und
+    Object-URL-Cleanup.
+- Validation:
+  - `npm_config_cache=/tmp/ttdash-npm-cache npx vitest run --project unit tests/unit/app-settings-contract.test.ts tests/unit/csv-export.test.ts --reporter=verbose` -> passed with `11` tests.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run test:vitest:coverage` -> passed with `150`
+    files, `642` passed and `1` skipped.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run format:check` -> passed.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run lint` -> passed.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run typecheck` -> passed.
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md -c .coderabbit.yaml -f docs/review/fixed-findings.md -f tests/unit/app-settings-contract.test.ts -f tests/unit/csv-export.test.ts` -> CodeRabbit raised 0 issues.
+- Measurement notes:
+  - Coverage summary after this phase: Statements `82.87%`, Branches `70.21%`, Functions
+    `83.06%`, Lines `84.52%`.
+  - `src/lib/app-settings.ts` reports Lines `100%`, Statements `90.9%`, Functions `100%`.
+
 ## 2026-04-30
 
 ### test-review.md / Phase 1 - Background-Concurrency stabilisieren
