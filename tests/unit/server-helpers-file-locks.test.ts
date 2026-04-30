@@ -354,7 +354,13 @@ dataRuntime.withFileMutationLock(filePath, async () => {
   if (typeof process.send === 'function') {
     process.send('locked')
   }
-  await new Promise((resolve) => setTimeout(resolve, 250))
+  await new Promise((resolve) => {
+    process.once('message', (message) => {
+      if (message === 'release') {
+        resolve()
+      }
+    })
+  })
 }).then(() => process.exit(0)).catch((error) => {
   console.error(error)
   process.exit(1)
@@ -370,11 +376,19 @@ dataRuntime.withFileMutationLock(filePath, async () => {
     try {
       await waitForChildMessage(child, 5_000)
 
-      const startedAt = Date.now()
-      await withFileMutationLock(targetFile, async () => undefined)
-      const waitedMs = Date.now() - startedAt
+      let parentAcquiredLock = false
+      const parentLock = withFileMutationLock(targetFile, async () => {
+        parentAcquiredLock = true
+      })
 
-      expect(waitedMs).toBeGreaterThanOrEqual(150)
+      await vi.waitFor(() => {
+        expect(getPendingFileMutationLockCount()).toBeGreaterThan(0)
+      })
+      expect(parentAcquiredLock).toBe(false)
+
+      child.send('release')
+      await parentLock
+      expect(parentAcquiredLock).toBe(true)
 
       if (child.exitCode === null) {
         await waitForChildExit(child, 5_000)

@@ -55,9 +55,15 @@ function createSpawnSequence(outcomes: FakeSpawnOutcome[]) {
   })
 }
 
-function createRuntimeWithSpawn(spawnImpl: ReturnType<typeof createSpawnSequence>) {
+function createRuntimeWithSpawn(
+  spawnImpl: ReturnType<typeof createSpawnSequence>,
+  options: { localBinExists?: boolean } = {},
+) {
   return createAutoImportRuntime({
-    fs: { existsSync: () => false },
+    fs: {
+      existsSync: (filePath: string) =>
+        Boolean(options.localBinExists && filePath === '/missing/toktrack'),
+    },
     processObject: { env: {} },
     spawnCrossPlatform: spawnImpl,
     normalizeIncomingData: (input: unknown) => input,
@@ -132,6 +138,47 @@ describe('server helper utilities: toktrack runner core behavior', () => {
 
   it('uses a less aggressive timeout for latest-version registry lookups', () => {
     expect(getToktrackLatestLookupTimeoutMs()).toBe(15000)
+  })
+
+  it('resolves a compatible local toktrack runner without probing package fallbacks', async () => {
+    const spawnImpl = createSpawnSequence([{ stdout: `toktrack ${TOKTRACK_VERSION}\n` }])
+    const runtime = createRuntimeWithSpawn(spawnImpl, { localBinExists: true })
+
+    await expect(runtime.resolveToktrackRunner()).resolves.toMatchObject({
+      command: '/missing/toktrack',
+      method: 'local',
+      label: 'local toktrack',
+    })
+    expect(spawnImpl).toHaveBeenCalledTimes(1)
+    expect(spawnImpl).toHaveBeenCalledWith(
+      '/missing/toktrack',
+      ['--version'],
+      expect.objectContaining({
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }),
+    )
+  })
+
+  it('falls back to npm when the local runner version mismatches and bunx probing fails', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const spawnImpl = createSpawnSequence([
+      { stdout: 'toktrack 0.0.0\n' },
+      { code: 1, stderr: 'bunx failed\n' },
+      { stdout: `toktrack ${TOKTRACK_VERSION}\n` },
+    ])
+    const runtime = createRuntimeWithSpawn(spawnImpl, { localBinExists: true })
+
+    try {
+      await expect(runtime.resolveToktrackRunner()).resolves.toMatchObject({
+        command: 'npx',
+        method: 'npm',
+        label: 'npm exec',
+      })
+      expect(spawnImpl).toHaveBeenCalledTimes(3)
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to probe bunx'))
+    } finally {
+      warnSpy.mockRestore()
+    }
   })
 
   it('returns a structured warning when the latest toktrack version lookup times out', async () => {
@@ -222,7 +269,83 @@ describe('server helper utilities: toktrack runner core behavior', () => {
     }
   })
 
+  it('uses stdout as the toktrack command error message when stderr is empty', async () => {
+    const spawnImpl = createSpawnSequence([{ code: 1, stdout: 'stdout failure\n' }])
+    const runtime = createRuntimeWithSpawn(spawnImpl)
+
+    await expect(
+      runtime.runToktrack(
+        {
+          command: 'fake-runner',
+          prefixArgs: ['--prefix'],
+          env: { PATH: '/fake-bin' },
+        },
+        ['--version'],
+      ),
+    ).rejects.toMatchObject({
+      message: 'stdout failure',
+      stdout: 'stdout failure\n',
+      stderr: '',
+      exitCode: 1,
+    })
+    expect(spawnImpl).toHaveBeenCalledWith(
+      'fake-runner',
+      ['--prefix', '--version'],
+      expect.objectContaining({
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: { PATH: '/fake-bin' },
+      }),
+    )
+  })
+
+  it('streams stderr and lets callers terminate a running command on close', async () => {
+    const child = new FakeChildProcess()
+    const spawnImpl = vi.fn(() => child)
+    const stderrLines: string[] = []
+    let closeCommand: (() => void) | null = null
+
+    const outcomePromise = runCommandWithSpawn('fake-runner', ['daily', '--json'], {
+      streamStderr: true,
+      onStderr: (line) => stderrLines.push(line),
+      signalOnClose: (close) => {
+        closeCommand = close
+      },
+      spawnImpl,
+    })
+
+    child.stderr.emit('data', Buffer.from('runner warning\n'))
+    expect(stderrLines).toEqual(['runner warning'])
+
+    closeCommand?.()
+
+    await expect(outcomePromise).rejects.toMatchObject({
+      message: 'runner warning',
+      stderr: 'runner warning\n',
+      exitCode: 143,
+    })
+  })
+
+  it('wraps spawn errors with command diagnostics', async () => {
+    const child = new FakeChildProcess()
+    const spawnImpl = vi.fn(() => child)
+    const outcomePromise = runCommandWithSpawn('missing-runner', ['--version'], {
+      spawnImpl,
+    })
+
+    child.emit('error', new Error('spawn denied'))
+
+    await expect(outcomePromise).rejects.toMatchObject({
+      message: 'spawn denied',
+      command: 'missing-runner',
+      args: ['--version'],
+      stdout: '',
+      stderr: '',
+    })
+  })
+
   it('waits for timed-out toktrack commands to exit before rejecting', async () => {
+    vi.useFakeTimers()
+
     class FakeChild extends EventEmitter {
       stdout = new EventEmitter()
       stderr = new EventEmitter()
@@ -243,27 +366,41 @@ describe('server helper utilities: toktrack runner core behavior', () => {
     }
 
     const child = new FakeChild()
+    const spawnImpl = vi.fn(() => child) as unknown as ReturnType<typeof createSpawnSequence>
+    const runtime = createRuntimeWithSpawn(spawnImpl)
     let settled = false
-    const outcomePromise = runCommandWithSpawn('fake-runner', ['daily', '--json'], {
-      timeoutMs: 50,
-      spawnImpl: () => child,
-    })
-      .then((value) => ({ ok: true as const, value }))
-      .catch((error) => ({ ok: false as const, error }))
-      .finally(() => {
-        settled = true
+
+    try {
+      const outcomePromise = runtime
+        .runToktrack(
+          {
+            command: 'fake-runner',
+            prefixArgs: [],
+            env: {},
+          },
+          ['daily', '--json'],
+          { timeoutMs: 50 },
+        )
+        .then((value) => ({ ok: true as const, value }))
+        .catch((error) => ({ ok: false as const, error }))
+        .finally(() => {
+          settled = true
+        })
+
+      await vi.advanceTimersByTimeAsync(50)
+      expect(settled).toBe(false)
+
+      await vi.advanceTimersByTimeAsync(150)
+      await expect(outcomePromise).resolves.toMatchObject({
+        ok: false,
+        error: {
+          message: expect.stringContaining('Command timed out'),
+          timedOut: true,
+        },
       })
-
-    await new Promise((resolve) => setTimeout(resolve, 75))
-    expect(settled).toBe(false)
-
-    await expect(outcomePromise).resolves.toMatchObject({
-      ok: false,
-      error: {
-        message: expect.stringContaining('Command timed out'),
-        timedOut: true,
-      },
-    })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('prioritizes local version mismatches over generic no-runner feedback', () => {
