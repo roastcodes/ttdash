@@ -64,6 +64,7 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
 - For large server helper or integration suites, group tests by subsystem so Vitest can schedule them more efficiently.
 - Keep background-process integration files focused by behavior; the background Vitest project intentionally uses a small worker cap instead of one serial catch-all file or unbounded process fan-out.
 - Keep Playwright files grouped by end-to-end journey, such as load/upload, forecast/filter interaction, settings/backups, reporting, and command palette behavior. Import `test` and `expect` from `tests/e2e/fixtures.ts` so each worker gets its own server, port, auth session, and runtime directory. Share authentication, server reset, seeding, and download helpers through `tests/e2e/helpers.ts` instead of creating new browser catch-all files.
+- `tests/unit/playwright-config.test.ts` guards the small E2E journey list, the shared fixture import, CI worker cap, and Playwright reporter paths. Update that contract intentionally when adding a new browser journey.
 
 ## Choosing the Right Layer
 
