@@ -21,6 +21,7 @@ type ResolvedVitestConfig = {
     projects?: Array<{
       test?: {
         environment?: string
+        maxWorkers?: number | string
         name?: string
         setupFiles?: string[]
         testTimeout?: number
@@ -119,5 +120,15 @@ describe('vitest coverage configuration', () => {
     for (const project of nonFrontendProjects) {
       expect(project.test?.testTimeout).toBeUndefined()
     }
+  })
+
+  it('keeps jsdom parallelism high but below full CPU saturation', async () => {
+    const config = await resolveVitestConfig()
+    const projects = config.test?.projects ?? []
+    const frontendProject = projects.find((project) => project.test?.name === 'frontend')
+    const unitProject = projects.find((project) => project.test?.name === 'unit')
+
+    expect(frontendProject?.test?.maxWorkers).toBe('80%')
+    expect(unitProject?.test?.maxWorkers).toBe('80%')
   })
 })

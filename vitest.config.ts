@@ -81,7 +81,7 @@ export default defineConfig(async () => {
               include: ['tests/frontend/**/*.test.{ts,tsx}'],
               environment: 'jsdom',
               setupFiles: ['./vitest.setup.node.ts', './vitest.setup.frontend.ts'],
-              maxWorkers: '50%',
+              maxWorkers: '80%',
               testTimeout: 30_000,
               sequence: {
                 groupOrder: 2,

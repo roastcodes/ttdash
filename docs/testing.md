@@ -176,6 +176,11 @@ or moving tests between layers; a single run is not enough to separate real impr
 CPU, or I/O variance. Repeated runs write `timing-run-N` JUnit files so their reports never overwrite
 the normal project, coverage, or diagnostic reports.
 
+The frontend Vitest project intentionally uses `maxWorkers: '80%'`. Local Phase-2 measurements showed
+that the old `50%` setting left jsdom work under-parallelized, while `100%` saturated the machine and
+made imports, setup, tests, and environment time much worse. Re-benchmark with
+`npm run test:timings:benchmark -- --projects=frontend` before changing that worker cap.
+
 ## CI Notes
 
 - Keep workflow test paths aligned with the split test structure.
