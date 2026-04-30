@@ -418,6 +418,20 @@ describe('server helper utilities: toktrack runner core behavior', () => {
     expect(error.message).toContain(TOKTRACK_VERSION)
   })
 
+  it('prioritizes local startup failures over package runner feedback', () => {
+    const error = toAutoImportRunnerResolutionError({
+      localVersionMismatch: null,
+      localFailure: 'permission denied',
+      runnerFailures: [
+        { label: 'bunx', message: 'missing', timedOut: false },
+        { label: 'npm exec', message: 'missing', timedOut: false },
+      ],
+    })
+
+    expect(error.messageKey).toBe('localToktrackFailed')
+    expect(error.message).toContain('permission denied')
+  })
+
   it('reports package runner failures when no compatible fallback succeeds', () => {
     const error = toAutoImportRunnerResolutionError({
       localVersionMismatch: null,
@@ -446,5 +460,16 @@ describe('server helper utilities: toktrack runner core behavior', () => {
     expect(error.messageKey).toBe('packageRunnerWarmupTimedOut')
     expect(error.message).toContain('bunx / npm exec')
     expect(error.message).toContain('45s')
+  })
+
+  it('reports a no-runner error when no resolution diagnostics are available', () => {
+    const error = toAutoImportRunnerResolutionError({
+      localVersionMismatch: null,
+      localFailure: null,
+      runnerFailures: [],
+    })
+
+    expect(error.messageKey).toBe('noRunnerFound')
+    expect(error.message).toBe('No local toktrack, Bun, or npm exec installation found.')
   })
 })

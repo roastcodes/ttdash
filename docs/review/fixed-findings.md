@@ -68,6 +68,32 @@
   - The frontend project run was load-distorted at `80.80s`; the refactored Legend test itself
     completed as a small direct component test at `269ms` inside that run.
 
+### test-review.md / Phase 3 - Prozessnahe Tests trennen
+
+- Status: fixed
+- Scope: Die verbleibenden Runner-Resolution-Error-Branches fuer lokale Startfehler und komplett
+  fehlende Runner sind jetzt im Fake-basierten Unit-Layer abgedeckt. Die echten
+  `server-helpers-runner-process`-Smokes bleiben auf Shell/PATH/Timeout/stdout-Vertraege begrenzt.
+- Fix reference: phase commit `Cover runner resolution error branches`
+- Closed findings:
+  - `test-review.md / Phase 3` - Prozessnahe Tests trennen, Teil Branch-Matrix aus echten
+    Prozess-Smokes herausziehen.
+  - `test-review.md / Prozessnahe Tests` - Error-Mapping fuer Runner-Resolution ohne Subprozesse.
+- Guardrails:
+  - Keine Produktionslogik wurde geaendert.
+  - Die neuen Tests rufen `toAutoImportRunnerResolutionError(...)` direkt mit kontrollierten
+    Diagnosedaten auf.
+  - Echte Runner-Smokes fuer lokale Installation, PATH-Fallback, Timeout und stdout-Fehler bleiben
+    unveraendert.
+- Validation:
+  - `npm_config_cache=/tmp/ttdash-npm-cache npx vitest run --project unit tests/unit/server-helpers-runner-core.test.ts tests/unit/server-helpers-runner-process.test.ts --reporter=verbose` -> passed with `24` passed and `1` skipped.
+  - `node scripts/run-vitest-project-timings.js --projects=unit --repeat=1` -> passed with unit
+    median `4.90s`, worst `4.90s`.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run format:check` -> passed.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run lint` -> passed.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run typecheck` -> passed.
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md -c .coderabbit.yaml -f docs/review/fixed-findings.md -f tests/unit/server-helpers-runner-core.test.ts` -> CodeRabbit raised 0 issues.
+
 ## 2026-04-30
 
 ### test-review.md / Phase 1 - Background-Concurrency stabilisieren
