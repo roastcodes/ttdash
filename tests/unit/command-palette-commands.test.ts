@@ -110,17 +110,21 @@ const translations: Record<string, string> = {
   'common.model': 'Model',
 }
 
-function t(key: string, options?: Record<string, unknown>) {
-  if (key === 'commandPalette.commands.goToSection.label') {
-    return `Go to ${String(options?.section)}`
-  }
+function createTranslator(dictionary: Record<string, string>) {
+  return (key: string, options?: Record<string, unknown>) => {
+    if (key === 'commandPalette.commands.goToSection.label') {
+      return `Go to ${String(options?.section)}`
+    }
 
-  if (key === 'commandPalette.commands.goToSection.description') {
-    return `Scroll to ${String(options?.section)}`
-  }
+    if (key === 'commandPalette.commands.goToSection.description') {
+      return `Scroll to ${String(options?.section)}`
+    }
 
-  return translations[key] ?? key
+    return dictionary[key] ?? key
+  }
 }
+
+const t = createTranslator(translations)
 
 function buildOptions(overrides: Partial<CommandPaletteCommandOptions> = {}) {
   const noop = vi.fn()
@@ -193,6 +197,39 @@ describe('command palette command builder', () => {
     expect(
       commands.filter((cmd) => cmd.id.startsWith('section-')).map((cmd) => cmd.testId),
     ).toEqual(['command-section-tables'])
+  })
+
+  it('keeps action command ids stable while separating load, export, and maintenance groups', () => {
+    const commands = buildCommandPaletteCommands(buildOptions({ hasTodaySection: false }))
+    const getCommandTestIdsForGroup = (group: string) =>
+      commands.filter((cmd) => cmd.group === group).map((cmd) => cmd.testId ?? `command-${cmd.id}`)
+
+    expect(getCommandTestIdsForGroup('Load data')).toEqual([
+      'command-auto-import',
+      'command-upload',
+    ])
+    expect(getCommandTestIdsForGroup('Exports')).toEqual(['command-csv', 'command-report'])
+    expect(getCommandTestIdsForGroup('Maintenance')).toEqual([
+      'command-settings-open',
+      'command-delete',
+    ])
+  })
+
+  it('localizes action command groups through the command builder contract', () => {
+    const commands = buildCommandPaletteCommands(
+      buildOptions({
+        t: createTranslator({
+          ...translations,
+          'commandPalette.groups.loadData': 'Daten laden',
+          'commandPalette.groups.exports': 'Exporte',
+          'commandPalette.groups.maintenance': 'Wartung',
+        }),
+      }),
+    )
+
+    expect(commands.find((cmd) => cmd.id === 'auto-import')?.group).toBe('Daten laden')
+    expect(commands.find((cmd) => cmd.id === 'csv')?.group).toBe('Exporte')
+    expect(commands.find((cmd) => cmd.id === 'settings-open')?.group).toBe('Wartung')
   })
 
   it('normalizes aliases and ranks matching commands for keyboard quick-select', () => {
