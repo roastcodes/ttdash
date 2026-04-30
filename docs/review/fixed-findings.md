@@ -127,6 +127,29 @@
     `83.06%`, Lines `84.52%`.
   - `src/lib/app-settings.ts` reports Lines `100%`, Statements `90.9%`, Functions `100%`.
 
+### test-review.md / Phase 5 - Gates datenbasiert schaerfen
+
+- Status: fixed
+- Scope: Das lokale Parallel-Gate hat jetzt einen expliziten Unit-Guardrail fuer unbekannte
+  CLI-Optionen. Fehlerhafte Gate-Aufrufe brechen vor jedem Task-Spawn ab und schreiben die konkrete
+  Fehlermeldung nach stderr.
+- Fix reference: phase commit `Guard parallel gate option errors`
+- Closed findings:
+  - `test-review.md / Phase 5` - Gates datenbasiert schaerfen, Teil robuste lokale Gate-CLI.
+  - `test-review.md / Nicht optimale Einstellungen` - direkte Gate-Aufrufe sollen kontrolliert
+    und diagnosetauglich bleiben.
+- Guardrails:
+  - Keine Produktionslogik wurde geaendert.
+  - Der bestehende Dry-Run mit deklarierten Outputs bleibt unveraendert.
+  - Der neue Test stellt sicher, dass bei unbekannten Optionen keine parallelen Tasks starten.
+- Validation:
+  - `npm_config_cache=/tmp/ttdash-npm-cache npx vitest run --project unit tests/unit/run-parallel-gate.test.ts --reporter=verbose` -> passed with `8` tests.
+  - `node scripts/run-parallel-gate.js --dry-run --e2e` -> passed.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run format:check` -> passed.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run lint` -> passed.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run typecheck` -> passed.
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md -c .coderabbit.yaml -f docs/review/fixed-findings.md -f tests/unit/run-parallel-gate.test.ts` -> CodeRabbit raised 0 issues.
+
 ## 2026-04-30
 
 ### test-review.md / Phase 1 - Background-Concurrency stabilisieren

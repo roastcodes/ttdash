@@ -111,6 +111,18 @@ describe('parallel verification gate', () => {
     })
   })
 
+  it('rejects unknown options before spawning any gate tasks', async () => {
+    const stdout = { write: vi.fn() }
+    const stderr = { write: vi.fn() }
+    const spawnImpl = vi.fn()
+
+    const status = await parallelGate.run(['--unknown'], { stdout, stderr }, spawnImpl)
+
+    expect(status).toBe(1)
+    expect(spawnImpl).not.toHaveBeenCalled()
+    expect(stderr.write).toHaveBeenCalledWith('Unknown option: --unknown\n')
+  })
+
   it('prints the task graph without spawning commands in dry-run mode', async () => {
     const stdout = { write: vi.fn() }
     const stderr = { write: vi.fn() }
