@@ -53,6 +53,7 @@ const { createBackgroundRuntime } = require('../../server/background-runtime.js'
     pruneBackgroundInstances: () => Promise<
       Array<{ id: string; pid: number; port: number; url: string; startedAt: string }>
     >
+    runStopCommand: () => Promise<void>
     startInBackground: () => Promise<void>
   }
 }
@@ -161,6 +162,87 @@ describe('background runtime', () => {
         }),
       ],
     )
+  })
+
+  it('reports permission denied when the stop command cannot signal an owned instance', async () => {
+    const registryEntries = [
+      {
+        id: 'owned-instance',
+        pid: 101,
+        port: 3101,
+        url: 'http://127.0.0.1:3101',
+        startedAt: '2026-04-01T08:00:00.000Z',
+      },
+    ]
+    const fsMock = {
+      readFileSync: vi.fn(() => JSON.stringify(registryEntries)),
+      mkdirSync: vi.fn(),
+      chmodSync: vi.fn(),
+      rmSync: vi.fn(),
+    }
+    const processObject = {
+      ...process,
+      env: {},
+      execPath: process.execPath,
+      exitCode: 0,
+      kill: vi.fn(() => {
+        throw Object.assign(new Error('permission denied'), { code: 'EPERM' })
+      }),
+    } as unknown as NodeJS.Process
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const runtime = createBackgroundRuntime({
+      fs: fsMock,
+      path,
+      processObject,
+      fetchImpl: vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ id: 'owned-instance', port: 3101 }),
+      })),
+      spawnImpl: vi.fn(),
+      readlinePromises: {} as typeof readlinePromisesModule,
+      entrypointPath: '/tmp/server.js',
+      appPaths: {
+        configDir: '/tmp/ttdash-config',
+        cacheDir: '/tmp/ttdash-cache',
+      },
+      ensureAppDirs: vi.fn(),
+      ensureDir: vi.fn(),
+      writeJsonAtomic: vi.fn(),
+      normalizeIsoTimestamp: (value: string) => new Date(value).toISOString(),
+      bindHost: '127.0.0.1',
+      apiPrefix: '/api',
+      runtimeInstance: {
+        id: 'runtime-id',
+        pid: 999,
+        startedAt: '2026-04-01T07:00:00.000Z',
+      },
+      normalizedCliArgs: [],
+      cliOptions: {
+        noOpen: true,
+      },
+      forceOpenBrowser: false,
+      isWindows: false,
+      secureDirMode: 0o700,
+      secureFileMode: 0o600,
+      backgroundStartTimeoutMs: 15_000,
+      backgroundInstancesLockTimeoutMs: 5_000,
+      backgroundInstancesLockStaleMs: 10_000,
+      sleep: async () => {},
+      isProcessRunning: () => true,
+      formatDateTime: (value: string) => value,
+    })
+
+    try {
+      await runtime.runStopCommand()
+
+      expect(processObject.kill).toHaveBeenCalledWith(101, 'SIGTERM')
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Could not stop TTDash background server (permission denied): http://127.0.0.1:3101 (PID 101)',
+      )
+      expect(processObject.exitCode).toBe(1)
+    } finally {
+      errorSpy.mockRestore()
+    }
   })
 
   it('reports the background log path when startup fails before the log can be read', async () => {
