@@ -455,6 +455,139 @@ describe('background runtime', () => {
     }
   })
 
+  it('prints a no-op message when no background instances are running', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const runtime = createTestBackgroundRuntime()
+
+    try {
+      await runtime.runStopCommand()
+
+      expect(logSpy).toHaveBeenCalledWith('No running TTDash background servers found.')
+    } finally {
+      logSpy.mockRestore()
+    }
+  })
+
+  it('cancels the stop command when the multi-instance prompt is left empty', async () => {
+    const registryEntries = [
+      {
+        id: 'first-instance',
+        pid: 101,
+        port: 3101,
+        url: 'http://127.0.0.1:3101',
+        startedAt: '2026-04-01T08:00:00.000Z',
+      },
+      {
+        id: 'second-instance',
+        pid: 102,
+        port: 3102,
+        url: 'http://127.0.0.1:3102',
+        startedAt: '2026-04-01T09:00:00.000Z',
+      },
+    ]
+    const question = vi.fn(async () => '')
+    const close = vi.fn()
+    const processObject = {
+      ...process,
+      env: {},
+      execPath: process.execPath,
+      kill: vi.fn(),
+      stdin: {} as NodeJS.ReadStream,
+      stdout: {} as NodeJS.WriteStream,
+    } as unknown as NodeJS.Process
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const runtime = createTestBackgroundRuntime({
+      fs: {
+        readFileSync: vi.fn(() => JSON.stringify(registryEntries)),
+        mkdirSync: vi.fn(),
+        chmodSync: vi.fn(),
+        rmSync: vi.fn(),
+      },
+      processObject,
+      fetchImpl: vi.fn(async (input: URL) => {
+        const port = Number(input.port)
+        return {
+          ok: true,
+          json: async () => ({
+            id: port === 3101 ? 'first-instance' : 'second-instance',
+            port,
+          }),
+        }
+      }),
+      readlinePromises: {
+        createInterface: vi.fn(() => ({ question, close })),
+      } as unknown as typeof readlinePromisesModule,
+    })
+
+    try {
+      await runtime.runStopCommand()
+
+      expect(question).toHaveBeenCalledWith(
+        'Which instance should be stopped? [1-2, Enter=cancel] ',
+      )
+      expect(close).toHaveBeenCalled()
+      expect(logSpy).toHaveBeenCalledWith('Canceled.')
+      expect(processObject.kill).not.toHaveBeenCalled()
+    } finally {
+      logSpy.mockRestore()
+    }
+  })
+
+  it('reports a timeout and log file when a stopped instance keeps reporting the same runtime', async () => {
+    let currentTime = 0
+    const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => currentTime)
+    const registryEntries = [
+      {
+        id: 'owned-instance',
+        pid: 101,
+        port: 3101,
+        url: 'http://127.0.0.1:3101',
+        startedAt: '2026-04-01T08:00:00.000Z',
+        logFile: '/tmp/ttdash-cache/background/server-timeout.log',
+      },
+    ]
+    const processObject = {
+      ...process,
+      env: {},
+      execPath: process.execPath,
+      exitCode: 0,
+      kill: vi.fn(),
+    } as unknown as NodeJS.Process
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const runtime = createTestBackgroundRuntime({
+      fs: {
+        readFileSync: vi.fn(() => JSON.stringify(registryEntries)),
+        mkdirSync: vi.fn(),
+        chmodSync: vi.fn(),
+        rmSync: vi.fn(),
+      },
+      processObject,
+      fetchImpl: vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ id: 'owned-instance', port: 3101 }),
+      })),
+      sleep: vi.fn(async (durationMs: number) => {
+        currentTime += durationMs
+      }),
+    })
+
+    try {
+      await runtime.runStopCommand()
+
+      expect(processObject.kill).toHaveBeenCalledWith(101, 'SIGTERM')
+      expect(errorSpy).toHaveBeenCalledWith(
+        'TTDash background server did not respond to SIGTERM: http://127.0.0.1:3101 (PID 101)',
+      )
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Log file: /tmp/ttdash-cache/background/server-timeout.log',
+      )
+      expect(processObject.exitCode).toBe(1)
+    } finally {
+      dateNowSpy.mockRestore()
+      errorSpy.mockRestore()
+    }
+  })
+
   it('removes a registry entry when stop finds the owned process already gone', async () => {
     const registryEntries = [
       {
@@ -626,5 +759,78 @@ describe('background runtime', () => {
       0o600,
     )
     expect(fsMock.closeSync).toHaveBeenCalledWith(42)
+  })
+
+  it('reports the registered child details after a successful background start', async () => {
+    const registryEntries = [
+      {
+        id: 'child-runtime',
+        pid: 123,
+        port: 3101,
+        url: 'http://127.0.0.1:3101',
+        bootstrapUrl: 'http://127.0.0.1:3101/?ttdash_token=abc',
+        host: '127.0.0.1',
+        apiPrefix: '/api',
+        authHeader: 'Bearer child-token',
+        startedAt: '2026-04-01T08:00:00.000Z',
+      },
+    ]
+    const spawnImpl = vi.fn(() => ({
+      pid: 123,
+      unref: vi.fn(),
+    }))
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const runtime = createTestBackgroundRuntime({
+      fs: {
+        readFileSync: vi.fn(() => JSON.stringify(registryEntries)),
+        mkdirSync: vi.fn(),
+        chmodSync: vi.fn(),
+        rmSync: vi.fn(),
+        openSync: vi.fn(() => 42),
+        fchmodSync: vi.fn(),
+        closeSync: vi.fn(),
+      },
+      processObject: {
+        ...process,
+        env: {},
+        execPath: '/usr/bin/node',
+      } as NodeJS.Process,
+      fetchImpl: vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ id: 'child-runtime', port: 3101 }),
+      })),
+      spawnImpl,
+      normalizedCliArgs: ['--background', '--no-open', '--port', '3101'],
+      cliOptions: {
+        noOpen: true,
+      },
+    })
+
+    try {
+      await runtime.startInBackground()
+
+      expect(spawnImpl).toHaveBeenCalledWith(
+        '/usr/bin/node',
+        ['/tmp/server.js', '--no-open', '--port', '3101'],
+        expect.objectContaining({
+          detached: true,
+          env: expect.objectContaining({
+            TTDASH_BACKGROUND_CHILD: '1',
+            TTDASH_FORCE_OPEN_BROWSER: '0',
+          }),
+        }),
+      )
+      expect(logSpy).toHaveBeenCalledWith('TTDash is running in the background.')
+      expect(logSpy).toHaveBeenCalledWith('  URL:  http://127.0.0.1:3101')
+      expect(logSpy).toHaveBeenCalledWith(
+        '  Local Auth URL: http://127.0.0.1:3101/?ttdash_token=abc',
+      )
+      expect(logSpy).toHaveBeenCalledWith('  PID:  123')
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/^  Log:  \/tmp\/ttdash-cache\/background\/server-/),
+      )
+    } finally {
+      logSpy.mockRestore()
+    }
   })
 })
