@@ -206,6 +206,7 @@ export {
   EventEmitter,
   TOKTRACK_VERSION,
   commandExists,
+  createAutoImportRuntime,
   existsSync,
   fork,
   fsPromises,
