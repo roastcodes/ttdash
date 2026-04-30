@@ -106,6 +106,17 @@ describe('playwright config', () => {
     }
   })
 
+  it('keeps each browser spec isolated through the shared state-reset helpers', async () => {
+    const specs = await readE2ESpecs()
+
+    for (const spec of specs) {
+      expect(
+        spec.source.includes('resetAppState(') || spec.source.includes('prepareDashboard('),
+        `${spec.filename} must reset or prepare isolated app state`,
+      ).toBe(true)
+    }
+  })
+
   it('keeps Playwright as a representative smoke suite instead of a contract matrix', async () => {
     const specs = await readE2ESpecs()
     const totalTests = specs.reduce((count, spec) => {

@@ -150,6 +150,34 @@
   - `npm_config_cache=/tmp/ttdash-npm-cache npm run typecheck` -> passed.
   - `coderabbit review --agent -t uncommitted -c AGENTS.md -c .coderabbit.yaml -f docs/review/fixed-findings.md -f tests/unit/run-parallel-gate.test.ts` -> CodeRabbit raised 0 issues.
 
+### test-review.md / Phase 6 - Playwright klein und wertvoll halten
+
+- Status: fixed
+- Scope: Playwright-Scope-Guardrails pruefen jetzt zusaetzlich, dass jede E2E-Spec den
+  worker-isolierten App-Zustand ueber `resetAppState(...)` oder `prepareDashboard(...)`
+  initialisiert. Damit bleibt die Browser-Suite auf representative Journeys begrenzt und vermeidet
+  versteckte Reihenfolge-/Worker-Abhaengigkeiten.
+- Fix reference: phase commit `Guard Playwright spec state isolation`
+- Closed findings:
+  - `test-review.md / Phase 6` - Playwright klein und wertvoll halten, Teil State-Isolation pro
+    Spec.
+  - `test-review.md / Zielarchitektur / E2E` - kurze, worker-isolierte Browser-Journeys ohne
+    Contract-Matrix.
+- Guardrails:
+  - Keine Produktionslogik wurde geaendert.
+  - E2E-Specs muessen weiterhin `test`/`expect` aus `tests/e2e/fixtures.ts` importieren.
+  - Die Browser-Suite bleibt bei `11` Tests und der bestehenden Journey-Liste.
+  - Jeder Spec muss explizit isolierten Zustand vorbereiten.
+- Validation:
+  - `npm_config_cache=/tmp/ttdash-npm-cache npx vitest run --project unit tests/unit/playwright-config.test.ts --reporter=verbose` -> passed with `5` tests.
+  - `PLAYWRIGHT_TEST_PORT=3016 npm_config_cache=/tmp/ttdash-npm-cache npm run test:e2e:ci` ->
+    passed with `11` tests in `12.1s`.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run format:check` -> passed.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run lint` -> passed.
+  - `npm_config_cache=/tmp/ttdash-npm-cache npm run typecheck` -> passed.
+  - First CodeRabbit attempt was blocked by a rate limit with retry window `6 minutes and 13 seconds`.
+  - `coderabbit review --agent -t uncommitted -c AGENTS.md -c .coderabbit.yaml -f docs/review/fixed-findings.md -f tests/unit/playwright-config.test.ts` -> CodeRabbit raised 0 issues after retry.
+
 ## 2026-04-30
 
 ### test-review.md / Phase 1 - Background-Concurrency stabilisieren
