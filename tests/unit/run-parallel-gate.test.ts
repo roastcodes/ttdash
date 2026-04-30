@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module'
 import { EventEmitter } from 'node:events'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
 
@@ -8,10 +8,14 @@ type GateTask = {
   args: string[]
   command: string
   name: string
+  outputPaths: string[]
 }
 
 type ParallelGateScript = {
   createParallelGatePlan: (options?: { e2e?: boolean }) => GateTask[][]
+  findParallelOutputCollisions: (
+    plan: GateTask[][],
+  ) => { group: number; outputPath: string; tasks: string[] }[]
   parseArgs: (argv: string[]) => { dryRun: boolean; e2e: boolean; help: boolean }
   run: (
     argv: string[],
@@ -31,6 +35,10 @@ class FakeChild extends EventEmitter {
 const parallelGate = require('../../scripts/run-parallel-gate.js') as ParallelGateScript
 
 describe('parallel verification gate', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('keeps independent work parallel and isolates high-contention test suites', () => {
     const plan = parallelGate.createParallelGatePlan({ e2e: true })
 
@@ -47,6 +55,52 @@ describe('parallel verification gate', () => {
       'test:vitest:frontend',
     ])
     expect(plan[5]?.find((task) => task.name === 'e2e')?.args).toEqual(['run', 'test:e2e:ci'])
+  })
+
+  it('declares output paths without collisions inside parallel groups', () => {
+    const plan = parallelGate.createParallelGatePlan({ e2e: true })
+
+    expect(parallelGate.findParallelOutputCollisions(plan)).toEqual([])
+    expect(plan[0]?.find((task) => task.name === 'integration')?.outputPaths).toEqual([
+      'test-results/vitest-integration.junit.xml',
+    ])
+    expect(plan[1]?.find((task) => task.name === 'unit')?.outputPaths).toEqual([
+      'test-results/vitest-unit.junit.xml',
+    ])
+    expect(plan[2]?.find((task) => task.name === 'frontend')?.outputPaths).toEqual([
+      'test-results/vitest-frontend.junit.xml',
+    ])
+    expect(plan[5]?.find((task) => task.name === 'e2e')?.outputPaths).toEqual([
+      'playwright-report/',
+      'test-results/',
+    ])
+  })
+
+  it('detects duplicate report outputs within a parallel group', () => {
+    const duplicatePlan = [
+      [
+        {
+          args: ['run', 'left'],
+          command: 'npm',
+          name: 'left',
+          outputPaths: ['test-results/shared.junit.xml'],
+        },
+        {
+          args: ['run', 'right'],
+          command: 'npm',
+          name: 'right',
+          outputPaths: ['test-results/shared.junit.xml'],
+        },
+      ],
+    ]
+
+    expect(parallelGate.findParallelOutputCollisions(duplicatePlan)).toEqual([
+      {
+        group: 1,
+        outputPath: 'test-results/shared.junit.xml',
+        tasks: ['left', 'right'],
+      },
+    ])
   })
 
   it('parses dry-run and e2e options', () => {
@@ -68,6 +122,9 @@ describe('parallel verification gate', () => {
     expect(spawnImpl).not.toHaveBeenCalled()
     expect(stdout.write.mock.calls.join('\n')).toContain('group 1')
     expect(stdout.write.mock.calls.join('\n')).toContain('frontend: npm run test:vitest:frontend')
+    expect(stdout.write.mock.calls.join('\n')).toContain(
+      'outputs: test-results/vitest-frontend.junit.xml',
+    )
     expect(stdout.write.mock.calls.join('\n')).toContain('e2e: npm run test:e2e:ci')
   })
 
@@ -84,5 +141,29 @@ describe('parallel verification gate', () => {
 
     expect(status).toBe(1)
     expect(spawnImpl).toHaveBeenCalledTimes(3)
+  })
+
+  it('prints task durations and a timing summary', async () => {
+    let now = 1_000
+    vi.spyOn(Date, 'now').mockImplementation(() => now)
+    const stdout = { write: vi.fn() }
+    const stderr = { write: vi.fn() }
+    const spawnImpl = vi.fn(() => {
+      const child = new FakeChild()
+      queueMicrotask(() => {
+        now += 1_250
+        child.emit('close', 0)
+      })
+      return child
+    })
+
+    const status = await parallelGate.run([], { stdout, stderr }, spawnImpl)
+    const output = stdout.write.mock.calls.join('\n')
+
+    expect(status).toBe(0)
+    expect(output).toContain('[static] exited with 0 after 1.25s')
+    expect(output).toContain('parallel gate timing summary')
+    expect(output).toContain('static: status=0 duration=1.25s')
+    expect(output).toContain('package-smoke: status=0 duration=1.25s')
   })
 })

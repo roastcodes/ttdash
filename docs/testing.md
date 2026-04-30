@@ -192,6 +192,12 @@ from the jsdom/build storm. `verify:package` runs after those waves succeed.
 unchanged; use the parallel gates for local feedback when the machine has enough CPU and the
 per-project JUnit report paths must stay isolated.
 
+Use `node scripts/run-parallel-gate.js --dry-run --e2e` after changing gate scripts to inspect the
+task waves and their declared report outputs before running the expensive full gate. The script
+fails before spawning children if two tasks in the same wave declare the same output path, and a
+successful run prints a per-task timing summary so local bottlenecks are visible without opening
+JUnit reports.
+
 ## CI Notes
 
 - Keep workflow test paths aligned with the split test structure.

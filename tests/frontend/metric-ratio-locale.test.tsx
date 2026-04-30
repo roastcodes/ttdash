@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { render } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MonthMetrics } from '@/components/cards/MonthMetrics'
 import { PrimaryMetrics } from '@/components/cards/PrimaryMetrics'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -74,6 +74,8 @@ describe('metric ratio localization', () => {
   ]
 
   beforeEach(async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-30T12:00:00Z'))
     vi.stubGlobal(
       'IntersectionObserver',
       class {
@@ -83,6 +85,11 @@ describe('metric ratio localization', () => {
       },
     )
     await initI18n('de')
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
   })
 
   it('formats the primary metrics I/O ratio with the active locale', () => {
