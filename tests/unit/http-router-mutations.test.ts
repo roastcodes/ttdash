@@ -76,6 +76,7 @@ function createRouter({
         addedDays: Array.isArray(importedData?.daily) ? importedData.daily.length : 0,
         unchangedDays: 0,
         conflictingDays: 0,
+        skippedDays: 0,
         totalDays: Array.isArray(importedData?.daily) ? importedData.daily.length : 0,
       },
     })),

@@ -38,6 +38,7 @@ const { createDataRuntime } = require('../../server/data-runtime.js') as {
         addedDays: number
         unchangedDays: number
         conflictingDays: number
+        skippedDays: number
         totalDays: number
       }
     }
@@ -219,8 +220,18 @@ describe('data runtime contracts', () => {
     }
     const equivalentDay = {
       ...currentDay,
+      totalCost: 0.1 + 0.2 - 0.05,
       modelsUsed: ['Claude', 'GPT-5.4'],
-      modelBreakdowns: [...currentDay.modelBreakdowns].reverse(),
+      modelBreakdowns: [
+        {
+          ...currentDay.modelBreakdowns[1],
+          cost: 0.15 + Number.EPSILON,
+        },
+        {
+          ...currentDay.modelBreakdowns[0],
+          cost: 0.1 + Number.EPSILON,
+        },
+      ],
     }
     const conflictingDay = {
       ...currentDay,
@@ -254,6 +265,7 @@ describe('data runtime contracts', () => {
       addedDays: 1,
       unchangedDays: 1,
       conflictingDays: 0,
+      skippedDays: 0,
       totalDays: 2,
     })
     expect(equivalentMerge.data.daily.map((day) => day.date)).toEqual(['2026-04-01', '2026-04-02'])
@@ -266,8 +278,48 @@ describe('data runtime contracts', () => {
       addedDays: 0,
       unchangedDays: 0,
       conflictingDays: 1,
+      skippedDays: 0,
       totalDays: 1,
     })
     expect(conflictingMerge.data.daily[0]?.totalCost).toBe(0.25)
+  })
+
+  it('skips imported usage days without a usable date before writing merged data', () => {
+    const runtime = createRuntime()
+    const validDay = {
+      date: '2026-04-03',
+      inputTokens: 1,
+      outputTokens: 2,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      thinkingTokens: 0,
+      totalTokens: 3,
+      totalCost: 0.1,
+      requestCount: 1,
+      modelsUsed: ['GPT-5.4'],
+      modelBreakdowns: [],
+    }
+
+    const merge = runtime.mergeUsageData(null, {
+      daily: [{ ...validDay, date: '' }, validDay],
+      totals: { totalCost: 9 },
+    })
+
+    expect(merge.summary).toMatchObject({
+      importedDays: 2,
+      addedDays: 1,
+      skippedDays: 1,
+      totalDays: 1,
+    })
+    expect(merge.data.daily.map((day) => day.date)).toEqual(['2026-04-03'])
+    expect(merge.data.totals).toMatchObject({ totalCost: 0.1, totalTokens: 3 })
+  })
+
+  it('rejects usage imports that do not contain a daily array before merging', () => {
+    const runtime = createRuntime()
+
+    expect(() => runtime.mergeUsageData(null, { totals: {} } as never)).toThrow(
+      'Imported data must contain a daily array.',
+    )
   })
 })

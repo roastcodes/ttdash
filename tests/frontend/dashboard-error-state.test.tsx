@@ -109,6 +109,7 @@ describe('Dashboard fatal load state', () => {
       addedDays: 0,
       unchangedDays: 0,
       conflictingDays: 0,
+      skippedDays: 0,
       totalDays: 0,
     })
     toktrackVersionStatusMocks.scheduleToktrackVersionStatusWarmup.mockClear()

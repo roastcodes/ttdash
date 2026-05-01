@@ -52,8 +52,14 @@ The server runtime is intentionally split so `server.js` stays an executable shi
   - owns local mutable runtime state services such as runtime snapshots, singleton runtime leases, and expiring async caches
   - keeps startup flags, auto-import leases, and toktrack version lookup cache state scoped to one composed app runtime
 - `server/data-runtime.js`
-  - owns app-path resolution, persisted usage/settings IO, migration, and file-mutation locks
+  - is the facade for app-path resolution, persisted usage/settings IO, migration, import merging, and file-mutation locks
   - consumes the shared settings contract instead of defining local settings defaults or normalizers
+  - composes focused services from `server/data-runtime/**`:
+    - `app-paths.js` exposes `resolveDataRuntimeAppPaths` for platform and env override path selection
+    - `file-io.js` exposes `createDataRuntimeFileIo` for secure directory setup, atomic JSON writes, file modes, and missing-file handling
+    - `file-locks.js` exposes `createDataRuntimeFileLocks` for in-process and cross-process mutation locks around data/settings files
+    - `import-merge.js` exposes `createDataRuntimeImportMerge` for backup payload extraction, usage-day equivalence, and non-destructive merge summaries
+  - wiring model: `server/data-runtime.js` imports these four submodules, injects filesystem/path/runtime configuration, and returns one public data-runtime facade to `server/app-runtime.js`
 - `server/cli.js`
   - owns CLI alias normalization, help text, positional command parsing, and port validation
 - `server/background-runtime.js`

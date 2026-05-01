@@ -32,6 +32,9 @@ const { createDataRuntime } = require('../../server/data-runtime.js') as {
     withFileMutationLock: <T>(filePath: string, operation: () => Promise<T>) => Promise<T>
   }
 }
+const { createDataRuntimeFileLocks } = require('../../server/data-runtime/file-locks.js') as {
+  createDataRuntimeFileLocks: (options: Record<string, unknown>) => unknown
+}
 
 afterEach(() => {
   resetServerHelperTestState()
@@ -180,6 +183,24 @@ function waitForChildExit(child: ReturnType<typeof fork>, timeoutMs: number) {
 }
 
 describe('server helper utilities: file mutation locks', () => {
+  it('fails fast when required file lock runtime options are invalid', () => {
+    expect(() =>
+      createDataRuntimeFileLocks({
+        fsPromises,
+        path,
+        processObject: process,
+        runtimeInstanceId: '',
+        isWindows: false,
+        secureDirMode: 0o1000,
+        secureFileMode: 0o600,
+        fileMutationLockTimeoutMs: -1,
+        fileMutationLockStaleMs: 30_000,
+        settingsFile: '/tmp/settings.json',
+        dataFile: '/tmp/data.json',
+      }),
+    ).toThrow('runtimeInstanceId, secureDirMode, fileMutationLockTimeoutMs')
+  })
+
   it('serializes operations for the same file path and cleans up locks afterwards', async () => {
     const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-lock-same-file-'))
     const settingsFile = path.join(tempDir, 'settings.json')
@@ -229,6 +250,39 @@ describe('server helper utilities: file mutation locks', () => {
       expect(getPendingFileMutationLockCount()).toBe(0)
     })
     await fsPromises.rm(tempDir, { recursive: true, force: true })
+  })
+
+  it('times out in-process waiters behind a hung predecessor and releases their queue slot', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-lock-queue-timeout-'))
+    const runtime = createFileModeRuntime(runtimeRoot, path.join(runtimeRoot, 'legacy-data.json'))
+    let releaseFirst: (() => void) | null = null
+
+    try {
+      const first = runtime.withFileMutationLock(
+        runtime.paths.dataFile,
+        async () =>
+          new Promise<void>((resolve) => {
+            releaseFirst = resolve
+          }),
+      )
+
+      await vi.waitFor(() => {
+        expect(existsSync(runtime.getFileMutationLockDir(runtime.paths.dataFile))).toBe(true)
+      })
+
+      await expect(
+        runtime.withFileMutationLock(runtime.paths.dataFile, async () => 'late'),
+      ).rejects.toThrow('Timed out waiting for previous file mutation lock')
+
+      releaseFirst?.()
+      await first
+      await expect(
+        runtime.withFileMutationLock(runtime.paths.dataFile, async () => 'ok'),
+      ).resolves.toBe('ok')
+    } finally {
+      releaseFirst?.()
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
   })
 
   it('serializes overlapping multi-file operations in a stable order', async () => {
@@ -290,6 +344,35 @@ describe('server helper utilities: file mutation locks', () => {
     await fsPromises.rm(targetDir, { recursive: true, force: true })
   })
 
+  it('reaps old lock directories from a different runtime instance even when the pid is alive', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-lock-instance-reuse-'))
+    const runtime = createFileModeRuntime(runtimeRoot, path.join(runtimeRoot, 'legacy-data.json'))
+    const lockDir = runtime.getFileMutationLockDir(runtime.paths.dataFile)
+
+    try {
+      await fsPromises.mkdir(lockDir, { recursive: true })
+      await fsPromises.writeFile(
+        path.join(lockDir, 'owner.json'),
+        JSON.stringify(
+          {
+            pid: process.pid,
+            createdAt: new Date(Date.now() - 1000).toISOString(),
+            instanceId: 'different-runtime-instance',
+          },
+          null,
+          2,
+        ),
+      )
+
+      await expect(
+        runtime.withFileMutationLock(runtime.paths.dataFile, async () => 'ok'),
+      ).resolves.toBe('ok')
+      expect(existsSync(lockDir)).toBe(false)
+    } finally {
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
   it('does not reap stale locks while the recorded owner pid is still running', async () => {
     const runtime = createShortTimeoutFileLockRuntime()
     const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-stale-pid-lock-'))
@@ -302,7 +385,7 @@ describe('server helper utilities: file mutation locks', () => {
       JSON.stringify({
         pid: 4242,
         createdAt: new Date(Date.now() - 60_000).toISOString(),
-        instanceId: 'stale-instance',
+        instanceId: `test-${process.pid}`,
       }),
     )
 
@@ -425,6 +508,35 @@ dataRuntime.withFileMutationLock(filePath, async () => {
     await fsPromises.rm(targetDir, { recursive: true, force: true })
   })
 
+  it('surfaces async atomic write cleanup failures with the original write error', async () => {
+    const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-write-json-cleanup-'))
+    const targetFile = path.join(targetDir, 'settings.json')
+    const renameError = Object.assign(new Error('rename failed'), { code: 'EXDEV' })
+    const cleanupError = Object.assign(new Error('cleanup failed'), { code: 'EACCES' })
+
+    const renameSpy = vi.spyOn(fsPromises, 'rename').mockRejectedValue(renameError)
+    const unlinkSpy = vi.spyOn(fsPromises, 'unlink').mockRejectedValue(cleanupError)
+
+    try {
+      let caughtError: unknown
+      try {
+        await writeJsonAtomicAsync(targetFile, { ok: true })
+      } catch (error) {
+        caughtError = error
+      }
+
+      expect(caughtError).toBeInstanceOf(AggregateError)
+      expect((caughtError as AggregateError).message).toContain(
+        'Failed atomic JSON write and temp-file cleanup',
+      )
+      expect((caughtError as AggregateError).errors).toEqual([renameError, cleanupError])
+    } finally {
+      renameSpy.mockRestore()
+      unlinkSpy.mockRestore()
+      await fsPromises.rm(targetDir, { recursive: true, force: true })
+    }
+  })
+
   it('removes temporary files when atomic sync writes fail after creating the temp file', async () => {
     const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-write-json-sync-'))
     const targetFile = path.join(targetDir, 'settings.json')
@@ -445,6 +557,42 @@ dataRuntime.withFileMutationLock(filePath, async () => {
     } finally {
       renameSpy.mockRestore()
       nowSpy.mockRestore()
+      await fsPromises.rm(targetDir, { recursive: true, force: true })
+    }
+  })
+
+  it('surfaces sync atomic write cleanup failures with the original write error', async () => {
+    const targetDir = await fsPromises.mkdtemp(
+      path.join(tmpdir(), 'ttdash-write-json-sync-cleanup-'),
+    )
+    const targetFile = path.join(targetDir, 'settings.json')
+    const renameError = Object.assign(new Error('rename failed'), { code: 'EXDEV' })
+    const cleanupError = Object.assign(new Error('cleanup failed'), { code: 'EACCES' })
+    const runtime = createFileModeRuntime(targetDir, path.join(targetDir, 'legacy-data.json'))
+
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation(() => {
+      throw renameError
+    })
+    const unlinkSpy = vi.spyOn(fs, 'unlinkSync').mockImplementation(() => {
+      throw cleanupError
+    })
+
+    try {
+      let caughtError: unknown
+      try {
+        runtime.writeJsonAtomic(targetFile, { ok: true })
+      } catch (error) {
+        caughtError = error
+      }
+
+      expect(caughtError).toBeInstanceOf(AggregateError)
+      expect((caughtError as AggregateError).message).toContain(
+        'Failed atomic JSON write and temp-file cleanup',
+      )
+      expect((caughtError as AggregateError).errors).toEqual([renameError, cleanupError])
+    } finally {
+      renameSpy.mockRestore()
+      unlinkSpy.mockRestore()
       await fsPromises.rm(targetDir, { recursive: true, force: true })
     }
   })
