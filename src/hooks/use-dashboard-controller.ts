@@ -213,6 +213,7 @@ export function useDashboardControllerWithBootstrap(
         viewMode: derived.filters.viewMode,
         totalCalendarDays: derived.totalCalendarDays,
         filteredData: derived.filters.filteredData,
+        dailyCosts: derived.dailyCosts,
         filteredDailyData: derived.filters.filteredDailyData,
         todayData: derived.todayData,
         hasCurrentMonthData: derived.hasCurrentMonthData,

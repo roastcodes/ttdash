@@ -121,6 +121,7 @@ export function createDashboardSectionsViewModel(
       viewMode: 'daily',
       totalCalendarDays: 0,
       filteredData: [],
+      dailyCosts: [],
       filteredDailyData: [],
       todayData: null,
       hasCurrentMonthData: false,

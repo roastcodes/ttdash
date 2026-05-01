@@ -204,6 +204,7 @@ export interface DashboardOverviewSectionsViewModel {
   viewMode: ViewMode
   totalCalendarDays: number
   filteredData: DailyUsage[]
+  dailyCosts: number[]
   filteredDailyData: DailyUsage[]
   todayData: DailyUsage | null
   hasCurrentMonthData: boolean

@@ -253,6 +253,20 @@ describe('DashboardSections rendering contracts', () => {
     expect(dashboardMotionMocks.cancelPreloads).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps the activity heatmap section viewport lazy while overview metrics render eagerly', () => {
+    const viewModel = createDashboardSectionsViewModel({
+      layout: {
+        sectionOrder: ['metrics', 'activity'],
+        sectionVisibility: createVisibility(),
+      },
+    })
+
+    render(<DashboardSections viewModel={viewModel} />)
+
+    expect(screen.getByTestId('section-metrics')).toHaveAttribute('data-eager', 'true')
+    expect(screen.getByTestId('section-activity')).toHaveAttribute('data-eager', 'false')
+  })
+
   it('opens the forecast zoom dialog from lazy forecast cards', async () => {
     const viewModel = createDashboardSectionsViewModel({
       layout: {
