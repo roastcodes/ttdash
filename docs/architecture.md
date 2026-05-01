@@ -65,8 +65,15 @@ The server runtime is intentionally split so `server.js` stays an executable shi
 - `server/background-runtime.js`
   - owns background instance registry, start/stop flows, and registry locking
 - `server/auto-import-runtime.js`
-  - owns toktrack runner resolution, subprocess execution, version lookup, and auto-import execution
+  - is the facade for toktrack runner resolution, subprocess execution, version lookup, singleton leasing, and auto-import execution
   - uses the injected runtime-state services for singleton import leasing and latest-version cache isolation
+  - composes focused services from `server/auto-import-runtime/**`:
+    - `messages.js` exposes structured progress/error events and server-side fallback message formatting
+    - `command-runner.js` exposes cross-platform command spawning, timeout handling, process termination, and command diagnostics
+    - `toktrack-runners.js` exposes local/bunx/npx runner construction, probing, timeout selection, version parsing, and runner-resolution errors
+    - `latest-version.js` exposes the cached npm registry lookup for the latest toktrack version
+    - `import-executor.js` exposes singleton lease acquisition, toktrack JSON import orchestration, persistence updates, and startup auto-load logging
+  - wiring model: `server/auto-import-runtime.js` imports these five submodules, injects process/filesystem/cache/runtime configuration, and returns one public auto-import facade to `server/app-runtime.js`
 - `server/http-router.js`
   - owns API routing, SSE wiring, and static asset dispatch with injected runtime dependencies
   - must acquire auto-import work through `server/auto-import-runtime.js` instead of keeping route-local import flags
@@ -87,7 +94,7 @@ The server runtime is intentionally split so `server.js` stays an executable shi
 - Local auth session state
   - `server/startup-runtime.js` writes the current local session metadata to a restrictive `session-auth.json` file in the user config dir through injected data-runtime IO
   - `server/background-runtime.js` stores per-instance auth headers and bootstrap URLs in the restrictive background registry so `ttdash stop` and no-open background starts stay usable
-- `server/http-utils.js`, `server/runtime.js`, `server/process-utils.js`, `server/report/**`
+- `server/http-utils.js`, `server/runtime.js`, `server/runtime-formatters.js`, `server/process-utils.js`, `server/report/**`
   - shared support modules used by the composed runtimes
 
 ## Shared Settings Contract

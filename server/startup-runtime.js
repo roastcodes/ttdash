@@ -1,15 +1,9 @@
-function formatCurrency(value, locale = 'de-CH') {
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: value >= 100 ? 0 : 2,
-    maximumFractionDigits: value >= 100 ? 0 : 2,
-  }).format(value || 0);
-}
-
-function formatInteger(value, locale = 'de-CH') {
-  return new Intl.NumberFormat(locale).format(value || 0);
-}
+const {
+  formatCurrency,
+  formatDayCount,
+  formatErrorMessage,
+  formatInteger,
+} = require('./runtime-formatters');
 
 function createStartupRuntime({
   fs,
@@ -83,9 +77,7 @@ function createStartupRuntime({
       const totalCost = formatCurrency(normalized.totals?.totalCost || 0);
       const totalTokens = formatInteger(normalized.totals?.totalTokens || 0);
       const days = normalized.daily?.length || 0;
-      const dailyCount = formatInteger(days);
-      const dayLabel = days === 1 ? 'day' : 'days';
-      return `${dailyCount} ${dayLabel}, ${totalCost}, ${totalTokens} tokens`;
+      return `${formatDayCount(days)}, ${totalCost}, ${totalTokens} tokens`;
     } catch {
       return 'present, but unreadable';
     }
@@ -208,9 +200,13 @@ function createStartupRuntime({
       });
 
       markStartupAutoLoadCompleted();
-      log(`Auto-load complete: imported ${result.days} days, ${formatCurrency(result.totalCost)}.`);
+      log(
+        `Auto-load complete: imported ${formatDayCount(result.days)}, ${formatCurrency(
+          result.totalCost,
+        )}.`,
+      );
     } catch (error) {
-      errorLog(`Auto-load failed: ${error.message}`);
+      errorLog(`Auto-load failed: ${formatErrorMessage(error)}`);
       errorLog('Dashboard will start without newly imported data.');
     }
   }
@@ -228,5 +224,7 @@ function createStartupRuntime({
 module.exports = {
   createStartupRuntime,
   formatCurrency,
+  formatDayCount,
+  formatErrorMessage,
   formatInteger,
 };

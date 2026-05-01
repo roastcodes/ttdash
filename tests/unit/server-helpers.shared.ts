@@ -56,7 +56,16 @@ const { listenOnAvailablePort } = require('../../server/runtime.js') as {
 }
 const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js') as {
   createAutoImportRuntime: (options: Record<string, unknown>) => {
+    acquireAutoImportLease: () => { release: () => void }
     commandExists: (command: string, args?: string[]) => Promise<boolean>
+    createAutoImportMessageEvent: (
+      key: string,
+      vars?: Record<string, string | number>,
+    ) => { key: string; vars: Record<string, string | number> }
+    formatAutoImportMessageEvent: (event: {
+      key: string
+      vars?: Record<string, string | number>
+    }) => string
     getExecutableName: (baseName: string, isWindows?: boolean) => string
     getLocalToktrackDisplayCommand: (isWindows?: boolean) => string
     getToktrackLatestLookupTimeoutMs: () => number
@@ -65,15 +74,29 @@ const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js
       versionCheckMs: number
       importMs: number
     }
-    lookupLatestToktrackVersion: (timeoutMs?: number) => Promise<{
+    lookupLatestToktrackVersion: () => Promise<{
       configuredVersion: string
       latestVersion: string | null
       isLatest: boolean | null
-      lookupStatus: 'ok' | 'failed'
+      lookupStatus: 'ok' | 'failed' | 'malformed-output'
       message?: string
     }>
+    isAutoImportRunning: () => boolean
+    performAutoImport: (options?: {
+      source?: string
+      onCheck?: (event: Record<string, unknown>) => void
+      onProgress?: (event: { key: string; vars?: Record<string, string | number> }) => void
+      onOutput?: (line: string) => void
+      signalOnClose?: (close: () => void) => void
+      lease?: { release: () => void } | null
+    }) => Promise<{ days: number; totalCost: number }>
     resetLatestToktrackVersionCache: () => void
     parseToktrackVersionOutput: (output: string) => string
+    runStartupAutoLoad: (options?: {
+      source?: string
+      log?: (message: string) => void
+      errorLog?: (message: string) => void
+    }) => Promise<{ days: number; totalCost: number } | null>
     resolveToktrackRunner: () => Promise<{
       command: string
       prefixArgs: string[]
@@ -127,6 +150,10 @@ const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js
         }
       },
     ) => Promise<string>
+    toAutoImportErrorEvent: (error: Error) => {
+      key: string
+      vars?: Record<string, string | number>
+    }
   }
 }
 
@@ -178,6 +205,7 @@ const autoImportRuntime = createAutoImportRuntime({
   toktrackLatestLookupTimeoutMs: 15000,
   toktrackLatestCacheSuccessTtlMs: 5 * 60 * 1000,
   toktrackLatestCacheFailureTtlMs: 60 * 1000,
+  probeLog: (message: string) => console.warn(message),
 })
 const {
   commandExists,

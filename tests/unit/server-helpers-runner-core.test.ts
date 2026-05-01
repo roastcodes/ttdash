@@ -57,7 +57,7 @@ function createSpawnSequence(outcomes: FakeSpawnOutcome[]) {
 
 function createRuntimeWithSpawn(
   spawnImpl: ReturnType<typeof createSpawnSequence>,
-  options: { localBinExists?: boolean } = {},
+  options: { latestLookupTimeoutMs?: number; localBinExists?: boolean } = {},
 ) {
   return createAutoImportRuntime({
     fs: {
@@ -83,9 +83,10 @@ function createRuntimeWithSpawn(
     toktrackPackageRunnerProbeTimeoutMs: 45000,
     toktrackPackageRunnerVersionCheckTimeoutMs: 45000,
     toktrackPackageRunnerImportTimeoutMs: 60000,
-    toktrackLatestLookupTimeoutMs: 15000,
+    toktrackLatestLookupTimeoutMs: options.latestLookupTimeoutMs ?? 15000,
     toktrackLatestCacheSuccessTtlMs: 5 * 60 * 1000,
     toktrackLatestCacheFailureTtlMs: 60 * 1000,
+    probeLog: (message: string) => console.warn(message),
   })
 }
 
@@ -183,10 +184,12 @@ describe('server helper utilities: toktrack runner core behavior', () => {
 
   it('returns a structured warning when the latest toktrack version lookup times out', async () => {
     vi.useFakeTimers()
-    const runtime = createRuntimeWithSpawn(createSpawnSequence([{ hang: true }]))
+    const runtime = createRuntimeWithSpawn(createSpawnSequence([{ hang: true }]), {
+      latestLookupTimeoutMs: 50,
+    })
 
     try {
-      const statusPromise = runtime.lookupLatestToktrackVersion(50)
+      const statusPromise = runtime.lookupLatestToktrackVersion()
       await vi.advanceTimersByTimeAsync(50)
 
       await expect(statusPromise).resolves.toMatchObject({
@@ -199,6 +202,18 @@ describe('server helper utilities: toktrack runner core behavior', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('returns a structured warning when the latest toktrack version lookup is malformed', async () => {
+    const runtime = createRuntimeWithSpawn(createSpawnSequence([{ stdout: 'not-a-version\n' }]))
+
+    await expect(runtime.lookupLatestToktrackVersion()).resolves.toMatchObject({
+      configuredVersion: TOKTRACK_VERSION,
+      latestVersion: null,
+      isLatest: null,
+      lookupStatus: 'malformed-output',
+      message: 'npm returned an invalid toktrack version: not-a-version',
+    })
   })
 
   it('reuses a cached successful latest-version lookup until the TTL expires', async () => {

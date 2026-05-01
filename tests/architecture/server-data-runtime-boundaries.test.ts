@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { createForbiddenImportPattern } from './import-patterns'
 
 function readRepoFile(relativePath: string) {
   return readFileSync(path.resolve(process.cwd(), relativePath), 'utf8')
@@ -20,19 +21,14 @@ const forbiddenRuntimeImports = [
   '../background-runtime',
 ]
 
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function createForbiddenImportPattern(importPath: string) {
-  const escapedPath = escapeRegex(importPath)
-
-  return new RegExp(
-    String.raw`(?:require\s*\(\s*['"]${escapedPath}(?=(?:['"/]|$))|from\s*['"]${escapedPath}(?=(?:['"/]|$)))`,
-  )
-}
-
 describe('server data runtime boundary contract', () => {
+  it('matches forbidden runtime imports with extensions and subpaths', () => {
+    expect("require('../auto-import-runtime.js')").toMatch(
+      createForbiddenImportPattern('../auto-import-runtime'),
+    )
+    expect("from '../routes/usage-routes.js'").toMatch(createForbiddenImportPattern('../routes/'))
+  })
+
   it('keeps data-runtime.js as the persistence composition facade', () => {
     const source = readRepoFile('server/data-runtime.js')
 
