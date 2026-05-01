@@ -334,17 +334,27 @@ npm run build
 npm run build:app
 ```
 
-Run automated checks:
+Run the main local gate without Playwright:
 
 ```bash
 npm run verify
 ```
 
-For the full release-style local gate without re-running unit tests or rebuilding twice, use:
+For the full serial CI/release-style local gate, including coverage thresholds and Playwright, use:
 
 ```bash
 npm run verify:full
 ```
+
+On a local machine with enough CPU, the staged parallel fast path gives quicker feedback across the
+same main test surfaces without the coverage-instrumented pass:
+
+```bash
+PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel
+```
+
+Keep `npm run verify:full` or `npm run test:vitest:coverage` in the final validation path whenever
+coverage thresholds matter.
 
 If you want to run the steps individually, use:
 

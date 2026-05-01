@@ -64,7 +64,8 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
 - For large server helper or integration suites, group tests by subsystem so Vitest can schedule them more efficiently.
 - Keep background-process integration files focused by behavior; the background Vitest project intentionally uses a small worker cap instead of one serial catch-all file or unbounded process fan-out.
 - Keep Playwright files grouped by end-to-end journey, such as load/upload, forecast/filter interaction, settings/backups, reporting, and command palette behavior. Import `test` and `expect` from `tests/e2e/fixtures.ts` so each worker gets its own server, port, auth session, and runtime directory. Share authentication, server reset, seeding, and download helpers through `tests/e2e/helpers.ts` instead of creating new browser catch-all files.
-- `tests/unit/playwright-config.test.ts` guards the small E2E journey list, the shared fixture import, CI worker cap, and Playwright reporter paths. Update that contract intentionally when adding a new browser journey.
+- Every Playwright spec must reset state through `resetAppState(...)` or prepare an isolated dashboard through `prepareDashboard(...)` before it asserts app behavior. `tests/unit/playwright-config.test.ts` fails when a new spec skips that isolation contract.
+- `tests/unit/playwright-config.test.ts` also guards the small E2E journey list, the shared fixture import, CI worker cap, and Playwright reporter paths. Update that contract intentionally when adding a new browser journey.
 
 ## Choosing the Right Layer
 
@@ -134,6 +135,7 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 ## Local Commands
 
 - Required pre-PR gate: run `npm run verify:full` before opening a PR to ensure all tests and checks pass.
+- Faster non-coverage fast path on a local machine with enough CPU: `PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel`
 - Faster inner-loop gate: `npm run verify`
 - Static gate only: `npm run test:static`
 - All Vitest projects without coverage: `npm run test:vitest`
@@ -146,7 +148,7 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 - CI-style Playwright smoke: `npm run test:e2e:ci`
 - Serial local mirror of the CI gate: `npm run verify:ci`
 - Optional parallel local gate without Playwright: `npm run verify:parallel`
-- Optional parallel full local gate with Playwright after build: `PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel`
+- Optional parallel local fast path including Playwright, without coverage instrumentation: `PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel`
 
 ## Architecture Guardrails
 
@@ -191,7 +193,9 @@ parallel Vitest projects from over-subscribing the same cores and keeps real bac
 from the jsdom/build storm. `verify:package` runs after those waves succeed.
 `npm run verify:full:parallel` adds `test:e2e:ci` to the final wave. The canonical serial gates stay
 unchanged; use the parallel gates for local feedback when the machine has enough CPU and the
-per-project JUnit report paths must stay isolated.
+per-project JUnit report paths must stay isolated. The parallel fast path intentionally avoids a
+second coverage-instrumented Vitest pass, so pair it with `npm run test:vitest:coverage` or the
+serial `npm run verify:full` when coverage thresholds are part of the validation.
 
 Use `node scripts/run-parallel-gate.js --dry-run --e2e` after changing gate scripts to inspect the
 task waves and their declared report outputs before running the expensive full gate. The script

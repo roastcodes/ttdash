@@ -41,18 +41,25 @@ For feature requests, explain the user problem first. Suggestions that only desc
 
 Make sure the change is small, focused, and aligned with the existing product direction.
 
-Run the main local checks:
+Run the full local gate before opening a PR:
 
 ```bash
-npm run verify
-npm run test:e2e:ci
+npm run verify:full
 ```
 
-`npm run verify` covers formatting, ESLint, `tsc --noEmit`, unit tests, the production bundle, and packaged-artifact verification. If you want the same coverage gate used in release preparation, also run:
+On a local machine with enough CPU, the staged parallel gate gives faster feedback across the same
+main test surfaces without the coverage-instrumented pass:
 
 ```bash
-npm run test:unit:coverage
+PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel
 ```
+
+Do not use the parallel fast path as a replacement for the final coverage gate when a change affects
+coverage thresholds; keep `npm run verify:full` or `npm run test:vitest:coverage` in that validation.
+
+`npm run verify` remains the faster non-browser gate for inner-loop work. It covers formatting,
+ESLint, `tsc --noEmit`, Vitest without coverage instrumentation, the production bundle, and
+packaged-artifact verification.
 
 If you only need the production bundle without the lint/format gate, use:
 

@@ -45,6 +45,15 @@ Optional local confidence check before starting the workflow:
 npm run verify:full
 ```
 
+For faster local behavior-test feedback before the final serial gate, use the staged parallel path:
+
+```bash
+PLAYWRIGHT_TEST_PORT=3016 npm_config_cache=/tmp/ttdash-npm-cache npm run verify:full:parallel
+```
+
+It does not replace `npm run verify:full` for release confidence because the serial gate evaluates
+the coverage-instrumented pass.
+
 If port `3015` is already occupied locally, keep the same one-pass gate and only override the Playwright port:
 
 ```bash
