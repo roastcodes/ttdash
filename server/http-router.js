@@ -1,3 +1,12 @@
+const { createAutoImportRoutes } = require('./routes/auto-import-routes');
+const { createReportRoutes } = require('./routes/report-routes');
+const { createRuntimeRoutes } = require('./routes/runtime-routes');
+const { createSettingsRoutes } = require('./routes/settings-routes');
+const { createStaticRouteHandler } = require('./routes/static-routes');
+const { createUsageRoutes } = require('./routes/usage-routes');
+const { readMutationBody, sendSSE } = require('./routes/http-route-utils');
+
+/** Creates the HTTP router that validates requests and dispatches route groups. */
 function createHttpRouter({
   fs,
   path,
@@ -19,164 +28,69 @@ function createHttpRouter({
     validateMutationRequest,
     validateRequestHost,
   } = httpUtils;
-  const {
-    extractSettingsImportPayload,
-    extractUsageImportPayload,
-    isPayloadTooLargeError,
-    isPersistedStateError,
-    mergeUsageData,
-    readData,
-    readSettings,
-    unlinkIfExists,
-    _updateDataLoadStateUnlocked,
-    updateSettings,
-    withFileMutationLock,
-    withSettingsAndDataMutationLock,
-    writeData,
-    writeSettings,
-    normalizeSettings,
-    paths: { dataFile, settingsFile },
-  } = dataRuntime;
-  const {
-    createAutoImportMessageEvent,
-    formatAutoImportMessageEvent,
-    acquireAutoImportLease,
-    lookupLatestToktrackVersion,
-    performAutoImport,
-    toAutoImportErrorEvent,
-  } = autoImportRuntime;
-
-  const mimeTypes = {
-    '.html': 'text/html; charset=utf-8',
-    '.css': 'text/css; charset=utf-8',
-    '.js': 'application/javascript; charset=utf-8',
-    '.json': 'application/json; charset=utf-8',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon',
-    '.woff': 'font/woff',
-    '.woff2': 'font/woff2',
-  };
-
-  function sendSSE(res, event, data) {
-    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-  }
-
-  function getCacheControl(filePath) {
-    if (filePath.includes(path.sep + 'assets' + path.sep)) {
-      return 'public, max-age=31536000, immutable';
-    }
-    if (filePath.endsWith('.html')) {
-      return 'no-cache';
-    }
-    return 'public, max-age=86400';
-  }
-
-  function writeStaticErrorResponse(res, status, message) {
-    res.writeHead(status, {
-      'Content-Type': 'application/json; charset=utf-8',
-      ...securityHeaders,
+  const routeReadMutationBody = (req, res, messages) =>
+    readMutationBody(req, res, {
+      readBody,
+      json,
+      isPayloadTooLargeError: dataRuntime.isPayloadTooLargeError,
+      ...messages,
     });
-    res.end(JSON.stringify({ message }));
-  }
+  const usageRoutes = createUsageRoutes({
+    json,
+    validateMutationRequest,
+    readMutationBody: routeReadMutationBody,
+    dataRuntime,
+  });
+  const settingsRoutes = createSettingsRoutes({
+    json,
+    validateMutationRequest,
+    readMutationBody: routeReadMutationBody,
+    dataRuntime,
+  });
+  const autoImportRoutes = createAutoImportRoutes({
+    json,
+    validateMutationRequest,
+    securityHeaders,
+    autoImportRuntime,
+    sendSSE,
+  });
+  const runtimeRoutes = createRuntimeRoutes({
+    json,
+    getRuntimeSnapshot,
+    autoImportRuntime,
+  });
+  const reportRoutes = createReportRoutes({
+    json,
+    readMutationBody: routeReadMutationBody,
+    sendBuffer,
+    dataRuntime,
+    generatePdfReport,
+  });
+  const staticRoutes = createStaticRouteHandler({
+    fs,
+    path,
+    staticRoot,
+    securityHeaders,
+    prepareHtmlResponse,
+    json,
+  });
+  const apiRouteHandlers = [
+    usageRoutes.handleUsageRoutes,
+    settingsRoutes.handleSettingsRoutes,
+    autoImportRoutes.handleAutoImportRoutes,
+    runtimeRoutes.handleRuntimeRoutes,
+    reportRoutes.handleReportRoutes,
+  ];
 
-  function getErrorMessage(error, fallback) {
-    return error && typeof error.message === 'string' && error.message ? error.message : fallback;
-  }
-
-  async function readMutationBody(req, res, { tooLargeMessage, invalidMessage }) {
-    try {
-      return { ok: true, body: await readBody(req) };
-    } catch (error) {
-      if (isPayloadTooLargeError(error)) {
-        json(res, 413, { message: tooLargeMessage });
-        return { ok: false };
+  async function dispatchApiRoute(apiPath, req, res) {
+    for (const handleApiRoute of apiRouteHandlers) {
+      const routeResult = await handleApiRoute(apiPath, req, res);
+      if (routeResult !== false) {
+        return true;
       }
-      json(res, 400, { message: getErrorMessage(error, invalidMessage) });
-      return { ok: false };
-    }
-  }
-
-  function writeMutationServerError(res) {
-    return json(res, 500, { message: 'Server error' });
-  }
-
-  function sendStaticFile(res, reqPath, data) {
-    const ext = path.extname(reqPath).toLowerCase();
-    const contentType = mimeTypes[ext] || 'application/octet-stream';
-    const isHtml = ext === '.html';
-    const htmlResponse = isHtml ? prepareHtmlResponse(data.toString('utf8')) : null;
-    const responseBody = htmlResponse ? htmlResponse.body : data;
-    const responseSecurityHeaders = htmlResponse ? htmlResponse.headers : securityHeaders;
-
-    res.writeHead(200, {
-      'Content-Type': contentType,
-      'Cache-Control': getCacheControl(reqPath),
-      ...responseSecurityHeaders,
-    });
-    res.end(responseBody);
-  }
-
-  function readStaticFile(reqPath) {
-    if (fs.promises && typeof fs.promises.readFile === 'function') {
-      return fs.promises.readFile(reqPath);
     }
 
-    return new Promise((resolve, reject) => {
-      fs.readFile(reqPath, (error, data) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve(data);
-      });
-    });
-  }
-
-  function shouldServeSpaFallback(req, safePath) {
-    const acceptHeader = req.headers?.accept || req.headers?.Accept || '';
-    const acceptsHtml = String(
-      Array.isArray(acceptHeader) ? acceptHeader[0] : acceptHeader,
-    ).includes('text/html');
-    return acceptsHtml || safePath.endsWith('/') || path.extname(safePath) === '';
-  }
-
-  async function serveFile(req, res, reqPath, safePath) {
-    try {
-      const data = await readStaticFile(reqPath);
-      sendStaticFile(res, reqPath, data);
-    } catch (error) {
-      if (error && error.code === 'ENOENT') {
-        if (!shouldServeSpaFallback(req, safePath)) {
-          writeStaticErrorResponse(res, 404, 'Not Found');
-          return;
-        }
-
-        try {
-          const indexPath = path.join(staticRoot, 'index.html');
-          const html = await readStaticFile(indexPath);
-          sendStaticFile(res, indexPath, html);
-        } catch {
-          writeStaticErrorResponse(res, 500, 'Internal Server Error');
-        }
-        return;
-      }
-
-      const invalidPath = error && error.code === 'ERR_INVALID_ARG_VALUE';
-      const directoryRead = error && error.code === 'EISDIR';
-      writeStaticErrorResponse(
-        res,
-        invalidPath ? 400 : directoryRead ? 403 : 500,
-        invalidPath
-          ? 'Invalid request path'
-          : directoryRead
-            ? 'Access denied'
-            : 'Internal Server Error',
-      );
-    }
+    return false;
   }
 
   async function handleServerRequest(req, res) {
@@ -208,407 +122,12 @@ function createHttpRouter({
       return json(res, 404, { message: 'Not Found' });
     }
 
-    if (apiPath === '/usage') {
-      if (req.method === 'GET') {
-        let data;
-        try {
-          data = readData();
-        } catch (error) {
-          if (isPersistedStateError(error, 'usage')) {
-            return json(res, 500, { message: error.message });
-          }
-          throw error;
-        }
-        return json(
-          res,
-          200,
-          data || {
-            daily: [],
-            totals: {
-              inputTokens: 0,
-              outputTokens: 0,
-              cacheCreationTokens: 0,
-              cacheReadTokens: 0,
-              thinkingTokens: 0,
-              totalCost: 0,
-              totalTokens: 0,
-              requestCount: 0,
-            },
-          },
-        );
-      }
-      if (req.method === 'DELETE') {
-        const validationError = validateMutationRequest(req);
-        if (validationError) {
-          return json(res, validationError.status, { message: validationError.message });
-        }
-        try {
-          await withSettingsAndDataMutationLock(async () => {
-            await unlinkIfExists(dataFile);
-            await _updateDataLoadStateUnlocked({
-              lastLoadedAt: null,
-              lastLoadSource: null,
-            });
-          });
-        } catch (error) {
-          if (isPersistedStateError(error, 'usage') || isPersistedStateError(error, 'settings')) {
-            return json(res, 500, { message: error.message });
-          }
-          return writeMutationServerError(res);
-        }
-        return json(res, 200, { success: true });
-      }
-      return json(res, 405, { message: 'Method Not Allowed' });
-    }
-
-    if (apiPath === '/runtime') {
-      if (req.method !== 'GET') {
-        return json(res, 405, { message: 'Method Not Allowed' });
-      }
-
-      return json(res, 200, getRuntimeSnapshot());
-    }
-
-    if (apiPath === '/settings') {
-      if (req.method === 'GET') {
-        try {
-          return json(res, 200, readSettings());
-        } catch (error) {
-          if (isPersistedStateError(error, 'settings')) {
-            return json(res, 500, { message: error.message });
-          }
-          throw error;
-        }
-      }
-
-      if (req.method === 'DELETE') {
-        const validationError = validateMutationRequest(req);
-        if (validationError) {
-          return json(res, validationError.status, { message: validationError.message });
-        }
-        try {
-          const settings = await withFileMutationLock(settingsFile, async () => {
-            await unlinkIfExists(settingsFile);
-            return readSettings();
-          });
-          return json(res, 200, { success: true, settings });
-        } catch (error) {
-          if (isPersistedStateError(error, 'settings')) {
-            return json(res, 500, { message: error.message });
-          }
-          return writeMutationServerError(res);
-        }
-      }
-
-      if (req.method === 'PATCH') {
-        const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
-        if (validationError) {
-          return json(res, validationError.status, { message: validationError.message });
-        }
-
-        const bodyResult = await readMutationBody(req, res, {
-          tooLargeMessage: 'Settings request too large',
-          invalidMessage: 'Invalid settings request',
-        });
-        if (!bodyResult.ok) {
-          return;
-        }
-
-        try {
-          return json(res, 200, await updateSettings(bodyResult.body));
-        } catch (error) {
-          if (isPersistedStateError(error, 'settings')) {
-            return json(res, 500, { message: error.message });
-          }
-          return writeMutationServerError(res);
-        }
-      }
-
-      return json(res, 405, { message: 'Method Not Allowed' });
-    }
-
-    if (apiPath === '/settings/import') {
-      if (req.method !== 'POST') {
-        return json(res, 405, { message: 'Method Not Allowed' });
-      }
-
-      const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
-      if (validationError) {
-        return json(res, validationError.status, { message: validationError.message });
-      }
-
-      const bodyResult = await readMutationBody(req, res, {
-        tooLargeMessage: 'Settings file too large',
-        invalidMessage: 'Invalid settings file',
-      });
-      if (!bodyResult.ok) {
-        return;
-      }
-
-      let importedSettings;
-      try {
-        importedSettings = normalizeSettings(extractSettingsImportPayload(bodyResult.body));
-      } catch (error) {
-        return json(res, 400, { message: getErrorMessage(error, 'Invalid settings file') });
-      }
-
-      try {
-        const settings = await withFileMutationLock(settingsFile, async () => {
-          await writeSettings(importedSettings);
-          return readSettings();
-        });
-        return json(res, 200, settings);
-      } catch (error) {
-        if (isPersistedStateError(error, 'settings')) {
-          return json(res, 500, { message: error.message });
-        }
-        return writeMutationServerError(res);
-      }
-    }
-
-    if (apiPath === '/upload') {
-      if (req.method === 'POST') {
-        const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
-        if (validationError) {
-          return json(res, validationError.status, { message: validationError.message });
-        }
-
-        const bodyResult = await readMutationBody(req, res, {
-          tooLargeMessage: 'File too large (max. 10 MB)',
-          invalidMessage: 'Invalid JSON',
-        });
-        if (!bodyResult.ok) {
-          return;
-        }
-
-        let nextData;
-        try {
-          const normalized = dataRuntime.normalizeIncomingData
-            ? dataRuntime.normalizeIncomingData(bodyResult.body)
-            : null;
-          nextData = normalized || bodyResult.body;
-        } catch (error) {
-          return json(res, 400, { message: getErrorMessage(error, 'Invalid JSON') });
-        }
-
-        try {
-          await withSettingsAndDataMutationLock(async () => {
-            await writeData(nextData);
-            await _updateDataLoadStateUnlocked({
-              lastLoadedAt: new Date().toISOString(),
-              lastLoadSource: 'file',
-            });
-          });
-          return json(res, 200, {
-            days: nextData.daily.length,
-            totalCost: nextData.totals.totalCost,
-          });
-        } catch (error) {
-          if (isPersistedStateError(error, 'settings') || isPersistedStateError(error, 'usage')) {
-            return json(res, 500, { message: error.message });
-          }
-          return writeMutationServerError(res);
-        }
-      }
-      return json(res, 405, { message: 'Method Not Allowed' });
-    }
-
-    if (apiPath === '/usage/import') {
-      if (req.method !== 'POST') {
-        return json(res, 405, { message: 'Method Not Allowed' });
-      }
-
-      const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
-      if (validationError) {
-        return json(res, validationError.status, { message: validationError.message });
-      }
-
-      const bodyResult = await readMutationBody(req, res, {
-        tooLargeMessage: 'Usage backup file too large',
-        invalidMessage: 'Invalid usage backup file',
-      });
-      if (!bodyResult.ok) {
-        return;
-      }
-
-      let importedData;
-      try {
-        const usagePayload = extractUsageImportPayload(bodyResult.body);
-        importedData = dataRuntime.normalizeIncomingData
-          ? dataRuntime.normalizeIncomingData(usagePayload)
-          : usagePayload;
-      } catch (error) {
-        return json(res, 400, { message: getErrorMessage(error, 'Invalid usage backup file') });
-      }
-
-      try {
-        const result = await withSettingsAndDataMutationLock(async () => {
-          const currentData = readData();
-          const merged = mergeUsageData(currentData, importedData);
-          await writeData(merged.data);
-          await _updateDataLoadStateUnlocked({
-            lastLoadedAt: new Date().toISOString(),
-            lastLoadSource: 'file',
-          });
-          return merged;
-        });
-        return json(res, 200, result.summary);
-      } catch (error) {
-        if (isPersistedStateError(error, 'usage') || isPersistedStateError(error, 'settings')) {
-          return json(res, 500, { message: error.message });
-        }
-        return writeMutationServerError(res);
-      }
-    }
-
-    if (apiPath === '/auto-import/stream') {
-      if (req.method !== 'POST') {
-        return json(res, 405, { message: 'Method Not Allowed' });
-      }
-
-      const validationError = validateMutationRequest(req);
-      if (validationError) {
-        return json(res, validationError.status, { message: validationError.message });
-      }
-
-      let autoImportLease;
-      try {
-        autoImportLease = acquireAutoImportLease();
-      } catch (error) {
-        if (error?.messageKey !== 'autoImportRunning') {
-          throw error;
-        }
-        return json(res, 409, {
-          message: formatAutoImportMessageEvent(createAutoImportMessageEvent('autoImportRunning')),
-        });
-      }
-
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-        'X-Accel-Buffering': 'no',
-        ...securityHeaders,
-      });
-
-      let aborted = false;
-      req.on('close', () => {
-        aborted = true;
-      });
-
-      try {
-        const result = await performAutoImport({
-          source: 'auto-import',
-          onCheck: (event) => {
-            if (!aborted) {
-              sendSSE(res, 'check', event);
-            }
-          },
-          onProgress: (event) => {
-            if (!aborted) {
-              sendSSE(res, 'progress', event);
-            }
-          },
-          onOutput: (line) => {
-            if (!aborted) {
-              sendSSE(res, 'stderr', { line });
-            }
-          },
-          signalOnClose: (close) => {
-            req.on('close', close);
-          },
-          lease: autoImportLease,
-        });
-
-        if (aborted) {
-          return;
-        }
-
-        sendSSE(res, 'success', result);
-        sendSSE(res, 'done', {});
-        res.end();
-      } catch (error) {
-        if (aborted) {
-          return;
-        }
-        sendSSE(res, 'error', toAutoImportErrorEvent(error));
-        sendSSE(res, 'done', {});
-        res.end();
-      } finally {
-        autoImportLease.release();
-      }
-      return;
-    }
-
-    if (apiPath === '/toktrack/version-status') {
-      if (req.method !== 'GET') {
-        return json(res, 405, { message: 'Method Not Allowed' });
-      }
-
-      try {
-        return json(res, 200, await lookupLatestToktrackVersion());
-      } catch (error) {
-        return json(res, 503, {
-          message: 'Service Unavailable',
-          detail: getErrorMessage(error, 'Could not determine the latest toktrack version.'),
-        });
-      }
-    }
-
-    if (apiPath === '/report/pdf') {
-      if (req.method !== 'POST') {
-        return json(res, 405, { message: 'Method Not Allowed' });
-      }
-
-      const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
-      if (validationError) {
-        return json(res, validationError.status, { message: validationError.message });
-      }
-
-      let data;
-      try {
-        data = readData();
-      } catch (error) {
-        if (isPersistedStateError(error, 'usage')) {
-          return json(res, 500, { message: error.message });
-        }
-        throw error;
-      }
-      if (!data || !Array.isArray(data.daily) || data.daily.length === 0) {
-        return json(res, 400, { message: 'No data available for the report.' });
-      }
-
-      let body;
-      try {
-        body = await readBody(req);
-      } catch (error) {
-        const status = isPayloadTooLargeError(error) ? 413 : 400;
-        return json(res, status, {
-          message: isPayloadTooLargeError(error)
-            ? 'Report request too large'
-            : 'Invalid report request',
-        });
-      }
-
-      try {
-        const result = await generatePdfReport(data.daily, body || {});
-        return sendBuffer(
-          res,
-          200,
-          {
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="${result.filename}"`,
-          },
-          result.buffer,
-        );
-      } catch (error) {
-        const message = error && error.message ? error.message : 'PDF generation failed';
-        const status = error && error.code === 'TYPST_MISSING' ? 503 : 500;
-        return json(res, status, { message });
-      }
-    }
-
     if (apiPath !== null) {
+      const handled = await dispatchApiRoute(apiPath, req, res);
+      if (handled) {
+        return;
+      }
+
       return json(res, 404, { message: 'API endpoint not found' });
     }
 
@@ -622,22 +141,7 @@ function createHttpRouter({
       return;
     }
 
-    const safePath = pathname === '/' ? '/index.html' : pathname;
-    if (safePath.includes('\0')) {
-      return json(res, 400, { message: 'Invalid request path' });
-    }
-    const resolvedStaticRoot = path.resolve(staticRoot);
-    const filePath = path.resolve(staticRoot, `.${safePath}`);
-
-    if (
-      filePath === resolvedStaticRoot ||
-      (!filePath.startsWith(resolvedStaticRoot + path.sep) &&
-        filePath !== path.resolve(staticRoot, 'index.html'))
-    ) {
-      return json(res, 403, { message: 'Access denied' });
-    }
-
-    await serveFile(req, res, filePath, safePath);
+    await staticRoutes.handleStaticRequest(req, res, pathname);
   }
 
   return {

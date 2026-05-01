@@ -619,7 +619,9 @@ describe('HTTP router mutation errors', () => {
 
     expect(res.status).toBe(200)
     expect(res.headers['Content-Type']).toBe('application/pdf')
-    expect(res.headers['Content-Disposition']).toBe('attachment; filename="ttdash-report.pdf"')
+    expect(res.headers['Content-Disposition']).toBe(
+      'attachment; filename="ttdash-report.pdf"; filename*=UTF-8\'\'ttdash-report.pdf',
+    )
     expect(res.body).toBe('%PDF-1.4')
     expect(generatePdfReport).toHaveBeenCalledWith(usageData.daily, { locale: 'de-CH' })
   })
