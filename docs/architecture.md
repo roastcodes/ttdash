@@ -105,6 +105,9 @@ Persisted settings are a shared contract across the frontend bootstrap path and 
   - owns app-level settings defaults, provider-limit normalization, and timestamp/load-source coercion
   - consumes `shared/dashboard-preferences.js` for dashboard-specific filter/section defaults and normalization
   - is the only production module that should define persisted settings defaults or normalization rules
+- `shared/*.d.ts`
+  - must expose the same value exports as their sibling CommonJS modules
+  - are guarded by `tests/architecture/shared-declaration-contract.test.ts` so runtime exports cannot drift from TypeScript consumers silently
 - `src/lib/app-settings.ts`
   - is a typed frontend adapter over `shared/app-settings.js`
   - may keep DOM-only behavior such as `applyTheme`, but must not recompute settings defaults from local helpers
@@ -169,6 +172,9 @@ Dashboard-specific presets, static section metadata, and preset date semantics a
 - `src/components/dashboard/DashboardSections.tsx`
   - consumes a single `DashboardSectionsViewModel`
   - should keep section ownership grouped by section bundle instead of reintroducing broad prop lists
+- `src/components/dashboard/sections/dashboard-section-renderer-types.d.ts`
+  - owns the type-only renderer contract shared by section family renderers
+  - must stay declaration-only because it is intentionally erased from the runtime dependency graph
 - `src/components/layout/FilterBar.tsx`
   - owns the public filter bar shell and composes private layout filter groups for status, time presets, date range, and provider/model chips
 - `src/components/layout/FilterBar*.tsx`
