@@ -21,6 +21,44 @@ interface CostByWeekdayProps {
   data: WeekdayData[]
 }
 
+const WEEKEND_DAY_FALLBACKS = new Set([
+  // Saturday
+  'sa',
+  'sam',
+  'samedi',
+  'sab',
+  'sabado',
+  'sabato',
+  'sat',
+  'saturday',
+  // Sunday
+  'dim',
+  'dimanche',
+  'dom',
+  'domingo',
+  'domenica',
+  'so',
+  'sonntag',
+  'su',
+  'sun',
+  'sunday',
+])
+
+function isWeekendEntry(entry: WeekdayData) {
+  if (entry.weekdayIndex !== undefined) {
+    return entry.weekdayIndex === 5 || entry.weekdayIndex === 6
+  }
+
+  // buildDashboardChartTransforms provides weekdayIndex; day labels are a legacy/external fallback.
+  const normalizedDay = entry.day
+    .trim()
+    .toLocaleLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\.$/, '')
+  return WEEKEND_DAY_FALLBACKS.has(normalizedDay)
+}
+
 /** Renders average cost by weekday. */
 export function CostByWeekday({ data }: CostByWeekdayProps) {
   const { t } = useTranslation()
@@ -33,7 +71,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
   const peakIndex = data.findIndex((d) => d.cost === maxCost)
   const lowIndex = data.findIndex((d) => d.cost === minCost)
   const weekendCost = data
-    .filter((_, index) => index === 5 || index === 6)
+    .filter((entry) => isWeekendEntry(entry))
     .reduce((sum, entry) => sum + entry.cost, 0)
   const weekTotal = data.reduce((sum, entry) => sum + entry.cost, 0)
 

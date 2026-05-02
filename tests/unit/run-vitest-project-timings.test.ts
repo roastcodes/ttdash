@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module'
+import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -131,6 +132,7 @@ describe('Vitest project timing runner', () => {
     const stdout = { write: vi.fn() }
     const stderr = { write: vi.fn() }
     const spawnSyncImpl = vi.fn(() => ({ status: 0 }))
+    const mkdirSync = vi.spyOn(fs, 'mkdirSync')
 
     const status = timingRunner.run(
       ['--projects=unit', '--repeat=2', '--dry-run'],
@@ -140,8 +142,11 @@ describe('Vitest project timing runner', () => {
 
     expect(status).toBe(0)
     expect(spawnSyncImpl).not.toHaveBeenCalled()
+    expect(mkdirSync).not.toHaveBeenCalled()
     expect(stdout.write.mock.calls.join('\n')).toContain('vitest-unit.timing-run-1.junit.xml')
     expect(stdout.write.mock.calls.join('\n')).toContain('vitest-unit.timing-run-2.junit.xml')
+
+    mkdirSync.mockRestore()
   })
 
   it('calculates median values for repeated timings', () => {

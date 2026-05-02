@@ -44,6 +44,8 @@ const metrics: DashboardMetrics = {
 }
 
 describe('metric ratio localization', () => {
+  const daysElapsedInTestMonth = 30
+  const testDate = new Date(2026, 3, daysElapsedInTestMonth, 12)
   const daily: DailyUsage[] = [
     {
       date: '2026-04-02',
@@ -75,7 +77,7 @@ describe('metric ratio localization', () => {
 
   beforeEach(async () => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-04-30T12:00:00Z'))
+    vi.setSystemTime(testDate)
     vi.stubGlobal(
       'IntersectionObserver',
       class {
@@ -132,7 +134,7 @@ describe('metric ratio localization', () => {
       style: 'percent',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(2 / new Date().getDate())
+    }).format(2 / daysElapsedInTestMonth)
 
     render(
       <TooltipProvider delayDuration={0}>

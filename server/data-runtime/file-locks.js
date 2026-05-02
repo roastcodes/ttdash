@@ -23,16 +23,10 @@ function getInvalidFileLockOptionNames({
     invalidOptions.push('runtimeInstanceId');
   }
   if (typeof isWindows !== 'boolean') invalidOptions.push('isWindows');
-  if (
-    secureDirMode != null &&
-    (!Number.isInteger(secureDirMode) || secureDirMode < 0 || secureDirMode > 0o777)
-  ) {
+  if (!Number.isInteger(secureDirMode) || secureDirMode < 0 || secureDirMode > 0o777) {
     invalidOptions.push('secureDirMode');
   }
-  if (
-    secureFileMode != null &&
-    (!Number.isInteger(secureFileMode) || secureFileMode < 0 || secureFileMode > 0o777)
-  ) {
+  if (!Number.isInteger(secureFileMode) || secureFileMode < 0 || secureFileMode > 0o777) {
     invalidOptions.push('secureFileMode');
   }
   if (

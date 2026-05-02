@@ -1,5 +1,6 @@
 import { promises as fsPromises } from 'node:fs'
 import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -93,28 +94,37 @@ function createRuntime({
 }
 
 describe('data runtime contracts', () => {
-  it('prefers explicit data, config, and cache directories over platform defaults', () => {
-    const runtime = createRuntime({
-      env: {
-        TTDASH_CACHE_DIR: '/tmp/ttdash/cache',
-        TTDASH_CONFIG_DIR: '/tmp/ttdash/config',
-        TTDASH_DATA_DIR: '/tmp/ttdash/data',
-      },
-      getCliAutoLoadActive: () => true,
-      platform: 'linux',
-    })
+  it('prefers explicit data, config, and cache directories over platform defaults', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-runtime-contract-'))
+    const cacheDir = path.join(runtimeRoot, 'cache')
+    const configDir = path.join(runtimeRoot, 'config')
+    const dataDir = path.join(runtimeRoot, 'data')
 
-    expect(runtime.appPaths).toEqual({
-      cacheDir: '/tmp/ttdash/cache',
-      configDir: '/tmp/ttdash/config',
-      dataDir: '/tmp/ttdash/data',
-    })
-    expect(runtime.paths).toMatchObject({
-      dataFile: '/tmp/ttdash/data/data.json',
-      settingsFile: '/tmp/ttdash/config/settings.json',
-      npxCacheDir: '/tmp/ttdash/cache/npx-cache',
-    })
-    expect(runtime.readSettings()).toMatchObject({ cliAutoLoadActive: true })
+    try {
+      const runtime = createRuntime({
+        env: {
+          TTDASH_CACHE_DIR: cacheDir,
+          TTDASH_CONFIG_DIR: configDir,
+          TTDASH_DATA_DIR: dataDir,
+        },
+        getCliAutoLoadActive: () => true,
+        platform: 'linux',
+      })
+
+      expect(runtime.appPaths).toEqual({
+        cacheDir,
+        configDir,
+        dataDir,
+      })
+      expect(runtime.paths).toMatchObject({
+        dataFile: path.join(dataDir, 'data.json'),
+        settingsFile: path.join(configDir, 'settings.json'),
+        npxCacheDir: path.join(cacheDir, 'npx-cache'),
+      })
+      expect(runtime.readSettings()).toMatchObject({ cliAutoLoadActive: true })
+    } finally {
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
   })
 
   it('resolves macOS, Windows, and XDG platform paths without touching the host profile', () => {
@@ -313,6 +323,56 @@ describe('data runtime contracts', () => {
     })
     expect(merge.data.daily.map((day) => day.date)).toEqual(['2026-04-03'])
     expect(merge.data.totals).toMatchObject({ totalCost: 0.1, totalTokens: 3 })
+  })
+
+  it('recomputes imported totals with numeric coercion when no current usage exists', () => {
+    const runtime = createRuntime()
+
+    const merge = runtime.mergeUsageData(null, {
+      daily: [
+        {
+          date: '2026-04-03',
+          inputTokens: '5',
+          outputTokens: '7',
+          cacheCreationTokens: '2',
+          cacheReadTokens: '3',
+          thinkingTokens: '4',
+          totalTokens: '21',
+          totalCost: '1.5',
+          requestCount: '6',
+          modelsUsed: ['GPT-5.4'],
+          modelBreakdowns: [],
+        },
+      ],
+      totals: { totalCost: 999, totalTokens: 999, requestCount: 999 },
+    })
+
+    expect(merge.summary).toMatchObject({
+      importedDays: 1,
+      addedDays: 1,
+      skippedDays: 0,
+      totalDays: 1,
+    })
+    expect(merge.data.daily[0]).toMatchObject({
+      inputTokens: 5,
+      outputTokens: 7,
+      cacheCreationTokens: 2,
+      cacheReadTokens: 3,
+      thinkingTokens: 4,
+      totalTokens: 21,
+      totalCost: 1.5,
+      requestCount: 6,
+    })
+    expect(merge.data.totals).toEqual({
+      inputTokens: 5,
+      outputTokens: 7,
+      cacheCreationTokens: 2,
+      cacheReadTokens: 3,
+      thinkingTokens: 4,
+      totalCost: 1.5,
+      totalTokens: 21,
+      requestCount: 6,
+    })
   })
 
   it('rejects usage imports that do not contain a daily array before merging', () => {

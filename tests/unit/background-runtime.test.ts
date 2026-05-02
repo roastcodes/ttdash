@@ -77,7 +77,6 @@ function createTestBackgroundRuntime(overrides: Partial<BackgroundRuntimeOptions
   }
 
   return createBackgroundRuntime({
-    fs: fsMock,
     path,
     processObject: {
       ...process,

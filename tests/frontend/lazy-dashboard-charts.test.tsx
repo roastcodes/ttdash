@@ -185,13 +185,23 @@ function createDailyUsage(
 }
 
 const weekdayData: WeekdayData[] = [
-  { day: 'Mo', cost: 3 },
-  { day: 'Tu', cost: 9 },
-  { day: 'We', cost: 6 },
-  { day: 'Th', cost: 4 },
-  { day: 'Fr', cost: 7 },
-  { day: 'Sa', cost: 2 },
-  { day: 'Su', cost: 5 },
+  { day: 'Mo', cost: 3, weekdayIndex: 0 },
+  { day: 'Sa', cost: 2, weekdayIndex: 5 },
+  { day: 'Tu', cost: 9, weekdayIndex: 1 },
+  { day: 'Su', cost: 5, weekdayIndex: 6 },
+  { day: 'We', cost: 6, weekdayIndex: 2 },
+  { day: 'Th', cost: 4, weekdayIndex: 3 },
+  { day: 'Fr', cost: 7, weekdayIndex: 4 },
+]
+
+const legacyWeekdayData: WeekdayData[] = [
+  { day: 'Lun', cost: 3 },
+  { day: 'Sáb.', cost: 2 },
+  { day: 'Mar', cost: 9 },
+  { day: 'Dom.', cost: 5 },
+  { day: 'Mié', cost: 6 },
+  { day: 'Jue', cost: 4 },
+  { day: 'Vie', cost: 7 },
 ]
 
 const tokenData: TokenChartDataPoint[] = [
@@ -243,6 +253,12 @@ describe('lazy dashboard charts', () => {
     expect(fills).toHaveLength(7)
     expect(fills.some((fill) => fill?.includes('weekdayPeak'))).toBe(true)
     expect(fills.some((fill) => fill?.includes('weekdayLow'))).toBe(true)
+  })
+
+  it('uses localized day labels as a defensive weekend fallback without weekday indices', () => {
+    renderWithTooltip(<CostByWeekday data={legacyWeekdayData} />)
+
+    expect(screen.getByText('Peak: Mar · Low: Sáb. · Weekend 19%')).toBeInTheDocument()
   })
 
   it('renders ModelMix for enough model history and skips underspecified input', () => {

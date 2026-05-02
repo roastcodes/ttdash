@@ -1,3 +1,5 @@
+const { randomBytes } = require('crypto');
+
 /** Creates secure JSON file I/O helpers for the data runtime. */
 function createDataRuntimeFileIo({
   fs,
@@ -42,9 +44,14 @@ function createDataRuntimeFileIo({
     return error?.code === 'ENOENT';
   }
 
+  function createAtomicTempPath(filePath) {
+    const randomSuffix = randomBytes(8).toString('hex');
+    return `${filePath}.${processObject.pid}.${Date.now()}.${randomSuffix}.tmp`;
+  }
+
   function writeJsonAtomic(filePath, data) {
     ensureDir(path.dirname(filePath));
-    const tempPath = `${filePath}.${processObject.pid}.${Date.now()}.tmp`;
+    const tempPath = createAtomicTempPath(filePath);
     try {
       fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), {
         mode: secureFileMode,
@@ -67,7 +74,7 @@ function createDataRuntimeFileIo({
   }
 
   async function writeJsonAtomicAsync(filePath, data) {
-    const tempPath = `${filePath}.${processObject.pid}.${Date.now()}.tmp`;
+    const tempPath = createAtomicTempPath(filePath);
     const parentDir = path.dirname(filePath);
 
     try {

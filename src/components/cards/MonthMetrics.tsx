@@ -86,7 +86,7 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
       if (!topModel || cost > topModel.cost) topModel = { name, cost }
     }
 
-    // Days elapsed in the current month so far
+    // Days elapsed in the current local month so far.
     const today = new Date()
     const dayOfMonth = today.getDate()
 

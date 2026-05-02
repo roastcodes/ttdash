@@ -140,15 +140,38 @@ async function stopServer(serverProcess: ChildProcessWithoutNullStreams) {
     return
   }
 
+  const waitForExit = (timeoutMs: number) => {
+    if (serverProcess.exitCode !== null) {
+      return Promise.resolve(true)
+    }
+
+    return new Promise<boolean>((resolve) => {
+      const timeoutId = setTimeout(() => {
+        cleanup()
+        resolve(false)
+      }, timeoutMs)
+
+      const cleanup = () => {
+        clearTimeout(timeoutId)
+        serverProcess.off('exit', onExit)
+      }
+
+      const onExit = () => {
+        cleanup()
+        resolve(true)
+      }
+
+      serverProcess.once('exit', onExit)
+    })
+  }
+
   serverProcess.kill('SIGTERM')
 
-  const exited = await Promise.race([
-    new Promise<boolean>((resolve) => serverProcess.once('exit', () => resolve(true))),
-    sleep(5_000).then(() => false),
-  ])
+  const exited = await waitForExit(5_000)
 
   if (!exited && serverProcess.exitCode === null) {
     serverProcess.kill('SIGKILL')
+    await waitForExit(2_000)
   }
 }
 

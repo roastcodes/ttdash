@@ -44,9 +44,14 @@ function createStaticRouteHandler({
     const ext = path.extname(reqPath).toLowerCase();
     const contentType = mimeTypes[ext] || 'application/octet-stream';
     const isHtml = ext === '.html';
-    const htmlResponse = isHtml ? prepareHtmlResponse(data.toString('utf8')) : null;
+    const htmlResponse =
+      isHtml && typeof prepareHtmlResponse === 'function'
+        ? prepareHtmlResponse(data.toString('utf8'))
+        : null;
     const responseBody = htmlResponse ? htmlResponse.body : data;
-    const responseSecurityHeaders = htmlResponse ? htmlResponse.headers : securityHeaders;
+    const responseSecurityHeaders = htmlResponse
+      ? { ...securityHeaders, ...htmlResponse.headers }
+      : securityHeaders;
 
     res.writeHead(200, {
       'Content-Type': contentType,

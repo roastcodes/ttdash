@@ -126,16 +126,18 @@ function areUsageDaysEquivalent(left, right) {
 }
 
 function computeUsageTotals(daily) {
+  const toNumber = (value) => Number(value) || 0;
+
   return daily.reduce(
     (totals, day) => ({
-      inputTokens: totals.inputTokens + (day.inputTokens || 0),
-      outputTokens: totals.outputTokens + (day.outputTokens || 0),
-      cacheCreationTokens: totals.cacheCreationTokens + (day.cacheCreationTokens || 0),
-      cacheReadTokens: totals.cacheReadTokens + (day.cacheReadTokens || 0),
-      thinkingTokens: totals.thinkingTokens + (day.thinkingTokens || 0),
-      totalCost: totals.totalCost + (day.totalCost || 0),
-      totalTokens: totals.totalTokens + (day.totalTokens || 0),
-      requestCount: totals.requestCount + (day.requestCount || 0),
+      inputTokens: totals.inputTokens + toNumber(day.inputTokens),
+      outputTokens: totals.outputTokens + toNumber(day.outputTokens),
+      cacheCreationTokens: totals.cacheCreationTokens + toNumber(day.cacheCreationTokens),
+      cacheReadTokens: totals.cacheReadTokens + toNumber(day.cacheReadTokens),
+      thinkingTokens: totals.thinkingTokens + toNumber(day.thinkingTokens),
+      totalCost: totals.totalCost + toNumber(day.totalCost),
+      totalTokens: totals.totalTokens + toNumber(day.totalTokens),
+      requestCount: totals.requestCount + toNumber(day.requestCount),
     }),
     {
       inputTokens: 0,
@@ -208,7 +210,9 @@ function createDataRuntimeImportMerge({
       throw new Error('Imported data must contain a daily array.');
     }
 
-    const validImportedDaily = importedData.daily.filter(hasValidUsageDayDate);
+    const validImportedDaily = importedData.daily
+      .filter(hasValidUsageDayDate)
+      .map(canonicalizeUsageDay);
     const skippedDays = importedData.daily.length - validImportedDaily.length;
     const current =
       currentData && Array.isArray(currentData.daily) && currentData.daily.length > 0
@@ -216,16 +220,11 @@ function createDataRuntimeImportMerge({
         : null;
 
     if (!current) {
-      const data =
-        skippedDays > 0
-          ? {
-              daily: validImportedDaily,
-              totals: computeUsageTotals(validImportedDaily),
-            }
-          : importedData;
-
       return {
-        data,
+        data: {
+          daily: validImportedDaily,
+          totals: computeUsageTotals(validImportedDaily),
+        },
         summary: {
           importedDays: importedData.daily.length,
           addedDays: validImportedDaily.length,

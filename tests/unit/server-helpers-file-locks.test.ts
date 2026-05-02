@@ -105,6 +105,17 @@ function getMode(filePath: string) {
   return fs.statSync(filePath).mode & 0o777
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function expectAtomicTempPath(tempPath: string, targetFile: string, timestamp: number) {
+  const prefix = `${targetFile}.${process.pid}.${timestamp}.`
+
+  expect(tempPath).toMatch(new RegExp(`^${escapeRegExp(prefix)}[a-f0-9]+\\.tmp$`))
+  expect(tempPath.length).toBeGreaterThan(prefix.length + '.tmp'.length)
+}
+
 function waitForChildMessage(
   child: ReturnType<typeof fork>,
   timeoutMs: number,
@@ -199,6 +210,20 @@ describe('server helper utilities: file mutation locks', () => {
         dataFile: '/tmp/data.json',
       }),
     ).toThrow('runtimeInstanceId, secureDirMode, fileMutationLockTimeoutMs')
+
+    expect(() =>
+      createDataRuntimeFileLocks({
+        fsPromises,
+        path,
+        processObject: process,
+        runtimeInstanceId: 'runtime',
+        isWindows: false,
+        fileMutationLockTimeoutMs: 100,
+        fileMutationLockStaleMs: 30_000,
+        settingsFile: '/tmp/settings.json',
+        dataFile: '/tmp/data.json',
+      }),
+    ).toThrow('secureDirMode, secureFileMode')
   })
 
   it('serializes operations for the same file path and cleans up locks afterwards', async () => {
@@ -489,7 +514,6 @@ dataRuntime.withFileMutationLock(filePath, async () => {
   it('removes temporary files when atomic async writes fail after creating the temp file', async () => {
     const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-write-json-'))
     const targetFile = path.join(targetDir, 'settings.json')
-    const expectedTempPath = `${targetFile}.${process.pid}.1700000000000.tmp`
     const renameError = Object.assign(new Error('rename failed'), { code: 'EXDEV' })
 
     const renameSpy = vi.spyOn(fsPromises, 'rename').mockRejectedValue(renameError)
@@ -499,8 +523,9 @@ dataRuntime.withFileMutationLock(filePath, async () => {
     await expect(writeJsonAtomicAsync(targetFile, { ok: true })).rejects.toBe(renameError)
 
     expect(renameSpy).toHaveBeenCalled()
-    expect(unlinkSpy).toHaveBeenCalledWith(expectedTempPath)
-    expect(existsSync(expectedTempPath)).toBe(false)
+    const tempPath = unlinkSpy.mock.calls[0]?.[0] as string
+    expectAtomicTempPath(tempPath, targetFile, 1700000000000)
+    expect(existsSync(tempPath)).toBe(false)
 
     renameSpy.mockRestore()
     unlinkSpy.mockRestore()
@@ -540,7 +565,6 @@ dataRuntime.withFileMutationLock(filePath, async () => {
   it('removes temporary files when atomic sync writes fail after creating the temp file', async () => {
     const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-write-json-sync-'))
     const targetFile = path.join(targetDir, 'settings.json')
-    const expectedTempPath = `${targetFile}.${process.pid}.1700000000002.tmp`
     const renameError = Object.assign(new Error('rename failed'), { code: 'EXDEV' })
     const runtime = createFileModeRuntime(targetDir, path.join(targetDir, 'legacy-data.json'))
 
@@ -552,8 +576,10 @@ dataRuntime.withFileMutationLock(filePath, async () => {
     try {
       expect(() => runtime.writeJsonAtomic(targetFile, { ok: true })).toThrow(renameError)
 
-      expect(renameSpy).toHaveBeenCalledWith(expectedTempPath, targetFile)
-      expect(existsSync(expectedTempPath)).toBe(false)
+      const tempPath = renameSpy.mock.calls[0]?.[0] as string
+      expect(renameSpy).toHaveBeenCalledWith(tempPath, targetFile)
+      expectAtomicTempPath(tempPath, targetFile, 1700000000002)
+      expect(existsSync(tempPath)).toBe(false)
     } finally {
       renameSpy.mockRestore()
       nowSpy.mockRestore()
@@ -600,7 +626,6 @@ dataRuntime.withFileMutationLock(filePath, async () => {
   it('removes temporary files when writeFile rejects after creating the temp file', async () => {
     const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-write-json-'))
     const targetFile = path.join(targetDir, 'settings.json')
-    const expectedTempPath = `${targetFile}.${process.pid}.1700000000001.tmp`
     const writeError = Object.assign(new Error('write failed'), { code: 'EIO' })
     const originalWriteFile = fsPromises.writeFile.bind(fsPromises)
     const writeSpy = vi
@@ -615,8 +640,9 @@ dataRuntime.withFileMutationLock(filePath, async () => {
     await expect(writeJsonAtomicAsync(targetFile, { ok: true })).rejects.toBe(writeError)
 
     expect(writeSpy).toHaveBeenCalled()
-    expect(unlinkSpy).toHaveBeenCalledWith(expectedTempPath)
-    expect(existsSync(expectedTempPath)).toBe(false)
+    const tempPath = unlinkSpy.mock.calls[0]?.[0] as string
+    expectAtomicTempPath(tempPath, targetFile, 1700000000001)
+    expect(existsSync(tempPath)).toBe(false)
 
     writeSpy.mockRestore()
     unlinkSpy.mockRestore()

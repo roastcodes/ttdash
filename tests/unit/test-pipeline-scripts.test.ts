@@ -36,6 +36,17 @@ describe('test pipeline scripts', () => {
     expect(scripts.typecheck).toContain('--tsBuildInfoFile .cache/tsc/tsconfig.tsbuildinfo')
   })
 
+  it('enables the JUnit reporter whenever a Vitest script writes JUnit output', () => {
+    const scriptsWithJunitOutput = Object.entries(scripts).filter(([, command]) =>
+      command.includes('--outputFile.junit'),
+    )
+
+    expect(scriptsWithJunitOutput.length).toBeGreaterThan(0)
+    for (const [scriptName, command] of scriptsWithJunitOutput) {
+      expect(command, scriptName).toContain('--reporter=junit')
+    }
+  })
+
   it('keeps CI split into parallel jobs that share one production bundle artifact', async () => {
     const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
 

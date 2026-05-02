@@ -218,6 +218,7 @@ export interface ModelCostChartPoint extends ChartDataPoint {
 export interface WeekdayData {
   day: string
   cost: number
+  weekdayIndex?: number
 }
 
 /** Grades the forecast quality based on data density and volatility. */

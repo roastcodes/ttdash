@@ -3,7 +3,10 @@
 import { screen } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FilterBar } from '@/components/layout/FilterBar'
-import { resolveDashboardPresetRange } from '@/lib/dashboard-preferences'
+import {
+  DASHBOARD_QUICK_DATE_PRESETS,
+  resolveDashboardPresetRange,
+} from '@/lib/dashboard-preferences'
 import { initI18n } from '@/lib/i18n'
 import { buildFilterBarProps, renderFilterBar } from './filter-bar-test-helpers'
 
@@ -19,6 +22,29 @@ describe('FilterBar preset and chip states', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  it('renders preset labels in the shared order', () => {
+    renderFilterBar()
+
+    const presetLabelByKey = {
+      '7d': '7D',
+      '30d': '30D',
+      month: 'Month',
+      year: 'Year',
+      all: 'All',
+    } as const satisfies Record<(typeof DASHBOARD_QUICK_DATE_PRESETS)[number], string>
+    const presetLabels = DASHBOARD_QUICK_DATE_PRESETS.map((key) => {
+      const label = presetLabelByKey[key]
+      if (!label) throw new Error(`Missing label for preset key: ${key}`)
+      return label
+    })
+    const renderedPresetLabels = screen
+      .getAllByRole('button')
+      .map((button) => button.textContent?.trim() ?? '')
+      .filter((label) => presetLabels.includes(label))
+
+    expect(renderedPresetLabels).toEqual(presetLabels)
   })
 
   it('derives preset highlighting from the actual date range and clears it for custom ranges or month filters', () => {

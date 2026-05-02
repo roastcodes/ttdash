@@ -31,9 +31,13 @@ function createToktrackRunnerResolver({
       .replace(/^toktrack\s+/, '');
   }
 
+  function getConfiguredLocalToktrackBin() {
+    return processObject.env.TTDASH_TOKTRACK_LOCAL_BIN || toktrackLocalBin;
+  }
+
   function getLocalToktrackDisplayCommand(forceWindows = isWindows) {
     if (processObject.env.TTDASH_TOKTRACK_LOCAL_BIN) {
-      return `${toktrackLocalBin} daily --json`;
+      return `${getConfiguredLocalToktrackBin()} daily --json`;
     }
 
     return forceWindows
@@ -43,7 +47,7 @@ function createToktrackRunnerResolver({
 
   function createLocalToktrackRunner() {
     return {
-      command: toktrackLocalBin,
+      command: getConfiguredLocalToktrackBin(),
       prefixArgs: [],
       env: processObject.env,
       method: 'local',
@@ -141,7 +145,7 @@ function createToktrackRunnerResolver({
       runnerFailures: [],
     };
 
-    if (fs.existsSync(toktrackLocalBin)) {
+    if (fs.existsSync(getConfiguredLocalToktrackBin())) {
       const localRunner = createLocalToktrackRunner();
 
       try {

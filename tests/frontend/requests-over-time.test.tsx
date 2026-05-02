@@ -154,8 +154,11 @@ describe('RequestsOverTime', () => {
 
     expect(lineNames).toEqual(
       expect.arrayContaining([
-        'Claude Opus 4.7',
+        'GPT-5.4 7-day avg',
+        'Claude Sonnet 4.5 7-day avg',
         'Claude Opus 4.7 7-day avg',
+        'Gemini 2.5 Pro 7-day avg',
+        'GPT-4.1 7-day avg',
         'Claude Haiku 4.5 7-day avg',
       ]),
     )

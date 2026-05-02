@@ -101,7 +101,7 @@ describe('test timing report budgets', () => {
       '--max-test-seconds=12',
     ])
 
-    expect(options.junitPath).toMatch(/test-results\/custom\.junit\.xml$/)
+    expect(options.junitPath.replaceAll('\\', '/')).toMatch(/test-results\/custom\.junit\.xml$/)
     expect(options.warnSuiteSeconds).toBe(1.5)
     expect(options.warnTestSeconds).toBe(0.25)
     expect(options.maxSuiteSeconds).toBe(20)

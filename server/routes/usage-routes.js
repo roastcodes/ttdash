@@ -28,20 +28,35 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
     paths: { dataFile },
   } = dataRuntime;
 
+  function isPlainObject(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function isUsageData(value) {
+    return (
+      isPlainObject(value) &&
+      Array.isArray(value.daily) &&
+      value.daily.every((day) => isPlainObject(day) && typeof day.date === 'string') &&
+      isPlainObject(value.totals)
+    );
+  }
+
   function normalizeIncomingUsagePayload(payload, invalidMessage) {
-    if (typeof dataRuntime.normalizeIncomingData !== 'function') {
-      return payload;
+    let nextPayload = payload;
+
+    if (typeof dataRuntime.normalizeIncomingData === 'function') {
+      const normalized = dataRuntime.normalizeIncomingData(payload);
+      // normalizeIncomingData may return undefined to keep the original payload; null is invalid.
+      if (normalized !== undefined) {
+        nextPayload = normalized;
+      }
     }
 
-    const normalized = dataRuntime.normalizeIncomingData(payload);
-    // normalizeIncomingData may return undefined to keep the original payload; null is invalid.
-    if (normalized === undefined) {
-      return payload;
-    }
-    if (normalized === null) {
+    if (!isUsageData(nextPayload)) {
       throw new Error(invalidMessage);
     }
-    return normalized;
+
+    return nextPayload;
   }
 
   async function handleUsageRoutes(apiPath, req, res) {

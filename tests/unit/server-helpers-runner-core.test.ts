@@ -57,14 +57,21 @@ function createSpawnSequence(outcomes: FakeSpawnOutcome[]) {
 
 function createRuntimeWithSpawn(
   spawnImpl: ReturnType<typeof createSpawnSequence>,
-  options: { latestLookupTimeoutMs?: number; localBinExists?: boolean } = {},
+  options: {
+    latestLookupTimeoutMs?: number
+    localBinExists?: boolean
+    localBinOverride?: string
+  } = {},
 ) {
+  const localBin = options.localBinOverride ?? '/missing/toktrack'
+
   return createAutoImportRuntime({
     fs: {
-      existsSync: (filePath: string) =>
-        Boolean(options.localBinExists && filePath === '/missing/toktrack'),
+      existsSync: (filePath: string) => Boolean(options.localBinExists && filePath === localBin),
     },
-    processObject: { env: {} },
+    processObject: {
+      env: options.localBinOverride ? { TTDASH_TOKTRACK_LOCAL_BIN: options.localBinOverride } : {},
+    },
     spawnCrossPlatform: spawnImpl,
     normalizeIncomingData: (input: unknown) => input,
     withSettingsAndDataMutationLock: async (operation: () => Promise<unknown>) => operation(),
@@ -111,6 +118,29 @@ describe('server helper utilities: toktrack runner core behavior', () => {
     expect(getLocalToktrackDisplayCommand(false)).toBe('node_modules/.bin/toktrack daily --json')
     expect(getLocalToktrackDisplayCommand(true)).toBe(
       'node_modules\\.bin\\toktrack.cmd daily --json',
+    )
+  })
+
+  it('honors a configured local toktrack binary override for display and execution', async () => {
+    const spawnImpl = createSpawnSequence([{ stdout: `toktrack ${TOKTRACK_VERSION}` }])
+    const runtime = createRuntimeWithSpawn(spawnImpl, {
+      localBinExists: true,
+      localBinOverride: '/custom/bin/toktrack',
+    })
+
+    expect(runtime.getLocalToktrackDisplayCommand()).toBe('/custom/bin/toktrack daily --json')
+
+    await expect(runtime.resolveToktrackRunner()).resolves.toMatchObject({
+      command: '/custom/bin/toktrack',
+      displayCommand: '/custom/bin/toktrack daily --json',
+      method: 'local',
+    })
+    expect(spawnImpl).toHaveBeenCalledWith(
+      '/custom/bin/toktrack',
+      ['--version'],
+      expect.objectContaining({
+        env: { TTDASH_TOKTRACK_LOCAL_BIN: '/custom/bin/toktrack' },
+      }),
     )
   })
 

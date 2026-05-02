@@ -37,7 +37,7 @@ When adding tests:
 - use real subprocesses only when shell/PATH/CLI or cross-process behavior is the thing being tested
 - split files once they mix unrelated concerns like content, navigation, localization, motion, or keyboard behavior
 - keep `waitFor(...)` for real eventual consistency only, not as the default assertion pattern
-- keep Playwright specs on `tests/e2e/fixtures.ts` and reset state with `resetAppState(...)` or `prepareDashboard(...)`
+- keep Playwright fixtures and shared helpers in `tests/e2e/fixtures.ts`; place specs in `tests/e2e` spec files and reset state with `resetAppState(...)` or `prepareDashboard(...)`
 - when improving coverage, prefer critical branch-heavy runtime modules like `src/lib/api.ts`, `src/hooks/use-usage-data.ts`, and `src/hooks/use-dashboard-controller.ts` over adding another broad dashboard catch-all test
 
 Continue to manually verify the main flows affected by the change: dashboard load, auto-import, JSON upload, filtering, and export actions.

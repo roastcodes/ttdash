@@ -27,7 +27,10 @@ class MockResponse {
   }
 }
 
-function createRouter(readFile: (filePath: string) => Promise<Buffer>) {
+function createRouter(
+  readFile: (filePath: string) => Promise<Buffer>,
+  prepareHtmlResponse?: (html: string) => { body: string; headers: Record<string, string> },
+) {
   return createHttpRouter({
     fs: {
       promises: {
@@ -35,6 +38,7 @@ function createRouter(readFile: (filePath: string) => Promise<Buffer>) {
       },
     },
     path,
+    prepareHtmlResponse,
     staticRoot: '/app/dist',
     securityHeaders: { 'X-Test-Security': '1' },
     httpUtils: {
@@ -93,6 +97,33 @@ describe('HTTP router static file handling', () => {
 
     expect(res.status).toBe(200)
     expect(res.body).toContain('<!doctype html>')
+  })
+
+  it('preserves base security headers when preparing HTML responses', async () => {
+    const router = createRouter(
+      async (filePath) => {
+        if (filePath.endsWith('index.html')) {
+          return Buffer.from('<!doctype html><html><head></head></html>')
+        }
+        throw Object.assign(new Error('missing'), { code: 'ENOENT' })
+      },
+      (html) => ({
+        body: html.replace('</head>', '<meta name="ttdash-csp-nonce" content="nonce"></head>'),
+        headers: {
+          'Content-Security-Policy': "default-src 'self'; script-src 'nonce-test'",
+        },
+      }),
+    )
+    const res = new MockResponse()
+
+    await router.handleServerRequest({ url: '/dashboard', method: 'GET', headers: {} }, res)
+
+    expect(res.status).toBe(200)
+    expect(res.headers['X-Test-Security']).toBe('1')
+    expect(res.headers['Content-Security-Policy']).toBe(
+      "default-src 'self'; script-src 'nonce-test'",
+    )
+    expect(res.body).toContain('ttdash-csp-nonce')
   })
 
   it('returns not found for missing static assets instead of serving the SPA shell', async () => {

@@ -353,6 +353,18 @@ describe('HTTP router mutation errors', () => {
     expect(body).toEqual({ message: 'Server error' })
   })
 
+  it('rejects normalized upload payloads that are not valid usage data', async () => {
+    const { dataRuntime, router } = createRouter({
+      readBody: vi.fn(async () => ({ daily: [{ date: 42 }], totals: {} })),
+    })
+
+    const { res, body } = await request(router, '/api/upload', 'POST')
+
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ message: 'Invalid JSON' })
+    expect(dataRuntime.writeData).not.toHaveBeenCalled()
+  })
+
   it('returns server errors for usage import write failures', async () => {
     const usageData = { daily: [{ date: '2026-04-27' }], totals: { totalCost: 1 } }
     const { router } = createRouter({
@@ -368,6 +380,18 @@ describe('HTTP router mutation errors', () => {
 
     expect(res.status).toBe(500)
     expect(body).toEqual({ message: 'Server error' })
+  })
+
+  it('rejects normalized usage imports that are not valid usage data', async () => {
+    const { dataRuntime, router } = createRouter({
+      readBody: vi.fn(async () => ({ data: { daily: [{ date: 42 }], totals: {} } })),
+    })
+
+    const { res, body } = await request(router, '/api/usage/import', 'POST')
+
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ message: 'Invalid usage backup file' })
+    expect(dataRuntime.writeData).not.toHaveBeenCalled()
   })
 
   it('returns service unavailable when toktrack version lookup throws', async () => {

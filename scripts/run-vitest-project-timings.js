@@ -198,7 +198,9 @@ function run(argv = process.argv.slice(2), streams = process, spawnSyncImpl = sp
     return 0;
   }
 
-  fs.mkdirSync(options.reportDir, { recursive: true });
+  if (!options.dryRun) {
+    fs.mkdirSync(options.reportDir, { recursive: true });
+  }
 
   const results = new Map();
 

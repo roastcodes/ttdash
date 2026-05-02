@@ -148,7 +148,6 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 - CI-style Playwright smoke: `npm run test:e2e:ci`
 - Serial local mirror of the CI gate: `npm run verify:ci`
 - Optional parallel local gate without Playwright: `npm run verify:parallel`
-- Optional parallel local fast path including Playwright, without coverage instrumentation: `PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel`
 
 ## Architecture Guardrails
 
