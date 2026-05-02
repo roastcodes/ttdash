@@ -58,6 +58,7 @@ describe('test pipeline scripts', () => {
       'package-smoke',
       'e2e',
       'windows-smoke',
+      'ci-required',
     ]) {
       expect(workflow).toContain(`\n  ${job}:`)
     }
@@ -72,6 +73,28 @@ describe('test pipeline scripts', () => {
     expect(workflow).toContain('package-smoke:')
     expect(workflow).toContain('e2e:')
     expect(workflow).toContain('needs: build')
+    expect(workflow).toContain('name: CI Required')
+    expect(workflow).toContain('if: ${{ always() }}')
+    expect(workflow).toContain('- static')
+    expect(workflow).toContain('- vitest')
+    expect(workflow).toContain('- coverage')
+    expect(workflow).toContain('- package-smoke')
+    expect(workflow).toContain('- e2e')
+    expect(workflow).toContain('- windows-smoke')
+    expect(workflow).toContain(
+      'check_result "windows-smoke" "${{ needs[\'windows-smoke\'].result }}"',
+    )
     expect(workflow).toContain('uses: actions/download-artifact@')
+  })
+
+  it('uses the required CI job as the release gate', async () => {
+    const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
+    const verifyScript = await readFile('scripts/verify-main-ci.js', 'utf8')
+
+    expect(releaseWorkflow).toContain('--workflow ci.yml')
+    expect(releaseWorkflow).toContain('--required-job "CI Required"')
+    expect(verifyScript).toContain('--required-job')
+    expect(verifyScript).toContain('/actions/runs/${runId}/jobs')
+    expect(verifyScript).toContain('Required CI job')
   })
 })

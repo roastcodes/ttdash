@@ -206,6 +206,7 @@ JUnit reports.
 
 - Keep workflow test paths aligned with the split test structure.
 - The main CI workflow is intentionally a DAG: `static`, Vitest project matrix, `coverage`, and `build` can run independently; `package-smoke` and `e2e` depend only on the `production-dist` artifact from `build`.
+- `CI Required` is the stable branch-protection check for `ci.yml`; it runs after every required CI job with `always()` and fails on failed, skipped, or cancelled dependencies.
 - Keep CI report artifacts job-scoped so parallel jobs do not overwrite each other. Vitest project jobs upload `test-reports-vitest-<project>`, coverage uploads `coverage-reports`, and Playwright uploads `test-reports-e2e`.
 - Each Vitest matrix job evaluates its own JUnit report with `scripts/report-test-timings.js` and the
   same `20s` suite / `12s` test hard budget used by `npm run test:timings:budget`.

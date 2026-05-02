@@ -225,3 +225,44 @@ jobs:
 
       - name: Build production bundle
         run: npm run build:app
+
+  ci-required:
+    name: CI Required
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - static
+      - vitest
+      - coverage
+      - build
+      - package-smoke
+      - e2e
+      - windows-smoke
+    if: ${{ always() }}
+
+    steps:
+      - name: Verify required CI jobs
+        run: |
+          failed=0
+
+          check_result() {
+            local job_name="$1"
+            local result="$2"
+
+            if [[ "${result}" = "success" ]]; then
+              echo "${job_name}: ${result}"
+            else
+              echo "::error::${job_name}: ${result}"
+              failed=1
+            fi
+          }
+
+          check_result "static" "${{ needs.static.result }}"
+          check_result "vitest" "${{ needs.vitest.result }}"
+          check_result "coverage" "${{ needs.coverage.result }}"
+          check_result "build" "${{ needs.build.result }}"
+          check_result "package-smoke" "${{ needs['package-smoke'].result }}"
+          check_result "e2e" "${{ needs.e2e.result }}"
+          check_result "windows-smoke" "${{ needs['windows-smoke'].result }}"
+
+          exit "${failed}"
