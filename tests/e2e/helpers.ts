@@ -1,7 +1,13 @@
 import fs from 'node:fs'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
-import { expect, type Download, type Page } from '@playwright/test'
+import {
+  expect,
+  type APIRequestContext,
+  type APIResponse,
+  type Download,
+  type Page,
+} from '@playwright/test'
 import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 
 export const sampleUsagePath = path.join(process.cwd(), 'examples', 'sample-usage.json')
@@ -46,7 +52,79 @@ type InitScriptTarget = {
   addInitScript: (script: () => void) => Promise<void>
 }
 
+type ApiRequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST'
+type ApiRequestOptions = Parameters<APIRequestContext['fetch']>[1]
+
+const transientApiRequestErrorPattern =
+  /(socket hang up|ECONNRESET|ECONNREFUSED|EPIPE|ETIMEDOUT|Request context disposed|Target page, context or browser has been closed)/i
+const apiRequestRetryAttempts = 3
+const apiRequestRetryDelayMs = 150
+
 export const sampleUsage = JSON.parse(fs.readFileSync(sampleUsagePath, 'utf-8')) as SampleUsage
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isTransientApiRequestError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  return transientApiRequestErrorPattern.test(message)
+}
+
+async function apiResponseErrorMessage(response: APIResponse, context: string) {
+  let body = ''
+
+  try {
+    body = await response.text()
+  } catch (error) {
+    body = `Could not read response body: ${error instanceof Error ? error.message : String(error)}`
+  }
+
+  return `${context} failed with ${response.status()} ${response.statusText()}: ${body}`
+}
+
+async function expectApiResponseOk(response: APIResponse, context: string) {
+  if (response.ok()) {
+    return
+  }
+
+  throw new Error(await apiResponseErrorMessage(response, context))
+}
+
+async function requestApiWithRetry(
+  request: APIRequestContext,
+  method: ApiRequestMethod,
+  url: string,
+  options: ApiRequestOptions = {},
+) {
+  let lastError: unknown
+
+  for (let attempt = 1; attempt <= apiRequestRetryAttempts; attempt += 1) {
+    try {
+      return await request.fetch(url, {
+        ...options,
+        method,
+      })
+    } catch (error) {
+      lastError = error
+      if (attempt === apiRequestRetryAttempts || !isTransientApiRequestError(error)) {
+        throw error
+      }
+
+      await sleep(apiRequestRetryDelayMs * attempt)
+    }
+  }
+
+  throw lastError
+}
+
+export function createApiUrl(pathname: string, baseURL?: string) {
+  if (!baseURL) {
+    throw new Error('Playwright baseURL is required for API requests')
+  }
+
+  return new URL(pathname, baseURL).toString()
+}
 
 export function readLocalAuthSession() {
   return JSON.parse(fs.readFileSync(getLocalAuthSessionPath(), 'utf-8')) as LocalAuthSession
@@ -71,8 +149,21 @@ export function createTrustedMutationHeaders(baseURL?: string) {
 
 export async function resetAppState(page: Page, baseURL?: string) {
   const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
-  await page.request.delete('/api/usage', { headers: trustedMutationHeaders })
-  await page.request.delete('/api/settings', { headers: trustedMutationHeaders })
+  const usageResponse = await requestApiWithRetry(
+    page.request,
+    'DELETE',
+    createApiUrl('/api/usage', baseURL),
+    { headers: trustedMutationHeaders },
+  )
+  await expectApiResponseOk(usageResponse, 'DELETE /api/usage')
+
+  const settingsResponse = await requestApiWithRetry(
+    page.request,
+    'DELETE',
+    createApiUrl('/api/settings', baseURL),
+    { headers: trustedMutationHeaders },
+  )
+  await expectApiResponseOk(settingsResponse, 'DELETE /api/settings')
 }
 
 export async function gotoDashboard(page: Page) {
@@ -116,12 +207,17 @@ export async function seedUsage(
   usageData: SampleUsage = buildRelativeUsageData(),
 ) {
   const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
-  const uploadResponse = await page.request.post('/api/upload', {
-    headers: trustedMutationHeaders,
-    data: usageData,
-  })
+  const uploadResponse = await requestApiWithRetry(
+    page.request,
+    'POST',
+    createApiUrl('/api/upload', baseURL),
+    {
+      headers: trustedMutationHeaders,
+      data: usageData,
+    },
+  )
 
-  expect(uploadResponse.ok()).toBe(true)
+  await expectApiResponseOk(uploadResponse, 'POST /api/upload')
   return usageData
 }
 

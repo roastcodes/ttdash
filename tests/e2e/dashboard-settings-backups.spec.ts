@@ -2,6 +2,7 @@ import fsPromises from 'node:fs/promises'
 import { expect, test } from './fixtures'
 import {
   createApiAuthHeaders,
+  createApiUrl,
   createTrustedMutationHeaders,
   dailyViewPattern,
   filterStatusPattern,
@@ -192,13 +193,15 @@ test('manages settings and backup imports through the settings dialog using isol
 
   await expect
     .poll(async () => {
-      const response = await page.request.get('/api/usage', { headers: createApiAuthHeaders() })
+      const response = await page.request.get(createApiUrl('/api/usage', baseURL), {
+        headers: createApiAuthHeaders(),
+      })
       const usage = await response.json()
       return usage.daily[0]?.date
     })
     .toBe('2026-03-31')
 
-  const mergedUsageResponse = await page.request.get('/api/usage', {
+  const mergedUsageResponse = await page.request.get(createApiUrl('/api/usage', baseURL), {
     headers: createApiAuthHeaders(),
   })
   expect(mergedUsageResponse.ok()).toBe(true)
@@ -256,7 +259,7 @@ test('manages settings and backup imports through the settings dialog using isol
   expect(settingsImportResponse.ok()).toBe(true)
   await expect(page.getByRole('button', { name: exportSettingsButtonPattern })).toBeVisible()
 
-  const importedSettingsResponse = await page.request.get('/api/settings', {
+  const importedSettingsResponse = await page.request.get(createApiUrl('/api/settings', baseURL), {
     headers: createApiAuthHeaders(),
   })
   expect(importedSettingsResponse.ok()).toBe(true)
@@ -289,7 +292,7 @@ test('loads persisted settings on a fresh browser start and applies them immedia
   await resetAppState(page, baseURL)
 
   const trustedMutationHeaders = createTrustedMutationHeaders(baseURL)
-  const patchSettingsResponse = await page.request.patch('/api/settings', {
+  const patchSettingsResponse = await page.request.patch(createApiUrl('/api/settings', baseURL), {
     headers: trustedMutationHeaders,
     data: {
       language: 'en',
@@ -317,7 +320,7 @@ test('loads persisted settings on a fresh browser start and applies them immedia
   })
   expect(patchSettingsResponse.ok()).toBe(true)
 
-  const uploadResponse = await page.request.post('/api/upload', {
+  const uploadResponse = await page.request.post(createApiUrl('/api/upload', baseURL), {
     headers: trustedMutationHeaders,
     data: sampleUsage,
   })

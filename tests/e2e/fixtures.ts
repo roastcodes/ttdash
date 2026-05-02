@@ -13,6 +13,10 @@ type WorkerFixtures = {
   e2eServer: E2EServer
 }
 
+type LocalAuthSession = {
+  authorizationHeader?: unknown
+}
+
 const startupTimeoutMs = 120_000
 const host = process.env.PLAYWRIGHT_TEST_HOST || '127.0.0.1'
 const basePort = Number(process.env.PLAYWRIGHT_TEST_PORT || '3015')
@@ -64,6 +68,24 @@ function createOutputBuffer(serverProcess: ChildProcessWithoutNullStreams) {
   return () => output.trim()
 }
 
+function readApiAuthHeaders(authSessionPath: string) {
+  if (!fs.existsSync(authSessionPath)) {
+    return null
+  }
+
+  const authSession = JSON.parse(fs.readFileSync(authSessionPath, 'utf-8')) as LocalAuthSession
+
+  if (typeof authSession.authorizationHeader !== 'string') {
+    throw new Error(
+      `Playwright auth session is missing an authorization header: ${authSessionPath}`,
+    )
+  }
+
+  return {
+    Authorization: authSession.authorizationHeader,
+  }
+}
+
 async function waitForServerReady(
   serverProcess: ChildProcessWithoutNullStreams,
   baseURL: string,
@@ -87,7 +109,19 @@ async function waitForServerReady(
       })
 
       if (response.status < 400 && fs.existsSync(authSessionPath)) {
-        return
+        const authHeaders = readApiAuthHeaders(authSessionPath)
+        if (authHeaders) {
+          const apiResponse = await fetch(new URL('/api/usage', baseURL), {
+            headers: authHeaders,
+            signal: AbortSignal.timeout(1_000),
+          })
+
+          if (apiResponse.status === 200) {
+            return
+          }
+
+          lastError = `GET /api/usage returned ${apiResponse.status}`
+        }
       }
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error)
