@@ -124,7 +124,6 @@ describe('playwright config', () => {
     }, 0)
 
     expect(totalTests).toBe(11)
-    expect(totalTests).toBeLessThanOrEqual(12)
     expect(packageJson.scripts['test:e2e:parallel']).toBe('npm run build:app && playwright test')
     expect(packageJson.scripts['test:e2e']).toBe('npm run test:e2e:parallel')
   })

@@ -143,6 +143,7 @@ describe('parallel verification gate', () => {
   it('stops after the first failing group', async () => {
     const stdout = { write: vi.fn() }
     const stderr = { write: vi.fn() }
+    const expectedFirstGroupSize = parallelGate.createParallelGatePlan({ e2e: false })[0].length
     const spawnImpl = vi.fn(() => {
       const child = new FakeChild()
       queueMicrotask(() => child.emit('close', 1))
@@ -152,7 +153,7 @@ describe('parallel verification gate', () => {
     const status = await parallelGate.run([], { stdout, stderr }, spawnImpl)
 
     expect(status).toBe(1)
-    expect(spawnImpl).toHaveBeenCalledTimes(3)
+    expect(spawnImpl).toHaveBeenCalledTimes(expectedFirstGroupSize)
   })
 
   it('prints task durations and a timing summary', async () => {

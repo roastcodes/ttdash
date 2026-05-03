@@ -22,7 +22,7 @@
 
 ### Commits
 
-- Enthält alle Branch-Commits seit `origin/main`: `f5cf2b6`, `104d663`, `aec28b2`, `892d551`, `c4e3049`, `475aee4`, `5a701b7`, `0834a07`, `ca29012`, `04aa7a6`, `be994fd`, `708c3c7`, `7e60008`, `efb9cee`, `eab08c5`, `f2b3400`, `7555c0e`, `1657822`, `b7fbe80`, `67db759`, `44c073d`, `c4882ae`, `2932697`, `944a049`, `e9d54fa`, `117cfeb`, `b5cac6a`, `3a4285d`, `cb31d35`, `ab49513`, `c4abb2b`, `5f69ade`, `acb22ab`
+- Enthält alle Branch-Commits seit `v6.2.9`: `f5cf2b6`, `104d663`, `aec28b2`, `892d551`, `c4e3049`, `475aee4`, `5a701b7`, `0834a07`, `ca29012`, `04aa7a6`, `be994fd`, `708c3c7`, `7e60008`, `efb9cee`, `eab08c5`, `f2b3400`, `7555c0e`, `1657822`, `b7fbe80`, `67db759`, `44c073d`, `c4882ae`, `2932697`, `944a049`, `e9d54fa`, `117cfeb`, `b5cac6a`, `3a4285d`, `cb31d35`, `ab49513`, `c4abb2b`, `5f69ade`, `acb22ab`
 
 ## [6.2.9] - 2026-04-28
 

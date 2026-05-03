@@ -78,7 +78,7 @@ const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js
       configuredVersion: string
       latestVersion: string | null
       isLatest: boolean | null
-      lookupStatus: 'ok' | 'failed' | 'malformed-output'
+      lookupStatus: 'ok' | 'failed' | 'malformed-output' | 'timeout'
       message?: string
     }>
     isAutoImportRunning: () => boolean
@@ -138,6 +138,7 @@ const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js
         onStderr?: (line: string) => void
         signalOnClose?: (close: () => void) => void
         timeoutMs?: number | null
+        maxOutputBytes?: number
         spawnImpl?: (
           command: string,
           args: string[],
@@ -155,6 +156,53 @@ const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js
       vars?: Record<string, string | number>
     }
   }
+}
+
+export type FakeSpawnOutcome = {
+  code?: number
+  hang?: boolean
+  stderr?: string
+  stdout?: string
+}
+
+export class FakeChildProcess extends EventEmitter {
+  stdout = new EventEmitter()
+  stderr = new EventEmitter()
+  exitCode: number | null = null
+
+  kill(signal: string) {
+    if (this.exitCode !== null) {
+      return
+    }
+
+    this.exitCode = signal === 'SIGKILL' ? 137 : 143
+    queueMicrotask(() => this.emit('close', this.exitCode))
+  }
+}
+
+export function createSpawnSequence(outcomes: FakeSpawnOutcome[]) {
+  const pendingOutcomes = [...outcomes]
+
+  return vi.fn((command?: string, args: string[] = []) => {
+    if (pendingOutcomes.length === 0) {
+      const commandDetails = [command, ...args].filter(Boolean).join(' ')
+      throw new Error(`Unexpected extra spawn${commandDetails ? `: ${commandDetails}` : ''}`)
+    }
+
+    const child = new FakeChildProcess()
+    const outcome = pendingOutcomes.shift() as FakeSpawnOutcome
+
+    if (!outcome.hang) {
+      queueMicrotask(() => {
+        if (outcome.stdout) child.stdout.emit('data', Buffer.from(outcome.stdout))
+        if (outcome.stderr) child.stderr.emit('data', Buffer.from(outcome.stderr))
+        child.exitCode = outcome.code ?? 0
+        child.emit('close', child.exitCode)
+      })
+    }
+
+    return child
+  })
 }
 
 const dataRuntime = createDataRuntime({

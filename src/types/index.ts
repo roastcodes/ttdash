@@ -318,6 +318,6 @@ export interface ToktrackVersionStatus {
   configuredVersion: string
   latestVersion: string | null
   isLatest: boolean | null
-  lookupStatus: 'ok' | 'failed'
+  lookupStatus: 'ok' | 'failed' | 'malformed-output' | 'timeout'
   message?: string
 }

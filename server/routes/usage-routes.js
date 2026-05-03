@@ -118,6 +118,7 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
           invalidMessage: 'Invalid JSON',
         });
         if (!bodyResult.ok) {
+          // readMutationBody has already written the error response; true means handled.
           return true;
         }
 
@@ -165,6 +166,7 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
         invalidMessage: 'Invalid usage backup file',
       });
       if (!bodyResult.ok) {
+        // readMutationBody has already written the error response; true means handled.
         return true;
       }
 

@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   EventEmitter,
+  FakeChildProcess,
   TOKTRACK_VERSION,
   createAutoImportRuntime,
+  createSpawnSequence,
   getExecutableName,
   getLocalToktrackDisplayCommand,
   getToktrackLatestLookupTimeoutMs,
@@ -12,48 +14,6 @@ import {
   runCommandWithSpawn,
   toAutoImportRunnerResolutionError,
 } from './server-helpers.shared'
-
-type FakeSpawnOutcome = {
-  code?: number
-  hang?: boolean
-  stderr?: string
-  stdout?: string
-}
-
-class FakeChildProcess extends EventEmitter {
-  stdout = new EventEmitter()
-  stderr = new EventEmitter()
-  exitCode: number | null = null
-
-  kill(signal: string) {
-    if (this.exitCode !== null) {
-      return
-    }
-
-    this.exitCode = signal === 'SIGKILL' ? 137 : 143
-    queueMicrotask(() => this.emit('close', this.exitCode))
-  }
-}
-
-function createSpawnSequence(outcomes: FakeSpawnOutcome[]) {
-  const pendingOutcomes = [...outcomes]
-
-  return vi.fn(() => {
-    const child = new FakeChildProcess()
-    const outcome = pendingOutcomes.shift() ?? { code: 0, stdout: '' }
-
-    if (!outcome.hang) {
-      queueMicrotask(() => {
-        if (outcome.stdout) child.stdout.emit('data', Buffer.from(outcome.stdout))
-        if (outcome.stderr) child.stderr.emit('data', Buffer.from(outcome.stderr))
-        child.exitCode = outcome.code ?? 0
-        child.emit('close', child.exitCode)
-      })
-    }
-
-    return child
-  })
-}
 
 function createRuntimeWithSpawn(
   spawnImpl: ReturnType<typeof createSpawnSequence>,
@@ -254,7 +214,7 @@ describe('server helper utilities: toktrack runner core behavior', () => {
         configuredVersion: TOKTRACK_VERSION,
         latestVersion: null,
         isLatest: null,
-        lookupStatus: 'failed',
+        lookupStatus: 'timeout',
         message: expect.stringContaining('Command timed out'),
       })
     } finally {
@@ -395,6 +355,52 @@ describe('server helper utilities: toktrack runner core behavior', () => {
       message: 'runner warning',
       stderr: 'runner warning\n',
       exitCode: 143,
+    })
+  })
+
+  it('bounds captured output while preserving streamed stderr chunks', async () => {
+    const spawnImpl = createSpawnSequence([
+      {
+        code: 1,
+        stdout: 'abcdef',
+        stderr: 'runner warning\n',
+      },
+    ])
+    const stderrLines: string[] = []
+
+    await expect(
+      runCommandWithSpawn('fake-runner', ['daily', '--json'], {
+        maxOutputBytes: 4,
+        streamStderr: true,
+        onStderr: (line) => stderrLines.push(line),
+        spawnImpl,
+      }),
+    ).rejects.toMatchObject({
+      stdout: 'abcd',
+      stderr: 'runn',
+      outputTruncated: true,
+      exitCode: 1,
+    })
+    expect(stderrLines).toEqual(['runner warning\n'])
+  })
+
+  it('truncates captured UTF-8 output on character boundaries', async () => {
+    const spawnImpl = createSpawnSequence([
+      {
+        code: 1,
+        stdout: 'a€b',
+      },
+    ])
+
+    await expect(
+      runCommandWithSpawn('fake-runner', ['daily', '--json'], {
+        maxOutputBytes: 3,
+        spawnImpl,
+      }),
+    ).rejects.toMatchObject({
+      stdout: 'a',
+      outputTruncated: true,
+      exitCode: 1,
     })
   })
 

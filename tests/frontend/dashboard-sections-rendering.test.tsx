@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 
 import type { ReactNode } from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DashboardSections } from '@/components/dashboard/DashboardSections'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
 import { initI18n } from '@/lib/i18n'
 import type { DashboardSectionId } from '@/types'
 import { createDashboardSectionsViewModel } from './dashboard-controller-test-helpers'
+import { renderWithAppProviders } from '../test-utils'
 
 const dashboardMotionMocks = vi.hoisted(() => ({
   cancelPreloads: vi.fn(),
@@ -214,7 +215,7 @@ describe('DashboardSections rendering contracts', () => {
       },
     })
 
-    render(<DashboardSections viewModel={viewModel} />)
+    renderWithAppProviders(<DashboardSections viewModel={viewModel} />)
 
     expect(screen.getByTestId('section-metrics')).toHaveAttribute('data-eager', 'true')
     expect(screen.queryByTestId('section-today')).not.toBeInTheDocument()
@@ -241,7 +242,7 @@ describe('DashboardSections rendering contracts', () => {
       },
     })
 
-    const { unmount } = render(<DashboardSections viewModel={viewModel} />)
+    const { unmount } = renderWithAppProviders(<DashboardSections viewModel={viewModel} />)
 
     expect(dashboardMotionMocks.scheduleDashboardPreloads).toHaveBeenCalledTimes(1)
     expect(dashboardMotionMocks.scheduleDashboardPreloads.mock.calls[0]?.[0]).toHaveLength(2)
@@ -261,7 +262,7 @@ describe('DashboardSections rendering contracts', () => {
       },
     })
 
-    render(<DashboardSections viewModel={viewModel} />)
+    renderWithAppProviders(<DashboardSections viewModel={viewModel} />)
 
     expect(screen.getByTestId('section-metrics')).toHaveAttribute('data-eager', 'true')
     expect(screen.getByTestId('section-activity')).toHaveAttribute('data-eager', 'false')
@@ -275,7 +276,7 @@ describe('DashboardSections rendering contracts', () => {
       },
     })
 
-    render(<DashboardSections viewModel={viewModel} />)
+    renderWithAppProviders(<DashboardSections viewModel={viewModel} />)
 
     // Forecast cards cross a React.lazy boundary in DashboardSections, even with mocked chunks.
     await screen.findByTestId('cost-forecast-expand')

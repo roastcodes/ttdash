@@ -34,11 +34,7 @@ describe('FilterBar preset and chip states', () => {
       year: 'Year',
       all: 'All',
     } as const satisfies Record<(typeof DASHBOARD_QUICK_DATE_PRESETS)[number], string>
-    const presetLabels = DASHBOARD_QUICK_DATE_PRESETS.map((key) => {
-      const label = presetLabelByKey[key]
-      if (!label) throw new Error(`Missing label for preset key: ${key}`)
-      return label
-    })
+    const presetLabels = DASHBOARD_QUICK_DATE_PRESETS.map((key) => presetLabelByKey[key])
     const renderedPresetLabels = screen
       .getAllByRole('button')
       .map((button) => button.textContent?.trim() ?? '')

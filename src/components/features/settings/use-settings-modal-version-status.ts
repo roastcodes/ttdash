@@ -28,13 +28,13 @@ export function useSettingsModalVersionStatus(): SettingsVersionStatusViewModel 
 
   const statusToneClass = useMemo(() => {
     if (state.isLoading) return 'text-muted-foreground'
-    if (state.lookupStatus === 'failed' || state.isLatest === false) return 'text-amber-500'
+    if (state.lookupStatus !== 'ok' || state.isLatest === false) return 'text-amber-500'
     return 'text-green-500'
   }, [state.isLatest, state.isLoading, state.lookupStatus])
 
   const statusLabel = useMemo(() => {
     if (state.isLoading) return t('settings.modal.toktrackCheckingLatest')
-    if (state.lookupStatus === 'failed') return t('settings.modal.toktrackLatestCheckFailed')
+    if (state.lookupStatus !== 'ok') return t('settings.modal.toktrackLatestCheckFailed')
     if (state.isLatest) return t('settings.modal.toktrackLatest')
 
     return t('settings.modal.toktrackUpdateAvailable', {

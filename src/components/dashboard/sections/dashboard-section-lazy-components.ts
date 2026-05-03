@@ -15,9 +15,9 @@ function lazyWithPreload<T extends ComponentType<any>>(
   return Component
 }
 
-async function preloadComponents(
-  ...components: Array<{ preload: () => Promise<unknown> }>
-): Promise<unknown[]> {
+async function preloadComponents<const T extends readonly unknown[]>(
+  ...components: { readonly [K in keyof T]: { preload: () => Promise<T[K]> } }
+): Promise<T> {
   const results = await Promise.allSettled(components.map((component) => component.preload()))
   const rejectedResult = results.find((result): result is PromiseRejectedResult => {
     return result.status === 'rejected'
@@ -27,9 +27,9 @@ async function preloadComponents(
     throw rejectedResult.reason
   }
 
-  return results
-    .filter((result): result is PromiseFulfilledResult<unknown> => result.status === 'fulfilled')
-    .map((result) => result.value)
+  // The rejection guard above ensures results contains only fulfilled preload promises here.
+  const fulfilledResults = results as readonly PromiseFulfilledResult<unknown>[]
+  return fulfilledResults.map((result) => result.value) as unknown as T
 }
 
 const CostForecast = lazyWithPreload(() =>

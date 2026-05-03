@@ -104,6 +104,12 @@ function createStaticRouteHandler({
         status: 500,
         message: 'Internal Server Error',
       };
+      console.error('Static file read failed', {
+        error,
+        reqPath,
+        safePath,
+        staticRoot,
+      });
       writeStaticErrorResponse(res, response.status, response.message);
     }
   }

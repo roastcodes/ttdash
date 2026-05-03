@@ -1,49 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  EventEmitter,
   TOKTRACK_VERSION,
   createAutoImportRuntime,
+  createSpawnSequence,
   resetServerHelperTestState,
 } from './server-helpers.shared'
-
-type FakeSpawnOutcome = {
-  code?: number
-  stderr?: string
-  stdout?: string
-}
-
-class FakeChildProcess extends EventEmitter {
-  stdout = new EventEmitter()
-  stderr = new EventEmitter()
-  exitCode: number | null = null
-
-  kill(signal: string) {
-    if (this.exitCode !== null) {
-      return
-    }
-
-    this.exitCode = signal === 'SIGKILL' ? 137 : 143
-    queueMicrotask(() => this.emit('close', this.exitCode))
-  }
-}
-
-function createSpawnSequence(outcomes: FakeSpawnOutcome[]) {
-  const pendingOutcomes = [...outcomes]
-
-  return vi.fn(() => {
-    const child = new FakeChildProcess()
-    const outcome = pendingOutcomes.shift() ?? { code: 0, stdout: '' }
-
-    queueMicrotask(() => {
-      if (outcome.stdout) child.stdout.emit('data', Buffer.from(outcome.stdout))
-      if (outcome.stderr) child.stderr.emit('data', Buffer.from(outcome.stderr))
-      child.exitCode = outcome.code ?? 0
-      child.emit('close', child.exitCode)
-    })
-
-    return child
-  })
-}
 
 function createRuntimeWithSpawn(
   spawnImpl: ReturnType<typeof createSpawnSequence>,

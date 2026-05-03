@@ -72,11 +72,12 @@ function createLatestToktrackVersionLookup({
           lookupStatus: 'ok',
         };
       } catch (error) {
+        const timedOut = error instanceof Error && error.timedOut === true;
         return {
           configuredVersion: toktrackVersion,
           latestVersion: null,
           isLatest: null,
-          lookupStatus: 'failed',
+          lookupStatus: timedOut ? 'timeout' : 'failed',
           message:
             error instanceof Error && error.message.trim()
               ? error.message.trim()

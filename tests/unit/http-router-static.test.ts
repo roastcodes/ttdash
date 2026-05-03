@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { createRequire } from 'node:module'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const { createHttpRouter } = require('../../server/http-router.js') as {
@@ -84,6 +84,16 @@ function createRouter(
 }
 
 describe('HTTP router static file handling', () => {
+  let consoleError: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('falls back to index.html when a static file is not found', async () => {
     const router = createRouter(async (filePath) => {
       if (filePath.endsWith('index.html')) {
@@ -97,6 +107,7 @@ describe('HTTP router static file handling', () => {
 
     expect(res.status).toBe(200)
     expect(res.body).toContain('<!doctype html>')
+    expect(consoleError).not.toHaveBeenCalled()
   })
 
   it('preserves base security headers when preparing HTML responses', async () => {
@@ -163,5 +174,14 @@ describe('HTTP router static file handling', () => {
 
     expect(res.status).toBe(400)
     expect(JSON.parse(res.body)).toEqual({ message: 'Invalid request path' })
+    expect(consoleError).toHaveBeenCalledWith(
+      'Static file read failed',
+      expect.objectContaining({
+        error: expect.objectContaining({ code: 'ERR_INVALID_ARG_VALUE' }),
+        reqPath: '/app/dist/asset.js',
+        safePath: '/asset.js',
+        staticRoot: '/app/dist',
+      }),
+    )
   })
 })

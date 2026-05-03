@@ -1,3 +1,5 @@
+const DEFAULT_COMMAND_OUTPUT_MAX_BYTES = 1024 * 1024;
+
 function createAutoImportCommandRunner({
   processObject = process,
   spawnCrossPlatform,
@@ -43,7 +45,15 @@ function createAutoImportCommandRunner({
 
   function createCommandError(
     message,
-    { command, args = [], stdout = '', stderr = '', exitCode = null, timedOut = false } = {},
+    {
+      command,
+      args = [],
+      stdout = '',
+      stderr = '',
+      exitCode = null,
+      timedOut = false,
+      outputTruncated = false,
+    } = {},
   ) {
     const error = new Error(message);
     error.command = command;
@@ -52,7 +62,46 @@ function createAutoImportCommandRunner({
     error.stderr = stderr;
     error.exitCode = exitCode;
     error.timedOut = timedOut;
+    error.outputTruncated = outputTruncated;
     return error;
+  }
+
+  function getMaxOutputBytes(value) {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0
+      ? value
+      : DEFAULT_COMMAND_OUTPUT_MAX_BYTES;
+  }
+
+  function appendCapturedOutput(currentValue, currentBytes, chunk, maxOutputBytes) {
+    const chunkBuffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
+    const remainingBytes = maxOutputBytes - currentBytes;
+
+    if (remainingBytes <= 0) {
+      return {
+        bytes: currentBytes,
+        truncated: chunkBuffer.length > 0,
+        value: currentValue,
+      };
+    }
+
+    if (chunkBuffer.length > remainingBytes) {
+      let safeEnd = remainingBytes;
+      while (safeEnd > 0 && (chunkBuffer[safeEnd] & 0b11000000) === 0b10000000) {
+        safeEnd -= 1;
+      }
+
+      return {
+        bytes: maxOutputBytes,
+        truncated: true,
+        value: currentValue + chunkBuffer.subarray(0, safeEnd).toString(),
+      };
+    }
+
+    return {
+      bytes: currentBytes + chunkBuffer.length,
+      truncated: false,
+      value: currentValue + chunkBuffer.toString(),
+    };
   }
 
   function terminateChildProcess(child) {
@@ -83,6 +132,7 @@ function createAutoImportCommandRunner({
       onStderr,
       signalOnClose,
       timeoutMs = null,
+      maxOutputBytes = DEFAULT_COMMAND_OUTPUT_MAX_BYTES,
     } = {},
   ) {
     return runCommandWithSpawn(command, args, {
@@ -91,6 +141,7 @@ function createAutoImportCommandRunner({
       onStderr,
       signalOnClose,
       timeoutMs,
+      maxOutputBytes,
       spawnImpl: spawnCommand,
     });
   }
@@ -104,6 +155,7 @@ function createAutoImportCommandRunner({
       onStderr,
       signalOnClose,
       timeoutMs = null,
+      maxOutputBytes = DEFAULT_COMMAND_OUTPUT_MAX_BYTES,
       spawnImpl = spawnCommand,
     } = {},
   ) {
@@ -128,6 +180,10 @@ function createAutoImportCommandRunner({
 
       let stdout = '';
       let stderr = '';
+      let stdoutBytes = 0;
+      let stderrBytes = 0;
+      let outputTruncated = false;
+      const capturedOutputMaxBytes = getMaxOutputBytes(maxOutputBytes);
       let finished = false;
       let timeoutId = null;
       let timeoutError = null;
@@ -157,6 +213,7 @@ function createAutoImportCommandRunner({
               stdout,
               stderr,
               timedOut: true,
+              outputTruncated,
             },
           );
           terminateChildProcess(child);
@@ -165,12 +222,18 @@ function createAutoImportCommandRunner({
       }
 
       child.stdout.on('data', (chunk) => {
-        stdout += chunk.toString();
+        const nextStdout = appendCapturedOutput(stdout, stdoutBytes, chunk, capturedOutputMaxBytes);
+        stdout = nextStdout.value;
+        stdoutBytes = nextStdout.bytes;
+        outputTruncated = outputTruncated || nextStdout.truncated;
       });
 
       child.stderr.on('data', (chunk) => {
         const line = chunk.toString();
-        stderr += line;
+        const nextStderr = appendCapturedOutput(stderr, stderrBytes, chunk, capturedOutputMaxBytes);
+        stderr = nextStderr.value;
+        stderrBytes = nextStderr.bytes;
+        outputTruncated = outputTruncated || nextStderr.truncated;
         if (streamStderr && onStderr && line.trim()) {
           onStderr(line);
         }
@@ -184,6 +247,7 @@ function createAutoImportCommandRunner({
             args,
             stdout,
             stderr,
+            outputTruncated,
           }),
         ),
       );
@@ -209,6 +273,7 @@ function createAutoImportCommandRunner({
               stdout,
               stderr,
               exitCode: code,
+              outputTruncated,
             },
           ),
         );
