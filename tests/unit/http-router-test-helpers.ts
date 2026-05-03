@@ -91,16 +91,24 @@ export function createRouter({
     url: 'http://127.0.0.1:3000',
   })),
   httpUtilsOverrides = {},
+  prepareHtmlResponse,
   readBody = vi.fn(async () => ({})),
+  readFile = vi.fn(),
   remoteAuthOverrides = {},
+  securityHeaders = { 'X-Test-Security': '1' },
+  staticRoot = '/app/dist',
 }: {
   autoImportRuntimeOverrides?: Record<string, unknown>
   dataRuntimeOverrides?: Record<string, unknown>
   generatePdfReport?: () => Promise<{ buffer: Buffer; filename: string }>
   getRuntimeSnapshot?: () => unknown
   httpUtilsOverrides?: Record<string, unknown>
+  prepareHtmlResponse?: (html: string) => { body: string; headers: Record<string, string> }
   readBody?: () => Promise<unknown>
+  readFile?: (filePath: string) => Promise<Buffer>
   remoteAuthOverrides?: Record<string, unknown>
+  securityHeaders?: Record<string, string>
+  staticRoot?: string
 } = {}) {
   const dataRuntime = {
     extractSettingsImportPayload: vi.fn(
@@ -146,10 +154,11 @@ export function createRouter({
   }
 
   const router = createHttpRouter({
-    fs: { promises: { readFile: vi.fn() } },
+    fs: { promises: { readFile } },
     path,
-    staticRoot: '/app/dist',
-    securityHeaders: { 'X-Test-Security': '1' },
+    prepareHtmlResponse,
+    staticRoot,
+    securityHeaders,
     httpUtils: {
       json: (
         res: MockResponse,

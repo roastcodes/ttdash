@@ -1,4 +1,7 @@
+const { StringDecoder } = require('node:string_decoder');
+
 const DEFAULT_COMMAND_OUTPUT_MAX_BYTES = 1024 * 1024;
+const DEFAULT_PROCESS_TERMINATION_GRACE_MS = 5000;
 
 function createAutoImportCommandRunner({
   processObject = process,
@@ -6,6 +9,13 @@ function createAutoImportCommandRunner({
   isWindows,
   processTerminationGraceMs,
 }) {
+  const terminationGraceMs =
+    typeof processTerminationGraceMs === 'number' &&
+    Number.isFinite(processTerminationGraceMs) &&
+    processTerminationGraceMs > 0
+      ? processTerminationGraceMs
+      : DEFAULT_PROCESS_TERMINATION_GRACE_MS;
+
   function getExecutableName(baseName, forceWindows = isWindows) {
     if (!forceWindows) {
       return baseName;
@@ -72,41 +82,50 @@ function createAutoImportCommandRunner({
       : DEFAULT_COMMAND_OUTPUT_MAX_BYTES;
   }
 
-  function appendCapturedOutput(
-    currentValue,
-    currentBytes,
-    chunkBuffer,
-    maxOutputBytes,
-    chunkText,
-  ) {
-    const remainingBytes = maxOutputBytes - currentBytes;
+  function createCapturedOutputState() {
+    return {
+      bytes: 0,
+      decoder: new StringDecoder('utf8'),
+      truncated: false,
+      value: '',
+    };
+  }
+
+  function getUtf8SafePrefixLength(chunkBuffer, maxBytes) {
+    let safeEnd = Math.min(maxBytes, chunkBuffer.length);
+    while (safeEnd > 0 && (chunkBuffer[safeEnd] & 0b11000000) === 0b10000000) {
+      safeEnd -= 1;
+    }
+    return safeEnd;
+  }
+
+  function appendCapturedOutput(state, chunkBuffer, maxOutputBytes) {
+    const remainingBytes = maxOutputBytes - state.bytes;
 
     if (remainingBytes <= 0) {
-      return {
-        bytes: currentBytes,
-        truncated: chunkBuffer.length > 0,
-        value: currentValue,
-      };
+      state.truncated = state.truncated || chunkBuffer.length > 0;
+      return;
     }
 
     if (chunkBuffer.length > remainingBytes) {
-      let safeEnd = remainingBytes;
-      while (safeEnd > 0 && (chunkBuffer[safeEnd] & 0b11000000) === 0b10000000) {
-        safeEnd -= 1;
+      const safeEnd = getUtf8SafePrefixLength(chunkBuffer, remainingBytes);
+      if (safeEnd > 0) {
+        state.value += state.decoder.write(chunkBuffer.subarray(0, safeEnd));
       }
-
-      return {
-        bytes: maxOutputBytes,
-        truncated: true,
-        value: currentValue + chunkBuffer.subarray(0, safeEnd).toString(),
-      };
+      state.bytes = maxOutputBytes;
+      state.truncated = true;
+      return;
     }
 
-    return {
-      bytes: currentBytes + chunkBuffer.length,
-      truncated: false,
-      value: currentValue + (chunkText ?? chunkBuffer.toString()),
-    };
+    state.bytes += chunkBuffer.length;
+    state.value += state.decoder.write(chunkBuffer);
+  }
+
+  function flushCapturedOutput(state) {
+    if (!state.truncated) {
+      state.value += state.decoder.end();
+    }
+    return state.value;
   }
 
   function terminateChildProcess(child) {
@@ -120,7 +139,7 @@ function createAutoImportCommandRunner({
       if (child.exitCode === null) {
         child.kill('SIGKILL');
       }
-    }, processTerminationGraceMs);
+    }, terminationGraceMs);
     forceKillTimeout.unref?.();
 
     child.once('close', () => {
@@ -183,15 +202,34 @@ function createAutoImportCommandRunner({
         return;
       }
 
+      const stdoutCapture = createCapturedOutputState();
+      const stderrCapture = createCapturedOutputState();
+      const stderrStreamDecoder = new StringDecoder('utf8');
       let stdout = '';
       let stderr = '';
-      let stdoutBytes = 0;
-      let stderrBytes = 0;
       let outputTruncated = false;
       const capturedOutputMaxBytes = getMaxOutputBytes(maxOutputBytes);
       let finished = false;
+      let timedOut = false;
       let timeoutId = null;
-      let timeoutError = null;
+      let outputFinalized = false;
+
+      const emitStderrChunk = (chunkText) => {
+        if (streamStderr && onStderr && chunkText.trim()) {
+          onStderr(chunkText);
+        }
+      };
+
+      const finalizeOutput = () => {
+        if (outputFinalized) {
+          return;
+        }
+        outputFinalized = true;
+        stdout = flushCapturedOutput(stdoutCapture);
+        stderr = flushCapturedOutput(stderrCapture);
+        outputTruncated = stdoutCapture.truncated || stderrCapture.truncated;
+        emitStderrChunk(stderrStreamDecoder.end());
+      };
 
       const settle = (handler, value) => {
         if (finished) {
@@ -210,47 +248,23 @@ function createAutoImportCommandRunner({
 
       if (typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs > 0) {
         timeoutId = setTimeout(() => {
-          timeoutError = createCommandError(
-            `Command timed out after ${timeoutMs}ms: ${commandLabel}`,
-            {
-              command,
-              args,
-              stdout,
-              stderr,
-              timedOut: true,
-              outputTruncated,
-            },
-          );
+          timedOut = true;
           terminateChildProcess(child);
         }, timeoutMs);
         timeoutId.unref?.();
       }
 
       child.stdout.on('data', (chunk) => {
-        const nextStdout = appendCapturedOutput(stdout, stdoutBytes, chunk, capturedOutputMaxBytes);
-        stdout = nextStdout.value;
-        stdoutBytes = nextStdout.bytes;
-        outputTruncated = outputTruncated || nextStdout.truncated;
+        appendCapturedOutput(stdoutCapture, chunk, capturedOutputMaxBytes);
       });
 
       child.stderr.on('data', (chunk) => {
-        const chunkText = chunk.toString();
-        const nextStderr = appendCapturedOutput(
-          stderr,
-          stderrBytes,
-          chunk,
-          capturedOutputMaxBytes,
-          chunkText,
-        );
-        stderr = nextStderr.value;
-        stderrBytes = nextStderr.bytes;
-        outputTruncated = outputTruncated || nextStderr.truncated;
-        if (streamStderr && onStderr && chunkText.trim()) {
-          onStderr(chunkText);
-        }
+        appendCapturedOutput(stderrCapture, chunk, capturedOutputMaxBytes);
+        emitStderrChunk(stderrStreamDecoder.write(chunk));
       });
 
-      child.on('error', (error) =>
+      child.on('error', (error) => {
+        finalizeOutput();
         settle(
           reject,
           createCommandError(error.message || `Could not start ${commandLabel}.`, {
@@ -260,14 +274,25 @@ function createAutoImportCommandRunner({
             stderr,
             outputTruncated,
           }),
-        ),
-      );
+        );
+      });
       child.on('close', (code) => {
         if (finished) {
           return;
         }
-        if (timeoutError) {
-          settle(reject, timeoutError);
+        finalizeOutput();
+        if (timedOut) {
+          settle(
+            reject,
+            createCommandError(`Command timed out after ${timeoutMs}ms: ${commandLabel}`, {
+              command,
+              args,
+              stdout,
+              stderr,
+              timedOut: true,
+              outputTruncated,
+            }),
+          );
           return;
         }
         if (code === 0) {

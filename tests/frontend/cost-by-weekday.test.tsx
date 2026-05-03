@@ -22,6 +22,18 @@ describe('CostByWeekday chart', () => {
     expect(screen.getByText('Cost by weekday')).toBeInTheDocument()
     expect(screen.getByText('Peak: Tu · Low: Sa · Weekend 19%')).toBeInTheDocument()
     expect(screen.getByTestId('chart-bar')).toHaveAttribute('data-name', 'Avg cost')
+    const chartPayload = JSON.parse(
+      screen.getByTestId('bar-chart').getAttribute('data-chart') ?? '[]',
+    ) as Array<{ day: string }>
+    expect(chartPayload.map((entry) => entry.day)).toEqual([
+      'Mo',
+      'Tu',
+      'We',
+      'Th',
+      'Fr',
+      'Sa',
+      'Su',
+    ])
 
     const fills = screen.getAllByTestId('bar-cell').map((cell) => cell.getAttribute('data-fill'))
     expect(fills).toHaveLength(7)

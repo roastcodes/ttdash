@@ -23,9 +23,16 @@ function createRuntimeWithSpawn(
     localBinOverride?: string
     localProbeTimeoutMs?: number
     localVersionCheckTimeoutMs?: number
+    processTerminationGraceMs?: number | undefined
   } = {},
 ) {
   const localBin = options.localBinOverride ?? '/missing/toktrack'
+  const processTerminationGraceMs = Object.prototype.hasOwnProperty.call(
+    options,
+    'processTerminationGraceMs',
+  )
+    ? options.processTerminationGraceMs
+    : 1000
 
   return createAutoImportRuntime({
     fs: {
@@ -45,7 +52,7 @@ function createRuntimeWithSpawn(
     toktrackLocalBin: '/missing/toktrack',
     npxCacheDir: '/tmp/ttdash-test-npx-cache',
     isWindows: false,
-    processTerminationGraceMs: 1000,
+    processTerminationGraceMs,
     toktrackLocalRunnerProbeTimeoutMs: options.localProbeTimeoutMs ?? 7000,
     toktrackLocalRunnerVersionCheckTimeoutMs: options.localVersionCheckTimeoutMs ?? 7000,
     toktrackLocalRunnerImportTimeoutMs: 60000,
@@ -358,6 +365,53 @@ describe('server helper utilities: toktrack runner core behavior', () => {
     })
   })
 
+  it('captures stdout split across UTF-8 chunk boundaries', async () => {
+    const child = new FakeChildProcess()
+    const spawnImpl = vi.fn(() => child)
+    const outcomePromise = runCommandWithSpawn('fake-runner', ['daily', '--json'], {
+      spawnImpl,
+    })
+    const output = Buffer.from('a€b')
+
+    child.stdout.emit('data', output.subarray(0, 2))
+    child.stdout.emit('data', output.subarray(2))
+    child.exitCode = 1
+    child.emit('close', 1)
+
+    await expect(outcomePromise).rejects.toMatchObject({
+      message: 'a€b',
+      stdout: 'a€b',
+      exitCode: 1,
+    })
+  })
+
+  it('streams stderr split across UTF-8 chunk boundaries without replacement characters', async () => {
+    const child = new FakeChildProcess()
+    const spawnImpl = vi.fn(() => child)
+    const stderrLines: string[] = []
+    const outcomePromise = runCommandWithSpawn('fake-runner', ['daily', '--json'], {
+      streamStderr: true,
+      onStderr: (line) => stderrLines.push(line),
+      spawnImpl,
+    })
+    const prefix = Buffer.from('runner ')
+    const symbol = Buffer.from('€')
+    const suffix = Buffer.from(' warning\n')
+
+    child.stderr.emit('data', Buffer.concat([prefix, symbol.subarray(0, 1)]))
+    child.stderr.emit('data', Buffer.concat([symbol.subarray(1), suffix]))
+    child.exitCode = 1
+    child.emit('close', 1)
+
+    await expect(outcomePromise).rejects.toMatchObject({
+      message: 'runner € warning',
+      stderr: 'runner € warning\n',
+      exitCode: 1,
+    })
+    expect(stderrLines.join('')).toBe('runner € warning\n')
+    expect(stderrLines.join('')).not.toContain('\uFFFD')
+  })
+
   it('bounds captured output while preserving streamed stderr chunks', async () => {
     const spawnImpl = createSpawnSequence([
       {
@@ -470,6 +524,64 @@ describe('server helper utilities: toktrack runner core behavior', () => {
       expect(settled).toBe(false)
 
       await vi.advanceTimersByTimeAsync(150)
+      await expect(outcomePromise).resolves.toMatchObject({
+        ok: false,
+        error: {
+          message: expect.stringContaining('Command timed out'),
+          timedOut: true,
+        },
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('uses a 5s process termination grace fallback when none is configured', async () => {
+    vi.useFakeTimers()
+
+    class FakeChild extends EventEmitter {
+      stdout = new EventEmitter()
+      stderr = new EventEmitter()
+      exitCode: number | null = null
+      signals: string[] = []
+
+      kill(signal: string) {
+        this.signals.push(signal)
+        if (signal === 'SIGKILL') {
+          this.exitCode = 137
+          this.emit('close', 137)
+        }
+      }
+    }
+
+    const child = new FakeChild()
+    const spawnImpl = vi.fn(() => child) as unknown as ReturnType<typeof createSpawnSequence>
+    const runtime = createRuntimeWithSpawn(spawnImpl, {
+      processTerminationGraceMs: undefined,
+    })
+
+    try {
+      const outcomePromise = runtime
+        .runToktrack(
+          {
+            command: 'fake-runner',
+            prefixArgs: [],
+            env: {},
+          },
+          ['daily', '--json'],
+          { timeoutMs: 50 },
+        )
+        .then((value) => ({ ok: true as const, value }))
+        .catch((error) => ({ ok: false as const, error }))
+
+      await vi.advanceTimersByTimeAsync(50)
+      expect(child.signals).toEqual(['SIGTERM'])
+
+      await vi.advanceTimersByTimeAsync(4999)
+      expect(child.signals).toEqual(['SIGTERM'])
+
+      await vi.advanceTimersByTimeAsync(1)
+      expect(child.signals).toEqual(['SIGTERM', 'SIGKILL'])
       await expect(outcomePromise).resolves.toMatchObject({
         ok: false,
         error: {

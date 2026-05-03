@@ -72,7 +72,6 @@ function createHttpRouter({
     staticRoot,
     securityHeaders,
     prepareHtmlResponse,
-    json,
   });
   const apiRouteHandlers = [
     usageRoutes.handleUsageRoutes,

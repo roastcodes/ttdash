@@ -1,12 +1,5 @@
 /** Creates the static asset and SPA fallback route handler. */
-function createStaticRouteHandler({
-  fs,
-  path,
-  staticRoot,
-  securityHeaders,
-  prepareHtmlResponse,
-  json,
-}) {
+function createStaticRouteHandler({ fs, path, staticRoot, securityHeaders, prepareHtmlResponse }) {
   const mimeTypes = {
     '.html': 'text/html; charset=utf-8',
     '.css': 'text/css; charset=utf-8',
@@ -123,13 +116,13 @@ function createStaticRouteHandler({
   async function handleStaticRequest(req, res, pathname) {
     const safePath = pathname === '/' ? '/index.html' : pathname;
     if (safePath.includes('\0')) {
-      return json(res, 400, { message: 'Invalid request path' });
+      return writeStaticErrorResponse(res, 400, 'Invalid request path');
     }
     const resolvedStaticRoot = path.resolve(staticRoot);
     const filePath = path.resolve(staticRoot, `.${safePath}`);
 
     if (filePath === resolvedStaticRoot || !filePath.startsWith(resolvedStaticRoot + path.sep)) {
-      return json(res, 403, { message: 'Access denied' });
+      return writeStaticErrorResponse(res, 403, 'Access denied');
     }
 
     await serveFile(req, res, filePath, safePath);
