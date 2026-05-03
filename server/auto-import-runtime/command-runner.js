@@ -61,6 +61,7 @@ function createAutoImportCommandRunner({
       stdout = '',
       stderr = '',
       exitCode = null,
+      exitSignal = null,
       timedOut = false,
       outputTruncated = false,
     } = {},
@@ -71,6 +72,7 @@ function createAutoImportCommandRunner({
     error.stdout = stdout;
     error.stderr = stderr;
     error.exitCode = exitCode;
+    error.exitSignal = exitSignal;
     error.timedOut = timedOut;
     error.outputTruncated = outputTruncated;
     return error;
@@ -214,32 +216,51 @@ function createAutoImportCommandRunner({
       let timeoutId = null;
       let outputFinalized = false;
 
-      const emitStderrChunk = (chunkText) => {
-        if (streamStderr && onStderr && chunkText.trim()) {
-          onStderr(chunkText);
-        }
-      };
-
-      const finalizeOutput = () => {
-        if (outputFinalized) {
-          return;
-        }
-        outputFinalized = true;
-        stdout = flushCapturedOutput(stdoutCapture);
-        stderr = flushCapturedOutput(stderrCapture);
-        outputTruncated = stdoutCapture.truncated || stderrCapture.truncated;
-        emitStderrChunk(stderrStreamDecoder.end());
-      };
-
       const settle = (handler, value) => {
         if (finished) {
-          return;
+          return false;
         }
         finished = true;
         if (timeoutId) {
           clearTimeout(timeoutId);
         }
         handler(value);
+        return true;
+      };
+
+      const rejectFromCallbackError = (error) => {
+        const callbackError = error instanceof Error ? error : new Error(String(error));
+        const rejected = settle(reject, callbackError);
+        if (rejected) {
+          terminateChildProcess(child);
+        }
+        return false;
+      };
+
+      const emitStderrChunk = (chunkText) => {
+        if (finished) {
+          return false;
+        }
+        if (!streamStderr || !onStderr || !chunkText.trim()) {
+          return true;
+        }
+        try {
+          onStderr(chunkText);
+          return true;
+        } catch (error) {
+          return rejectFromCallbackError(error);
+        }
+      };
+
+      const finalizeOutput = () => {
+        if (outputFinalized) {
+          return true;
+        }
+        outputFinalized = true;
+        stdout = flushCapturedOutput(stdoutCapture);
+        stderr = flushCapturedOutput(stderrCapture);
+        outputTruncated = stdoutCapture.truncated || stderrCapture.truncated;
+        return emitStderrChunk(stderrStreamDecoder.end());
       };
 
       if (signalOnClose) {
@@ -255,16 +276,24 @@ function createAutoImportCommandRunner({
       }
 
       child.stdout.on('data', (chunk) => {
+        if (finished) {
+          return;
+        }
         appendCapturedOutput(stdoutCapture, chunk, capturedOutputMaxBytes);
       });
 
       child.stderr.on('data', (chunk) => {
+        if (finished) {
+          return;
+        }
         appendCapturedOutput(stderrCapture, chunk, capturedOutputMaxBytes);
         emitStderrChunk(stderrStreamDecoder.write(chunk));
       });
 
       child.on('error', (error) => {
-        finalizeOutput();
+        if (!finalizeOutput()) {
+          return;
+        }
         settle(
           reject,
           createCommandError(error.message || `Could not start ${commandLabel}.`, {
@@ -276,11 +305,13 @@ function createAutoImportCommandRunner({
           }),
         );
       });
-      child.on('close', (code) => {
+      child.on('close', (code, signal) => {
         if (finished) {
           return;
         }
-        finalizeOutput();
+        if (!finalizeOutput()) {
+          return;
+        }
         if (timedOut) {
           settle(
             reject,
@@ -289,6 +320,8 @@ function createAutoImportCommandRunner({
               args,
               stdout,
               stderr,
+              exitCode: code,
+              exitSignal: signal ?? null,
               timedOut: true,
               outputTruncated,
             }),
@@ -309,6 +342,7 @@ function createAutoImportCommandRunner({
               stdout,
               stderr,
               exitCode: code,
+              exitSignal: signal ?? null,
               outputTruncated,
             },
           ),
