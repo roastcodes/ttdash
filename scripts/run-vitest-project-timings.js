@@ -183,6 +183,11 @@ function runCommand(command, args, spawnSyncImpl) {
   });
 }
 
+function writeLaunchError(stderr, label, error) {
+  const message = error instanceof Error ? error.message : String(error);
+  stderr.write(`Failed to launch ${label}: ${message}\n`);
+}
+
 function run(argv = process.argv.slice(2), streams = process, spawnSyncImpl = spawnSync) {
   let options;
 
@@ -225,11 +230,21 @@ function run(argv = process.argv.slice(2), streams = process, spawnSyncImpl = sp
     const testResult = runCommand(vitestCommand.command, vitestCommand.args, spawnSyncImpl);
     const durationMs = Date.now() - startedAt;
 
+    if (testResult.error) {
+      writeLaunchError(streams.stderr, 'vitest', testResult.error);
+      return 1;
+    }
+
     if (testResult.status !== 0) {
       return testResult.status || 1;
     }
 
     const budgetResult = runCommand(budgetCommand.command, budgetCommand.args, spawnSyncImpl);
+
+    if (budgetResult.error) {
+      writeLaunchError(streams.stderr, 'budget check', budgetResult.error);
+      return 1;
+    }
 
     if (budgetResult.status !== 0) {
       return budgetResult.status || 1;

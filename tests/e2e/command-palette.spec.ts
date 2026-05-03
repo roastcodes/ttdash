@@ -8,7 +8,7 @@ import {
   viewModeComboboxPattern,
 } from './helpers'
 
-const commandPaletteTitlePattern = /^Command [Pp]alette$/
+const commandPaletteTitlePattern = /^(Command Palette|Befehlspalette)$/
 const helpDialogTitlePattern = /^(Help & shortcuts|Hilfe & Tastenkürzel)$/
 const dateFilterActivePattern = /^(Date filter active|Datumsfilter aktiv)$/
 const preset7Pattern = /^(7D|7T)$/

@@ -12,13 +12,6 @@ import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 
 export const sampleUsagePath = path.join(process.cwd(), 'examples', 'sample-usage.json')
 
-function getLocalAuthSessionPath(): string {
-  return (
-    process.env.PLAYWRIGHT_TEST_AUTH_SESSION_PATH ||
-    path.join(process.cwd(), '.tmp-playwright', 'app', 'config', 'session-auth.json')
-  )
-}
-
 export const uploadToastPattern =
   /^(Datei sample-usage\.json erfolgreich geladen|File sample-usage\.json loaded successfully)$/
 export const viewModeComboboxPattern = /^(Ansichtsmodus|View mode)$/
@@ -126,8 +119,19 @@ export function createApiUrl(pathname: string, baseURL?: string) {
   return new URL(pathname, baseURL).toString()
 }
 
+function getRequiredPlaywrightEnv(name: string) {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`${name} is required for Playwright API authentication`)
+  }
+  return value
+}
+
 export function readLocalAuthSession() {
-  return JSON.parse(fs.readFileSync(getLocalAuthSessionPath(), 'utf-8')) as LocalAuthSession
+  return {
+    authorizationHeader: getRequiredPlaywrightEnv('PLAYWRIGHT_TEST_AUTHORIZATION_HEADER'),
+    bootstrapUrl: getRequiredPlaywrightEnv('PLAYWRIGHT_TEST_BOOTSTRAP_URL'),
+  } satisfies LocalAuthSession
 }
 
 export function createApiAuthHeaders() {

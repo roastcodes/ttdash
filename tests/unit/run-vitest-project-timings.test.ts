@@ -38,7 +38,11 @@ type RunnerScript = {
       stdout: { write: (message: string) => void }
       stderr: { write: (message: string) => void }
     },
-    spawnSyncImpl: (command: string, args: string[], options: unknown) => { status: number | null },
+    spawnSyncImpl: (
+      command: string,
+      args: string[],
+      options: unknown,
+    ) => { error?: Error; status: number | null },
   ) => number
 }
 
@@ -56,7 +60,7 @@ describe('Vitest project timing runner', () => {
 
     expect(options.projects).toEqual(['unit', 'frontend'])
     expect(options.repeat).toBe(3)
-    expect(options.reportDir).toMatch(/\.cache\/test-timings$/)
+    expect(options.reportDir.replaceAll('\\', '/')).toMatch(/\.cache\/test-timings$/)
     expect(options.maxSuiteSeconds).toBe(15)
     expect(options.maxTestSeconds).toBe(8)
   })
@@ -134,19 +138,61 @@ describe('Vitest project timing runner', () => {
     const spawnSyncImpl = vi.fn(() => ({ status: 0 }))
     const mkdirSync = vi.spyOn(fs, 'mkdirSync')
 
-    const status = timingRunner.run(
-      ['--projects=unit', '--repeat=2', '--dry-run'],
-      { stdout, stderr },
-      spawnSyncImpl,
-    )
+    try {
+      const status = timingRunner.run(
+        ['--projects=unit', '--repeat=2', '--dry-run'],
+        { stdout, stderr },
+        spawnSyncImpl,
+      )
 
-    expect(status).toBe(0)
-    expect(spawnSyncImpl).not.toHaveBeenCalled()
-    expect(mkdirSync).not.toHaveBeenCalled()
-    expect(stdout.write.mock.calls.join('\n')).toContain('vitest-unit.timing-run-1.junit.xml')
-    expect(stdout.write.mock.calls.join('\n')).toContain('vitest-unit.timing-run-2.junit.xml')
+      expect(status).toBe(0)
+      expect(spawnSyncImpl).not.toHaveBeenCalled()
+      expect(mkdirSync).not.toHaveBeenCalled()
+      expect(stdout.write.mock.calls.join('\n')).toContain('vitest-unit.timing-run-1.junit.xml')
+      expect(stdout.write.mock.calls.join('\n')).toContain('vitest-unit.timing-run-2.junit.xml')
+    } finally {
+      mkdirSync.mockRestore()
+    }
+  })
 
-    mkdirSync.mockRestore()
+  it('fails explicitly when Vitest cannot be launched', () => {
+    const stdout = { write: vi.fn() }
+    const stderr = { write: vi.fn() }
+    const spawnSyncImpl = vi.fn(() => ({
+      error: new Error('spawn npx ENOENT'),
+      status: null,
+    }))
+    const mkdirSync = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined)
+
+    try {
+      const status = timingRunner.run(['--projects=unit'], { stdout, stderr }, spawnSyncImpl)
+
+      expect(status).toBe(1)
+      expect(stderr.write).toHaveBeenCalledWith('Failed to launch vitest: spawn npx ENOENT\n')
+    } finally {
+      mkdirSync.mockRestore()
+    }
+  })
+
+  it('fails explicitly when the timing budget check cannot be launched', () => {
+    const stdout = { write: vi.fn() }
+    const stderr = { write: vi.fn() }
+    const spawnSyncImpl = vi
+      .fn()
+      .mockReturnValueOnce({ status: 0 })
+      .mockReturnValueOnce({ error: new Error('spawn node ENOENT'), status: null })
+    const mkdirSync = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined)
+
+    try {
+      const status = timingRunner.run(['--projects=unit'], { stdout, stderr }, spawnSyncImpl)
+
+      expect(status).toBe(1)
+      expect(stderr.write).toHaveBeenCalledWith(
+        'Failed to launch budget check: spawn node ENOENT\n',
+      )
+    } finally {
+      mkdirSync.mockRestore()
+    }
   })
 
   it('calculates median values for repeated timings', () => {

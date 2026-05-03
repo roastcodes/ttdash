@@ -172,7 +172,7 @@ function createAutoImportCommandRunner({
         const line = chunk.toString();
         stderr += line;
         if (streamStderr && onStderr && line.trim()) {
-          onStderr(line.trimEnd());
+          onStderr(line);
         }
       });
 

@@ -61,6 +61,8 @@ function createRuntimeWithSpawn(
     latestLookupTimeoutMs?: number
     localBinExists?: boolean
     localBinOverride?: string
+    localProbeTimeoutMs?: number
+    localVersionCheckTimeoutMs?: number
   } = {},
 ) {
   const localBin = options.localBinOverride ?? '/missing/toktrack'
@@ -84,8 +86,8 @@ function createRuntimeWithSpawn(
     npxCacheDir: '/tmp/ttdash-test-npx-cache',
     isWindows: false,
     processTerminationGraceMs: 1000,
-    toktrackLocalRunnerProbeTimeoutMs: 7000,
-    toktrackLocalRunnerVersionCheckTimeoutMs: 7000,
+    toktrackLocalRunnerProbeTimeoutMs: options.localProbeTimeoutMs ?? 7000,
+    toktrackLocalRunnerVersionCheckTimeoutMs: options.localVersionCheckTimeoutMs ?? 7000,
     toktrackLocalRunnerImportTimeoutMs: 60000,
     toktrackPackageRunnerProbeTimeoutMs: 45000,
     toktrackPackageRunnerVersionCheckTimeoutMs: 45000,
@@ -188,6 +190,32 @@ describe('server helper utilities: toktrack runner core behavior', () => {
         stdio: ['ignore', 'pipe', 'pipe'],
       }),
     )
+  })
+
+  it('uses the local version-check timeout before probing package fallbacks', async () => {
+    vi.useFakeTimers()
+    const spawnImpl = createSpawnSequence([
+      { hang: true },
+      { stdout: `toktrack ${TOKTRACK_VERSION}\n` },
+    ])
+    const runtime = createRuntimeWithSpawn(spawnImpl, {
+      localBinExists: true,
+      localProbeTimeoutMs: 7000,
+      localVersionCheckTimeoutMs: 50,
+    })
+
+    try {
+      const resolutionPromise = runtime.resolveToktrackRunner()
+      await vi.advanceTimersByTimeAsync(50)
+
+      expect(spawnImpl).toHaveBeenCalledTimes(2)
+      await expect(resolutionPromise).resolves.toMatchObject({
+        command: 'bunx',
+        method: 'bunx',
+      })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('falls back to npm when the local runner version mismatches and bunx probing fails', async () => {
@@ -359,7 +387,7 @@ describe('server helper utilities: toktrack runner core behavior', () => {
     })
 
     child.stderr.emit('data', Buffer.from('runner warning\n'))
-    expect(stderrLines).toEqual(['runner warning'])
+    expect(stderrLines).toEqual(['runner warning\n'])
 
     closeCommand?.()
 

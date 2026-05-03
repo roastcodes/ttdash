@@ -14,6 +14,8 @@ const EMPTY_USAGE_RESPONSE = {
   },
 };
 
+const REQUIRED_USAGE_TOTAL_KEYS = Object.keys(EMPTY_USAGE_RESPONSE.totals);
+
 /** Creates usage, upload, and usage-import API route handlers. */
 function createUsageRoutes({ json, validateMutationRequest, readMutationBody, dataRuntime }) {
   const {
@@ -32,12 +34,19 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
     return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
+  function hasNumericUsageTotals(totals) {
+    return (
+      isPlainObject(totals) &&
+      REQUIRED_USAGE_TOTAL_KEYS.every((key) => Number.isFinite(totals[key]))
+    );
+  }
+
   function isUsageData(value) {
     return (
       isPlainObject(value) &&
       Array.isArray(value.daily) &&
       value.daily.every((day) => isPlainObject(day) && typeof day.date === 'string') &&
-      isPlainObject(value.totals)
+      hasNumericUsageTotals(value.totals)
     );
   }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getCurrentMonthForecastData } from '@/lib/data-transforms'
+import { buildDashboardChartTransforms, getCurrentMonthForecastData } from '@/lib/data-transforms'
 import type { DailyUsage } from '@/types'
 
 describe('getCurrentMonthForecastData', () => {
@@ -140,5 +140,21 @@ describe('getCurrentMonthForecastData', () => {
         (entry) => entry.date,
       ),
     ).toEqual([])
+  })
+})
+
+describe('buildDashboardChartTransforms', () => {
+  it('includes weekday indices for empty weekday chart data', () => {
+    const transforms = buildDashboardChartTransforms([], 'en-US')
+
+    expect(transforms.weekdayData).toEqual([
+      { day: 'Mo', cost: 0, weekdayIndex: 0 },
+      { day: 'Tu', cost: 0, weekdayIndex: 1 },
+      { day: 'We', cost: 0, weekdayIndex: 2 },
+      { day: 'Th', cost: 0, weekdayIndex: 3 },
+      { day: 'Fr', cost: 0, weekdayIndex: 4 },
+      { day: 'Sa', cost: 0, weekdayIndex: 5 },
+      { day: 'Su', cost: 0, weekdayIndex: 6 },
+    ])
   })
 })

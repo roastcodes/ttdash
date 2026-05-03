@@ -520,17 +520,19 @@ dataRuntime.withFileMutationLock(filePath, async () => {
     const unlinkSpy = vi.spyOn(fsPromises, 'unlink')
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1700000000000)
 
-    await expect(writeJsonAtomicAsync(targetFile, { ok: true })).rejects.toBe(renameError)
+    try {
+      await expect(writeJsonAtomicAsync(targetFile, { ok: true })).rejects.toBe(renameError)
 
-    expect(renameSpy).toHaveBeenCalled()
-    const tempPath = unlinkSpy.mock.calls[0]?.[0] as string
-    expectAtomicTempPath(tempPath, targetFile, 1700000000000)
-    expect(existsSync(tempPath)).toBe(false)
-
-    renameSpy.mockRestore()
-    unlinkSpy.mockRestore()
-    nowSpy.mockRestore()
-    await fsPromises.rm(targetDir, { recursive: true, force: true })
+      expect(renameSpy).toHaveBeenCalled()
+      const tempPath = unlinkSpy.mock.calls[0]?.[0] as string
+      expectAtomicTempPath(tempPath, targetFile, 1700000000000)
+      expect(existsSync(tempPath)).toBe(false)
+    } finally {
+      renameSpy.mockRestore()
+      unlinkSpy.mockRestore()
+      nowSpy.mockRestore()
+      await fsPromises.rm(targetDir, { recursive: true, force: true })
+    }
   })
 
   it('surfaces async atomic write cleanup failures with the original write error', async () => {
@@ -637,17 +639,19 @@ dataRuntime.withFileMutationLock(filePath, async () => {
     const unlinkSpy = vi.spyOn(fsPromises, 'unlink')
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1700000000001)
 
-    await expect(writeJsonAtomicAsync(targetFile, { ok: true })).rejects.toBe(writeError)
+    try {
+      await expect(writeJsonAtomicAsync(targetFile, { ok: true })).rejects.toBe(writeError)
 
-    expect(writeSpy).toHaveBeenCalled()
-    const tempPath = unlinkSpy.mock.calls[0]?.[0] as string
-    expectAtomicTempPath(tempPath, targetFile, 1700000000001)
-    expect(existsSync(tempPath)).toBe(false)
-
-    writeSpy.mockRestore()
-    unlinkSpy.mockRestore()
-    nowSpy.mockRestore()
-    await fsPromises.rm(targetDir, { recursive: true, force: true })
+      expect(writeSpy).toHaveBeenCalled()
+      const tempPath = unlinkSpy.mock.calls[0]?.[0] as string
+      expectAtomicTempPath(tempPath, targetFile, 1700000000001)
+      expect(existsSync(tempPath)).toBe(false)
+    } finally {
+      writeSpy.mockRestore()
+      unlinkSpy.mockRestore()
+      nowSpy.mockRestore()
+      await fsPromises.rm(targetDir, { recursive: true, force: true })
+    }
   })
 
   it.runIf(process.platform !== 'win32')(

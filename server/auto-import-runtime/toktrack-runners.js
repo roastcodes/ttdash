@@ -151,7 +151,7 @@ function createToktrackRunnerResolver({
       try {
         const localVersion = parseToktrackVersionOutput(
           await runToktrack(localRunner, ['--version'], {
-            timeoutMs: getToktrackRunnerTimeouts(localRunner).probeMs,
+            timeoutMs: getToktrackRunnerTimeouts(localRunner).versionCheckMs,
           }),
         );
         if (localVersion === toktrackVersion) {

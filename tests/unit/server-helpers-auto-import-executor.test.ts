@@ -157,7 +157,7 @@ describe('server helper utilities: auto-import executor behavior', () => {
       'warmingUpPackageRunner',
       'loadingUsageData',
     ])
-    expect(output).toEqual(['runner progress'])
+    expect(output).toEqual(['runner progress\n'])
     expect(runtime.isAutoImportRunning()).toBe(false)
   })
 

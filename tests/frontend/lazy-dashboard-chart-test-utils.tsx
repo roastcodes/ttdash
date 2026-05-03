@@ -1,16 +1,7 @@
-// @vitest-environment jsdom
-
 import type { ReactNode } from 'react'
-import { fireEvent, screen } from '@testing-library/react'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { CostByWeekday } from '@/components/charts/CostByWeekday'
-import { ModelMix } from '@/components/charts/ModelMix'
-import { TokensOverTime } from '@/components/charts/TokensOverTime'
-import { PeriodComparison } from '@/components/features/comparison/PeriodComparison'
-import { initI18n } from '@/lib/i18n'
+import { vi } from 'vitest'
 import type { DailyUsage, TokenChartDataPoint, WeekdayData } from '@/types'
 import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
-import { renderWithTooltip } from '../test-utils'
 
 vi.mock('@/components/charts/ChartCard', () => ({
   ChartCard: ({
@@ -137,7 +128,7 @@ vi.mock('recharts', () => ({
   YAxis: () => null,
 }))
 
-function createDailyUsage(
+export function createDailyUsage(
   date: string,
   {
     claudeCost,
@@ -184,7 +175,8 @@ function createDailyUsage(
   }
 }
 
-const weekdayData: WeekdayData[] = [
+// Intentionally unsorted to verify chart components normalize weekday order.
+export const weekdayData: WeekdayData[] = [
   { day: 'Mo', cost: 3, weekdayIndex: 0 },
   { day: 'Sa', cost: 2, weekdayIndex: 5 },
   { day: 'Tu', cost: 9, weekdayIndex: 1 },
@@ -194,7 +186,8 @@ const weekdayData: WeekdayData[] = [
   { day: 'Fr', cost: 7, weekdayIndex: 4 },
 ]
 
-const legacyWeekdayData: WeekdayData[] = [
+// Legacy shape without weekdayIndex to verify defensive fallback in CostByWeekday.
+export const legacyWeekdayData: WeekdayData[] = [
   { day: 'Lun', cost: 3 },
   { day: 'Sáb.', cost: 2 },
   { day: 'Mar', cost: 9 },
@@ -204,7 +197,7 @@ const legacyWeekdayData: WeekdayData[] = [
   { day: 'Vie', cost: 7 },
 ]
 
-const tokenData: TokenChartDataPoint[] = [
+export const tokenData: TokenChartDataPoint[] = [
   {
     date: '2026-04-01',
     Input: 100,
@@ -236,90 +229,3 @@ const tokenData: TokenChartDataPoint[] = [
     thinkingMA7: 15,
   },
 ]
-
-describe('lazy dashboard charts', () => {
-  beforeAll(async () => {
-    await initI18n('en')
-  })
-
-  it('renders CostByWeekday peak and low bars without a browser-only chart dependency', () => {
-    renderWithTooltip(<CostByWeekday data={weekdayData} />)
-
-    expect(screen.getByText('Cost by weekday')).toBeInTheDocument()
-    expect(screen.getByText('Peak: Tu · Low: Sa · Weekend 19%')).toBeInTheDocument()
-    expect(screen.getByTestId('chart-bar')).toHaveAttribute('data-name', 'Avg cost')
-
-    const fills = screen.getAllByTestId('bar-cell').map((cell) => cell.getAttribute('data-fill'))
-    expect(fills).toHaveLength(7)
-    expect(fills.some((fill) => fill?.includes('weekdayPeak'))).toBe(true)
-    expect(fills.some((fill) => fill?.includes('weekdayLow'))).toBe(true)
-  })
-
-  it('uses localized day labels as a defensive weekend fallback without weekday indices', () => {
-    renderWithTooltip(<CostByWeekday data={legacyWeekdayData} />)
-
-    expect(screen.getByText('Peak: Mar · Low: Sáb. · Weekend 19%')).toBeInTheDocument()
-  })
-
-  it('renders ModelMix for enough model history and skips underspecified input', () => {
-    const modelMixData = [
-      createDailyUsage('2026-04-01', { claudeCost: 3, gptCost: 7 }),
-      createDailyUsage('2026-04-02', { claudeCost: 5, gptCost: 5 }),
-      createDailyUsage('2026-04-03', { claudeCost: 8, gptCost: 2 }),
-    ]
-    const view = renderWithTooltip(<ModelMix data={modelMixData.slice(0, 2)} />)
-
-    expect(view.container).toBeEmptyDOMElement()
-    view.unmount()
-
-    renderWithTooltip(<ModelMix data={modelMixData} />)
-
-    expect(screen.getByText('Model mix')).toBeInTheDocument()
-    expect(screen.getByText('Cost share by model over time')).toBeInTheDocument()
-    expect(screen.getAllByTestId('chart-area')).toHaveLength(2)
-  })
-
-  it('renders token totals, moving averages, and drilldown clicks in TokensOverTime', () => {
-    const onClickDay = vi.fn()
-
-    renderWithTooltip(<TokensOverTime data={tokenData} onClickDay={onClickDay} />)
-
-    expect(screen.getByText('Tokens over time')).toBeInTheDocument()
-    expect(screen.getByText('Cache tokens')).toBeInTheDocument()
-    expect(screen.getByText('Input / Output tokens')).toBeInTheDocument()
-    expect(screen.getByText('Thinking tokens')).toBeInTheDocument()
-    expect(screen.getByText('Total tokens (all types)')).toBeInTheDocument()
-    expect(screen.getAllByTestId('chart-area')).toHaveLength(6)
-    expect(screen.getAllByTestId('chart-line')).toHaveLength(6)
-
-    fireEvent.click(screen.getAllByTestId('composed-chart')[0])
-
-    expect(onClickDay).toHaveBeenCalledWith('2026-04-01')
-  })
-
-  it('renders PeriodComparison empty and populated states with preset switching', () => {
-    const comparisonData = Array.from({ length: 14 }, (_, index) => {
-      const day = String(index + 1).padStart(2, '0')
-      return createDailyUsage(`2026-04-${day}`, {
-        claudeCost: index + 1,
-        gptCost: index + 2,
-      })
-    })
-    const view = renderWithTooltip(<PeriodComparison data={comparisonData.slice(0, 3)} />)
-
-    expect(screen.getByText('Not enough data for a comparison')).toBeInTheDocument()
-    expect(screen.getByText('At least 7 days required (currently: 3)')).toBeInTheDocument()
-    view.unmount()
-
-    renderWithTooltip(<PeriodComparison data={comparisonData} />)
-
-    expect(screen.getByText('Period comparison')).toBeInTheDocument()
-    expect(screen.getByText('Last week')).toBeInTheDocument()
-    expect(screen.getByText('This week')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Month' }))
-
-    expect(screen.getByText('Last month')).toBeInTheDocument()
-    expect(screen.getByText('This month')).toBeInTheDocument()
-  })
-})

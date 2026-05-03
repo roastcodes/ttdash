@@ -143,7 +143,11 @@ export function buildDashboardChartTransforms(
       modelCostChartData: [],
       tokenChartData: [],
       requestChartData: [],
-      weekdayData: createWeekdayLabels(locale).map((day) => ({ day, cost: 0 })),
+      weekdayData: createWeekdayLabels(locale).map((day, weekdayIndex) => ({
+        day,
+        cost: 0,
+        weekdayIndex,
+      })),
     }
   }
 

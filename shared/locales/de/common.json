@@ -752,7 +752,7 @@
     "close": "Schliessen"
   },
   "commandPalette": {
-    "title": "Command Palette",
+    "title": "Befehlspalette",
     "description": "Tastaturgesteuerte Befehlsauswahl für Navigation und Aktionen im ttdash Dashboard.",
     "placeholder": "Befehl suchen...",
     "empty": "Kein Befehl gefunden.",
