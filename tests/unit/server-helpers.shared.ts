@@ -56,7 +56,16 @@ const { listenOnAvailablePort } = require('../../server/runtime.js') as {
 }
 const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js') as {
   createAutoImportRuntime: (options: Record<string, unknown>) => {
+    acquireAutoImportLease: () => { release: () => void }
     commandExists: (command: string, args?: string[]) => Promise<boolean>
+    createAutoImportMessageEvent: (
+      key: string,
+      vars?: Record<string, string | number>,
+    ) => { key: string; vars: Record<string, string | number> }
+    formatAutoImportMessageEvent: (event: {
+      key: string
+      vars?: Record<string, string | number>
+    }) => string
     getExecutableName: (baseName: string, isWindows?: boolean) => string
     getLocalToktrackDisplayCommand: (isWindows?: boolean) => string
     getToktrackLatestLookupTimeoutMs: () => number
@@ -65,15 +74,29 @@ const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js
       versionCheckMs: number
       importMs: number
     }
-    lookupLatestToktrackVersion: (timeoutMs?: number) => Promise<{
+    lookupLatestToktrackVersion: () => Promise<{
       configuredVersion: string
       latestVersion: string | null
       isLatest: boolean | null
-      lookupStatus: 'ok' | 'failed'
+      lookupStatus: 'ok' | 'failed' | 'malformed-output' | 'timeout'
       message?: string
     }>
+    isAutoImportRunning: () => boolean
+    performAutoImport: (options?: {
+      source?: string
+      onCheck?: (event: Record<string, unknown>) => void
+      onProgress?: (event: { key: string; vars?: Record<string, string | number> }) => void
+      onOutput?: (line: string) => void
+      signalOnClose?: (close: () => void) => void
+      lease?: { release: () => void } | null
+    }) => Promise<{ days: number; totalCost: number }>
     resetLatestToktrackVersionCache: () => void
     parseToktrackVersionOutput: (output: string) => string
+    runStartupAutoLoad: (options?: {
+      source?: string
+      log?: (message: string) => void
+      errorLog?: (message: string) => void
+    }) => Promise<{ days: number; totalCost: number } | null>
     resolveToktrackRunner: () => Promise<{
       command: string
       prefixArgs: string[]
@@ -115,6 +138,7 @@ const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js
         onStderr?: (line: string) => void
         signalOnClose?: (close: () => void) => void
         timeoutMs?: number | null
+        maxOutputBytes?: number
         spawnImpl?: (
           command: string,
           args: string[],
@@ -127,7 +151,58 @@ const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js
         }
       },
     ) => Promise<string>
+    toAutoImportErrorEvent: (error: Error) => {
+      key: string
+      vars?: Record<string, string | number>
+    }
   }
+}
+
+export type FakeSpawnOutcome = {
+  code?: number
+  hang?: boolean
+  stderr?: string
+  stdout?: string
+}
+
+export class FakeChildProcess extends EventEmitter {
+  stdout = new EventEmitter()
+  stderr = new EventEmitter()
+  exitCode: number | null = null
+
+  kill(signal: string) {
+    if (this.exitCode !== null) {
+      return
+    }
+
+    this.exitCode = signal === 'SIGKILL' ? 137 : 143
+    queueMicrotask(() => this.emit('close', this.exitCode))
+  }
+}
+
+export function createSpawnSequence(outcomes: FakeSpawnOutcome[]) {
+  const pendingOutcomes = [...outcomes]
+
+  return vi.fn((command?: string, args: string[] = []) => {
+    if (pendingOutcomes.length === 0) {
+      const commandDetails = [command, ...args].filter(Boolean).join(' ')
+      throw new Error(`Unexpected extra spawn${commandDetails ? `: ${commandDetails}` : ''}`)
+    }
+
+    const child = new FakeChildProcess()
+    const outcome = pendingOutcomes.shift() as FakeSpawnOutcome
+
+    if (!outcome.hang) {
+      queueMicrotask(() => {
+        if (outcome.stdout) child.stdout.emit('data', Buffer.from(outcome.stdout))
+        if (outcome.stderr) child.stderr.emit('data', Buffer.from(outcome.stderr))
+        child.exitCode = outcome.code ?? 0
+        child.emit('close', child.exitCode)
+      })
+    }
+
+    return child
+  })
 }
 
 const dataRuntime = createDataRuntime({
@@ -178,6 +253,7 @@ const autoImportRuntime = createAutoImportRuntime({
   toktrackLatestLookupTimeoutMs: 15000,
   toktrackLatestCacheSuccessTtlMs: 5 * 60 * 1000,
   toktrackLatestCacheFailureTtlMs: 60 * 1000,
+  probeLog: (message: string) => console.warn(message),
 })
 const {
   commandExists,
@@ -206,6 +282,7 @@ export {
   EventEmitter,
   TOKTRACK_VERSION,
   commandExists,
+  createAutoImportRuntime,
   existsSync,
   fork,
   fsPromises,

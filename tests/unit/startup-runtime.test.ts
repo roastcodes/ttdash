@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { TOKTRACK_VERSION } from '../../shared/toktrack-version.js'
 
 const require = createRequire(import.meta.url)
-const { createStartupRuntime, formatCurrency, formatInteger } =
+const { createStartupRuntime, formatCurrency, formatDayCount, formatErrorMessage, formatInteger } =
   require('../../server/startup-runtime.js') as {
     createStartupRuntime: (options: Record<string, unknown>) => {
       describeDataFile: () => string
@@ -14,6 +14,8 @@ const { createStartupRuntime, formatCurrency, formatInteger } =
       writeLocalAuthSessionFile: (url: string, runtimeInstance: { id: string }) => void
     }
     formatCurrency: (value: number) => string
+    formatDayCount: (value: number) => string
+    formatErrorMessage: (error: unknown) => string
     formatInteger: (value: number) => string
   }
 
@@ -102,7 +104,13 @@ describe('startup runtime', () => {
     const { dataRuntime, runtime } = createStartupRuntimeFixture()
 
     expect(formatCurrency(123.45)).toBe('$ 123')
+    expect(formatCurrency(-123.45)).toBe('$-123')
+    expect(formatDayCount(1)).toBe('1 day')
+    expect(formatDayCount(2)).toBe('2 days')
+    expect(formatErrorMessage(' plain failure ')).toBe('plain failure')
+    expect(formatErrorMessage({ code: 'E_TTDASH' })).toBe('{"code":"E_TTDASH"}')
     expect(formatInteger(12_345)).toBe("12'345")
+    expect(formatInteger(12_345.6)).toBe("12'346")
     expect(runtime.describeDataFile()).toBe("1 day, $ 12.34, 5'678 tokens")
 
     dataRuntime.readData.mockReturnValue({
@@ -247,5 +255,26 @@ describe('startup runtime', () => {
     expect(logs).toContain(`toktrack found (local, v${TOKTRACK_VERSION})`)
     expect(logs).toContain('processingUsageData')
     expect(logs).toContain('Auto-load complete: imported 2 days, $ 1.23.')
+  })
+
+  it('logs non-error auto-load failures defensively', async () => {
+    const markStartupAutoLoadCompleted = vi.fn()
+    const { errors, runtime } = createStartupRuntimeFixture({
+      autoImportRuntime: {
+        formatAutoImportMessageEvent: (event: { key: string }) => event.key,
+        performAutoImport: vi.fn(async () => {
+          throw 'string failure'
+        }),
+      },
+      markStartupAutoLoadCompleted,
+    })
+
+    await runtime.runStartupAutoLoad()
+
+    expect(markStartupAutoLoadCompleted).not.toHaveBeenCalled()
+    expect(errors).toEqual([
+      'Auto-load failed: string failure',
+      'Dashboard will start without newly imported data.',
+    ])
   })
 })

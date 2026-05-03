@@ -50,6 +50,20 @@ function findFunction(sourceFile: ts.SourceFile, name: string) {
   return declaration
 }
 
+function getImportSpecifiers(sourceFile: ts.SourceFile) {
+  return sourceFile.statements.flatMap((statement) => {
+    if (
+      ts.isImportDeclaration(statement) &&
+      statement.moduleSpecifier &&
+      ts.isStringLiteral(statement.moduleSpecifier)
+    ) {
+      return [statement.moduleSpecifier.text]
+    }
+
+    return []
+  })
+}
+
 function getIdentifierText(name: ts.PropertyName | ts.BindingName) {
   if (ts.isIdentifier(name)) return name.text
   throw new Error(`Expected identifier, received ${ts.SyntaxKind[name.kind]}`)
@@ -90,6 +104,53 @@ describe('dashboard sections contract guardrails', () => {
     expect(parameter.name.elements.map((element) => getIdentifierText(element.name))).toEqual([
       'viewModel',
     ])
+  })
+
+  it('keeps DashboardSections as a thin section orchestrator', () => {
+    const sourceFile = readSourceFile(dashboardSectionsPath)
+    const source = sourceFile.getFullText()
+    const imports = getImportSpecifiers(sourceFile)
+
+    expect(source).not.toContain('switch (sectionId)')
+    expect(source).not.toContain('function lazyWithPreload')
+    expect(source).not.toContain('const dashboardSectionPreloaders =')
+    for (const forbiddenImport of [
+      '../cards/PrimaryMetrics',
+      '../features/forecast/CostForecast',
+      '../features/heatmap/HeatmapCalendar',
+      '../features/risk/ConcentrationRisk',
+      '../charts/CostOverTime',
+      '../tables/ModelEfficiency',
+    ]) {
+      expect(imports).not.toContain(forbiddenImport)
+    }
+    expect(imports).toEqual(
+      expect.arrayContaining([
+        './sections/dashboard-section-lazy-components',
+        './sections/dashboard-section-metadata',
+        './sections/dashboard-section-renderers',
+      ]),
+    )
+  })
+
+  it('keeps section renderer ownership split by section family', () => {
+    const rendererRegistryPath = path.resolve(
+      process.cwd(),
+      'src/components/dashboard/sections/dashboard-section-renderers.ts',
+    )
+    const sourceFile = readSourceFile(rendererRegistryPath)
+    const source = sourceFile.getFullText()
+    const imports = getImportSpecifiers(sourceFile)
+
+    expect(source).not.toContain('switch (sectionId)')
+    expect(imports).toEqual(
+      expect.arrayContaining([
+        './dashboard-overview-sections',
+        './dashboard-forecast-sections',
+        './dashboard-analysis-sections',
+        './dashboard-comparison-table-sections',
+      ]),
+    )
   })
 
   it('keeps DashboardSectionsViewModel split into section bundles', () => {

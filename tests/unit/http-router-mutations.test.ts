@@ -1,137 +1,5 @@
-import path from 'node:path'
-import { createRequire } from 'node:module'
 import { describe, expect, it, vi } from 'vitest'
-
-const require = createRequire(import.meta.url)
-const { createHttpRouter } = require('../../server/http-router.js') as {
-  createHttpRouter: (options: Record<string, unknown>) => {
-    handleServerRequest: (
-      req: { url: string; method: string; headers: Record<string, string> },
-      res: MockResponse,
-    ) => Promise<void>
-  }
-}
-
-class MockResponse {
-  status = 0
-  headers: Record<string, string> = {}
-  body = ''
-
-  writeHead(status: number, headers: Record<string, string>) {
-    this.status = status
-    this.headers = headers
-  }
-
-  end(body?: string | Buffer) {
-    this.body = Buffer.isBuffer(body) ? body.toString('utf8') : (body ?? '')
-  }
-}
-
-function createRouter({
-  autoImportRuntimeOverrides = {},
-  dataRuntimeOverrides = {},
-  readBody = vi.fn(async () => ({})),
-}: {
-  autoImportRuntimeOverrides?: Record<string, unknown>
-  dataRuntimeOverrides?: Record<string, unknown>
-  readBody?: () => Promise<unknown>
-} = {}) {
-  const dataRuntime = {
-    extractSettingsImportPayload: vi.fn(
-      (payload: { settings?: unknown }) => payload.settings ?? payload,
-    ),
-    extractUsageImportPayload: vi.fn((payload: { data?: unknown }) => payload.data ?? payload),
-    isPayloadTooLargeError: vi.fn(
-      (error: { code?: string }) => error?.code === 'PAYLOAD_TOO_LARGE',
-    ),
-    isPersistedStateError: vi.fn(() => false),
-    mergeUsageData: vi.fn((_currentData, importedData) => ({
-      data: importedData,
-      summary: {
-        importedDays: Array.isArray(importedData?.daily) ? importedData.daily.length : 0,
-        addedDays: Array.isArray(importedData?.daily) ? importedData.daily.length : 0,
-        unchangedDays: 0,
-        conflictingDays: 0,
-        totalDays: Array.isArray(importedData?.daily) ? importedData.daily.length : 0,
-      },
-    })),
-    normalizeIncomingData: vi.fn((payload) => payload),
-    normalizeSettings: vi.fn((payload) => payload),
-    readData: vi.fn(() => null),
-    readSettings: vi.fn(() => ({ language: 'en' })),
-    unlinkIfExists: vi.fn(),
-    _updateDataLoadStateUnlocked: vi.fn(async () => undefined),
-    updateDataLoadState: vi.fn(async () => undefined),
-    updateSettings: vi.fn(async (body) => ({ ok: true, body })),
-    withFileMutationLock: vi.fn(async (_filePath: string, operation: () => Promise<unknown>) =>
-      operation(),
-    ),
-    withSettingsAndDataMutationLock: vi.fn(async (operation: () => Promise<unknown>) =>
-      operation(),
-    ),
-    writeData: vi.fn(async () => undefined),
-    writeSettings: vi.fn(async () => undefined),
-    paths: {
-      dataFile: '/data/data.json',
-      settingsFile: '/data/settings.json',
-    },
-    ...dataRuntimeOverrides,
-  }
-
-  const router = createHttpRouter({
-    fs: { promises: { readFile: vi.fn() } },
-    path,
-    staticRoot: '/app/dist',
-    securityHeaders: { 'X-Test-Security': '1' },
-    httpUtils: {
-      json: (res: MockResponse, status: number, payload: unknown) => {
-        res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' })
-        res.end(JSON.stringify(payload))
-      },
-      readBody,
-      resolveApiPath: (pathname: string) =>
-        pathname === '/api'
-          ? '/'
-          : pathname.startsWith('/api/')
-            ? pathname.slice('/api'.length)
-            : null,
-      sendBuffer: vi.fn(),
-      validateMutationRequest: vi.fn(() => null),
-      validateRequestHost: vi.fn(() => null),
-    },
-    remoteAuth: {
-      resolveBootstrapResponse: () => null,
-      validateApiRequest: () => null,
-    },
-    dataRuntime,
-    autoImportRuntime: {
-      lookupLatestToktrackVersion: vi.fn(async () => ({
-        configuredVersion: '1.0.0',
-        latestVersion: '1.0.0',
-        isLatest: true,
-        lookupStatus: 'ok',
-      })),
-      ...autoImportRuntimeOverrides,
-    },
-    generatePdfReport: vi.fn(),
-    getRuntimeSnapshot: vi.fn(),
-  })
-
-  return { dataRuntime, readBody, router }
-}
-
-async function request(
-  router: ReturnType<typeof createRouter>['router'],
-  url: string,
-  method: string,
-) {
-  const res = new MockResponse()
-  await router.handleServerRequest(
-    { url, method, headers: { 'content-type': 'application/json' } },
-    res,
-  )
-  return { res, body: JSON.parse(res.body) }
-}
+import { createRouter, createValidUsageData, request } from './http-router-test-helpers'
 
 describe('HTTP router mutation errors', () => {
   it('keeps malformed settings requests as client errors', async () => {
@@ -282,7 +150,7 @@ describe('HTTP router mutation errors', () => {
   })
 
   it('returns server errors for upload write failures', async () => {
-    const usageData = { daily: [{ date: '2026-04-27' }], totals: { totalCost: 1 } }
+    const usageData = createValidUsageData()
     const { router } = createRouter({
       readBody: vi.fn(async () => usageData),
       dataRuntimeOverrides: {
@@ -298,8 +166,78 @@ describe('HTTP router mutation errors', () => {
     expect(body).toEqual({ message: 'Server error' })
   })
 
+  it('rejects normalized upload payloads that are not valid usage data', async () => {
+    const { dataRuntime, router } = createRouter({
+      readBody: vi.fn(async () => ({ daily: [{ date: 42 }], totals: {} })),
+    })
+
+    const { res, body } = await request(router, '/api/upload', 'POST')
+
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ message: 'Invalid JSON' })
+    expect(dataRuntime.writeData).not.toHaveBeenCalled()
+  })
+
+  it('rejects normalized upload payloads with partial totals', async () => {
+    const { dataRuntime, router } = createRouter({
+      readBody: vi.fn(async () => ({
+        daily: [{ date: '2026-04-27' }],
+        totals: {},
+      })),
+    })
+
+    const { res, body } = await request(router, '/api/upload', 'POST')
+
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ message: 'Invalid JSON' })
+    expect(dataRuntime.writeData).not.toHaveBeenCalled()
+  })
+
+  it('rejects normalized upload payloads missing detailed totals', async () => {
+    const { dataRuntime, router } = createRouter({
+      readBody: vi.fn(async () => ({
+        daily: [{ date: '2026-04-27' }],
+        totals: {
+          totalCost: 1,
+          totalTokens: 100,
+          requestCount: 2,
+        },
+      })),
+    })
+
+    const { res, body } = await request(router, '/api/upload', 'POST')
+
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ message: 'Invalid JSON' })
+    expect(dataRuntime.writeData).not.toHaveBeenCalled()
+  })
+
+  it('rejects normalized upload payloads with non-finite totals', async () => {
+    const { dataRuntime, router } = createRouter({
+      readBody: vi.fn(async () => ({
+        daily: [{ date: '2026-04-27' }],
+        totals: {
+          inputTokens: 60,
+          outputTokens: 20,
+          cacheCreationTokens: 5,
+          cacheReadTokens: 10,
+          thinkingTokens: 5,
+          totalCost: Number.POSITIVE_INFINITY,
+          totalTokens: 10,
+          requestCount: 1,
+        },
+      })),
+    })
+
+    const { res, body } = await request(router, '/api/upload', 'POST')
+
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ message: 'Invalid JSON' })
+    expect(dataRuntime.writeData).not.toHaveBeenCalled()
+  })
+
   it('returns server errors for usage import write failures', async () => {
-    const usageData = { daily: [{ date: '2026-04-27' }], totals: { totalCost: 1 } }
+    const usageData = createValidUsageData()
     const { router } = createRouter({
       readBody: vi.fn(async () => ({ data: usageData })),
       dataRuntimeOverrides: {
@@ -315,21 +253,79 @@ describe('HTTP router mutation errors', () => {
     expect(body).toEqual({ message: 'Server error' })
   })
 
-  it('returns service unavailable when toktrack version lookup throws', async () => {
-    const { router } = createRouter({
-      autoImportRuntimeOverrides: {
-        lookupLatestToktrackVersion: vi.fn(async () => {
-          throw new Error('registry unavailable')
-        }),
-      },
+  it('rejects normalized usage imports that are not valid usage data', async () => {
+    const { dataRuntime, router } = createRouter({
+      readBody: vi.fn(async () => ({ data: { daily: [{ date: 42 }], totals: {} } })),
     })
 
-    const { res, body } = await request(router, '/api/toktrack/version-status', 'GET')
+    const { res, body } = await request(router, '/api/usage/import', 'POST')
 
-    expect(res.status).toBe(503)
-    expect(body).toEqual({
-      message: 'Service Unavailable',
-      detail: 'registry unavailable',
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ message: 'Invalid usage backup file' })
+    expect(dataRuntime.writeData).not.toHaveBeenCalled()
+  })
+
+  it('rejects normalized usage imports with partial totals', async () => {
+    const { dataRuntime, router } = createRouter({
+      readBody: vi.fn(async () => ({
+        data: {
+          daily: [{ date: '2026-04-27' }],
+          totals: {},
+        },
+      })),
     })
+
+    const { res, body } = await request(router, '/api/usage/import', 'POST')
+
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ message: 'Invalid usage backup file' })
+    expect(dataRuntime.writeData).not.toHaveBeenCalled()
+  })
+
+  it('rejects normalized usage imports missing detailed totals', async () => {
+    const { dataRuntime, router } = createRouter({
+      readBody: vi.fn(async () => ({
+        data: {
+          daily: [{ date: '2026-04-27' }],
+          totals: {
+            totalCost: 1,
+            totalTokens: 100,
+            requestCount: 2,
+          },
+        },
+      })),
+    })
+
+    const { res, body } = await request(router, '/api/usage/import', 'POST')
+
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ message: 'Invalid usage backup file' })
+    expect(dataRuntime.writeData).not.toHaveBeenCalled()
+  })
+
+  it('rejects normalized usage imports with non-finite totals', async () => {
+    const { dataRuntime, router } = createRouter({
+      readBody: vi.fn(async () => ({
+        data: {
+          daily: [{ date: '2026-04-27' }],
+          totals: {
+            inputTokens: 60,
+            outputTokens: 20,
+            cacheCreationTokens: 5,
+            cacheReadTokens: Number.NaN,
+            thinkingTokens: 5,
+            totalCost: 1,
+            totalTokens: 100,
+            requestCount: 2,
+          },
+        },
+      })),
+    })
+
+    const { res, body } = await request(router, '/api/usage/import', 'POST')
+
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ message: 'Invalid usage backup file' })
+    expect(dataRuntime.writeData).not.toHaveBeenCalled()
   })
 })

@@ -52,15 +52,28 @@ The server runtime is intentionally split so `server.js` stays an executable shi
   - owns local mutable runtime state services such as runtime snapshots, singleton runtime leases, and expiring async caches
   - keeps startup flags, auto-import leases, and toktrack version lookup cache state scoped to one composed app runtime
 - `server/data-runtime.js`
-  - owns app-path resolution, persisted usage/settings IO, migration, and file-mutation locks
+  - is the facade for app-path resolution, persisted usage/settings IO, migration, import merging, and file-mutation locks
   - consumes the shared settings contract instead of defining local settings defaults or normalizers
+  - composes focused services from `server/data-runtime/**`:
+    - `app-paths.js` exposes `resolveDataRuntimeAppPaths` for platform and env override path selection
+    - `file-io.js` exposes `createDataRuntimeFileIo` for secure directory setup, atomic JSON writes, file modes, and missing-file handling
+    - `file-locks.js` exposes `createDataRuntimeFileLocks` for in-process and cross-process mutation locks around data/settings files
+    - `import-merge.js` exposes `createDataRuntimeImportMerge` for backup payload extraction, usage-day equivalence, and non-destructive merge summaries
+  - wiring model: `server/data-runtime.js` imports these four submodules, injects filesystem/path/runtime configuration, and returns one public data-runtime facade to `server/app-runtime.js`
 - `server/cli.js`
   - owns CLI alias normalization, help text, positional command parsing, and port validation
 - `server/background-runtime.js`
   - owns background instance registry, start/stop flows, and registry locking
 - `server/auto-import-runtime.js`
-  - owns toktrack runner resolution, subprocess execution, version lookup, and auto-import execution
+  - is the facade for toktrack runner resolution, subprocess execution, version lookup, singleton leasing, and auto-import execution
   - uses the injected runtime-state services for singleton import leasing and latest-version cache isolation
+  - composes focused services from `server/auto-import-runtime/**`:
+    - `messages.js` exposes structured progress/error events and server-side fallback message formatting
+    - `command-runner.js` exposes cross-platform command spawning, timeout handling, process termination, and command diagnostics
+    - `toktrack-runners.js` exposes local/bunx/npx runner construction, probing, timeout selection, version parsing, and runner-resolution errors
+    - `latest-version.js` exposes the cached npm registry lookup for the latest toktrack version
+    - `import-executor.js` exposes singleton lease acquisition, toktrack JSON import orchestration, persistence updates, and startup auto-load logging
+  - wiring model: `server/auto-import-runtime.js` imports these five submodules, injects process/filesystem/cache/runtime configuration, and returns one public auto-import facade to `server/app-runtime.js`
 - `server/http-router.js`
   - owns API routing, SSE wiring, and static asset dispatch with injected runtime dependencies
   - must acquire auto-import work through `server/auto-import-runtime.js` instead of keeping route-local import flags
@@ -81,7 +94,7 @@ The server runtime is intentionally split so `server.js` stays an executable shi
 - Local auth session state
   - `server/startup-runtime.js` writes the current local session metadata to a restrictive `session-auth.json` file in the user config dir through injected data-runtime IO
   - `server/background-runtime.js` stores per-instance auth headers and bootstrap URLs in the restrictive background registry so `ttdash stop` and no-open background starts stay usable
-- `server/http-utils.js`, `server/runtime.js`, `server/process-utils.js`, `server/report/**`
+- `server/http-utils.js`, `server/runtime.js`, `server/runtime-formatters.js`, `server/process-utils.js`, `server/report/**`
   - shared support modules used by the composed runtimes
 
 ## Shared Settings Contract
@@ -92,6 +105,9 @@ Persisted settings are a shared contract across the frontend bootstrap path and 
   - owns app-level settings defaults, provider-limit normalization, and timestamp/load-source coercion
   - consumes `shared/dashboard-preferences.js` for dashboard-specific filter/section defaults and normalization
   - is the only production module that should define persisted settings defaults or normalization rules
+- `shared/*.d.ts`
+  - must expose the same value exports as their sibling CommonJS modules
+  - are guarded by `tests/architecture/shared-declaration-contract.test.ts` so runtime exports cannot drift from TypeScript consumers silently
 - `src/lib/app-settings.ts`
   - is a typed frontend adapter over `shared/app-settings.js`
   - may keep DOM-only behavior such as `applyTheme`, but must not recompute settings defaults from local helpers
@@ -156,6 +172,9 @@ Dashboard-specific presets, static section metadata, and preset date semantics a
 - `src/components/dashboard/DashboardSections.tsx`
   - consumes a single `DashboardSectionsViewModel`
   - should keep section ownership grouped by section bundle instead of reintroducing broad prop lists
+- `src/components/dashboard/sections/dashboard-section-renderer-types.d.ts`
+  - owns the type-only renderer contract shared by section family renderers
+  - must stay declaration-only because it is intentionally erased from the runtime dependency graph
 - `src/components/layout/FilterBar.tsx`
   - owns the public filter bar shell and composes private layout filter groups for status, time presets, date range, and provider/model chips
 - `src/components/layout/FilterBar*.tsx`
@@ -200,10 +219,12 @@ Reason: the repo has stable layer boundaries, but it is not structured around st
 
 - dependency graph validation: `npm run check:deps`
 - dependency graph visualization: `npm run deps:graph`
+- static quality gate: `npm run test:static`
+- all Vitest projects without coverage: `npm run test:vitest`
 - architecture tests only: `npm run test:architecture`
 - main release-style local gate: `npm run verify:full`
 
-Both `ci.yml` and `release.yml` run `check:deps` and `test:architecture` explicitly so dependency and architecture violations show up as separate CI failures instead of being hidden inside a larger local gate.
+`ci.yml` runs static checks, architecture tests, Vitest projects, coverage, build, package smoke, and Playwright as separate DAG jobs so independent failures are visible without waiting for one serial full-gate job. `release.yml` still runs `check:deps` and `test:architecture` explicitly during the release path so dependency and architecture violations are not hidden inside a larger local gate.
 
 ## Contributor Rules
 

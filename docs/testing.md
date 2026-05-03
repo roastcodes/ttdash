@@ -31,11 +31,15 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
 
 ## Frontend Defaults
 
+- `vitest.setup.node.ts` is the minimal shared cleanup for Node-only projects.
 - `vitest.setup.frontend.ts` is the shared place for `jsdom` defaults such as:
   - i18n bootstrapping
   - `matchMedia`
   - `ResizeObserver`
   - default `IntersectionObserver`
+- The `frontend` Vitest project owns the shared `30s` jsdom timeout because coverage instrumentation
+  can make a few otherwise-synchronous render tests exceed Vitest's default `5s` timeout under load.
+  Do not add per-test timeout overrides for routine frontend render tests.
 - Only override `IntersectionObserver` locally when the test explicitly verifies reveal or visibility behavior.
 - Only call `initI18n(...)` inside a test file when locale switching is itself part of the assertion.
 
@@ -59,7 +63,9 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
   - motion/reveal behavior
 - For large server helper or integration suites, group tests by subsystem so Vitest can schedule them more efficiently.
 - Keep background-process integration files focused by behavior; the background Vitest project intentionally uses a small worker cap instead of one serial catch-all file or unbounded process fan-out.
-- Keep Playwright files grouped by end-to-end journey, such as load/upload, forecast/filter interaction, settings/backups, reporting, and command palette behavior. Share authentication, server reset, seeding, and download helpers through `tests/e2e/helpers.ts` instead of creating new browser catch-all files.
+- Keep Playwright files grouped by end-to-end journey, such as load/upload, forecast/filter interaction, settings/backups, reporting, and command palette behavior. Import `test` and `expect` from `tests/e2e/fixtures.ts` so each worker gets its own server, port, auth session, and runtime directory. Share authentication, server reset, seeding, and download helpers through `tests/e2e/helpers.ts` instead of creating new browser catch-all files.
+- Every Playwright spec must reset state through `resetAppState(...)` or prepare an isolated dashboard through `prepareDashboard(...)` before it asserts app behavior. `tests/unit/playwright-config.test.ts` fails when a new spec skips that isolation contract.
+- `tests/unit/playwright-config.test.ts` also guards the small E2E journey list, the shared fixture import, CI worker cap, and Playwright reporter paths. Update that contract intentionally when adding a new browser journey.
 
 ## Choosing the Right Layer
 
@@ -96,9 +102,9 @@ For `tests/architecture`, prefer the shared source graph helper for simple file,
 
 ## Coverage Scope
 
-`npm run test:unit:coverage` reports product-runtime coverage. The configured coverage scope intentionally includes frontend runtime modules, the local server runtime, shared runtime contracts, and `usage-normalizer.js` instead of only the historically high-signal frontend subset.
+`npm run test:vitest:coverage` reports product-runtime coverage. `npm run test:unit:coverage` is kept as the underlying compatibility command. The configured coverage scope intentionally includes frontend runtime modules, the local server runtime, shared runtime contracts, and `usage-normalizer.js` instead of only the historically high-signal frontend subset.
 
-The coverage and timing commands use explicit `dot` and `junit` Vitest reporters. Keep those reporters on both scripts so non-interactive gates emit compact progress and do not depend on silent reporter paths.
+The coverage and timing commands use explicit `dot` and `junit` Vitest reporters. Keep those reporters on both scripts so non-interactive gates emit compact progress and do not depend on silent reporter paths. They intentionally write separate JUnit files, `test-results/vitest-coverage.junit.xml` and `test-results/vitest-timings.junit.xml`, so coverage and timing diagnostics do not contend for the same report path.
 
 The global thresholds are ratchets for that broader denominator:
 
@@ -129,24 +135,81 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 ## Local Commands
 
 - Required pre-PR gate: run `npm run verify:full` before opening a PR to ensure all tests and checks pass.
+- Faster non-coverage fast path on a local machine with enough CPU: `PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel`
 - Faster inner-loop gate: `npm run verify`
+- Static gate only: `npm run test:static`
+- All Vitest projects without coverage: `npm run test:vitest`
 - Architecture tests only: `npm run test:architecture`
 - Dependency graph gate: `npm run check:deps`
-- Coverage-only unit/integration gate: `npm run test:unit:coverage`
-- Playwright only: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`
+- Coverage-only unit/integration gate: `npm run test:vitest:coverage`
+- Per-project timing budget pass: `npm run test:timings:projects`
+- Three-run timing benchmark: `npm run test:timings:benchmark`
+- Playwright only, with a fresh app build: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:parallel`
+- CI-style Playwright smoke: `npm run test:e2e:ci`
+- Serial local mirror of the CI gate: `npm run verify:ci`
+- Optional parallel local gate without Playwright: `npm run verify:parallel`
 
 ## Architecture Guardrails
 
 - Keep hook files under `src/hooks/` reachable from the frontend app entrypoint; `npm run test:architecture` fails on unused production hooks so dead hook helpers do not silently remain at `0%` coverage.
 - Timing diagnostics: `npm run test:timings`
 
-`npm run test:timings` generates a fresh Vitest JUnit report and prints the slowest suites and tests. Use it after larger test additions or refactors to catch new hotspots early.
+`npm run test:timings` generates a fresh Vitest JUnit report, prints the slowest suites and tests, and
+lists warning-level timing budget entries. Use it after larger test additions or refactors to catch
+new hotspots early.
+
+`npm run test:timings:budget` runs the same Vitest project set with a separate JUnit output and fails
+when a suite exceeds `20s` or an individual test exceeds `12s`. These hard limits are intentionally
+above the current baseline so they catch pathological regressions without making local and CI runs
+fragile under normal CPU variance. CI applies the same hard budget to each Vitest matrix job by
+evaluating the JUnit report already produced by that job, so the guard does not add another full
+Vitest pass.
 
 Do not run `test:timings` in parallel with another Vitest command that writes the same JUnit file.
+`test:timings:budget` uses `test-results/vitest-timing-budget.junit.xml` so it can be run separately
+from the diagnostic report when needed.
+
+`npm run test:timings:projects` runs each Vitest project separately, writes project-scoped JUnit files
+such as `test-results/vitest-frontend.timing.junit.xml`, and checks the same `20s` suite / `12s`
+test hard budget after each project. Use it when you need to identify whether a regression is in
+unit, frontend, integration, or background tests without adding another monolithic timing report.
+
+`npm run test:timings:benchmark` repeats the project timing pass three times and prints median and
+worst observed duration per project. Use those repeated measurements before changing worker counts
+or moving tests between layers; a single run is not enough to separate real improvements from cache,
+CPU, or I/O variance. Repeated runs write `timing-run-N` JUnit files so their reports never overwrite
+the normal project, coverage, or diagnostic reports.
+
+The frontend Vitest project intentionally uses `maxWorkers: '80%'`. Local Phase-2 measurements showed
+that the old `50%` setting left jsdom work under-parallelized, while `100%` saturated the machine and
+made imports, setup, tests, and environment time much worse. Re-benchmark with
+`npm run test:timings:benchmark -- --projects=frontend` before changing that worker cap.
+
+`npm run verify:parallel` is an optional local fast path. It overlaps the static gate, API
+integration tests, and `build:app`, then runs the high-contention suites in separate waves: unit,
+frontend/jsdom, architecture, and background-process integration. That keeps the internally
+parallel Vitest projects from over-subscribing the same cores and keeps real background servers away
+from the jsdom/build storm. `verify:package` runs after those waves succeed.
+`npm run verify:full:parallel` adds `test:e2e:ci` to the final wave. The canonical serial gates stay
+unchanged; use the parallel gates for local feedback when the machine has enough CPU and the
+per-project JUnit report paths must stay isolated. The parallel fast path intentionally avoids a
+second coverage-instrumented Vitest pass, so pair it with `npm run test:vitest:coverage` or the
+serial `npm run verify:full` when coverage thresholds are part of the validation.
+
+Use `node scripts/run-parallel-gate.js --dry-run --e2e` after changing gate scripts to inspect the
+task waves and their declared report outputs before running the expensive full gate. The script
+fails before spawning children if two tasks in the same wave declare the same output path, and a
+successful run prints a per-task timing summary so local bottlenecks are visible without opening
+JUnit reports.
 
 ## CI Notes
 
 - Keep workflow test paths aligned with the split test structure.
+- The main CI workflow is intentionally a DAG: `static`, Vitest project matrix, `coverage`, and `build` can run independently; `package-smoke` and `e2e` depend only on the `production-dist` artifact from `build`.
+- `CI Required` is the stable branch-protection check for `ci.yml`; it runs after every required CI job with `always()` and fails on failed, skipped, or cancelled dependencies.
+- Keep CI report artifacts job-scoped so parallel jobs do not overwrite each other. Vitest project jobs upload `test-reports-vitest-<project>`, coverage uploads `coverage-reports`, and Playwright uploads `test-reports-e2e`.
+- Each Vitest matrix job evaluates its own JUnit report with `scripts/report-test-timings.js` and the
+  same `20s` suite / `12s` test hard budget used by `npm run test:timings:budget`.
 - Do not point CI jobs at deleted catch-all files such as old monolithic `server-helpers` or frontend regression suites.
 - Windows smoke coverage should stay focused on the small, platform-relevant helper suites rather than full subprocess-heavy integration runs unless the workflow explicitly targets Windows process behavior.
 

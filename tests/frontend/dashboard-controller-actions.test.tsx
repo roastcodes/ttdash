@@ -189,6 +189,7 @@ describe('useDashboardControllerWithBootstrap actions', () => {
       addedDays: 2,
       unchangedDays: 0,
       conflictingDays: 0,
+      skippedDays: 0,
       totalDays: 2,
     })
 

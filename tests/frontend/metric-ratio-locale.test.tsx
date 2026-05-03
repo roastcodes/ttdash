@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { render } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MonthMetrics } from '@/components/cards/MonthMetrics'
 import { PrimaryMetrics } from '@/components/cards/PrimaryMetrics'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -44,6 +44,8 @@ const metrics: DashboardMetrics = {
 }
 
 describe('metric ratio localization', () => {
+  const daysElapsedInTestMonth = 30
+  const testDate = new Date(2026, 3, daysElapsedInTestMonth, 12)
   const daily: DailyUsage[] = [
     {
       date: '2026-04-02',
@@ -74,6 +76,8 @@ describe('metric ratio localization', () => {
   ]
 
   beforeEach(async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(testDate)
     vi.stubGlobal(
       'IntersectionObserver',
       class {
@@ -83,6 +87,11 @@ describe('metric ratio localization', () => {
       },
     )
     await initI18n('de')
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
   })
 
   it('formats the primary metrics I/O ratio with the active locale', () => {
@@ -125,7 +134,7 @@ describe('metric ratio localization', () => {
       style: 'percent',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(2 / new Date().getDate())
+    }).format(2 / daysElapsedInTestMonth)
 
     render(
       <TooltipProvider delayDuration={0}>

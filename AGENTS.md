@@ -24,7 +24,7 @@ Frontend code is TypeScript + React. Follow the existing style: 2-space indentat
 
 ## Testing Guidelines
 
-Automated tests are part of the repo now. Before opening a PR, run `npm run verify:full`. If you only need the main local gate without Playwright, run `npm run verify`. If local port `3015` is already in use, run Playwright with `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`. Use `npm run test:timings` to inspect the slowest Vitest suites and cases after larger test changes, but do not run it in parallel with another Vitest command that writes the same JUnit report. Architecture and dependency boundaries are guarded by `npm run test:architecture` and `npm run check:deps`; when you add or move modules, keep [`docs/architecture.md`](docs/architecture.md) aligned with the actual structure.
+Automated tests are part of the repo now. Before opening a PR, run `npm run verify:full`; on a local machine with enough CPU, `PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel` is the faster non-coverage fast path across the main test surfaces. If you only need the main local gate without Playwright, run `npm run verify`. If local port `3015` is already in use, run Playwright with `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`. Use `npm run test:timings` to inspect the slowest Vitest suites and cases after larger test changes, but do not run it in parallel with another Vitest command that writes the same JUnit report. Architecture and dependency boundaries are guarded by `npm run test:architecture` and `npm run check:deps`; when you add or move modules, keep [`docs/architecture.md`](docs/architecture.md) aligned with the actual structure.
 
 When adding tests:
 
@@ -37,6 +37,7 @@ When adding tests:
 - use real subprocesses only when shell/PATH/CLI or cross-process behavior is the thing being tested
 - split files once they mix unrelated concerns like content, navigation, localization, motion, or keyboard behavior
 - keep `waitFor(...)` for real eventual consistency only, not as the default assertion pattern
+- keep Playwright fixtures and shared helpers in `tests/e2e/fixtures.ts`; place specs in `tests/e2e` spec files and reset state with `resetAppState(...)` or `prepareDashboard(...)`
 - when improving coverage, prefer critical branch-heavy runtime modules like `src/lib/api.ts`, `src/hooks/use-usage-data.ts`, and `src/hooks/use-dashboard-controller.ts` over adding another broad dashboard catch-all test
 
 Continue to manually verify the main flows affected by the change: dashboard load, auto-import, JSON upload, filtering, and export actions.

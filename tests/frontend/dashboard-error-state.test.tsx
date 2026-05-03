@@ -109,6 +109,7 @@ describe('Dashboard fatal load state', () => {
       addedDays: 0,
       unchangedDays: 0,
       conflictingDays: 0,
+      skippedDays: 0,
       totalDays: 0,
     })
     toktrackVersionStatusMocks.scheduleToktrackVersionStatusWarmup.mockClear()
@@ -137,7 +138,7 @@ describe('Dashboard fatal load state', () => {
 
     await waitFor(() => expect(apiMocks.deleteSettings).toHaveBeenCalledTimes(1))
     expect(await screen.findByText('Settings reset')).toBeInTheDocument()
-  }, 15_000)
+  })
 
   it('renders a fatal usage error state with a delete action for corrupted stored data', async () => {
     const mutateAsync = vi.fn().mockResolvedValue(undefined)

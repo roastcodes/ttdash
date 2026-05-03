@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, screen } from '@testing-library/react'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrimaryMetrics } from '@/components/cards/PrimaryMetrics'
 import { ChartCard } from '@/components/charts/ChartCard'
 import { UsageInsights } from '@/components/features/insights/UsageInsights'
@@ -46,8 +46,20 @@ const emptyMetrics: DashboardMetrics = {
 }
 
 describe('Dashboard language regressions', () => {
+  let originalScrollIntoView: Element['scrollIntoView'] | undefined
+
   beforeAll(async () => {
+    originalScrollIntoView = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = vi.fn()
     await initI18n('de')
+  })
+
+  afterAll(() => {
+    if (originalScrollIntoView) {
+      Element.prototype.scrollIntoView = originalScrollIntoView
+    } else {
+      delete (Element.prototype as { scrollIntoView?: Element['scrollIntoView'] }).scrollIntoView
+    }
   })
 
   it('localizes expanded chart actions in German', () => {

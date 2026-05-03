@@ -108,6 +108,7 @@ export interface DashboardControllerDerivedState {
   hasData: boolean
   filters: DashboardControllerFiltersState
   computed: DashboardControllerComputedState
+  dailyCosts: number[]
   totalCalendarDays: number
   todayData: DailyUsage | null
   hasCurrentMonthData: boolean

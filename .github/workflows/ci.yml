@@ -14,7 +14,72 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run static checks
+        run: npm run test:static
+
+  vitest:
+    name: Vitest (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - architecture
+          - unit
+          - frontend
+          - integration
+          - integration-background
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run Vitest project
+        run: npm run test:vitest:${{ matrix.project }}
+
+      - name: Check Vitest timing budget
+        run: |
+          node scripts/report-test-timings.js \
+            test-results/vitest-${{ matrix.project }}.junit.xml \
+            --max-suite-seconds=20 \
+            --max-test-seconds=12
+
+      - name: Upload Vitest report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-reports-vitest-${{ matrix.project }}
+          if-no-files-found: ignore
+          path: test-results/vitest-${{ matrix.project }}.junit.xml
+
+  coverage:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -31,32 +96,96 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Check formatting
-        run: npm run format:check
-
-      - name: Run ESLint
-        run: npm run lint
-
-      - name: Run docstring lint
-        run: npm run lint:docstrings
-
-      - name: Run dependency graph checks
-        run: npm run check:deps
-
-      - name: Run TypeScript checks
-        run: ./node_modules/.bin/tsc --noEmit
-
-      - name: Run architecture tests
-        run: npm run test:architecture
-
       - name: Run unit and integration tests with coverage
-        run: npm run test:unit:coverage
+        run: npm run test:vitest:coverage
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-reports
+          if-no-files-found: ignore
+          path: |
+            coverage/
+            test-results/vitest-coverage.junit.xml
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
 
       - name: Build production bundle
         run: npm run build:app
 
+      - name: Upload production bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: production-dist
+          if-no-files-found: error
+          path: dist/
+
+  package-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Download production bundle
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: production-dist
+          path: dist
+
       - name: Verify packed npm artifact
         run: npm run verify:package
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: build
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Download production bundle
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: production-dist
+          path: dist
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
@@ -68,10 +197,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: test-reports
+          name: test-reports-e2e
           if-no-files-found: ignore
           path: |
-            coverage/
             playwright-report/
             test-results/
 
@@ -97,3 +225,44 @@ jobs:
 
       - name: Build production bundle
         run: npm run build:app
+
+  ci-required:
+    name: CI Required
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - static
+      - vitest
+      - coverage
+      - build
+      - package-smoke
+      - e2e
+      - windows-smoke
+    if: ${{ always() }}
+
+    steps:
+      - name: Verify required CI jobs
+        run: |
+          failed=0
+
+          check_result() {
+            local job_name="$1"
+            local result="$2"
+
+            if [[ "${result}" = "success" ]]; then
+              echo "${job_name}: ${result}"
+            else
+              echo "::error::${job_name}: ${result}"
+              failed=1
+            fi
+          }
+
+          check_result "static" "${{ needs.static.result }}"
+          check_result "vitest" "${{ needs.vitest.result }}"
+          check_result "coverage" "${{ needs.coverage.result }}"
+          check_result "build" "${{ needs.build.result }}"
+          check_result "package-smoke" "${{ needs['package-smoke'].result }}"
+          check_result "e2e" "${{ needs.e2e.result }}"
+          check_result "windows-smoke" "${{ needs['windows-smoke'].result }}"
+
+          exit "${failed}"

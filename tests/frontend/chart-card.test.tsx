@@ -29,7 +29,7 @@ describe('ChartCard', () => {
 
     expect(screen.getByText('Total')).toBeInTheDocument()
     expect(screen.getByText('Data points')).toBeInTheDocument()
-  }, 15_000)
+  })
 
   it('reveals the expand control for keyboard focus on desktop', () => {
     renderWithAppProviders(

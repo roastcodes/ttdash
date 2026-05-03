@@ -1,5 +1,29 @@
 # Changelog
 
+## [6.3.0] - 2026-05-02
+
+### Added
+
+- **Paralleles Verification-Gate für lokale und CI-nahe Prüfläufe** — ein neuer Parallelmodus bündelt die wichtigsten Test- und Build-Oberflächen mit eigener Portsteuerung, damit breite Validierungen schneller und reproduzierbarer laufen
+- **Test-Timing-Budgets und Benchmark-Transparenz** — neue Timing-Budgets, Projekt-Benchmarks und dokumentierte Gate-Optionen machen langsame oder driftende Tests besser sichtbar
+- **Gezielte Branch-Coverage für Runtime-, Router- und Exportpfade** — zusätzliche Unit-, Frontend- und Integrationstests decken Settings, CSV-Export, Runner-Auflösung, Background-Runtime, Auto-Import-Router und process-adjacent Serverpfade gegen Regressionen ab
+
+### Improved
+
+- **Klarere Ownership in Runtime und Dashboard-Struktur** — Auto-Import-, Daten-, HTTP-Router- und Dashboard-Section-Verantwortlichkeiten wurden weiter in fokussierte Services und Contracts aufgeteilt
+- **Stabilere parallele Testausführung** — Playwright-Specs isolieren ihren Zustand robuster, Vitest-/Frontend-Parallelismus ist gezielter abgestimmt, Toktrack-Cache-Tests nutzen Fake-Spawn-Pfade, und Chart-Legend-Tests bleiben leichtergewichtig
+- **Bessere Diagnosequalität in Test- und Verify-Gates** — parallele Gate-Fehler, Runner-Auflösungsfehler und Scope-Fehler liefern klarere Hinweise, während Test-Gates und Review-Baselines aktualisiert und dokumentiert wurden
+
+### Fixed
+
+- **Flaky Cross-Test-State in Browser- und Parallelgates** — Playwright-Smoke-Scope, Spec-State-Isolation und parallele Gate-Optionsfehler sind gegen versteckte Zustandskopplung und schwer lesbare Fehlschläge abgesichert
+- **Unvollständige Fehlerpfadabdeckung in Server-Runtime und Auto-Import** — Background-Concurrency, Router-Auto-Import-Fehler, process-adjacent Runtime-Kanten und Runner-Resolution-Branches sind jetzt gezielt getestet
+- **Shared-Declaration- und Architekturdrift** — gemeinsame Deklarationsverträge werden explizit geschützt, damit geteilte Typ- und Boundary-Erwartungen nicht unbemerkt auseinanderlaufen
+
+### Commits
+
+- Enthält alle Branch-Commits seit `v6.2.9`: `f5cf2b6`, `104d663`, `aec28b2`, `892d551`, `c4e3049`, `475aee4`, `5a701b7`, `0834a07`, `ca29012`, `04aa7a6`, `be994fd`, `708c3c7`, `7e60008`, `efb9cee`, `eab08c5`, `f2b3400`, `7555c0e`, `1657822`, `b7fbe80`, `67db759`, `44c073d`, `c4882ae`, `2932697`, `944a049`, `e9d54fa`, `117cfeb`, `b5cac6a`, `3a4285d`, `cb31d35`, `ab49513`, `c4abb2b`, `5f69ade`, `acb22ab`
+
 ## [6.2.9] - 2026-04-28
 
 ### Improved

@@ -1,8 +1,34 @@
-import { beforeAll, vi } from 'vitest'
+import '@testing-library/jest-dom/vitest'
+import { cleanup } from '@testing-library/react'
+import { afterEach, beforeAll, beforeEach, vi } from 'vitest'
 import { initI18n } from '@/lib/i18n'
+
+// jsdom can expose different Event/CustomEvent constructors on globalThis and window.
+// Radix dispatches globalThis.CustomEvent instances through DOM nodes, so align both.
+function syncDomEventConstructors() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  Object.defineProperty(globalThis, 'Event', {
+    configurable: true,
+    writable: true,
+    value: window.Event,
+  })
+  Object.defineProperty(globalThis, 'CustomEvent', {
+    configurable: true,
+    writable: true,
+    value: window.CustomEvent,
+  })
+}
+
+afterEach(() => {
+  cleanup()
+})
 
 beforeAll(async () => {
   await initI18n('de')
+  syncDomEventConstructors()
 
   if (typeof window === 'undefined') {
     return
@@ -55,4 +81,9 @@ beforeAll(async () => {
       value: IntersectionObserver,
     })
   }
+})
+
+// Some tests intentionally reset globals, so restore the jsdom event constructors per test.
+beforeEach(() => {
+  syncDomEventConstructors()
 })

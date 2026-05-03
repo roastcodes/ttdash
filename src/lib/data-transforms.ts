@@ -143,7 +143,11 @@ export function buildDashboardChartTransforms(
       modelCostChartData: [],
       tokenChartData: [],
       requestChartData: [],
-      weekdayData: createWeekdayLabels(locale).map((day) => ({ day, cost: 0 })),
+      weekdayData: createWeekdayLabels(locale).map((day, weekdayIndex) => ({
+        day,
+        cost: 0,
+        weekdayIndex,
+      })),
     }
   }
 
@@ -295,7 +299,7 @@ export function buildDashboardChartTransforms(
     const values = weekdayCosts[index] ?? []
     const average =
       values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0
-    return { day, cost: average }
+    return { day, cost: average, weekdayIndex: index }
   })
 
   return {

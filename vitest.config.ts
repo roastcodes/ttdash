@@ -1,6 +1,9 @@
 import { defineConfig, mergeConfig } from 'vitest/config'
 import viteConfig from './vite.config'
 
+const junitOutputFile = process.env.VITEST_JUNIT_FILE || './test-results/vitest.junit.xml'
+const coverageReportsDirectory = process.env.VITEST_COVERAGE_DIR || './coverage'
+
 export default defineConfig(async () => {
   // Resolve the imported Vite config explicitly before mergeConfig because
   // vite.config may export either a config object or an async config factory.
@@ -22,12 +25,12 @@ export default defineConfig(async () => {
         include: [],
         reporters: ['default', 'junit'],
         outputFile: {
-          junit: './test-results/vitest.junit.xml',
+          junit: junitOutputFile,
         },
         coverage: {
           provider: 'v8',
           reporter: ['text', 'html', 'lcov'],
-          reportsDirectory: './coverage',
+          reportsDirectory: coverageReportsDirectory,
           include: [
             'src/**/*.{ts,tsx}',
             'server.js',
@@ -51,7 +54,7 @@ export default defineConfig(async () => {
               include: ['tests/architecture/**/*.test.ts'],
               environment: 'node',
               globals: true,
-              setupFiles: ['./vitest.setup.ts'],
+              setupFiles: ['./vitest.setup.node.ts'],
               fileParallelism: false,
               sequence: {
                 groupOrder: 0,
@@ -64,7 +67,7 @@ export default defineConfig(async () => {
               name: 'unit',
               include: ['tests/unit/**/*.test.ts'],
               environment: 'node',
-              setupFiles: ['./vitest.setup.ts'],
+              setupFiles: ['./vitest.setup.node.ts'],
               maxWorkers: '80%',
               sequence: {
                 groupOrder: 1,
@@ -77,8 +80,9 @@ export default defineConfig(async () => {
               name: 'frontend',
               include: ['tests/frontend/**/*.test.{ts,tsx}'],
               environment: 'jsdom',
-              setupFiles: ['./vitest.setup.ts', './vitest.setup.frontend.ts'],
-              maxWorkers: '50%',
+              setupFiles: ['./vitest.setup.node.ts', './vitest.setup.frontend.ts'],
+              maxWorkers: '80%',
+              testTimeout: 30_000,
               sequence: {
                 groupOrder: 2,
               },
@@ -91,7 +95,7 @@ export default defineConfig(async () => {
               include: ['tests/integration/**/*.test.ts'],
               exclude: ['tests/integration/**/*background*.test.ts'],
               environment: 'node',
-              setupFiles: ['./vitest.setup.ts'],
+              setupFiles: ['./vitest.setup.node.ts'],
               maxWorkers: '50%',
               sequence: {
                 groupOrder: 3,
@@ -104,7 +108,7 @@ export default defineConfig(async () => {
               name: 'integration-background',
               include: ['tests/integration/**/*background*.test.ts'],
               environment: 'node',
-              setupFiles: ['./vitest.setup.ts'],
+              setupFiles: ['./vitest.setup.node.ts'],
               maxWorkers: 2,
               sequence: {
                 groupOrder: 4,

@@ -299,7 +299,7 @@ function createBackgroundRuntime({
   }
 
   function buildBackgroundLogFilePath() {
-    return path.join(backgroundLogDir, `server-${Date.now()}.log`);
+    return path.join(backgroundLogDir, `server-${Date.now()}-${processObject.pid}.log`);
   }
 
   function readBackgroundLogOutput(logFile) {

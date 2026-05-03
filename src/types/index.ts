@@ -48,6 +48,7 @@ export interface UsageImportSummary {
   addedDays: number
   unchangedDays: number
   conflictingDays: number
+  skippedDays: number
   totalDays: number
 }
 
@@ -217,6 +218,7 @@ export interface ModelCostChartPoint extends ChartDataPoint {
 export interface WeekdayData {
   day: string
   cost: number
+  weekdayIndex?: number
 }
 
 /** Grades the forecast quality based on data density and volatility. */
@@ -316,6 +318,6 @@ export interface ToktrackVersionStatus {
   configuredVersion: string
   latestVersion: string | null
   isLatest: boolean | null
-  lookupStatus: 'ok' | 'failed'
+  lookupStatus: 'ok' | 'failed' | 'malformed-output' | 'timeout'
   message?: string
 }

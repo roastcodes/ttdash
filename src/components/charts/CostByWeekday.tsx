@@ -21,32 +21,82 @@ interface CostByWeekdayProps {
   data: WeekdayData[]
 }
 
+const WEEKEND_DAY_FALLBACKS = new Set([
+  // Saturday
+  'sa',
+  'sam',
+  'samedi',
+  'sab',
+  'sabado',
+  'sabato',
+  'sat',
+  'saturday',
+  // Sunday
+  'dim',
+  'dimanche',
+  'dom',
+  'domingo',
+  'domenica',
+  'so',
+  'sonntag',
+  'su',
+  'sun',
+  'sunday',
+])
+
+function isWeekendEntry(entry: WeekdayData) {
+  if (entry.weekdayIndex !== undefined) {
+    return entry.weekdayIndex === 5 || entry.weekdayIndex === 6
+  }
+
+  // buildDashboardChartTransforms provides weekdayIndex; day labels are a legacy/external fallback.
+  const normalizedDay = entry.day
+    .trim()
+    .toLocaleLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\.$/, '')
+  return WEEKEND_DAY_FALLBACKS.has(normalizedDay)
+}
+
 /** Renders average cost by weekday. */
 export function CostByWeekday({ data }: CostByWeekdayProps) {
   const { t } = useTranslation()
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const uid = useId()
   const gid = (n: string) => `${uid}-${n}`.replace(/:/g, '')
+  const chartData = [...data].sort((left, right) => {
+    if (left.weekdayIndex === undefined && right.weekdayIndex === undefined) {
+      return 0
+    }
+    if (left.weekdayIndex === undefined) {
+      return 1
+    }
+    if (right.weekdayIndex === undefined) {
+      return -1
+    }
+    return left.weekdayIndex - right.weekdayIndex
+  })
 
-  const maxCost = Math.max(...data.map((d) => d.cost))
-  const minCost = Math.min(...data.map((d) => d.cost))
-  const peakIndex = data.findIndex((d) => d.cost === maxCost)
-  const lowIndex = data.findIndex((d) => d.cost === minCost)
-  const weekendCost = data
-    .filter((entry) => entry.day === 'Sa' || entry.day === 'So')
+  const maxCost = Math.max(...chartData.map((d) => d.cost))
+  const minCost = Math.min(...chartData.map((d) => d.cost))
+  const peakIndex = chartData.findIndex((d) => d.cost === maxCost)
+  const lowIndex = chartData.findIndex((d) => d.cost === minCost)
+  const weekendCost = chartData
+    .filter((entry) => isWeekendEntry(entry))
     .reduce((sum, entry) => sum + entry.cost, 0)
-  const weekTotal = data.reduce((sum, entry) => sum + entry.cost, 0)
+  const weekTotal = chartData.reduce((sum, entry) => sum + entry.cost, 0)
 
   return (
     <ChartCard
       title={t('charts.costByWeekday.title')}
       subtitle={t('charts.costByWeekday.subtitle', {
-        peak: data[peakIndex]?.day ?? '–',
-        low: data[lowIndex]?.day ?? '–',
+        peak: chartData[peakIndex]?.day ?? '–',
+        low: chartData[lowIndex]?.day ?? '–',
         share: `${(weekTotal > 0 ? (weekendCost / weekTotal) * 100 : 0).toFixed(0)}%`,
       })}
       info={CHART_HELP.costByWeekday}
-      chartData={data as unknown as Record<string, unknown>[]}
+      chartData={chartData as unknown as Record<string, unknown>[]}
       valueKey="cost"
       valueFormatter={formatCurrency}
     >
@@ -55,7 +105,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
           <ChartReveal variant="bar">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
-                data={data}
+                data={chartData}
                 margin={CHART_MARGIN}
                 onMouseMove={(state) => {
                   if (
@@ -107,7 +157,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
                   name={t('charts.costByWeekday.averageCost')}
                   {...getBarAnimationProps(animate)}
                 >
-                  {data.map((_, index) => {
+                  {chartData.map((_, index) => {
                     let fill = `url(#${gid('weekday')})`
                     if (activeIndex === index) fill = `url(#${gid('weekdayActive')})`
                     else if (index === peakIndex) fill = `url(#${gid('weekdayPeak')})`

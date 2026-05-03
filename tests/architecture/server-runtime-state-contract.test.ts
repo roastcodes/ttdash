@@ -8,9 +8,13 @@ function readRepoFile(relativePath: string) {
 describe('server runtime state contract', () => {
   it('keeps auto-import stream state outside the HTTP router', () => {
     const routerSource = readRepoFile('server/http-router.js')
+    const autoImportRoutesSource = readRepoFile('server/routes/auto-import-routes.js')
 
     expect(routerSource).not.toContain('autoImportStreamRunning')
-    expect(routerSource).toContain('acquireAutoImportLease')
+    expect(routerSource).not.toContain('acquireAutoImportLease')
+    expect(routerSource).toContain('createAutoImportRoutes')
+    expect(autoImportRoutesSource).not.toContain('autoImportStreamRunning')
+    expect(autoImportRoutesSource).toContain('acquireAutoImportLease')
   })
 
   it('keeps mutable runtime flags behind runtime-state services', () => {

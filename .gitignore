@@ -2,6 +2,7 @@ node_modules/
 dist/
 data.json
 .DS_Store
+.cache/
 .playwright-mcp/
 .tmp-playwright/
 .tmp-smoke-*/
@@ -21,7 +22,6 @@ coverage/
 requirements/
 docs/security/
 docs/review/*
-!docs/review/*.md
 docs/application-stack-reference.md
 /activity-*.png
 /cache-hit-rate-*.png

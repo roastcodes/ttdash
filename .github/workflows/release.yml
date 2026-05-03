@@ -116,6 +116,7 @@ jobs:
             --workflow ci.yml \
             --branch main \
             --sha "${MAIN_SHA}" \
+            --required-job "CI Required" \
             --retries 90 \
             --retry-delay-ms 10000
 

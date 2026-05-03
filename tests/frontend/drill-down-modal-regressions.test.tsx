@@ -51,7 +51,7 @@ describe('DrillDownModal regressions', () => {
     expect(screen.getAllByText('–').length).toBeGreaterThan(0)
     expect(screen.getByTestId('drilldown-token-distribution')).toBeInTheDocument()
     expect(screen.queryByTestId('drilldown-token-distribution-input')).not.toBeInTheDocument()
-  }, 15_000)
+  })
 
   it('uses the canonical token sum instead of a stale day.totalTokens value', () => {
     const day: DailyUsage = {

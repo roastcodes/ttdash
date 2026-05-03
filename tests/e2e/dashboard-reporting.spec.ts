@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 import { gotoDashboard, mockPdfReport, resetAppState, uploadSampleUsage } from './helpers'
 
 test('uses the current UI language when generating a PDF report after switching locale', async ({

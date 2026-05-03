@@ -28,6 +28,10 @@ export function useDashboardControllerDerivedState({
 }: DashboardControllerDerivedStateParams): DashboardControllerDerivedState {
   const filters = useDashboardFilters(daily, settings.defaultFilters)
   const computed = useComputedMetrics(filters.filteredData, locale)
+  const dailyCosts = useMemo(
+    () => filters.filteredData.map((entry) => entry.totalCost),
+    [filters.filteredData],
+  )
 
   const totalCalendarDays = useMemo(() => {
     if (!filters.dateRange || filters.viewMode !== 'daily') return 0
@@ -99,6 +103,7 @@ export function useDashboardControllerDerivedState({
     hasData,
     filters,
     computed,
+    dailyCosts,
     totalCalendarDays,
     todayData,
     hasCurrentMonthData,

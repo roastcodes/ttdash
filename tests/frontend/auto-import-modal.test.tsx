@@ -31,7 +31,7 @@ describe('AutoImportModal', () => {
 
     expect(closeMock).toHaveBeenCalledTimes(1)
     expect(onOpenChange).toHaveBeenCalledWith(false)
-  }, 15_000)
+  })
 
   it('shows the concrete auto-import error message in the status area', () => {
     autoImportMocks.startAutoImport.mockImplementation((callbacks) => {

@@ -123,6 +123,7 @@ describe('local server API imports', () => {
       addedDays: 1,
       unchangedDays: 1,
       conflictingDays: 1,
+      skippedDays: 0,
       totalDays: 6,
     })
   })

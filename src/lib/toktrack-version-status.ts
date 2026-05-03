@@ -60,7 +60,7 @@ function normalizeToktrackVersionStatus(
     configuredVersion: status.configuredVersion || TOKTRACK_VERSION,
     latestVersion: status.latestVersion ?? null,
     isLatest: typeof status.isLatest === 'boolean' ? status.isLatest : null,
-    lookupStatus: status.lookupStatus === 'failed' ? 'failed' : 'ok',
+    lookupStatus: status.lookupStatus,
     isLoading: false,
   }
 }

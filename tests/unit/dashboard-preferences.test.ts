@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import dashboardPreferences from '../../shared/dashboard-preferences.json'
 import {
+  DEFAULT_DASHBOARD_FILTERS,
   DASHBOARD_DATE_PRESETS,
   DASHBOARD_QUICK_DATE_PRESETS,
   DASHBOARD_SECTION_DEFINITIONS,
   DASHBOARD_SECTION_DEFINITION_MAP,
   DASHBOARD_VIEW_MODES,
+  normalizeDashboardDefaultFilters,
+  normalizeDashboardSectionOrder,
+  normalizeDashboardSectionVisibility,
   parseDashboardPreferencesConfig,
   resolveDashboardActivePreset,
   resolveDashboardPresetRange,
@@ -122,6 +126,96 @@ describe('dashboard preferences config', () => {
     ])
   })
 
+  it('rejects malformed custom preference shapes before publishing partial configs', () => {
+    expect(() => parseSharedDashboardPreferencesConfig(null)).toThrow('expected an object')
+    expect(() =>
+      parseSharedDashboardPreferencesConfig(
+        {
+          datePresets: 'all',
+          viewModes: ['daily'],
+          sectionDefinitions: [{ id: 'overview', domId: 'overview', labelKey: 'overview' }],
+        },
+        {
+          validDatePresets: ['all'],
+          validViewModes: ['daily'],
+          validSectionIds: ['overview'],
+        },
+      ),
+    ).toThrow('"datePresets" must be an array')
+    expect(() =>
+      parseSharedDashboardPreferencesConfig(
+        {
+          datePresets: ['all'],
+          viewModes: ['daily'],
+          sectionDefinitions: [null],
+        },
+        {
+          validDatePresets: ['all'],
+          validViewModes: ['daily'],
+          validSectionIds: ['overview'],
+        },
+      ),
+    ).toThrow('each "sectionDefinitions" entry must be an object')
+    expect(() =>
+      parseSharedDashboardPreferencesConfig(
+        {
+          datePresets: ['all'],
+          viewModes: ['daily'],
+          sectionDefinitions: [{ id: 'overview', domId: '', labelKey: 'overview' }],
+        },
+        {
+          validDatePresets: ['all'],
+          validViewModes: ['daily'],
+          validSectionIds: ['overview'],
+        },
+      ),
+    ).toThrow('require a domId')
+    expect(() =>
+      parseSharedDashboardPreferencesConfig(
+        {
+          datePresets: ['all'],
+          viewModes: ['daily'],
+          sectionDefinitions: [{ id: 'overview', domId: 'overview', labelKey: '' }],
+        },
+        {
+          validDatePresets: ['all'],
+          validViewModes: ['daily'],
+          validSectionIds: ['overview'],
+        },
+      ),
+    ).toThrow('require a labelKey')
+  })
+
+  it('normalizes persisted dashboard preference branches defensively', () => {
+    expect(normalizeDashboardDefaultFilters(null)).toEqual(DEFAULT_DASHBOARD_FILTERS)
+    expect(
+      normalizeDashboardDefaultFilters({
+        viewMode: 'yearly',
+        datePreset: '30d',
+        providers: [' OpenAI ', 'OpenAI', '', 42],
+        models: [' Sonnet ', null, 'Sonnet'],
+      }),
+    ).toEqual({
+      viewMode: 'yearly',
+      datePreset: '30d',
+      providers: ['OpenAI'],
+      models: ['Sonnet'],
+    })
+
+    const visibility = normalizeDashboardSectionVisibility({
+      metrics: false,
+      today: 'false',
+      unknown: false,
+    })
+    expect(visibility.metrics).toBe(false)
+    expect(visibility.today).toBe(false)
+    expect(visibility).not.toHaveProperty('unknown')
+
+    const orderedSections = normalizeDashboardSectionOrder(['tables', 'metrics', 'tables', 7])
+    expect(orderedSections.slice(0, 2)).toEqual(['tables', 'metrics'])
+    expect(new Set(orderedSections).size).toBe(DASHBOARD_SECTION_DEFINITIONS.length)
+  })
+
   it('resolves preset ranges through the same shared contract used by runtime consumers', () => {
     const referenceDate = new Date('2026-04-06T12:00:00Z')
 
@@ -158,6 +252,14 @@ describe('dashboard preferences config', () => {
       resolveDashboardActivePreset({
         referenceDate,
         startDate: monthRange.startDate,
+      }),
+    ).toBeNull()
+    expect(resolveDashboardActivePreset(null)).toBe('all')
+    expect(
+      resolveDashboardActivePreset({
+        referenceDate,
+        startDate: '2026-04-01',
+        endDate: '2026-04-05',
       }),
     ).toBeNull()
   })

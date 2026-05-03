@@ -98,8 +98,8 @@ Then either:
 The auto-import path prefers:
 
 1. local `toktrack`
-2. `bunx toktrack@2.5.0`
-3. `npx --yes toktrack@2.5.0`
+2. `bunx toktrack@<pinned version>`
+3. `npx --yes toktrack@<pinned version>`
 
 ## Common Commands
 
@@ -334,17 +334,27 @@ npm run build
 npm run build:app
 ```
 
-Run automated checks:
+Run the main local gate without Playwright:
 
 ```bash
 npm run verify
 ```
 
-For the full release-style local gate without re-running unit tests or rebuilding twice, use:
+For the full serial CI/release-style local gate, including coverage thresholds and Playwright, use:
 
 ```bash
 npm run verify:full
 ```
+
+On a local machine with enough CPU, the staged parallel fast path gives quicker feedback across the
+same main test surfaces without the coverage-instrumented pass:
+
+```bash
+PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel
+```
+
+Keep `npm run verify:full` or `npm run test:vitest:coverage` in the final validation path whenever
+coverage thresholds matter.
 
 If you want to run the steps individually, use:
 
@@ -352,7 +362,7 @@ If you want to run the steps individually, use:
 npm run check:deps
 npm run test:architecture
 npm run test:unit:coverage
-npm run test:e2e
+npm run test:e2e:ci
 ```
 
 To inspect the slowest suites and test cases after a Vitest run:
@@ -361,7 +371,7 @@ To inspect the slowest suites and test cases after a Vitest run:
 npm run test:timings
 ```
 
-The Playwright suite uses its own isolated local app directory. If port `3015` is already occupied locally, run it on another isolated port:
+The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/`. If the base port `3015` is already occupied locally, run it from another base port:
 
 ```bash
 PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e

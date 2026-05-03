@@ -18,6 +18,7 @@ function parseArgs(argv) {
     workflow: null,
     branch: 'main',
     sha: null,
+    requiredJob: null,
     retries: DEFAULT_RETRIES,
     retryDelayMs: DEFAULT_RETRY_DELAY_MS,
   };
@@ -50,6 +51,12 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === '--required-job' && next) {
+      options.requiredJob = next;
+      index += 1;
+      continue;
+    }
+
     if (arg === '--retries' && next) {
       options.retries = Number.parseInt(next, 10);
       index += 1;
@@ -65,7 +72,7 @@ function parseArgs(argv) {
 
   if (!options.repo || !options.workflow || !options.sha) {
     fail(
-      'Usage: node scripts/verify-main-ci.js --repo <owner/repo> --workflow <file> --sha <commit> [--branch main] [--retries N] [--retry-delay-ms MS]',
+      'Usage: node scripts/verify-main-ci.js --repo <owner/repo> --workflow <file> --sha <commit> [--branch main] [--required-job <name>] [--retries N] [--retry-delay-ms MS]',
     );
   }
 
@@ -120,8 +127,57 @@ async function fetchWorkflowRuns(options, token) {
   return response.json();
 }
 
+async function fetchWorkflowRunJobs(options, token, runId) {
+  const jobs = [];
+  let page = 1;
+
+  while (true) {
+    const url = new URL(`https://api.github.com/repos/${options.repo}/actions/runs/${runId}/jobs`);
+    url.searchParams.set('per_page', '100');
+    url.searchParams.set('page', String(page));
+
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'ttdash-release-workflow',
+      },
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      const normalizedBody = body.replace(/\s+/g, ' ').trim();
+      const maxPreviewLength = 200;
+      const bodyPreview =
+        normalizedBody.length > maxPreviewLength
+          ? `${normalizedBody.slice(0, maxPreviewLength)}…`
+          : normalizedBody;
+      const previewSuffix = bodyPreview ? ` Response preview: ${bodyPreview}` : '';
+      throw new Error(`GitHub API request failed with ${response.status}.${previewSuffix}`);
+    }
+
+    const payload = await response.json();
+    if (!Array.isArray(payload.jobs)) {
+      return jobs;
+    }
+
+    jobs.push(...payload.jobs);
+
+    if (payload.jobs.length < 100) {
+      return jobs;
+    }
+
+    page += 1;
+  }
+}
+
 function describeRun(run) {
   return `${run.name} (${run.status}/${run.conclusion ?? 'pending'})`;
+}
+
+function describeJob(job) {
+  return `${job.name} (${job.status}/${job.conclusion ?? 'pending'})`;
 }
 
 async function main() {
@@ -144,6 +200,30 @@ async function main() {
       log(
         `CI workflow run is still in progress: ${describeRun(run)} (attempt ${attempt}/${options.retries}).`,
       );
+    } else if (options.requiredJob) {
+      const jobs = await fetchWorkflowRunJobs(options, token, run.id);
+      const job = jobs.find((candidate) => candidate.name === options.requiredJob);
+
+      if (!job) {
+        const jobNames = jobs
+          .map((candidate) => candidate.name)
+          .sort()
+          .join(', ');
+        fail(
+          `Required CI job "${options.requiredJob}" was not found in workflow run ${run.id} for ${options.sha}. Available jobs: ${jobNames || 'none'}.`,
+        );
+      } else if (job.status !== 'completed') {
+        log(
+          `Required CI job is still in progress: ${describeJob(job)} (attempt ${attempt}/${options.retries}).`,
+        );
+      } else if (job.conclusion === 'success') {
+        log(`Verified required CI job for ${options.sha}: ${describeJob(job)}.`);
+        return;
+      } else {
+        fail(
+          `Required CI job "${options.requiredJob}" for ${options.sha} completed with ${job.conclusion}. Release aborted.`,
+        );
+      }
     } else if (run.conclusion === 'success') {
       log(`Verified CI success for ${options.sha}: ${describeRun(run)}.`);
       return;
@@ -154,6 +234,12 @@ async function main() {
     if (attempt < options.retries) {
       await sleep(options.retryDelayMs);
     }
+  }
+
+  if (options.requiredJob) {
+    fail(
+      `Required CI job "${options.requiredJob}" for ${options.sha} did not reach a successful conclusion in time.`,
+    );
   }
 
   fail(`CI workflow for ${options.sha} did not reach a successful conclusion in time.`);
