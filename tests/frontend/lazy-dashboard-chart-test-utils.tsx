@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { vi } from 'vitest'
+import { expect, vi } from 'vitest'
 import type { DailyUsage, TokenChartDataPoint, WeekdayData } from '@/types'
 import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
 
@@ -196,6 +196,12 @@ export const legacyWeekdayData: WeekdayData[] = [
   { day: 'Jue', cost: 4 },
   { day: 'Vie', cost: 7 },
 ]
+
+export function assertLegacyWeekdayData(data: WeekdayData[]) {
+  data.forEach((entry) => {
+    expect(entry).not.toHaveProperty('weekdayIndex')
+  })
+}
 
 export const tokenData: TokenChartDataPoint[] = [
   {

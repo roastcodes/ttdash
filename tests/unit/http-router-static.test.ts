@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { createRequire } from 'node:module'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MockResponse } from './http-router-test-helpers'
 
 const require = createRequire(import.meta.url)
 const { createHttpRouter } = require('../../server/http-router.js') as {
@@ -9,21 +10,6 @@ const { createHttpRouter } = require('../../server/http-router.js') as {
       req: { url: string; method: string; headers: Record<string, string> },
       res: MockResponse,
     ) => Promise<void>
-  }
-}
-
-class MockResponse {
-  status = 0
-  headers: Record<string, string> = {}
-  body = ''
-
-  writeHead(status: number, headers: Record<string, string>) {
-    this.status = status
-    this.headers = headers
-  }
-
-  end(body?: string | Buffer) {
-    this.body = Buffer.isBuffer(body) ? body.toString('utf8') : (body ?? '')
   }
 }
 
@@ -110,6 +96,31 @@ describe('HTTP router static file handling', () => {
     expect(consoleError).not.toHaveBeenCalled()
   })
 
+  it('logs failed SPA fallback reads before returning a server error', async () => {
+    const fallbackError = Object.assign(new Error('index missing'), { code: 'ENOENT' })
+    const router = createRouter(async (filePath) => {
+      if (filePath.endsWith('index.html')) {
+        throw fallbackError
+      }
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' })
+    })
+    const res = new MockResponse()
+
+    await router.handleServerRequest({ url: '/dashboard', method: 'GET', headers: {} }, res)
+
+    expect(res.status).toBe(500)
+    expect(JSON.parse(res.body)).toEqual({ message: 'Internal Server Error' })
+    expect(consoleError).toHaveBeenCalledWith(
+      'SPA fallback read failed',
+      expect.objectContaining({
+        error: fallbackError,
+        indexPath: '/app/dist/index.html',
+        safePath: '/dashboard',
+        staticRoot: '/app/dist',
+      }),
+    )
+  })
+
   it('preserves base security headers when preparing HTML responses', async () => {
     const router = createRouter(
       async (filePath) => {
@@ -130,8 +141,8 @@ describe('HTTP router static file handling', () => {
     await router.handleServerRequest({ url: '/dashboard', method: 'GET', headers: {} }, res)
 
     expect(res.status).toBe(200)
-    expect(res.headers['X-Test-Security']).toBe('1')
-    expect(res.headers['Content-Security-Policy']).toBe(
+    expect(res.headers['x-test-security']).toBe('1')
+    expect(res.headers['content-security-policy']).toBe(
       "default-src 'self'; script-src 'nonce-test'",
     )
     expect(res.body).toContain('ttdash-csp-nonce')

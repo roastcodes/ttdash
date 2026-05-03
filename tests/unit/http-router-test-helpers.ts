@@ -46,6 +46,10 @@ export class MockResponse {
     this.headers = { ...this.headers, ...normalizedHeaders }
   }
 
+  getHeader(name: string) {
+    return this.headers[name.toLowerCase()]
+  }
+
   write(body: string | Buffer) {
     this.body += Buffer.isBuffer(body) ? body.toString('utf8') : body
   }

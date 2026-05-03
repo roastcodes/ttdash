@@ -29,6 +29,11 @@ describe('ModelMix chart', () => {
 
     expect(screen.getByText('Model mix')).toBeInTheDocument()
     expect(screen.getByText('Cost share by model over time')).toBeInTheDocument()
-    expect(screen.getAllByTestId('chart-area')).toHaveLength(2)
+    expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+    const areaNames = screen
+      .getAllByTestId('chart-area')
+      .map((area) => area.getAttribute('data-name'))
+    expect(areaNames).toHaveLength(2)
+    expect(areaNames).toEqual(expect.arrayContaining(['Claude Sonnet 4.5', 'GPT-5.4']))
   })
 })

@@ -7,7 +7,6 @@ import {
   DASHBOARD_SECTION_DEFINITIONS,
   DASHBOARD_SECTION_DEFINITION_MAP,
   DASHBOARD_VIEW_MODES,
-  getDefaultDashboardSectionVisibility,
   normalizeDashboardDefaultFilters,
   normalizeDashboardSectionOrder,
   normalizeDashboardSectionVisibility,
@@ -208,9 +207,8 @@ describe('dashboard preferences config', () => {
       today: 'false',
       unknown: false,
     })
-    const defaultVisibility = getDefaultDashboardSectionVisibility()
     expect(visibility.metrics).toBe(false)
-    expect(visibility.today).toBe(defaultVisibility.today)
+    expect(visibility.today).toBe(false)
     expect(visibility).not.toHaveProperty('unknown')
 
     const orderedSections = normalizeDashboardSectionOrder(['tables', 'metrics', 'tables', 7])

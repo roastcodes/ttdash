@@ -28,7 +28,8 @@ type RunnerScript = {
   buildProjectRuns: (
     options: Pick<RunnerOptions, 'projects' | 'repeat' | 'reportDir'>,
   ) => ProjectRun[]
-  buildVitestCommand: (run: ProjectRun) => { command: string; args: string[] }
+  buildVitestCommand: (run: ProjectRun, platform?: string) => { command: string; args: string[] }
+  getNpxCommand: (platform?: string) => string
   getReportPath: (project: string, iteration: number, repeat: number, reportDir: string) => string
   median: (values: number[]) => number
   parseArgs: (argv: string[]) => RunnerOptions
@@ -109,7 +110,7 @@ describe('Vitest project timing runner', () => {
     }
 
     expect(timingRunner.buildVitestCommand(projectRun)).toEqual({
-      command: 'npx',
+      command: timingRunner.getNpxCommand(),
       args: [
         'vitest',
         'run',
@@ -120,6 +121,8 @@ describe('Vitest project timing runner', () => {
         `--outputFile.junit=${projectRun.reportPath}`,
       ],
     })
+    expect(timingRunner.buildVitestCommand(projectRun, 'win32').command).toBe('npx.cmd')
+    expect(timingRunner.buildVitestCommand(projectRun, 'linux').command).toBe('npx')
 
     const budgetCommand = timingRunner.buildBudgetCommand(projectRun, {
       maxSuiteSeconds: 20,

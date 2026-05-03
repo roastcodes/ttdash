@@ -229,8 +229,13 @@ function normalizeDashboardSectionVisibility(value) {
   const defaults = getDefaultDashboardSectionVisibility()
 
   return DASHBOARD_SECTION_IDS.reduce((visibility, sectionId) => {
+    // Boolean values are preserved; malformed present keys are treated as explicitly hidden.
     visibility[sectionId] =
-      typeof source[sectionId] === 'boolean' ? source[sectionId] : defaults[sectionId]
+      typeof source[sectionId] === 'boolean'
+        ? source[sectionId]
+        : Object.prototype.hasOwnProperty.call(source, sectionId)
+          ? false
+          : defaults[sectionId]
     return visibility
   }, {})
 }

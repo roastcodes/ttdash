@@ -85,11 +85,17 @@ function createStaticRouteHandler({
           return;
         }
 
+        const indexPath = path.join(staticRoot, 'index.html');
         try {
-          const indexPath = path.join(staticRoot, 'index.html');
           const html = await readStaticFile(indexPath);
           sendStaticFile(res, indexPath, html);
-        } catch {
+        } catch (fallbackError) {
+          console.error('SPA fallback read failed', {
+            error: fallbackError,
+            indexPath,
+            safePath,
+            staticRoot,
+          });
           writeStaticErrorResponse(res, 500, 'Internal Server Error');
         }
         return;

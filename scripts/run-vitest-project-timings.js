@@ -116,9 +116,13 @@ function buildProjectRuns(options) {
   return runs;
 }
 
-function buildVitestCommand(run) {
+function getNpxCommand(platform = process.platform) {
+  return platform === 'win32' ? 'npx.cmd' : 'npx';
+}
+
+function buildVitestCommand(run, platform = process.platform) {
   return {
-    command: 'npx',
+    command: getNpxCommand(platform),
     args: [
       'vitest',
       'run',
@@ -286,6 +290,7 @@ module.exports = {
   buildBudgetCommand,
   buildProjectRuns,
   buildVitestCommand,
+  getNpxCommand,
   getReportPath,
   median,
   parseArgs,

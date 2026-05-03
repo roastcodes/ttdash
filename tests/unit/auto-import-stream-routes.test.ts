@@ -31,6 +31,18 @@ describe('auto-import stream routes', () => {
     expect(res.body).toContain('event: success')
     expect(res.body).toContain('"totalCost":3.5')
     expect(res.body).toContain('event: done')
+
+    const checkIndex = res.body.indexOf('event: check')
+    const progressIndex = res.body.indexOf('event: progress')
+    const stderrIndex = res.body.indexOf('event: stderr')
+    const successIndex = res.body.indexOf('event: success')
+    const doneIndex = res.body.indexOf('event: done')
+    expect(checkIndex).toBeGreaterThanOrEqual(0)
+    expect(progressIndex).toBeGreaterThan(checkIndex)
+    expect(stderrIndex).toBeGreaterThan(progressIndex)
+    expect(successIndex).toBeGreaterThan(stderrIndex)
+    expect(doneIndex).toBeGreaterThan(successIndex)
+
     expect(performAutoImport).toHaveBeenCalledWith(
       expect.objectContaining({
         source: 'auto-import',

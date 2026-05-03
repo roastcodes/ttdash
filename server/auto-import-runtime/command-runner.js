@@ -72,8 +72,13 @@ function createAutoImportCommandRunner({
       : DEFAULT_COMMAND_OUTPUT_MAX_BYTES;
   }
 
-  function appendCapturedOutput(currentValue, currentBytes, chunk, maxOutputBytes) {
-    const chunkBuffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
+  function appendCapturedOutput(
+    currentValue,
+    currentBytes,
+    chunkBuffer,
+    maxOutputBytes,
+    chunkText,
+  ) {
     const remainingBytes = maxOutputBytes - currentBytes;
 
     if (remainingBytes <= 0) {
@@ -100,7 +105,7 @@ function createAutoImportCommandRunner({
     return {
       bytes: currentBytes + chunkBuffer.length,
       truncated: false,
-      value: currentValue + chunkBuffer.toString(),
+      value: currentValue + (chunkText ?? chunkBuffer.toString()),
     };
   }
 
@@ -229,13 +234,19 @@ function createAutoImportCommandRunner({
       });
 
       child.stderr.on('data', (chunk) => {
-        const line = chunk.toString();
-        const nextStderr = appendCapturedOutput(stderr, stderrBytes, chunk, capturedOutputMaxBytes);
+        const chunkText = chunk.toString();
+        const nextStderr = appendCapturedOutput(
+          stderr,
+          stderrBytes,
+          chunk,
+          capturedOutputMaxBytes,
+          chunkText,
+        );
         stderr = nextStderr.value;
         stderrBytes = nextStderr.bytes;
         outputTruncated = outputTruncated || nextStderr.truncated;
-        if (streamStderr && onStderr && line.trim()) {
-          onStderr(line);
+        if (streamStderr && onStderr && chunkText.trim()) {
+          onStderr(chunkText);
         }
       });
 
