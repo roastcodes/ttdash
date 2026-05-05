@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync, spawn } = require('child_process');
 const { chromium } = require('@playwright/test');
+const { waitForRenderedChartData } = require('./rendered-chart-data.js');
 
 const root = path.resolve(__dirname, '..');
 const docsDir = path.join(root, 'docs');
@@ -41,6 +42,14 @@ function createAuthHeaders(authSession) {
     : undefined;
 }
 
+function createTrustedMutationHeaders(authSession, url) {
+  return {
+    ...createAuthHeaders(authSession),
+    'Content-Type': 'application/json',
+    Origin: new URL(url).origin,
+  };
+}
+
 async function waitForServer(
   url,
   {
@@ -73,13 +82,34 @@ async function waitForServer(
   throw new Error(`Timed out waiting for screenshot server: ${url}`);
 }
 
-async function uploadSampleUsage(page) {
-  await page.locator('[data-testid="usage-upload-input"]').setInputFiles(sampleUsagePath);
-  await page
-    .getByText(
-      /^(Datei sample-usage\.json erfolgreich geladen|File sample-usage\.json loaded successfully)$/,
-    )
-    .waitFor();
+async function seedSampleUsage({
+  url = baseUrl,
+  authSession,
+  fetchImpl = fetch,
+  sampleUsage,
+} = {}) {
+  let usagePayload = sampleUsage;
+  if (usagePayload === undefined) {
+    try {
+      usagePayload = JSON.parse(fs.readFileSync(sampleUsagePath, 'utf8'));
+    } catch (error) {
+      throw new Error(
+        `Failed to read README screenshot sample usage data from ${sampleUsagePath}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  const response = await fetchImpl(`${url}/api/upload`, {
+    method: 'POST',
+    headers: createTrustedMutationHeaders(authSession, url),
+    body: JSON.stringify(usagePayload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to seed README screenshot usage data: ${response.status}`);
+  }
 }
 
 async function switchToEnglish(page) {
@@ -111,11 +141,13 @@ async function captureScreenshots() {
 
   try {
     const authSession = await waitForServer(baseUrl);
+    await seedSampleUsage({ authSession });
 
     const browser = await chromium.launch();
     const context = await browser.newContext({
       viewport: { width: 1600, height: 1400 },
       colorScheme: 'dark',
+      reducedMotion: 'reduce',
     });
     const page = await context.newPage();
 
@@ -124,7 +156,6 @@ async function captureScreenshots() {
     });
 
     await page.goto(authSession?.bootstrapUrl || baseUrl);
-    await uploadSampleUsage(page);
     await switchToEnglish(page);
 
     await page.evaluate(() => globalThis.scrollTo(0, 0));
@@ -133,7 +164,7 @@ async function captureScreenshots() {
     });
 
     await page.locator('#charts').scrollIntoViewIfNeeded();
-    await sleep(500);
+    await waitForRenderedChartData(page, { sectionSelector: '#charts' });
     await page.locator('#charts').screenshot({
       path: path.join(docsDir, 'ttdash-dashboard-analytics.png'),
     });
@@ -164,6 +195,8 @@ if (require.main === module) {
 
 module.exports = {
   createAuthHeaders,
+  createTrustedMutationHeaders,
   readAuthStatus,
+  seedSampleUsage,
   waitForServer,
 };

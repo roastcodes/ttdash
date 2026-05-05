@@ -26,10 +26,15 @@ describe('documentation contracts', () => {
 
   it('keeps README toktrack fallback docs version-agnostic', async () => {
     const readme = await readRepoFile('README.md')
-    const firstRunSection = readme.slice(
-      readme.indexOf('## First Run'),
-      readme.indexOf('## Common Commands'),
+    const firstRunStart = readme.indexOf('## First Run')
+    const commonCommandsStart = readme.indexOf('## Common Commands')
+
+    expect(firstRunStart, 'README must have a First Run section').toBeGreaterThanOrEqual(0)
+    expect(commonCommandsStart, 'README must have Common Commands after First Run').toBeGreaterThan(
+      firstRunStart,
     )
+
+    const firstRunSection = readme.slice(firstRunStart, commonCommandsStart)
 
     expect(firstRunSection).toContain('exact `toktrack` package spec pinned by this TTDash release')
     expect(firstRunSection).toContain('`bunx`')

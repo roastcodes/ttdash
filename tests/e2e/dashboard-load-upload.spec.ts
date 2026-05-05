@@ -1,5 +1,12 @@
-import { expect, test } from './fixtures'
+import { expect, test, type Page } from './fixtures'
 import { gotoDashboard, resetAppState, uploadSampleUsage } from './helpers'
+import renderedChartDataHelpers from '../../scripts/rendered-chart-data.js'
+
+type DashboardLocator = ReturnType<Page['locator']>
+
+const { countRenderedChartDataShapes } = renderedChartDataHelpers as {
+  countRenderedChartDataShapes: (section: DashboardLocator) => Promise<number>
+}
 
 const importEntryButtonPattern = /^(Auto-Import|Auto import|Import)$/
 const uploadEntryButtonPattern = /^(Datei hochladen|Upload file|Upload)$/
@@ -64,4 +71,7 @@ test('shows cumulative provider cost next to model cost trends in cost analysis'
   await expect(
     costAnalysisSection.getByText(/Cost by model over time|Kosten nach Modell im Zeitverlauf/),
   ).toBeVisible()
+  await expect
+    .poll(async () => countRenderedChartDataShapes(costAnalysisSection))
+    .toBeGreaterThan(3)
 })
