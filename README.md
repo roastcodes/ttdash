@@ -98,8 +98,8 @@ Then either:
 The auto-import path prefers:
 
 1. local `toktrack`
-2. `bunx toktrack@<pinned version>`
-3. `npx --yes toktrack@<pinned version>`
+2. `bunx` with the exact `toktrack` package spec pinned by this TTDash release
+3. `npx --yes` with the exact `toktrack` package spec pinned by this TTDash release
 
 ## Common Commands
 

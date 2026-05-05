@@ -23,4 +23,18 @@ describe('documentation contracts', () => {
     expect(docs['README.md']).toContain('X-TTDash-Remote-Token')
     expect(docs['SECURITY.md']).toContain('Authorization: Bearer $TTDASH_REMOTE_TOKEN')
   })
+
+  it('keeps README toktrack fallback docs version-agnostic', async () => {
+    const readme = await readRepoFile('README.md')
+    const firstRunSection = readme.slice(
+      readme.indexOf('## First Run'),
+      readme.indexOf('## Common Commands'),
+    )
+
+    expect(firstRunSection).toContain('exact `toktrack` package spec pinned by this TTDash release')
+    expect(firstRunSection).toContain('`bunx`')
+    expect(firstRunSection).toContain('`npx --yes`')
+    expect(firstRunSection).not.toMatch(/toktrack@\d+\.\d+\.\d+/)
+    expect(firstRunSection).not.toContain('toktrack@<pinned version>')
+  })
 })
