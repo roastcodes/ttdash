@@ -9,6 +9,17 @@ const { countRenderedChartDataShapes } = renderedChartDataHelpers as {
 const importEntryButtonPattern = /^(Auto-Import|Auto import|Import)$/
 const uploadEntryButtonPattern = /^(Datei hochladen|Upload file|Upload)$/
 const csvButtonPattern = /^(CSV|CSV exportieren|Export CSV)$/
+const cumulativeProviderCostPattern = /Cumulative cost per provider|Kumulative Kosten pro Anbieter/
+const costByModelOverTimePattern = /Cost by model over time|Kosten nach Modell im Zeitverlauf/
+
+function chartCardByTitle(section: ReturnType<Page['locator']>, titlePattern: RegExp) {
+  return section
+    .getByText(titlePattern)
+    .first()
+    .locator(
+      'xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " group ") and contains(concat(" ", normalize-space(@class), " "), " relative ")][1]',
+    )
+}
 
 test('uploads sample usage data and renders the dashboard without browser errors', async ({
   page,
@@ -63,13 +74,19 @@ test('shows cumulative provider cost next to model cost trends in cost analysis'
   await costAnalysisSection.scrollIntoViewIfNeeded()
 
   await expect(costAnalysisSection.getByText(/Cost analysis|Kostenanalyse/)).toBeVisible()
-  await expect(
-    costAnalysisSection.getByText(/Cumulative cost per provider|Kumulative Kosten pro Anbieter/),
-  ).toBeVisible()
-  await expect(
-    costAnalysisSection.getByText(/Cost by model over time|Kosten nach Modell im Zeitverlauf/),
-  ).toBeVisible()
+  await expect(costAnalysisSection.getByText(cumulativeProviderCostPattern)).toBeVisible()
+  await expect(costAnalysisSection.getByText(costByModelOverTimePattern)).toBeVisible()
+
+  const cumulativeProviderCostChart = chartCardByTitle(
+    costAnalysisSection,
+    cumulativeProviderCostPattern,
+  )
+  const costByModelOverTimeChart = chartCardByTitle(costAnalysisSection, costByModelOverTimePattern)
+
   await expect
-    .poll(async () => countRenderedChartDataShapes(costAnalysisSection))
-    .toBeGreaterThan(3)
+    .poll(async () => countRenderedChartDataShapes(cumulativeProviderCostChart))
+    .toBeGreaterThan(0)
+  await expect
+    .poll(async () => countRenderedChartDataShapes(costByModelOverTimeChart))
+    .toBeGreaterThan(0)
 })
