@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './fixtures'
+import { chartCardByTitle, expect, test, type Page } from './fixtures'
 import { gotoDashboard, resetAppState, uploadSampleUsage } from './helpers'
 import renderedChartDataHelpers from '../../scripts/rendered-chart-data.js'
 
@@ -11,15 +11,6 @@ const uploadEntryButtonPattern = /^(Datei hochladen|Upload file|Upload)$/
 const csvButtonPattern = /^(CSV|CSV exportieren|Export CSV)$/
 const cumulativeProviderCostPattern = /Cumulative cost per provider|Kumulative Kosten pro Anbieter/
 const costByModelOverTimePattern = /Cost by model over time|Kosten nach Modell im Zeitverlauf/
-
-function chartCardByTitle(section: ReturnType<Page['locator']>, titlePattern: RegExp) {
-  return section
-    .getByText(titlePattern)
-    .first()
-    .locator(
-      'xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " group ") and contains(concat(" ", normalize-space(@class), " "), " relative ")][1]',
-    )
-}
 
 test('uploads sample usage data and renders the dashboard without browser errors', async ({
   page,
