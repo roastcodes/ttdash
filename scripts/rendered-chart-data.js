@@ -9,10 +9,9 @@ const renderedChartDataSelector = [
 async function countRenderedChartDataShapes(section) {
   return section.evaluate((element, selector) => {
     return Array.from(element.querySelectorAll(selector)).filter((node) => {
-      const shape = node;
-      const style = globalThis.getComputedStyle(shape);
-      const box = shape.getBoundingClientRect();
-      const totalLength = typeof shape.getTotalLength === 'function' ? shape.getTotalLength() : 0;
+      const style = globalThis.getComputedStyle(node);
+      const box = node.getBoundingClientRect();
+      const totalLength = typeof node.getTotalLength === 'function' ? node.getTotalLength() : 0;
 
       return (
         style.display !== 'none' &&
@@ -22,6 +21,12 @@ async function countRenderedChartDataShapes(section) {
       );
     }).length;
   }, renderedChartDataSelector);
+}
+
+function isTimeoutError(error) {
+  return (
+    error instanceof Error && (error.name === 'TimeoutError' || /timeout/i.test(error.message))
+  );
 }
 
 async function waitForRenderedChartData(
@@ -43,7 +48,7 @@ async function waitForRenderedChartData(
   try {
     await section.waitFor({ timeout: remainingTimeoutMs() });
   } catch (error) {
-    if (remainingTimeoutMs() <= 0) {
+    if (remainingTimeoutMs() <= 0 && isTimeoutError(error)) {
       throw timeoutError();
     }
 

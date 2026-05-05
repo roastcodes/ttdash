@@ -365,6 +365,57 @@ describe('README screenshot script helpers', () => {
     expect(evaluate).toHaveBeenCalledTimes(2)
   })
 
+  it('normalizes section wait timeout errors when the chart budget expires', async () => {
+    let currentTimeMs = 0
+    vi.spyOn(Date, 'now').mockImplementation(() => currentTimeMs)
+
+    const timeoutError = new Error('Timeout 1000ms exceeded')
+    timeoutError.name = 'TimeoutError'
+    const evaluate = vi.fn<() => Promise<number>>()
+    const waitFor = vi.fn(async () => {
+      currentTimeMs = 1000
+      throw timeoutError
+    })
+    const locator = vi.fn(() => ({ evaluate, waitFor }))
+
+    await expect(
+      waitForRenderedChartData(
+        { locator },
+        {
+          sectionSelector: '#charts',
+          timeoutMs: 1000,
+        },
+      ),
+    ).rejects.toThrow('Timed out waiting for rendered chart data in #charts')
+
+    expect(evaluate).not.toHaveBeenCalled()
+  })
+
+  it('preserves non-timeout section wait errors after the chart budget expires', async () => {
+    let currentTimeMs = 0
+    vi.spyOn(Date, 'now').mockImplementation(() => currentTimeMs)
+
+    const sectionError = new Error('Locator resolved to multiple chart sections')
+    const evaluate = vi.fn<() => Promise<number>>()
+    const waitFor = vi.fn(async () => {
+      currentTimeMs = 1000
+      throw sectionError
+    })
+    const locator = vi.fn(() => ({ evaluate, waitFor }))
+
+    await expect(
+      waitForRenderedChartData(
+        { locator },
+        {
+          sectionSelector: '#charts',
+          timeoutMs: 1000,
+        },
+      ),
+    ).rejects.toBe(sectionError)
+
+    expect(evaluate).not.toHaveBeenCalled()
+  })
+
   it('uses one shared timeout budget while waiting for chart data', async () => {
     let currentTimeMs = 0
     vi.spyOn(Date, 'now').mockImplementation(() => currentTimeMs)
