@@ -185,7 +185,7 @@ Environment variables:
 | `TTDASH_ALLOW_REMOTE=1`                   | Explicitly allow binding to a non-loopback host        |
 | `TTDASH_REMOTE_TOKEN=<long-random-token>` | Required for non-loopback binds; use at least 24 chars |
 
-Binding to a non-loopback host such as `0.0.0.0` exposes the local dashboard API to your network, including destructive routes for local data and settings resets. TTDash refuses that bind unless you set both `TTDASH_ALLOW_REMOTE=1` and a `TTDASH_REMOTE_TOKEN` with at least 24 characters. Only use this on trusted networks and keep the token secret.
+Binding to a non-loopback host such as `0.0.0.0` exposes the local dashboard API to your network, including destructive routes for local data and settings resets. TTDash refuses that bind unless you set both `TTDASH_ALLOW_REMOTE=1` and a `TTDASH_REMOTE_TOKEN` with at least 24 characters. Only use remote token access over a trusted LAN, VPN, or SSH tunnel; for any public hostname, put TTDash behind an HTTPS reverse proxy with valid TLS termination before sending the bearer token.
 
 Example:
 
@@ -194,8 +194,9 @@ TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=0.0.0.0 ttdas
 curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" http://127.0.0.1:3000/api/usage
 ```
 
-When calling the server from another device, replace `127.0.0.1` with the server's LAN or public
-host name.
+When calling the server from another device, replace `127.0.0.1` with the server's LAN, VPN, or
+SSH-tunneled host. For public hostnames, call an HTTPS reverse proxy URL instead; do not send the
+bearer token over public HTTP.
 
 Remote API requests can authenticate with the `Authorization: Bearer $TTDASH_REMOTE_TOKEN` header or the equivalent `X-TTDash-Remote-Token: $TTDASH_REMOTE_TOKEN` header.
 

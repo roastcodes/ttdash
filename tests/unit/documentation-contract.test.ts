@@ -12,12 +12,16 @@ describe('documentation contracts', () => {
       'SECURITY.md': await readRepoFile('SECURITY.md'),
     }
     const remoteBindWithoutTokenPattern =
-      /TTDASH_ALLOW_REMOTE=1(?![^\n`]*TTDASH_REMOTE_TOKEN)[^\n`]*HOST=0\.0\.0\.0/
+      /^(?![^\n`]*TTDASH_REMOTE_TOKEN)(?=[^\n`]*TTDASH_ALLOW_REMOTE=1)(?=[^\n`]*HOST=0\.0\.0\.0)[^\n`]*/m
+    const bindAddressApiUrlPattern = /http:\/\/0\.0\.0\.0(?::\d+)?\/api\/usage/
 
     for (const [path, content] of Object.entries(docs)) {
       expect(content, path).not.toMatch(remoteBindWithoutTokenPattern)
-      expect(content, path).not.toContain('http://0.0.0.0:3000/api/usage')
+      expect(content, path).not.toMatch(bindAddressApiUrlPattern)
       expect(content, path).toContain('TTDASH_REMOTE_TOKEN=<long-random-token>')
+      expect(content, path).toContain('trusted LAN, VPN, or SSH tunnel')
+      expect(content, path).toContain('HTTPS reverse proxy')
+      expect(content, path).toContain('do not send the')
     }
 
     expect(docs['README.md']).toContain('Authorization: Bearer $TTDASH_REMOTE_TOKEN')
