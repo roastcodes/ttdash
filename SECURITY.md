@@ -31,10 +31,14 @@ This project is maintained on a best-effort basis by a single maintainer. Report
 
 `TTDash` is intended to run as a local-first app on loopback by default. Binding it to a non-loopback host exposes local API routes for uploads, imports, resets, and report generation to your network.
 
-Non-loopback binding therefore requires an explicit opt-in:
+Non-loopback binding therefore requires an explicit opt-in and a remote token with at least 24
+characters:
 
 ```bash
-TTDASH_ALLOW_REMOTE=1 HOST=0.0.0.0 ttdash
+TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=0.0.0.0 ttdash
+curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" http://0.0.0.0:3000/api/usage
 ```
 
-Only use that mode on trusted networks.
+Remote API requests can authenticate with `Authorization: Bearer $TTDASH_REMOTE_TOKEN` or the
+equivalent `X-TTDash-Remote-Token` header. Only use that mode on trusted networks and keep the
+token secret.

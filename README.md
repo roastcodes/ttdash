@@ -177,20 +177,24 @@ Commands:
 
 Environment variables:
 
-| Variable                | Description                                               |
-| ----------------------- | --------------------------------------------------------- |
-| `PORT`                  | Override the start port                                   |
-| `NO_OPEN_BROWSER=1`     | Disable browser auto-open                                 |
-| `HOST`                  | Override the bind host, for example `HOST=0.0.0.0 ttdash` |
-| `TTDASH_ALLOW_REMOTE=1` | Explicitly allow binding to a non-loopback host           |
+| Variable                                  | Description                                            |
+| ----------------------------------------- | ------------------------------------------------------ |
+| `PORT`                                    | Override the start port                                |
+| `NO_OPEN_BROWSER=1`                       | Disable browser auto-open                              |
+| `HOST`                                    | Override the bind host                                 |
+| `TTDASH_ALLOW_REMOTE=1`                   | Explicitly allow binding to a non-loopback host        |
+| `TTDASH_REMOTE_TOKEN=<long-random-token>` | Required for non-loopback binds; use at least 24 chars |
 
-Binding to a non-loopback host such as `0.0.0.0` exposes the local dashboard API to your network, including destructive routes for local data and settings resets. TTDash now refuses that bind unless you also set `TTDASH_ALLOW_REMOTE=1`. Only use this on trusted networks.
+Binding to a non-loopback host such as `0.0.0.0` exposes the local dashboard API to your network, including destructive routes for local data and settings resets. TTDash refuses that bind unless you set both `TTDASH_ALLOW_REMOTE=1` and a `TTDASH_REMOTE_TOKEN` with at least 24 characters. Only use this on trusted networks and keep the token secret.
 
 Example:
 
 ```bash
-TTDASH_ALLOW_REMOTE=1 HOST=0.0.0.0 ttdash
+TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=0.0.0.0 ttdash
+curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" http://0.0.0.0:3000/api/usage
 ```
+
+Remote API requests can authenticate with the `Authorization: Bearer $TTDASH_REMOTE_TOKEN` header or the equivalent `X-TTDash-Remote-Token: $TTDASH_REMOTE_TOKEN` header.
 
 ## Features
 
