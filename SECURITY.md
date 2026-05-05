@@ -36,8 +36,11 @@ characters:
 
 ```bash
 TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=0.0.0.0 ttdash
-curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" http://0.0.0.0:3000/api/usage
+curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" http://127.0.0.1:3000/api/usage
 ```
+
+When calling the server from another device, replace `127.0.0.1` with the server's LAN or public
+host name.
 
 Remote API requests can authenticate with `Authorization: Bearer $TTDASH_REMOTE_TOKEN` or the
 equivalent `X-TTDash-Remote-Token` header. Only use that mode on trusted networks and keep the

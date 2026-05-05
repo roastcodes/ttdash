@@ -16,12 +16,14 @@ describe('documentation contracts', () => {
 
     for (const [path, content] of Object.entries(docs)) {
       expect(content, path).not.toMatch(remoteBindWithoutTokenPattern)
+      expect(content, path).not.toContain('http://0.0.0.0:3000/api/usage')
       expect(content, path).toContain('TTDASH_REMOTE_TOKEN=<long-random-token>')
     }
 
     expect(docs['README.md']).toContain('Authorization: Bearer $TTDASH_REMOTE_TOKEN')
     expect(docs['README.md']).toContain('X-TTDash-Remote-Token')
     expect(docs['SECURITY.md']).toContain('Authorization: Bearer $TTDASH_REMOTE_TOKEN')
+    expect(docs['SECURITY.md']).toContain('X-TTDash-Remote-Token')
   })
 
   it('keeps README toktrack fallback docs version-agnostic', async () => {
