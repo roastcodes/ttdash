@@ -67,13 +67,16 @@ If you only need the production bundle without the lint/format gate, use:
 npm run build:app
 ```
 
-If local port `3015` is already occupied, run Playwright on another isolated port:
+If local port `3015` is already occupied, run the stable Playwright smoke on another isolated port:
 
 ```bash
-PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e
+PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:ci
 ```
 
-The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/` and should not reuse your normal local dashboard data. `npm run verify:package` builds the real tarball and verifies that the packaged CLI can start outside the repo checkout.
+The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/` and
+should not reuse your normal local dashboard data. Use `npm run test:e2e` only when you intentionally
+want the fresh app build plus the default local worker count. `npm run verify:package` builds the
+real tarball and verifies that the packaged CLI can start outside the repo checkout.
 
 Then manually verify the main user flows touched by your change:
 

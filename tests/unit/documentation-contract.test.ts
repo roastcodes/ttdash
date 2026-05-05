@@ -37,4 +37,19 @@ describe('documentation contracts', () => {
     expect(firstRunSection).not.toMatch(/toktrack@\d+\.\d+\.\d+/)
     expect(firstRunSection).not.toContain('toktrack@<pinned version>')
   })
+
+  it('keeps contributor Playwright docs on the stable local command path', async () => {
+    const docs = {
+      'README.md': await readRepoFile('README.md'),
+      'CONTRIBUTING.md': await readRepoFile('CONTRIBUTING.md'),
+    }
+    const uncappedPortOverridePattern =
+      /PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e(?!:(?:ci|parallel|smoke))/
+
+    for (const [path, content] of Object.entries(docs)) {
+      expect(content, path).toContain('npm run verify:full')
+      expect(content, path).toContain('PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:ci')
+      expect(content, path).not.toMatch(uncappedPortOverridePattern)
+    }
+  })
 })

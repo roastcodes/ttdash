@@ -375,11 +375,15 @@ To inspect the slowest suites and test cases after a Vitest run:
 npm run test:timings
 ```
 
-The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/`. If the base port `3015` is already occupied locally, run it from another base port:
+The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/`. For
+stable Playwright-only validation from another base port, use the CI-style worker cap:
 
 ```bash
-PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e
+PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:ci
 ```
+
+Use `npm run test:e2e` when you intentionally want the fresh app build plus the default local worker
+count.
 
 Refresh the README screenshots:
 
