@@ -98,8 +98,8 @@ Then either:
 The auto-import path prefers:
 
 1. local `toktrack`
-2. `bunx toktrack@<pinned version>`
-3. `npx --yes toktrack@<pinned version>`
+2. `bunx` with the exact `toktrack` package spec pinned by this TTDash release
+3. `npx --yes` with the exact `toktrack` package spec pinned by this TTDash release
 
 ## Common Commands
 
@@ -177,20 +177,28 @@ Commands:
 
 Environment variables:
 
-| Variable                | Description                                               |
-| ----------------------- | --------------------------------------------------------- |
-| `PORT`                  | Override the start port                                   |
-| `NO_OPEN_BROWSER=1`     | Disable browser auto-open                                 |
-| `HOST`                  | Override the bind host, for example `HOST=0.0.0.0 ttdash` |
-| `TTDASH_ALLOW_REMOTE=1` | Explicitly allow binding to a non-loopback host           |
+| Variable                                  | Description                                            |
+| ----------------------------------------- | ------------------------------------------------------ |
+| `PORT`                                    | Override the start port                                |
+| `NO_OPEN_BROWSER=1`                       | Disable browser auto-open                              |
+| `HOST`                                    | Override the bind host                                 |
+| `TTDASH_ALLOW_REMOTE=1`                   | Explicitly allow binding to a non-loopback host        |
+| `TTDASH_REMOTE_TOKEN=<long-random-token>` | Required for non-loopback binds; use at least 24 chars |
 
-Binding to a non-loopback host such as `0.0.0.0` exposes the local dashboard API to your network, including destructive routes for local data and settings resets. TTDash now refuses that bind unless you also set `TTDASH_ALLOW_REMOTE=1`. Only use this on trusted networks.
+Binding to a non-loopback host such as `0.0.0.0` exposes the local dashboard API to your network, including destructive routes for local data and settings resets. TTDash refuses that bind unless you set both `TTDASH_ALLOW_REMOTE=1` and a `TTDASH_REMOTE_TOKEN` with at least 24 characters. Only use remote token access over a trusted LAN, VPN, or SSH tunnel; for any public hostname, put TTDash behind an HTTPS reverse proxy with valid TLS termination before sending the bearer token.
 
 Example:
 
 ```bash
-TTDASH_ALLOW_REMOTE=1 HOST=0.0.0.0 ttdash
+TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=0.0.0.0 ttdash
+curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" http://127.0.0.1:3000/api/usage
 ```
+
+When calling the server from another device, replace `127.0.0.1` with the server's LAN, VPN, or
+SSH-tunneled host. For public hostnames, call an HTTPS reverse proxy URL instead; do not send the
+bearer token over public HTTP.
+
+Remote API requests can authenticate with the `Authorization: Bearer $TTDASH_REMOTE_TOKEN` header or the equivalent `X-TTDash-Remote-Token: $TTDASH_REMOTE_TOKEN` header.
 
 ## Features
 
@@ -371,11 +379,15 @@ To inspect the slowest suites and test cases after a Vitest run:
 npm run test:timings
 ```
 
-The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/`. If the base port `3015` is already occupied locally, run it from another base port:
+The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/`. For
+stable Playwright-only validation from another base port, use the CI-style worker cap:
 
 ```bash
-PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e
+PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:ci
 ```
+
+Use `npm run test:e2e` when you intentionally want the fresh app build plus the default local worker
+count.
 
 Refresh the README screenshots:
 

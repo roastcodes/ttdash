@@ -1,9 +1,16 @@
-import { expect, test } from './fixtures'
+import { chartCardByTitle, expect, test, type Page } from './fixtures'
 import { gotoDashboard, resetAppState, uploadSampleUsage } from './helpers'
+import renderedChartDataHelpers from '../../scripts/rendered-chart-data.js'
+
+const { countRenderedChartDataShapes } = renderedChartDataHelpers as {
+  countRenderedChartDataShapes: (section: ReturnType<Page['locator']>) => Promise<number>
+}
 
 const importEntryButtonPattern = /^(Auto-Import|Auto import|Import)$/
 const uploadEntryButtonPattern = /^(Datei hochladen|Upload file|Upload)$/
 const csvButtonPattern = /^(CSV|CSV exportieren|Export CSV)$/
+const cumulativeProviderCostPattern = /Cumulative cost per provider|Kumulative Kosten pro Anbieter/
+const costByModelOverTimePattern = /Cost by model over time|Kosten nach Modell im Zeitverlauf/
 
 test('uploads sample usage data and renders the dashboard without browser errors', async ({
   page,
@@ -58,10 +65,19 @@ test('shows cumulative provider cost next to model cost trends in cost analysis'
   await costAnalysisSection.scrollIntoViewIfNeeded()
 
   await expect(costAnalysisSection.getByText(/Cost analysis|Kostenanalyse/)).toBeVisible()
-  await expect(
-    costAnalysisSection.getByText(/Cumulative cost per provider|Kumulative Kosten pro Anbieter/),
-  ).toBeVisible()
-  await expect(
-    costAnalysisSection.getByText(/Cost by model over time|Kosten nach Modell im Zeitverlauf/),
-  ).toBeVisible()
+  await expect(costAnalysisSection.getByText(cumulativeProviderCostPattern)).toBeVisible()
+  await expect(costAnalysisSection.getByText(costByModelOverTimePattern)).toBeVisible()
+
+  const cumulativeProviderCostChart = chartCardByTitle(
+    costAnalysisSection,
+    cumulativeProviderCostPattern,
+  )
+  const costByModelOverTimeChart = chartCardByTitle(costAnalysisSection, costByModelOverTimePattern)
+
+  await expect
+    .poll(async () => countRenderedChartDataShapes(cumulativeProviderCostChart))
+    .toBeGreaterThan(0)
+  await expect
+    .poll(async () => countRenderedChartDataShapes(costByModelOverTimeChart))
+    .toBeGreaterThan(0)
 })

@@ -23,6 +23,15 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+export function chartCardByTitle(section: ReturnType<Page['locator']>, titlePattern: RegExp) {
+  return section
+    .getByText(titlePattern)
+    .first()
+    .locator(
+      'xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " group ") and contains(concat(" ", normalize-space(@class), " "), " relative ")][1]',
+    )
+}
+
 function buildWorkerServer(workerIndex: number) {
   const port = basePort + workerIndex
   const authToken = `ttdash-playwright-local-auth-token-worker-${workerIndex}-port-${port}`
