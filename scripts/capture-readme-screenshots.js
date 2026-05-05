@@ -218,19 +218,50 @@ async function closeBrowserResources(context, browser) {
   await browser?.close().catch(() => {});
 }
 
-async function stopServer(server) {
+async function stopServer(server, { shutdownGraceMs = 5_000 } = {}) {
   if (!isChildProcessRunning(server)) {
     return;
   }
 
   await new Promise((resolve) => {
-    server.once('close', resolve);
+    let timeoutId;
+    let settled = false;
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      server.off('close', finish);
+      server.off('error', finish);
+    };
+    const finish = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      resolve();
+    };
+
+    server.once('close', finish);
+    server.once('error', finish);
+    timeoutId = setTimeout(() => {
+      try {
+        if (isChildProcessRunning(server)) {
+          server.kill('SIGKILL');
+        }
+      } catch {
+        // Ignore shutdown escalation failures during cleanup.
+      }
+      finish();
+    }, shutdownGraceMs);
+    timeoutId.unref?.();
+
     try {
       if (!server.kill('SIGTERM')) {
-        resolve();
+        finish();
       }
     } catch {
-      resolve();
+      finish();
     }
   });
 }

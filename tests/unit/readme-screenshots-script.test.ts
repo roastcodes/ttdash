@@ -72,6 +72,7 @@ const {
       killed?: boolean
       signalCode: string | null
     },
+    options?: { shutdownGraceMs?: number },
   ) => Promise<void>
 }
 const { renderedChartDataSelector, waitForRenderedChartData } =
@@ -336,6 +337,31 @@ describe('README screenshot script helpers', () => {
 
     expect(runningServer.kill).toHaveBeenCalledWith('SIGTERM')
     expect(closedServer.kill).not.toHaveBeenCalled()
+  })
+
+  it('escalates screenshot server shutdown after the grace period', async () => {
+    vi.useFakeTimers()
+    const runningServer = Object.assign(new EventEmitter(), {
+      exitCode: null,
+      kill: vi.fn((signal: string) => {
+        if (signal === 'SIGKILL') {
+          runningServer.signalCode = 'SIGKILL'
+        }
+        return true
+      }),
+      killed: false,
+      signalCode: null as string | null,
+    })
+
+    const stopPromise = stopServer(runningServer, { shutdownGraceMs: 50 })
+
+    expect(runningServer.kill).toHaveBeenCalledWith('SIGTERM')
+    await vi.advanceTimersByTimeAsync(50)
+    await expect(stopPromise).resolves.toBeUndefined()
+
+    expect(runningServer.kill).toHaveBeenCalledWith('SIGKILL')
+    expect(runningServer.listenerCount('close')).toBe(0)
+    expect(runningServer.listenerCount('error')).toBe(0)
   })
 
   it('waits for rendered chart data shapes before capturing analytics screenshots', async () => {
