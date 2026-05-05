@@ -130,6 +130,37 @@ function seedSampleUsageFile({
   };
 }
 
+function createWaitForServerTimeoutError(url) {
+  return new Error(`Timed out waiting for screenshot server: ${url}`);
+}
+
+function getRemainingTimeoutMs(startedAt, timeoutMs) {
+  return Math.max(0, timeoutMs - (Date.now() - startedAt));
+}
+
+async function fetchUsageWithTimeout(url, { authSession, fetchImpl, timeoutMs }) {
+  const controller = new AbortController();
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      reject(createWaitForServerTimeoutError(url));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([
+      fetchImpl(`${url}/api/usage`, {
+        headers: createAuthHeaders(authSession),
+        signal: controller.signal,
+      }),
+      timeoutPromise,
+    ]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function waitForServer(
   url,
   {
@@ -142,10 +173,17 @@ async function waitForServer(
 ) {
   const startedAt = Date.now();
 
-  while (Date.now() - startedAt < timeoutMs) {
+  while (true) {
+    const remainingTimeoutMs = getRemainingTimeoutMs(startedAt, timeoutMs);
+    if (remainingTimeoutMs <= 0) {
+      throw createWaitForServerTimeoutError(url);
+    }
+
     try {
-      const response = await fetchImpl(`${url}/api/usage`, {
-        headers: createAuthHeaders(authSession),
+      const response = await fetchUsageWithTimeout(url, {
+        authSession,
+        fetchImpl,
+        timeoutMs: remainingTimeoutMs,
       });
       if (response.ok) {
         return authSession;
@@ -154,10 +192,11 @@ async function waitForServer(
       // Keep polling until the local server is reachable.
     }
 
-    await sleepImpl(pollMs);
+    const sleepMs = Math.min(pollMs, getRemainingTimeoutMs(startedAt, timeoutMs));
+    if (sleepMs > 0) {
+      await sleepImpl(sleepMs);
+    }
   }
-
-  throw new Error(`Timed out waiting for screenshot server: ${url}`);
 }
 
 async function switchToEnglish(page) {

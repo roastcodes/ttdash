@@ -73,6 +73,7 @@ const tempDirs: string[] = []
 
 afterEach(async () => {
   vi.restoreAllMocks()
+  vi.useRealTimers()
 
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
@@ -150,7 +151,69 @@ describe('README screenshot script helpers', () => {
 
     expect(fetchImpl).toHaveBeenCalledWith('http://127.0.0.1:3018/api/usage', {
       headers: { Authorization: 'Bearer local-token' },
+      signal: expect.any(AbortSignal),
     })
+  })
+
+  it('caps polling sleeps to the remaining server wait budget', async () => {
+    let currentTimeMs = 0
+    vi.spyOn(Date, 'now').mockImplementation(() => currentTimeMs)
+
+    const fetchImpl = vi.fn(async (_url: string, options?: RequestInit) => {
+      expect(options?.signal).toBeInstanceOf(AbortSignal)
+      currentTimeMs = 900
+      return new Response('{}', { status: 401 })
+    }) as typeof fetch
+    const sleepImpl = vi.fn(async (ms: number) => {
+      currentTimeMs += ms
+    })
+
+    await expect(
+      waitForServer('http://127.0.0.1:3018', {
+        authSession: {
+          authorizationHeader: 'Bearer local-token',
+          bootstrapUrl: 'http://127.0.0.1:3018/?ttdash_token=local-token',
+        },
+        fetchImpl,
+        pollMs: 250,
+        sleepImpl,
+        timeoutMs: 1000,
+      }),
+    ).rejects.toThrow('Timed out waiting for screenshot server: http://127.0.0.1:3018')
+
+    expect(sleepImpl).toHaveBeenCalledWith(100)
+  })
+
+  it('aborts in-flight readiness requests when the server wait budget expires', async () => {
+    vi.useFakeTimers()
+    let signal: AbortSignal | undefined
+    const fetchImpl = vi.fn((_url: string, options?: RequestInit) => {
+      signal = options?.signal
+      return new Promise<Response>((_resolve, reject) => {
+        signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), {
+          once: true,
+        })
+      })
+    }) as unknown as typeof fetch
+
+    const waitPromise = waitForServer('http://127.0.0.1:3018', {
+      authSession: {
+        authorizationHeader: 'Bearer local-token',
+        bootstrapUrl: 'http://127.0.0.1:3018/?ttdash_token=local-token',
+      },
+      fetchImpl,
+      pollMs: 10,
+      sleepImpl: async () => {},
+      timeoutMs: 50,
+    })
+    const assertion = expect(waitPromise).rejects.toThrow(
+      'Timed out waiting for screenshot server: http://127.0.0.1:3018',
+    )
+
+    await vi.advanceTimersByTimeAsync(50)
+
+    await assertion
+    expect(signal?.aborted).toBe(true)
   })
 
   it('omits auth headers until a local auth session exists', () => {
