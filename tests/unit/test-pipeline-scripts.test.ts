@@ -4,6 +4,21 @@ import packageJson from '../../package.json'
 
 const scripts = packageJson.scripts as Record<string, string>
 
+function getDependabotUpdateBlock(config: string, ecosystem: string) {
+  const lines = config.split('\n')
+  const startIndex = lines.findIndex(
+    (line) => line.trim() === `- package-ecosystem: '${ecosystem}'`,
+  )
+
+  expect(startIndex, `${ecosystem} Dependabot update entry`).toBeGreaterThanOrEqual(0)
+
+  const nextUpdateIndex = lines.findIndex(
+    (line, index) => index > startIndex && line.startsWith('  - package-ecosystem: '),
+  )
+
+  return lines.slice(startIndex, nextUpdateIndex === -1 ? lines.length : nextUpdateIndex).join('\n')
+}
+
 describe('test pipeline scripts', () => {
   it('exposes local gates that map to the CI test layers', () => {
     expect(scripts.check).toBe('npm run test:static')
@@ -96,5 +111,35 @@ describe('test pipeline scripts', () => {
     expect(verifyScript).toContain('--required-job')
     expect(verifyScript).toContain('/actions/runs/${runId}/jobs')
     expect(verifyScript).toContain('Required CI job')
+  })
+
+  it('keeps Dependabot npm and Bun updates in one lockfile-aware group', async () => {
+    const config = await readFile('.github/dependabot.yml', 'utf8')
+    const groupBlock = config.slice(
+      config.indexOf('multi-ecosystem-groups:'),
+      config.indexOf('\nupdates:'),
+    )
+
+    expect(groupBlock).toContain('javascript-dependencies:')
+    expect(groupBlock).toContain('schedule:')
+    expect(groupBlock).toContain("target-branch: 'main'")
+    expect(groupBlock).toContain('open-pull-requests-limit: 5')
+    expect(groupBlock).toContain('commit-message:')
+    expect(groupBlock).toContain('pull-request-branch-name:')
+
+    for (const ecosystem of ['npm', 'bun']) {
+      const updateBlock = getDependabotUpdateBlock(config, ecosystem)
+
+      expect(updateBlock).toContain("directory: '/'")
+      expect(updateBlock).toContain("multi-ecosystem-group: 'javascript-dependencies'")
+      expect(updateBlock).toContain("patterns:\n      - '*'")
+      expect(updateBlock).toContain("versioning-strategy: 'increase-if-necessary'")
+      expect(updateBlock).not.toContain('open-pull-requests-limit:')
+      expect(updateBlock).not.toContain('target-branch:')
+      expect(updateBlock).not.toContain('commit-message:')
+      expect(updateBlock).not.toContain('pull-request-branch-name:')
+    }
+
+    expect(config.match(/multi-ecosystem-group: 'javascript-dependencies'/g)).toHaveLength(2)
   })
 })

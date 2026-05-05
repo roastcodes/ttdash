@@ -7,19 +7,29 @@ import { describe, expect, it } from 'vitest'
 const require = createRequire(import.meta.url)
 const packageJson = require('../../package.json') as {
   dependencies?: Record<string, string>
+  devDependencies?: Record<string, string>
 }
 const packageLockJson = require('../../package-lock.json') as {
   packages?: Record<
     string,
     {
       dependencies?: Record<string, string>
+      devDependencies?: Record<string, string>
       version?: string
     }
   >
 }
 
+type DependencyGroupName = 'dependencies' | 'devDependencies'
+
 type BunLockJson = {
-  workspaces?: Record<string, { dependencies?: Record<string, string> }>
+  workspaces?: Record<
+    string,
+    {
+      dependencies?: Record<string, string>
+      devDependencies?: Record<string, string>
+    }
+  >
   packages?: Record<string, [string, ...unknown[]]>
 }
 
@@ -61,6 +71,13 @@ function getToktrackDependency() {
   }
 
   return version
+}
+
+function getDirectDependencyGroups() {
+  return [
+    ['dependencies', packageJson.dependencies ?? {}],
+    ['devDependencies', packageJson.devDependencies ?? {}],
+  ] satisfies Array<[DependencyGroupName, Record<string, string>]>
 }
 
 type JsoncOutsideStringTransform = (context: {
@@ -181,6 +198,17 @@ function parseBunLockJsonc(source: string): BunLockJson {
   return JSON.parse(stripJsoncTrailingCommas(stripJsoncComments(source))) as BunLockJson
 }
 
+function getBunResolvedPackageVersion(packageName: string, bunLockJson: BunLockJson) {
+  const packageSpec = bunLockJson.packages?.[packageName]?.[0]
+  const expectedPrefix = `${packageName}@`
+
+  if (typeof packageSpec !== 'string' || !packageSpec.startsWith(expectedPrefix)) {
+    return null
+  }
+
+  return packageSpec.slice(expectedPrefix.length)
+}
+
 function shouldSkipPath(relativePath: string) {
   if (excludedFiles.has(relativePath)) return true
 
@@ -215,21 +243,59 @@ function collectScannedFiles(directory: string, collected: string[] = []) {
 }
 
 describe('toktrack version repository contract', () => {
-  it('keeps npm and bun lockfiles aligned with package.json', () => {
+  it('keeps direct dependency specs aligned across npm and bun lockfiles', () => {
+    const rootPackage = packageLockJson.packages?.['']
+    const bunLockPath = path.join(repoRoot, 'bun.lock')
+
+    expect(existsSync(bunLockPath)).toBe(true)
+
+    const bunLockJson = parseBunLockJsonc(readFileSync(bunLockPath, 'utf8'))
+    const rootBunWorkspace = bunLockJson.workspaces?.['']
+
+    for (const [groupName, expectedDependencies] of getDirectDependencyGroups()) {
+      expect(rootPackage?.[groupName], `package-lock.json root ${groupName}`).toEqual(
+        expectedDependencies,
+      )
+      expect(rootBunWorkspace?.[groupName], `bun.lock root ${groupName}`).toEqual(
+        expectedDependencies,
+      )
+    }
+  })
+
+  it('keeps exact direct dependency resolutions aligned across npm and bun lockfiles', () => {
+    const bunLockPath = path.join(repoRoot, 'bun.lock')
+
+    expect(existsSync(bunLockPath)).toBe(true)
+
+    const bunLockJson = parseBunLockJsonc(readFileSync(bunLockPath, 'utf8'))
+    const exactDirectDependencies = getDirectDependencyGroups().flatMap(([, dependencies]) =>
+      Object.entries(dependencies).filter(([, dependencySpec]) =>
+        exactSemverPattern.test(dependencySpec),
+      ),
+    )
+
+    expect(exactDirectDependencies.length).toBeGreaterThan(0)
+
+    for (const [dependencyName, dependencySpec] of exactDirectDependencies) {
+      const npmPackageVersion =
+        packageLockJson.packages?.[`node_modules/${dependencyName}`]?.version
+
+      expect(npmPackageVersion, `package-lock.json packages.${dependencyName}`).toBe(dependencySpec)
+      expect(
+        getBunResolvedPackageVersion(dependencyName, bunLockJson),
+        `bun.lock packages.${dependencyName}`,
+      ).toBe(dependencySpec)
+    }
+  })
+
+  it('keeps toktrack pinned to an exact version validated by the app runtime', () => {
     const toktrackVersion = getToktrackDependency()
     const rootPackage = packageLockJson.packages?.['']
     const installedToktrackPackage = packageLockJson.packages?.['node_modules/toktrack']
-    const bunLockPath = path.join(repoRoot, 'bun.lock')
 
     expect(toktrackVersion).toMatch(exactSemverPattern)
     expect(rootPackage?.dependencies?.toktrack).toBe(toktrackVersion)
     expect(installedToktrackPackage?.version).toBe(toktrackVersion)
-
-    if (existsSync(bunLockPath)) {
-      const bunLockJson = parseBunLockJsonc(readFileSync(bunLockPath, 'utf8'))
-      expect(bunLockJson.workspaces?.['']?.dependencies?.toktrack).toBe(toktrackVersion)
-      expect(bunLockJson.packages?.toktrack?.[0]).toBe(`toktrack@${toktrackVersion}`)
-    }
   })
 
   it('keeps toktrack package specs free of hardcoded versions outside managed files', () => {

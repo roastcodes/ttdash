@@ -1,5 +1,22 @@
 version: 2
 
+multi-ecosystem-groups:
+  javascript-dependencies:
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Europe/Zurich'
+    target-branch: 'main'
+    labels:
+      - 'dependencies'
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'deps'
+      include: 'scope'
+    pull-request-branch-name:
+      separator: '-'
+
 updates:
   - package-ecosystem: 'npm'
     directory: '/'
@@ -7,13 +24,9 @@ updates:
     # Verified on 2026-04-20: an isolated npm install of eslint@10.2.1 and @eslint/js@10.0.1
     # still fails dependency resolution, and eslint-plugin-react@7.37.5 currently advertises
     # eslint support only through ^9.7.
-    schedule:
-      interval: 'weekly'
-      day: 'monday'
-      time: '06:00'
-      timezone: 'Europe/Zurich'
-    target-branch: 'main'
-    open-pull-requests-limit: 5
+    multi-ecosystem-group: 'javascript-dependencies'
+    patterns:
+      - '*'
     rebase-strategy: 'auto'
     versioning-strategy: 'increase-if-necessary'
     ignore:
@@ -27,24 +40,25 @@ updates:
           - 'version-update:semver-major'
         versions:
           - '>=10'
-    labels:
-      - 'dependencies'
-    commit-message:
-      prefix: 'deps'
-      include: 'scope'
-    pull-request-branch-name:
-      separator: '-'
-    groups:
-      production-dependencies:
-        dependency-type: 'production'
+
+  - package-ecosystem: 'bun'
+    directory: '/'
+    multi-ecosystem-group: 'javascript-dependencies'
+    patterns:
+      - '*'
+    rebase-strategy: 'auto'
+    versioning-strategy: 'increase-if-necessary'
+    ignore:
+      - dependency-name: 'eslint'
         update-types:
-          - 'minor'
-          - 'patch'
-      development-dependencies:
-        dependency-type: 'development'
+          - 'version-update:semver-major'
+        versions:
+          - '>=10'
+      - dependency-name: '@eslint/js'
         update-types:
-          - 'minor'
-          - 'patch'
+          - 'version-update:semver-major'
+        versions:
+          - '>=10'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
