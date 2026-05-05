@@ -204,6 +204,37 @@ async function switchToEnglish(page) {
   await page.getByText('Filter status').waitFor();
 }
 
+function isChildProcessRunning(childProcess) {
+  return (
+    childProcess &&
+    childProcess.killed !== true &&
+    childProcess.exitCode === null &&
+    childProcess.signalCode === null
+  );
+}
+
+async function closeBrowserResources(context, browser) {
+  await context?.close().catch(() => {});
+  await browser?.close().catch(() => {});
+}
+
+async function stopServer(server) {
+  if (!isChildProcessRunning(server)) {
+    return;
+  }
+
+  await new Promise((resolve) => {
+    server.once('close', resolve);
+    try {
+      if (!server.kill('SIGTERM')) {
+        resolve();
+      }
+    } catch {
+      resolve();
+    }
+  });
+}
+
 async function captureScreenshots() {
   fs.mkdirSync(docsDir, { recursive: true });
   fs.rmSync(screenshotRuntimeRoot, { recursive: true, force: true });
@@ -228,50 +259,52 @@ async function captureScreenshots() {
   });
 
   try {
+    let browser;
+    let context;
     const authSession = createScreenshotAuthSession(baseUrl);
     await waitForServer(baseUrl, { authSession });
     seedSampleUsageFile();
 
-    const browser = await chromium.launch();
-    const context = await browser.newContext({
-      viewport: { width: 1600, height: 1400 },
-      colorScheme: 'dark',
-      reducedMotion: 'reduce',
-    });
-    const page = await context.newPage();
+    browser = await chromium.launch();
+    try {
+      context = await browser.newContext({
+        viewport: { width: 1600, height: 1400 },
+        colorScheme: 'dark',
+        reducedMotion: 'reduce',
+      });
+      const page = await context.newPage();
 
-    await page.addInitScript(() => {
-      globalThis.__TTDASH_TEST_HOOKS__ = {};
-    });
+      await page.addInitScript(() => {
+        globalThis.__TTDASH_TEST_HOOKS__ = {};
+      });
 
-    await page.goto(authSession?.bootstrapUrl || baseUrl);
-    await switchToEnglish(page);
+      await page.goto(authSession?.bootstrapUrl || baseUrl);
+      await switchToEnglish(page);
 
-    await page.evaluate(() => globalThis.scrollTo(0, 0));
-    await page.screenshot({
-      path: path.join(docsDir, 'ttdash-dashboard.png'),
-    });
+      await page.evaluate(() => globalThis.scrollTo(0, 0));
+      await page.screenshot({
+        path: path.join(docsDir, 'ttdash-dashboard.png'),
+      });
 
-    await page.locator('#charts').scrollIntoViewIfNeeded();
-    await waitForRenderedChartData(page, { sectionSelector: '#charts' });
-    await page.locator('#charts').screenshot({
-      path: path.join(docsDir, 'ttdash-dashboard-analytics.png'),
-    });
+      await page.locator('#charts').scrollIntoViewIfNeeded();
+      await waitForRenderedChartData(page, { sectionSelector: '#charts' });
+      await page.locator('#charts').screenshot({
+        path: path.join(docsDir, 'ttdash-dashboard-analytics.png'),
+      });
 
-    await page.evaluate(() => {
-      globalThis.__TTDASH_TEST_HOOKS__?.openSettings?.();
-    });
-    await page.getByRole('dialog').waitFor();
-    await sleep(300);
-    await page.getByRole('dialog').screenshot({
-      path: path.join(docsDir, 'ttdash-dashboard-settings.png'),
-    });
-
-    await context.close();
-    await browser.close();
+      await page.evaluate(() => {
+        globalThis.__TTDASH_TEST_HOOKS__?.openSettings?.();
+      });
+      await page.getByRole('dialog').waitFor();
+      await sleep(300);
+      await page.getByRole('dialog').screenshot({
+        path: path.join(docsDir, 'ttdash-dashboard-settings.png'),
+      });
+    } finally {
+      await closeBrowserResources(context, browser);
+    }
   } finally {
-    server.kill('SIGTERM');
-    await new Promise((resolve) => server.once('close', resolve));
+    await stopServer(server);
   }
 }
 
@@ -283,10 +316,13 @@ if (require.main === module) {
 }
 
 module.exports = {
+  closeBrowserResources,
   createAuthHeaders,
   createScreenshotAuthSession,
+  isChildProcessRunning,
   seedSampleUsageFile,
   screenshotLocalAuthToken,
   screenshotSeedLoadedAt,
+  stopServer,
   waitForServer,
 };

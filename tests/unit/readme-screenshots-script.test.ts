@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
@@ -5,50 +6,74 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { createAuthHeaders, createScreenshotAuthSession, seedSampleUsageFile, waitForServer } =
-  require('../../scripts/capture-readme-screenshots.js') as {
-    createAuthHeaders: (authSession: { authorizationHeader?: string } | null) => HeadersInit
-    createScreenshotAuthSession: (
-      url?: string,
-      token?: string,
-    ) => {
-      authorizationHeader: string
-      bootstrapUrl: string
-    }
-    seedSampleUsageFile: (options?: {
-      loadedAt?: string
-      sampleUsage?: unknown
-      sampleUsageFile?: string
-      runtimeRoot?: string
-    }) => {
-      dataFile: string
-      settings: {
-        language: string
-        lastLoadedAt: string | null
-        lastLoadSource: string | null
-        theme: string
-      }
-      settingsFile: string
-      usageData: {
-        daily: Array<{ date: string; modelsUsed: string[] }>
-        totals: {
-          requestCount: number
-          totalCost: number
-          totalTokens: number
-        }
-      }
-    }
-    waitForServer: (
-      url: string,
-      options: {
-        authSession?: { authorizationHeader?: string } | null
-        fetchImpl?: typeof fetch
-        pollMs?: number
-        sleepImpl?: (ms: number) => Promise<void>
-        timeoutMs?: number
-      },
-    ) => Promise<{ authorizationHeader: string; bootstrapUrl: string } | null>
+const {
+  closeBrowserResources,
+  createAuthHeaders,
+  createScreenshotAuthSession,
+  isChildProcessRunning,
+  seedSampleUsageFile,
+  stopServer,
+  waitForServer,
+} = require('../../scripts/capture-readme-screenshots.js') as {
+  closeBrowserResources: (
+    context?: { close: () => Promise<void> },
+    browser?: { close: () => Promise<void> },
+  ) => Promise<void>
+  createAuthHeaders: (authSession: { authorizationHeader?: string } | null) => HeadersInit
+  createScreenshotAuthSession: (
+    url?: string,
+    token?: string,
+  ) => {
+    authorizationHeader: string
+    bootstrapUrl: string
   }
+  seedSampleUsageFile: (options?: {
+    loadedAt?: string
+    sampleUsage?: unknown
+    sampleUsageFile?: string
+    runtimeRoot?: string
+  }) => {
+    dataFile: string
+    settings: {
+      language: string
+      lastLoadedAt: string | null
+      lastLoadSource: string | null
+      theme: string
+    }
+    settingsFile: string
+    usageData: {
+      daily: Array<{ date: string; modelsUsed: string[] }>
+      totals: {
+        requestCount: number
+        totalCost: number
+        totalTokens: number
+      }
+    }
+  }
+  isChildProcessRunning: (childProcess: {
+    exitCode: number | null
+    killed?: boolean
+    signalCode: string | null
+  }) => boolean
+  waitForServer: (
+    url: string,
+    options: {
+      authSession?: { authorizationHeader?: string } | null
+      fetchImpl?: typeof fetch
+      pollMs?: number
+      sleepImpl?: (ms: number) => Promise<void>
+      timeoutMs?: number
+    },
+  ) => Promise<{ authorizationHeader: string; bootstrapUrl: string } | null>
+  stopServer: (
+    server: EventEmitter & {
+      exitCode: number | null
+      kill: (signal: string) => boolean
+      killed?: boolean
+      signalCode: string | null
+    },
+  ) => Promise<void>
+}
 const { renderedChartDataSelector, waitForRenderedChartData } =
   require('../../scripts/rendered-chart-data.js') as {
     renderedChartDataSelector: string
@@ -268,6 +293,49 @@ describe('README screenshot script helpers', () => {
         sampleUsage: { invalid: true },
       }),
     ).toThrow('Failed to normalize README screenshot sample usage data')
+  })
+
+  it('closes browser resources even when one close operation fails', async () => {
+    const context = {
+      close: vi.fn(async () => {
+        throw new Error('context close failed')
+      }),
+    }
+    const browser = {
+      close: vi.fn(async () => {}),
+    }
+
+    await expect(closeBrowserResources(context, browser)).resolves.toBeUndefined()
+
+    expect(context.close).toHaveBeenCalledTimes(1)
+    expect(browser.close).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops only live screenshot server child processes', async () => {
+    const runningServer = Object.assign(new EventEmitter(), {
+      exitCode: null,
+      kill: vi.fn(() => {
+        runningServer.emit('close')
+        return true
+      }),
+      killed: false,
+      signalCode: null,
+    })
+    const closedServer = Object.assign(new EventEmitter(), {
+      exitCode: 0,
+      kill: vi.fn(() => true),
+      killed: false,
+      signalCode: null,
+    })
+
+    expect(isChildProcessRunning(runningServer)).toBe(true)
+    expect(isChildProcessRunning(closedServer)).toBe(false)
+
+    await stopServer(runningServer)
+    await stopServer(closedServer)
+
+    expect(runningServer.kill).toHaveBeenCalledWith('SIGTERM')
+    expect(closedServer.kill).not.toHaveBeenCalled()
   })
 
   it('waits for rendered chart data shapes before capturing analytics screenshots', async () => {
