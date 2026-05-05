@@ -1,26 +1,26 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import path from 'node:path'
 import { createRequire } from 'node:module'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const {
   createAuthHeaders,
+  createScreenshotAuthSession,
   createTrustedMutationHeaders,
-  readAuthStatus,
   seedSampleUsage,
   waitForServer,
 } = require('../../scripts/capture-readme-screenshots.js') as {
   createAuthHeaders: (authSession: { authorizationHeader?: string } | null) => HeadersInit
+  createScreenshotAuthSession: (
+    url?: string,
+    token?: string,
+  ) => {
+    authorizationHeader: string
+    bootstrapUrl: string
+  }
   createTrustedMutationHeaders: (
     authSession: { authorizationHeader?: string } | null,
     url: string,
   ) => HeadersInit
-  readAuthStatus: (filePath: string) => {
-    authorizationHeader: string
-    bootstrapUrl: string
-  } | null
   seedSampleUsage: (options: {
     authSession?: { authorizationHeader?: string } | null
     fetchImpl?: typeof fetch
@@ -30,13 +30,9 @@ const {
   waitForServer: (
     url: string,
     options: {
-      authStatusFile?: string
+      authSession?: { authorizationHeader?: string } | null
       fetchImpl?: typeof fetch
       pollMs?: number
-      readAuthStatusImpl?: (filePath?: string) => {
-        authorizationHeader: string
-        bootstrapUrl: string
-      } | null
       sleepImpl?: (ms: number) => Promise<void>
       timeoutMs?: number
     },
@@ -62,40 +58,21 @@ const { renderedChartDataSelector, waitForRenderedChartData } =
     ) => Promise<void>
   }
 
-const tempDirs: string[] = []
-
-afterEach(async () => {
+afterEach(() => {
   vi.restoreAllMocks()
-
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
-async function createTempDir() {
-  const dir = await mkdtemp(path.join(tmpdir(), 'ttdash-screenshots-'))
-  tempDirs.push(dir)
-  return dir
-}
-
 describe('README screenshot script helpers', () => {
-  it('reads the local auth status file written by the test server', async () => {
-    const dir = await createTempDir()
-    const authStatusPath = path.join(dir, 'auth-status.json')
+  it('creates deterministic local auth session metadata for the screenshot server', () => {
+    const token = 'local-token-12345678901234567890'
 
-    await writeFile(
-      authStatusPath,
-      JSON.stringify({
-        authorizationHeader: 'Bearer local-token',
-        bootstrapUrl: 'http://127.0.0.1:3018/?ttdash_token=local-token',
-      }),
-    )
-
-    expect(readAuthStatus(authStatusPath)).toEqual({
-      authorizationHeader: 'Bearer local-token',
-      bootstrapUrl: 'http://127.0.0.1:3018/?ttdash_token=local-token',
+    expect(createScreenshotAuthSession('http://127.0.0.1:3018', token)).toEqual({
+      authorizationHeader: `Bearer ${token}`,
+      bootstrapUrl: `http://127.0.0.1:3018/?ttdash_token=${token}`,
     })
   })
 
-  it('uses the auth status header while polling the protected usage API', async () => {
+  it('uses the deterministic auth header while polling the protected usage API', async () => {
     const fetchImpl = vi.fn(async (_url: string, options?: RequestInit) => {
       const authorization = new Headers(options?.headers).get('Authorization')
       return new Response('{}', {
@@ -109,9 +86,9 @@ describe('README screenshot script helpers', () => {
 
     await expect(
       waitForServer('http://127.0.0.1:3018', {
+        authSession,
         fetchImpl,
         pollMs: 0,
-        readAuthStatusImpl: () => authSession,
         sleepImpl: async () => {},
         timeoutMs: 1000,
       }),

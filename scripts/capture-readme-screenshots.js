@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
 const docsDir = path.join(root, 'docs');
 const sampleUsagePath = path.join(root, 'examples', 'sample-usage.json');
 const screenshotRuntimeRoot = path.join(root, '.tmp-playwright', 'readme-screenshots');
-const authStatusPath = path.join(screenshotRuntimeRoot, 'auth-status.json');
+const screenshotLocalAuthToken = 'ttdash-readme-screenshots-local-auth-token';
 const host = process.env.PLAYWRIGHT_TEST_HOST || '127.0.0.1';
 const port = process.env.PLAYWRIGHT_TEST_PORT || '3017';
 const baseUrl = `http://${host}:${port}`;
@@ -19,21 +19,19 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function readAuthStatus(filePath = authStatusPath) {
-  try {
-    const session = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    if (!session || typeof session !== 'object') {
-      return null;
-    }
-
-    return {
-      authorizationHeader:
-        typeof session.authorizationHeader === 'string' ? session.authorizationHeader : '',
-      bootstrapUrl: typeof session.bootstrapUrl === 'string' ? session.bootstrapUrl : '',
-    };
-  } catch {
-    return null;
+function createScreenshotAuthSession(url = baseUrl, token = screenshotLocalAuthToken) {
+  const normalizedToken = String(token || '').trim();
+  if (!normalizedToken) {
+    throw new Error('README screenshot local auth token is required.');
   }
+
+  const bootstrapUrl = new URL(url);
+  bootstrapUrl.searchParams.set('ttdash_token', normalizedToken);
+
+  return {
+    authorizationHeader: `Bearer ${normalizedToken}`,
+    bootstrapUrl: bootstrapUrl.href,
+  };
 }
 
 function createAuthHeaders(authSession) {
@@ -57,14 +55,12 @@ async function waitForServer(
     pollMs = 250,
     fetchImpl = fetch,
     sleepImpl = sleep,
-    readAuthStatusImpl = readAuthStatus,
-    authStatusFile = authStatusPath,
+    authSession = createScreenshotAuthSession(url),
   } = {},
 ) {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < timeoutMs) {
-    const authSession = readAuthStatusImpl(authStatusFile);
     try {
       const response = await fetchImpl(`${url}/api/usage`, {
         headers: createAuthHeaders(authSession),
@@ -134,13 +130,14 @@ async function captureScreenshots() {
       NO_OPEN_BROWSER: '1',
       PLAYWRIGHT_TEST_HOST: host,
       PLAYWRIGHT_TEST_PORT: String(port),
-      TTDASH_AUTH_STATUS_FILE: authStatusPath,
+      TTDASH_LOCAL_AUTH_TOKEN: screenshotLocalAuthToken,
     },
     stdio: 'inherit',
   });
 
   try {
-    const authSession = await waitForServer(baseUrl);
+    const authSession = createScreenshotAuthSession(baseUrl);
+    await waitForServer(baseUrl, { authSession });
     await seedSampleUsage({ authSession });
 
     const browser = await chromium.launch();
@@ -195,8 +192,9 @@ if (require.main === module) {
 
 module.exports = {
   createAuthHeaders,
+  createScreenshotAuthSession,
   createTrustedMutationHeaders,
-  readAuthStatus,
   seedSampleUsage,
+  screenshotLocalAuthToken,
   waitForServer,
 };
