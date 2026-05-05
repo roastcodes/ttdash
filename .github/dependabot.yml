@@ -10,6 +10,7 @@ multi-ecosystem-groups:
     target-branch: 'main'
     labels:
       - 'dependencies'
+    open-pull-requests-limit: 5
     commit-message:
       prefix: 'deps'
       include: 'scope'
@@ -26,7 +27,6 @@ updates:
     multi-ecosystem-group: 'javascript-dependencies'
     patterns:
       - '*'
-    open-pull-requests-limit: 5
     rebase-strategy: 'auto'
     versioning-strategy: 'increase-if-necessary'
     ignore:
@@ -46,7 +46,6 @@ updates:
     multi-ecosystem-group: 'javascript-dependencies'
     patterns:
       - '*'
-    open-pull-requests-limit: 5
     rebase-strategy: 'auto'
     versioning-strategy: 'increase-if-necessary'
     ignore:

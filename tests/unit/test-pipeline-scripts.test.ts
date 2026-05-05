@@ -123,6 +123,7 @@ describe('test pipeline scripts', () => {
     expect(groupBlock).toContain('javascript-dependencies:')
     expect(groupBlock).toContain('schedule:')
     expect(groupBlock).toContain("target-branch: 'main'")
+    expect(groupBlock).toContain('open-pull-requests-limit: 5')
     expect(groupBlock).toContain('commit-message:')
     expect(groupBlock).toContain('pull-request-branch-name:')
 
@@ -133,6 +134,7 @@ describe('test pipeline scripts', () => {
       expect(updateBlock).toContain("multi-ecosystem-group: 'javascript-dependencies'")
       expect(updateBlock).toContain("patterns:\n      - '*'")
       expect(updateBlock).toContain("versioning-strategy: 'increase-if-necessary'")
+      expect(updateBlock).not.toContain('open-pull-requests-limit:')
       expect(updateBlock).not.toContain('target-branch:')
       expect(updateBlock).not.toContain('commit-message:')
       expect(updateBlock).not.toContain('pull-request-branch-name:')
