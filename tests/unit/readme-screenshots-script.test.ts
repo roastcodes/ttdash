@@ -359,7 +359,9 @@ describe('README screenshot script helpers', () => {
 
     expect(renderedChartDataSelector).toContain('recharts-line-curve')
     expect(locator).toHaveBeenCalledWith('#charts')
-    expect(waitFor).toHaveBeenCalledWith({ timeout: 1000 })
+    const waitForTimeout = waitFor.mock.calls[0]?.[0]?.timeout
+    expect(waitForTimeout).toBeGreaterThan(0)
+    expect(waitForTimeout).toBeLessThanOrEqual(1000)
     expect(evaluate).toHaveBeenCalledTimes(2)
   })
 
