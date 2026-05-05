@@ -2,10 +2,8 @@ import { expect, test, type Page } from './fixtures'
 import { gotoDashboard, resetAppState, uploadSampleUsage } from './helpers'
 import renderedChartDataHelpers from '../../scripts/rendered-chart-data.js'
 
-type DashboardLocator = ReturnType<Page['locator']>
-
 const { countRenderedChartDataShapes } = renderedChartDataHelpers as {
-  countRenderedChartDataShapes: (section: DashboardLocator) => Promise<number>
+  countRenderedChartDataShapes: (section: ReturnType<Page['locator']>) => Promise<number>
 }
 
 const importEntryButtonPattern = /^(Auto-Import|Auto import|Import)$/

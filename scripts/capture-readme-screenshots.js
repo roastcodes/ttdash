@@ -295,9 +295,9 @@ async function captureScreenshots() {
       await page.evaluate(() => {
         globalThis.__TTDASH_TEST_HOOKS__?.openSettings?.();
       });
-      await page.getByRole('dialog').waitFor();
-      await sleep(300);
-      await page.getByRole('dialog').screenshot({
+      const dialog = page.getByRole('dialog');
+      await dialog.waitFor({ state: 'visible' });
+      await dialog.screenshot({
         path: path.join(docsDir, 'ttdash-dashboard-settings.png'),
       });
     } finally {
