@@ -61,6 +61,7 @@ interface ProviderBadgeStyle {
   color: string
   backgroundColor: string
   borderColor: string
+  [customProperty: `--${string}`]: string | number | undefined
 }
 
 function formatProviderBadgeStyle(
