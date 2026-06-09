@@ -23,6 +23,10 @@ const MODEL_CASES = [
   { raw: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', provider: 'Anthropic' },
   { raw: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', provider: 'Anthropic' },
   { raw: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', provider: 'Anthropic' },
+  { raw: 'claude-fable-5', name: 'Claude Fable 5', provider: 'Anthropic' },
+  { raw: 'claude-fable-5-20260609', name: 'Claude Fable 5', provider: 'Anthropic' },
+  { raw: 'fable-5', name: 'Fable 5', provider: 'Anthropic' },
+  { raw: 'fable-5-1', name: 'Fable 5.1', provider: 'Anthropic' },
   { raw: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
   { raw: 'gpt-4.1', name: 'GPT-4.1', provider: 'OpenAI' },
   { raw: 'gpt-5.3-codex', name: 'GPT-5.3 Codex', provider: 'OpenAI' },
@@ -34,6 +38,11 @@ const MODEL_CASES = [
   {
     raw: 'claude-sonnet-4-5::anthropic',
     name: 'Claude Sonnet 4.5',
+    provider: 'Anthropic',
+  },
+  {
+    raw: 'claude-fable-5::anthropic',
+    name: 'Claude Fable 5',
     provider: 'Anthropic',
   },
   { raw: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },

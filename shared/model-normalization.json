@@ -7,6 +7,7 @@
     { "pattern": "(^|-)sonnet-4-6$", "name": "Sonnet 4.6" },
     { "pattern": "(^|-)sonnet-4-5$", "name": "Sonnet 4.5" },
     { "pattern": "(^|-)haiku-4-5$", "name": "Haiku 4.5" },
+    { "pattern": "(^|-)fable-5$", "name": "Fable 5" },
     { "pattern": "(^|-)gemini-3-flash-preview$", "name": "Gemini 3 Flash Preview" },
     { "pattern": "(^|-)opencode$", "name": "OpenCode" }
   ],
@@ -16,7 +17,7 @@
       "pattern": "openai-codex|(^|-)codex($|-)|(^|-)gpt($|-)|(^|[^a-z0-9])o\\d(?:$|[^a-z0-9])|openai",
       "provider": "OpenAI"
     },
-    { "pattern": "claude|anthropic|opus|sonnet|haiku", "provider": "Anthropic" },
+    { "pattern": "claude|anthropic|opus|sonnet|haiku|fable", "provider": "Anthropic" },
     { "pattern": "gemini|google|vertex", "provider": "Google" },
     { "pattern": "grok|xai", "provider": "xAI" },
     { "pattern": "llama|meta-llama|meta/", "provider": "Meta" },

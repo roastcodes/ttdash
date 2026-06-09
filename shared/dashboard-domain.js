@@ -195,7 +195,7 @@ function normalizeModelName(raw) {
   }
 
   const familyMatch = canonical.match(
-    /^(gpt|opus|sonnet|haiku|gemini|codex|o\d|oai|grok|llama|mistral|command|deepseek|qwen)(?:-([a-z0-9-]+))?$/i,
+    /^(gpt|opus|sonnet|haiku|fable|gemini|codex|o\d|oai|grok|llama|mistral|command|deepseek|qwen)(?:-([a-z0-9-]+))?$/i,
   )
   if (familyMatch) {
     const family = familyMatch[1]

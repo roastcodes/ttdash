@@ -140,6 +140,20 @@ const MODEL_COLOR_FAMILIES = [
     },
   },
   {
+    id: 'claude-fable',
+    light: { h: 306, s: 68, l: 43 },
+    dark: { h: 306, s: 76, l: 66 },
+    resolve(name) {
+      const match = name.match(/^(?:Claude\s+)?Fable (\d+(?:\.\d+)*)$/i)
+      if (!match) return null
+
+      return {
+        bucketKey: 'claude-fable',
+        version: parseNumericVersion(match[1]),
+      }
+    },
+  },
+  {
     id: 'claude-opus',
     light: { h: 274, s: 68, l: 44 },
     dark: { h: 274, s: 74, l: 66 },
