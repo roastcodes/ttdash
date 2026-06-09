@@ -57,12 +57,15 @@ describe('model colors', () => {
     const palette = createModelColorPalette([
       'GPT-5',
       'GPT-5.4',
+      'Claude Fable 5',
       'Claude Sonnet 4.5',
       'Claude Sonnet 4.6',
     ])
 
     expect(palette.getColor('GPT-5.4', { theme: 'dark' })).toBe('hsl(148, 72%, 57%)')
     expect(palette.getColor('GPT-5.4', { theme: 'light' })).toBe('hsl(148, 68%, 40%)')
+    expect(palette.getColor('Claude Fable 5', { theme: 'dark' })).toBe('hsl(306, 76%, 66%)')
+    expect(palette.getColor('Claude Fable 5', { theme: 'light' })).toBe('hsl(306, 68%, 43%)')
     expect(palette.getColor('Claude Sonnet 4.6', { theme: 'dark' })).toBe('hsl(214, 80%, 63%)')
     expect(palette.getColor('Claude Sonnet 4.6', { theme: 'light' })).toBe('hsl(214, 72%, 44%)')
   })
@@ -102,7 +105,13 @@ describe('model colors', () => {
   })
 
   it('maps prefixed and unprefixed Anthropic display names to the same family palette entry', () => {
-    const palette = createModelColorPalette(['Claude Sonnet 4.5', 'Sonnet 4.5', 'Opus 4.6'])
+    const palette = createModelColorPalette([
+      'Claude Sonnet 4.5',
+      'Sonnet 4.5',
+      'Opus 4.6',
+      'Claude Fable 5',
+      'Fable 5',
+    ])
 
     expect(palette.getColor('Claude Sonnet 4.5', { theme: 'dark' })).toBe(
       palette.getColor('Sonnet 4.5', { theme: 'dark' }),
@@ -110,15 +119,29 @@ describe('model colors', () => {
     expect(palette.getColor('Claude Opus 4.6', { theme: 'light' })).toBe(
       palette.getColor('Opus 4.6', { theme: 'light' }),
     )
+    expect(palette.getColor('Claude Fable 5', { theme: 'dark' })).toBe(
+      palette.getColor('Fable 5', { theme: 'dark' }),
+    )
   })
 
   it('falls back to the base family color when no dataset palette is active', () => {
     expect(getModelColor('GPT-5.4', 'dark')).toBe('hsl(148, 72%, 57%)')
     expect(getModelColor('GPT-5.4', 'light')).toBe('hsl(148, 68%, 40%)')
+    expect(getModelColor('Claude Fable 5', 'dark')).toBe('hsl(306, 76%, 66%)')
+    expect(getModelColor('Claude Fable 5', 'light')).toBe('hsl(306, 68%, 43%)')
     expect(getModelColor('Claude Sonnet 4.5', 'dark')).toBe('hsl(214, 80%, 63%)')
     expect(getModelColor('Claude Sonnet 4.5', 'light')).toBe('hsl(214, 72%, 44%)')
     expect(getModelColor('Gemini 2.5 Pro', 'dark')).toBe('hsl(40, 88%, 49%)')
     expect(getModelColor('Gemini 2.5 Pro', 'light')).toBe('hsl(38, 86%, 34%)')
+  })
+
+  it('lightens older Claude Fable versions with the same family ranking rules', () => {
+    const palette = createModelColorPalette(['Claude Fable 5', 'Claude Fable 5.1'])
+
+    expect(palette.getColor('Claude Fable 5.1', { theme: 'dark' })).toBe('hsl(306, 76%, 66%)')
+    expect(palette.getColor('Claude Fable 5', { theme: 'dark' })).toBe('hsl(306, 75%, 70%)')
+    expect(palette.getColor('Claude Fable 5.1', { theme: 'light' })).toBe('hsl(306, 68%, 43%)')
+    expect(palette.getColor('Claude Fable 5', { theme: 'light' })).toBe('hsl(306, 66%, 49%)')
   })
 
   it('uses canonical GPT colors for toktrack provider-suffixed model names', () => {
