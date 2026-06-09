@@ -1,5 +1,20 @@
 # Changelog
 
+## [6.3.7] - 2026-06-09
+
+### Added
+
+- **Claude Fable 5 im zentralen Modell-Farbsystem** — `Claude Fable 5` erhält eine eigene Claude-Familienfarbe, die die bestehende Abstufung von Haiku, Sonnet und Opus sauber fortführt und zukünftige Fable-Versionen automatisch mit derselben neuesten-Basisfarbe-/ältere-Versionen-Aufhellung behandelt
+- **Fable-Normalisierung und Provider-Erkennung** — Modell-IDs wie `claude-fable-5`, datierte Anthropic-IDs, `fable-5`, zukünftige `fable-5.x`-Varianten und Toktrack-Provider-Suffixe werden zentral als Anthropic-Modelle erkannt
+
+### Improved
+
+- **Kompatible npm- und Bun-Abhängigkeiten aktualisiert** — `prettier`, `typescript-eslint` und `toktrack` wurden auf aktuelle kompatible Versionen angehoben und `package-lock.json` sowie `bun.lock` synchron aktualisiert; ESLint bleibt wegen des aktuellen Peer-Dependency-Graphs auf der neuesten kompatiblen 9.x-Linie
+
+### Commits
+
+- Enthält alle Branch-Commits seit `v6.3.6`: `edaab65`, `54be88e`
+
 ## [6.3.0] - 2026-05-02
 
 ### Added
