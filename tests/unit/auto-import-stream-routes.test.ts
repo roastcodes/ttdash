@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createRouter, request, requestRaw } from './http-router-test-helpers'
+import { MockResponse, createRouter, request, requestRaw } from './http-router-test-helpers'
 
 describe('auto-import stream routes', () => {
   it('streams auto-import success events and releases the acquired lease', async () => {
@@ -90,6 +90,36 @@ describe('auto-import stream routes', () => {
     expect(res.body).toContain('event: error')
     expect(res.body).toContain('"message":"toktrack failed"')
     expect(res.body).toContain('event: done')
+    expect(lease.release).toHaveBeenCalledTimes(1)
+  })
+
+  it('ends the stream response when the client aborts during import', async () => {
+    const lease = { release: vi.fn() }
+    const performAutoImport = vi.fn(async ({ onProgress }) => {
+      onProgress({ key: 'startingLocalImport', vars: {} })
+      return { days: 2, totalCost: 3.5 }
+    })
+    const { router } = createRouter({
+      autoImportRuntimeOverrides: {
+        acquireAutoImportLease: vi.fn(() => lease),
+        performAutoImport,
+      },
+    })
+    const req = {
+      url: '/api/auto-import/stream',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      on: vi.fn((_event: string, listener: () => void) => {
+        listener()
+      }),
+    }
+    const res = new MockResponse()
+
+    await router.handleServerRequest(req, res)
+
+    expect(res.status).toBe(200)
+    expect(res.ended).toBe(true)
+    expect(res.body).not.toContain('event: success')
     expect(lease.release).toHaveBeenCalledTimes(1)
   })
 })

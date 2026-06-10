@@ -18,30 +18,40 @@ const { createHttpRouter } = require('../../server/http-router.js') as {
 }
 
 type HeaderValue = string | number | string[]
+type StoredHeaderValue = string | string[]
+
+function normalizeHeaderValue(value: HeaderValue): StoredHeaderValue {
+  return Array.isArray(value) ? value.map(String) : String(value)
+}
 
 export class MockResponse {
   status = 0
-  headers: Record<string, HeaderValue> = {}
+  headers: Record<string, StoredHeaderValue> = {}
   body = ''
+  ended = false
 
   setHeader(name: string, value: HeaderValue) {
     const key = name.toLowerCase()
     const previous = this.headers[key]
 
     if (previous === undefined) {
-      this.headers[key] = value
+      this.headers[key] = normalizeHeaderValue(value)
       return
     }
 
-    const previousValues = Array.isArray(previous) ? previous : [String(previous)]
-    const nextValues = Array.isArray(value) ? value.map(String) : [String(value)]
+    const previousValues = Array.isArray(previous) ? previous : [previous]
+    const normalizedValue = normalizeHeaderValue(value)
+    const nextValues = Array.isArray(normalizedValue) ? normalizedValue : [normalizedValue]
     this.headers[key] = [...previousValues, ...nextValues]
   }
 
   writeHead(status: number, headers: Record<string, HeaderValue>) {
     this.status = status
     const normalizedHeaders = Object.fromEntries(
-      Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]),
+      Object.entries(headers).map(([key, value]) => [
+        key.toLowerCase(),
+        normalizeHeaderValue(value),
+      ]),
     )
     this.headers = { ...this.headers, ...normalizedHeaders }
   }
@@ -55,6 +65,7 @@ export class MockResponse {
   }
 
   end(body?: string | Buffer) {
+    this.ended = true
     if (body !== undefined) {
       this.body += Buffer.isBuffer(body) ? body.toString('utf8') : body
     }

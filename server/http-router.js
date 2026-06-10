@@ -19,6 +19,7 @@ function createHttpRouter({
   autoImportRuntime,
   generatePdfReport,
   getRuntimeSnapshot,
+  logger = console,
 }) {
   const {
     json,
@@ -53,6 +54,7 @@ function createHttpRouter({
     securityHeaders,
     autoImportRuntime,
     sendSSE,
+    logger,
   });
   const runtimeRoutes = createRuntimeRoutes({
     json,

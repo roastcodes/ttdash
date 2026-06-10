@@ -13,10 +13,7 @@ export function createRuntimeWithSpawn(
   } = {},
 ) {
   const localBin = options.localBinOverride ?? '/missing/toktrack'
-  const processTerminationGraceMs = Object.prototype.hasOwnProperty.call(
-    options,
-    'processTerminationGraceMs',
-  )
+  const processTerminationGraceMs = Object.hasOwn(options, 'processTerminationGraceMs')
     ? options.processTerminationGraceMs
     : 1000
 

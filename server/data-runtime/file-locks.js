@@ -156,7 +156,7 @@ function createDataRuntimeFileLocks({
     } catch (error) {
       if (error?.code !== 'ENOENT') {
         debugLog('Failed to read file mutation lock owner', { ownerPath, error });
-        // Continue through the stale-lock fallback chain: owner fields first, age last.
+        // Keep owner null and fall through to instanceId, pid, and age fallback checks.
       }
     }
 
@@ -258,13 +258,14 @@ function createDataRuntimeFileLocks({
           continue;
         }
 
-        if (Date.now() - startedAt >= timeoutMs) {
+        const remainingMs = timeoutMs - (Date.now() - startedAt);
+        if (remainingMs <= 0) {
           throw new Error(`Could not acquire file mutation lock for ${path.basename(filePath)}.`, {
             cause: error,
           });
         }
 
-        await sleep(backoffMs);
+        await sleep(Math.min(backoffMs, remainingMs));
         backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
       }
     }

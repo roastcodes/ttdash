@@ -218,6 +218,7 @@ const dataRuntime = createDataRuntime({
   legacyDataFile: path.join(process.cwd(), 'data.json'),
   settingsBackupKind: 'ttdash-settings-backup',
   usageBackupKind: 'ttdash-usage-backup',
+  isDarwin: process.platform === 'darwin',
   isWindows: process.platform === 'win32',
   secureDirMode: 0o700,
   secureFileMode: 0o600,
@@ -253,7 +254,7 @@ const autoImportRuntime = createAutoImportRuntime({
   toktrackLatestLookupTimeoutMs: 15000,
   toktrackLatestCacheSuccessTtlMs: 5 * 60 * 1000,
   toktrackLatestCacheFailureTtlMs: 60 * 1000,
-  probeLog: (message: string) => console.warn(message),
+  probeLog: () => undefined,
 })
 const {
   commandExists,

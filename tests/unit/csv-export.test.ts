@@ -99,6 +99,7 @@ describe('csv export helpers', () => {
     try {
       downloadCSV([createDay('gpt-4')])
 
+      expect(createObjectURL).toHaveBeenCalledTimes(1)
       const [blob] = createObjectURL.mock.calls[0]!
       expect(blob).toBeInstanceOf(Blob)
       expect((blob as Blob).type).toBe('text/csv;charset=utf-8;')

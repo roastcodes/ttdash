@@ -351,6 +351,11 @@ export function sortRecentDays(
   sortKey: RecentDaysSortKey,
   sortAsc: boolean,
 ): DailyUsage[] {
+  const modelCounts =
+    sortKey === 'models'
+      ? new Map(data.map((day) => [day, getUniqueModelsForDay(day).length]))
+      : null
+
   return [...data].sort((a, b) => {
     switch (sortKey) {
       case 'date':
@@ -374,7 +379,7 @@ export function sortRecentDays(
       case 'costPerM':
         return compareRecentDayNumbers(a, b, sortAsc, getRecentDayCostPerMillion)
       case 'models':
-        return compareRecentDayNumbers(a, b, sortAsc, (day) => getUniqueModelsForDay(day).length)
+        return compareRecentDayNumbers(a, b, sortAsc, (day) => modelCounts?.get(day) ?? 0)
     }
   })
 }

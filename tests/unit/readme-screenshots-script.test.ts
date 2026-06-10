@@ -278,19 +278,26 @@ describe('README screenshot script helpers', () => {
   })
 
   it('closes browser resources even when one close operation fails', async () => {
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => undefined)
+    const contextError = new Error('context close failed')
     const context = {
       close: vi.fn(async () => {
-        throw new Error('context close failed')
+        throw contextError
       }),
     }
     const browser = {
       close: vi.fn(async () => {}),
     }
 
-    await expect(closeBrowserResources(context, browser)).resolves.toBeUndefined()
+    try {
+      await expect(closeBrowserResources(context, browser)).resolves.toBeUndefined()
 
-    expect(context.close).toHaveBeenCalledTimes(1)
-    expect(browser.close).toHaveBeenCalledTimes(1)
+      expect(context.close).toHaveBeenCalledTimes(1)
+      expect(browser.close).toHaveBeenCalledTimes(1)
+      expect(debugSpy).toHaveBeenCalledWith('Failed to close browser context:', contextError)
+    } finally {
+      debugSpy.mockRestore()
+    }
   })
 
   it('stops only live screenshot server child processes', async () => {

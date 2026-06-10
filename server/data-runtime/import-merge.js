@@ -1,4 +1,4 @@
-const COST_COMPARISON_TOLERANCE = 1e-9;
+const COST_COMPARISON_TOLERANCE = 1e-6;
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);

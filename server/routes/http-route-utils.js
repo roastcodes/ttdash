@@ -1,6 +1,12 @@
+const { formatErrorMessage } = require('../runtime-formatters');
+
 /** Returns a stable fallback message for unknown thrown values. */
 function getErrorMessage(error, fallback) {
-  return error && typeof error.message === 'string' && error.message ? error.message : fallback;
+  return formatErrorMessage(error, fallback);
+}
+
+function getSSEErrorLog(logger) {
+  return logger && typeof logger.error === 'function' ? logger.error.bind(logger) : console.error;
 }
 
 /** Reads a mutation body and writes the matching client error response on parse/size failures. */
@@ -36,12 +42,12 @@ function writeMutationServerError(json, res) {
 }
 
 /** Writes one Server-Sent Event frame. */
-function sendSSE(res, event, data) {
+function sendSSE(res, event, data, logger = console) {
   let payload;
   try {
     payload = JSON.stringify(data);
   } catch (error) {
-    console.error(`Failed to serialize SSE payload for event "${event}":`, error);
+    getSSEErrorLog(logger)(`Failed to serialize SSE payload for event "${event}":`, error);
     payload = JSON.stringify({ message: 'Serialization error', event });
   }
   res.write(`event: ${event}\ndata: ${payload}\n\n`);

@@ -43,6 +43,7 @@ function createRuntime(runtimeRoot: string) {
     legacyDataFile: path.join(runtimeRoot, 'legacy-data.json'),
     settingsBackupKind: 'ttdash-settings-backup',
     usageBackupKind: 'ttdash-usage-backup',
+    isDarwin: false,
     isWindows: false,
     secureDirMode: 0o700,
     secureFileMode: 0o600,

@@ -205,6 +205,26 @@ describe('server helper utilities: command runner', () => {
     })
   })
 
+  it('keeps complete UTF-8 characters when truncation lands on their boundary', async () => {
+    const spawnImpl = createSpawnSequence([
+      {
+        code: 1,
+        stdout: '€x',
+      },
+    ])
+
+    await expect(
+      runCommandWithSpawn('fake-runner', ['daily', '--json'], {
+        maxOutputBytes: 3,
+        spawnImpl,
+      }),
+    ).rejects.toMatchObject({
+      stdout: '€',
+      outputTruncated: true,
+      exitCode: 1,
+    })
+  })
+
   it('wraps spawn errors with command diagnostics', async () => {
     const child = new FakeChildProcess()
     const spawnImpl = vi.fn(() => child)

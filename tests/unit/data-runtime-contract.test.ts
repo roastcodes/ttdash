@@ -58,10 +58,12 @@ function createRuntime({
   isWindows = false,
   pathModule = path,
   platform = 'darwin',
+  isDarwin = platform === 'darwin',
 }: {
   env?: Record<string, string>
   getCliAutoLoadActive?: () => boolean
   homeDir?: string
+  isDarwin?: boolean
   isWindows?: boolean
   pathModule?: typeof path
   platform?: string
@@ -84,6 +86,7 @@ function createRuntime({
     legacyDataFile: pathModule.join(homeDir, 'legacy-data.json'),
     settingsBackupKind: 'ttdash-settings-backup',
     usageBackupKind: 'ttdash-usage-backup',
+    isDarwin,
     isWindows,
     secureDirMode: 0o700,
     secureFileMode: 0o600,
@@ -230,16 +233,16 @@ describe('data runtime contracts', () => {
     }
     const equivalentDay = {
       ...currentDay,
-      totalCost: 0.1 + 0.2 - 0.05,
+      totalCost: 0.2500005,
       modelsUsed: ['Claude', 'GPT-5.4'],
       modelBreakdowns: [
         {
           ...currentDay.modelBreakdowns[1],
-          cost: 0.15 + Number.EPSILON,
+          cost: 0.1500005,
         },
         {
           ...currentDay.modelBreakdowns[0],
-          cost: 0.1 + Number.EPSILON,
+          cost: 0.1000005,
         },
       ],
     }

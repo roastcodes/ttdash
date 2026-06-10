@@ -120,6 +120,9 @@ export function getCommandSearchScore(cmd: CommandItem, query: string) {
   if (!normalizedQuery) return 1
 
   const haystack = getCommandSearchText(cmd)
+  const normalizedLabel = normalizeSearchValue(cmd.label)
+  const normalizedAliases = (cmd.aliases ?? []).map(normalizeSearchValue)
+  const normalizedKeywords = (cmd.keywords ?? []).map(normalizeSearchValue)
   const terms = normalizedQuery.split(/\s+/).filter(Boolean)
   if (terms.length === 0) return 1
 
@@ -128,22 +131,22 @@ export function getCommandSearchScore(cmd: CommandItem, query: string) {
   for (const term of terms) {
     if (!haystack.includes(term)) return 0
 
-    if (normalizeSearchValue(cmd.label) === term) {
+    if (normalizedLabel === term) {
       score += 120
       continue
     }
 
-    if (normalizeSearchValue(cmd.label).startsWith(term)) {
+    if (normalizedLabel.startsWith(term)) {
       score += 80
       continue
     }
 
-    if ((cmd.aliases ?? []).some((alias) => normalizeSearchValue(alias) === term)) {
+    if (normalizedAliases.some((alias) => alias === term)) {
       score += 70
       continue
     }
 
-    if ((cmd.keywords ?? []).some((keyword) => normalizeSearchValue(keyword).startsWith(term))) {
+    if (normalizedKeywords.some((keyword) => keyword.startsWith(term))) {
       score += 55
       continue
     }

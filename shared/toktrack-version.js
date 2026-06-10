@@ -2,7 +2,7 @@ const packageJson = require('../package.json')
 
 const TOKTRACK_PACKAGE_NAME = 'toktrack'
 const EXACT_SEMVER_PATTERN =
-  /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
+  /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z][0-9A-Za-z-]*))*))?(?:\+(?:[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
 const TOKTRACK_VERSION = packageJson.dependencies?.[TOKTRACK_PACKAGE_NAME]
 
 if (typeof TOKTRACK_VERSION !== 'string' || !EXACT_SEMVER_PATTERN.test(TOKTRACK_VERSION)) {

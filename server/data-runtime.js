@@ -23,6 +23,7 @@ function createDataRuntime({
   legacyDataFile,
   settingsBackupKind,
   usageBackupKind,
+  isDarwin = processObject.platform === 'darwin',
   isWindows,
   secureDirMode,
   secureFileMode,
@@ -38,6 +39,7 @@ function createDataRuntime({
     processObject,
     appDirName,
     appDirNameLinux,
+    isDarwin,
     isWindows,
   });
   const dataFile = path.join(appPaths.dataDir, 'data.json');

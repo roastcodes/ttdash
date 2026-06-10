@@ -214,8 +214,12 @@ function isChildProcessRunning(childProcess) {
 }
 
 async function closeBrowserResources(context, browser) {
-  await context?.close().catch(() => {});
-  await browser?.close().catch(() => {});
+  await context?.close().catch((error) => {
+    console.debug('Failed to close browser context:', error);
+  });
+  await browser?.close().catch((error) => {
+    console.debug('Failed to close browser:', error);
+  });
 }
 
 async function stopServer(server, { shutdownGraceMs = 5_000 } = {}) {

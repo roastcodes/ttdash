@@ -5,6 +5,7 @@ function resolveDataRuntimeAppPaths({
   processObject,
   appDirName,
   appDirNameLinux,
+  isDarwin,
   isWindows,
 }) {
   const homeDir = os.homedir();
@@ -15,7 +16,7 @@ function resolveDataRuntimeAppPaths({
   };
   let platformPaths;
 
-  if (processObject.platform === 'darwin') {
+  if (isDarwin) {
     const appSupportDir = path.join(homeDir, 'Library', 'Application Support', appDirName);
     platformPaths = {
       dataDir: appSupportDir,
