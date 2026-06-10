@@ -1,5 +1,23 @@
 # Changelog
 
+## [6.3.8] - 2026-06-10
+
+### Added
+
+- **Sortierung für alle Spalten in `Recent days in detail`** — die Detailtabelle unterstützt jetzt auf Desktop-Breite auch für Token-Unterspalten, Requests, Modelle und die übrigen Kennzahlen dieselbe Sortierlogik wie die bisherigen Spalten
+
+### Improved
+
+- **Stabileres `Cost by model`-Donut-Layout bei vielen Modellen** — die Legende liegt außerhalb des eigentlichen Donut-Charts, damit lange Modelllisten den verfügbaren Platz nicht mehr verkleinern und der Donut nicht oben abgeschnitten wird
+
+### Fixed
+
+- **Kompakte Formatierung negativer Tokenwerte** — zentrale Tokenzahlen werden auch mit negativem Vorzeichen anhand des Betrags kompakt formatiert, sodass Werte wie `-21.4M` im Zoom-Panel von `Tokens over time` konsistent zu positiven Labels erscheinen
+
+### Commits
+
+- Enthält alle Branch-Commits seit `v6.3.7`: `24e3fef`, `fc4713a`, `bfb80c8`
+
 ## [6.3.7] - 2026-06-09
 
 ### Added
