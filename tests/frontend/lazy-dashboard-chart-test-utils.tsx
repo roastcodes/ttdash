@@ -125,7 +125,13 @@ vi.mock('recharts', () => ({
   ),
   Tooltip: () => null,
   XAxis: () => null,
-  YAxis: () => null,
+  YAxis: ({ tickFormatter }: { tickFormatter?: (value: number) => string }) => (
+    <MockSvgGroup
+      data-negative-tick={tickFormatter ? tickFormatter(-21_400_000) : ''}
+      data-positive-tick={tickFormatter ? tickFormatter(21_400_000) : ''}
+      data-testid="chart-y-axis"
+    />
+  ),
 }))
 
 export function createDailyUsage(

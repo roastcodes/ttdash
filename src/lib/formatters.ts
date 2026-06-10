@@ -45,14 +45,17 @@ export function formatCurrencyExact(value: number): string {
 /** Formats a token count for compact dashboard surfaces. */
 export function formatTokens(value: number): string {
   if (!Number.isFinite(value)) return '0'
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`
-  if (value >= 100) return value.toFixed(0)
-  if (value >= 10) return value.toFixed(1)
-  if (value >= 1) return value.toFixed(2)
-  if (value === 0) return '0'
-  return value.toFixed(3)
+  const absValue = Math.abs(value)
+  const sign = value < 0 ? '-' : ''
+
+  if (absValue >= 1e9) return `${sign}${(absValue / 1e9).toFixed(1)}B`
+  if (absValue >= 1e6) return `${sign}${(absValue / 1e6).toFixed(1)}M`
+  if (absValue >= 1e3) return `${sign}${(absValue / 1e3).toFixed(1)}k`
+  if (absValue >= 100) return `${sign}${absValue.toFixed(0)}`
+  if (absValue >= 10) return `${sign}${absValue.toFixed(1)}`
+  if (absValue >= 1) return `${sign}${absValue.toFixed(2)}`
+  if (absValue === 0) return '0'
+  return `${sign}${absValue.toFixed(3)}`
 }
 
 /** Formats a number with locale grouping. */

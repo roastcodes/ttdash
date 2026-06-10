@@ -24,6 +24,12 @@ describe('TokensOverTime chart', () => {
     expect(screen.getByText('Total tokens (all types)')).toBeInTheDocument()
     expect(screen.getAllByTestId('chart-area')).toHaveLength(6)
     expect(screen.getAllByTestId('chart-line')).toHaveLength(6)
+    expect(
+      screen.getAllByTestId('chart-y-axis').map((axis) => axis.getAttribute('data-negative-tick')),
+    ).toEqual(['-21.4M', '-21.4M', '-21.4M', '-21.4M'])
+    expect(
+      screen.getAllByTestId('chart-y-axis').map((axis) => axis.getAttribute('data-positive-tick')),
+    ).toEqual(['21.4M', '21.4M', '21.4M', '21.4M'])
 
     fireEvent.click(screen.getAllByTestId('composed-chart')[0])
 
