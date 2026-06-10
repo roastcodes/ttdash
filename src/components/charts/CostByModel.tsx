@@ -1,4 +1,4 @@
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
@@ -65,51 +65,55 @@ export function CostByModel({ data }: CostByModelProps) {
       valueFormatter={formatCurrency}
     >
       {(expanded) => {
-        const chartHeight = expanded ? 560 : 320
-        const pieCenterY = expanded ? '66%' : '57%'
+        const chartHeight = expanded ? 360 : 220
+        const pieCenterY = '50%'
         const innerRadius = expanded ? 84 : 58
         const outerRadius = expanded ? 134 : 92
+        const legendPayload = data.map((entry) => ({
+          id: entry.name,
+          value: entry.name,
+          color: getModelColor(entry.name),
+        }))
 
         return (
           <ChartAnimationAware>
             {(animate) => (
-              <div className="flex h-full flex-col gap-4">
-                <ChartReveal variant="radial">
-                  <ResponsiveContainer width="100%" height={chartHeight}>
-                    <PieChart>
-                      <Pie
-                        data={data}
-                        cx="50%"
-                        cy={pieCenterY}
-                        innerRadius={innerRadius}
-                        outerRadius={outerRadius}
-                        paddingAngle={2}
-                        dataKey="value"
-                        nameKey="name"
-                        {...getRadialAnimationProps(animate)}
-                        label={false}
-                      >
-                        {data.map((entry) => (
-                          <Cell key={entry.name} fill={getModelColor(entry.name)} />
-                        ))}
-                        <CenterLabel total={formatCurrency(total)} />
-                      </Pie>
-                      <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
-                      <Legend
-                        content={
-                          <ChartLegend
-                            className={expanded ? 'pt-[22px]' : 'pt-2'}
-                            renderLabel={(entry: { value?: string | number }) => {
-                              const value = String(entry.value ?? '')
-                              const segment = data.find((item) => item.name === value)
-                              return segment ? `${value} (${formatCurrency(segment.value)})` : value
-                            }}
-                          />
-                        }
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartReveal>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col">
+                  <ChartReveal variant="radial">
+                    <ResponsiveContainer width="100%" height={chartHeight}>
+                      <PieChart>
+                        <Pie
+                          data={data}
+                          cx="50%"
+                          cy={pieCenterY}
+                          innerRadius={innerRadius}
+                          outerRadius={outerRadius}
+                          paddingAngle={2}
+                          dataKey="value"
+                          nameKey="name"
+                          {...getRadialAnimationProps(animate)}
+                          label={false}
+                        >
+                          {data.map((entry) => (
+                            <Cell key={entry.name} fill={getModelColor(entry.name)} />
+                          ))}
+                          <CenterLabel total={formatCurrency(total)} />
+                        </Pie>
+                        <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartReveal>
+                  <ChartLegend
+                    className={expanded ? 'mt-2' : 'mt-1'}
+                    payload={legendPayload}
+                    renderLabel={(entry: { value?: string | number }) => {
+                      const value = String(entry.value ?? '')
+                      const segment = data.find((item) => item.name === value)
+                      return segment ? `${value} (${formatCurrency(segment.value)})` : value
+                    }}
+                  />
+                </div>
 
                 <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                   {leadingSegments.map((entry) => (
