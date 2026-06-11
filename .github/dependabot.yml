@@ -29,7 +29,7 @@ updates:
       - '*'
     rebase-strategy: 'auto'
     versioning-strategy: 'increase-if-necessary'
-    ignore: &eslint-major-ignore
+    ignore:
       - dependency-name: 'eslint'
         update-types:
           - 'version-update:semver-major'
@@ -48,7 +48,19 @@ updates:
       - '*'
     rebase-strategy: 'auto'
     versioning-strategy: 'increase-if-necessary'
-    ignore: *eslint-major-ignore
+    # Dependabot's config parser does not support YAML aliases, so this block is intentionally
+    # repeated for each ecosystem that participates in the multi-ecosystem group.
+    ignore:
+      - dependency-name: 'eslint'
+        update-types:
+          - 'version-update:semver-major'
+        versions:
+          - '>=10'
+      - dependency-name: '@eslint/js'
+        update-types:
+          - 'version-update:semver-major'
+        versions:
+          - '>=10'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
