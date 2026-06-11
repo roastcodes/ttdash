@@ -92,7 +92,12 @@ export function ModelMix({ data }: ModelMixProps) {
         {(animate) => (
           <ChartReveal variant="line">
             <ResponsiveContainer width="100%" height={250}>
-              <AreaChart data={chartData} margin={CHART_MARGIN} stackOffset="none">
+              <AreaChart
+                data={chartData}
+                margin={CHART_MARGIN}
+                stackOffset="none"
+                data-testid="area-chart"
+              >
                 <defs>
                   {models.map((model) => {
                     const color = getModelColor(model)
@@ -143,6 +148,7 @@ export function ModelMix({ data }: ModelMixProps) {
                       strokeOpacity={0.6}
                       fill={`url(#${id})`}
                       name={model}
+                      data-testid="chart-area"
                       {...getAreaAnimationProps(animate, { order: index % 5, role: 'stacked' })}
                     />
                   )

@@ -19,6 +19,7 @@ function createReportRoutes({
   sendBuffer,
   dataRuntime,
   generatePdfReport,
+  logger = console,
 }) {
   const { isPersistedStateError, readData } = dataRuntime;
 
@@ -38,7 +39,7 @@ function createReportRoutes({
       if (isPersistedStateError(error, 'usage')) {
         return json(res, 500, { message: error.message });
       }
-      console.error('Unexpected report route usage read error:', error);
+      logger.error('Unexpected report route usage read error:', error);
       throw new Error('report-routes: unexpected error during usage handling', { cause: error });
     }
     if (!data || !Array.isArray(data.daily) || data.daily.length === 0) {

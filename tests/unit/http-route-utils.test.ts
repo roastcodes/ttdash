@@ -35,4 +35,16 @@ describe('HTTP route utilities', () => {
       'event: broken\ndata: {"message":"Serialization error","event":"broken"}\n\n',
     )
   })
+
+  it('replaces unsafe SSE event names before writing a frame', () => {
+    const logger = { error: vi.fn() }
+    const res = { write: vi.fn() }
+
+    sendSSE(res, 'bad\nevent', { ok: true }, logger)
+
+    expect(logger.error).toHaveBeenCalledWith(
+      'Invalid SSE event name "bad\nevent". Falling back to "invalid_event".',
+    )
+    expect(res.write).toHaveBeenCalledWith('event: invalid_event\ndata: {"ok":true}\n\n')
+  })
 })

@@ -10,6 +10,7 @@ export function createRuntimeWithSpawn(
     localProbeTimeoutMs?: number
     localVersionCheckTimeoutMs?: number
     processTerminationGraceMs?: number | undefined
+    isWindows?: boolean
   } = {},
 ) {
   const localBin = options.localBinOverride ?? '/missing/toktrack'
@@ -31,13 +32,13 @@ export function createRuntimeWithSpawn(
     normalizeIncomingData: (input: unknown) => input,
     withSettingsAndDataMutationLock: async (operation: () => Promise<unknown>) => operation(),
     writeData: () => undefined,
-    updateDataLoadState: async () => undefined,
+    _updateDataLoadStateUnlocked: async () => undefined,
     toktrackPackageName: 'toktrack',
     toktrackPackageSpec: `toktrack@${TOKTRACK_VERSION}`,
     toktrackVersion: TOKTRACK_VERSION,
     toktrackLocalBin: localBin,
     npxCacheDir: '/tmp/ttdash-test-npx-cache',
-    isWindows: false,
+    isWindows: options.isWindows ?? false,
     processTerminationGraceMs,
     toktrackLocalRunnerProbeTimeoutMs: options.localProbeTimeoutMs ?? 7000,
     toktrackLocalRunnerVersionCheckTimeoutMs: options.localVersionCheckTimeoutMs ?? 7000,

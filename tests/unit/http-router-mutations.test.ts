@@ -44,6 +44,21 @@ describe('HTTP router mutation errors', () => {
     expect(body).toEqual({ message: 'Server error' })
   })
 
+  it('returns server errors for unexpected settings read failures', async () => {
+    const { router } = createRouter({
+      dataRuntimeOverrides: {
+        readSettings: vi.fn(() => {
+          throw Object.assign(new Error('disk unavailable'), { code: 'EIO' })
+        }),
+      },
+    })
+
+    const { res, body } = await request(router, '/api/settings', 'GET')
+
+    expect(res.status).toBe(500)
+    expect(body).toEqual({ message: 'Server error' })
+  })
+
   it('returns server errors for usage delete persistence failures', async () => {
     const { router } = createRouter({
       dataRuntimeOverrides: {

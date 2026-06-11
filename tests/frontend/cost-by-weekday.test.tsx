@@ -41,11 +41,12 @@ describe('CostByWeekday chart', () => {
     expect(fills.some((fill) => fill?.includes('weekdayLow'))).toBe(true)
   })
 
-  it('uses localized day labels as a defensive weekend fallback without weekday indices', () => {
+  it('uses localized day labels as a defensive weekend fallback without weekday indices', async () => {
+    await initI18n('de')
     assertLegacyWeekdayData(legacyWeekdayData)
 
     renderWithTooltip(<CostByWeekday data={legacyWeekdayData} />)
 
-    expect(screen.getByText('Peak: Mar · Low: Sáb. · Weekend 19%')).toBeInTheDocument()
+    expect(screen.getByText('Peak: Di · Low: Sa · Wochenende 19%')).toBeInTheDocument()
   })
 })

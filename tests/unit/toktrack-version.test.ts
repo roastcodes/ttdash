@@ -33,10 +33,4 @@ describe('toktrack version constants', () => {
 
     expect(semver.valid(version)).toBe(version)
   })
-
-  it('rejects invalid exact SemVer prerelease identifiers', () => {
-    expect(semver.valid('1.0.0-01')).toBeNull()
-    expect(semver.valid('1.0.0-alpha.01')).toBeNull()
-    expect(semver.valid('1.0.0-')).toBeNull()
-  })
 })

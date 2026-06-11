@@ -29,7 +29,7 @@ updates:
       - '*'
     rebase-strategy: 'auto'
     versioning-strategy: 'increase-if-necessary'
-    ignore:
+    ignore: &eslint-major-ignore
       - dependency-name: 'eslint'
         update-types:
           - 'version-update:semver-major'
@@ -48,17 +48,7 @@ updates:
       - '*'
     rebase-strategy: 'auto'
     versioning-strategy: 'increase-if-necessary'
-    ignore:
-      - dependency-name: 'eslint'
-        update-types:
-          - 'version-update:semver-major'
-        versions:
-          - '>=10'
-      - dependency-name: '@eslint/js'
-        update-types:
-          - 'version-update:semver-major'
-        versions:
-          - '>=10'
+    ignore: *eslint-major-ignore
 
   - package-ecosystem: 'github-actions'
     directory: '/'

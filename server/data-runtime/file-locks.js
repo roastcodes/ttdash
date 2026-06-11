@@ -138,7 +138,8 @@ function createDataRuntimeFileLocks({
       processObject.kill(pid, 0);
       return true;
     } catch (error) {
-      return error && error.code === 'EPERM';
+      // EPERM means the process exists but this runtime cannot signal it.
+      return error?.code === 'EPERM';
     }
   }
 

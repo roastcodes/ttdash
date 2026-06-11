@@ -250,7 +250,7 @@ export function ChartCard({
   return (
     <>
       <ChartAnimationContext.Provider value={animationState}>
-        <Card ref={cardRef} className={cn('group relative', className)}>
+        <Card ref={cardRef} data-testid="chart-card" className={cn('group relative', className)}>
           {header}
           <CardContent>{renderChildren(false)}</CardContent>
           {expandable && (

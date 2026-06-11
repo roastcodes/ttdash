@@ -79,6 +79,27 @@ describe('server helper utilities: toktrack runner resolution', () => {
     }
   })
 
+  it('runs bunx with the package spec directly on Windows', async () => {
+    const spawnImpl = createSpawnSequence([{ stdout: `toktrack ${TOKTRACK_VERSION}\n` }])
+    const runtime = createRuntimeWithSpawn(spawnImpl, {
+      isWindows: true,
+      localBinExists: false,
+    })
+
+    await expect(runtime.resolveToktrackRunner()).resolves.toMatchObject({
+      command: 'bun.exe',
+      method: 'bunx',
+      label: 'bunx',
+    })
+    expect(spawnImpl).toHaveBeenCalledWith(
+      'bun.exe',
+      [`toktrack@${TOKTRACK_VERSION}`, '--version'],
+      expect.objectContaining({
+        env: {},
+      }),
+    )
+  })
+
   it('falls back to npm when the local runner version mismatches and bunx probing fails', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const spawnImpl = createSpawnSequence([

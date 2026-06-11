@@ -25,6 +25,28 @@ export const forecastSectionRenderers = {
     renderLazySection,
   }) => {
     const { forecast, layout } = viewModel
+    const forecastZoomLoadingFallback = forecastZoomOpen ? (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-lg">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-foreground" />
+        </div>
+      </div>
+    ) : null
+    const forecastZoomErrorFallback = forecastZoomOpen ? (
+      <div
+        role="alert"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 p-4 backdrop-blur-sm"
+      >
+        <div className="max-w-sm rounded-lg border border-border bg-card p-5 text-center shadow-lg">
+          <p className="text-sm font-medium text-foreground">
+            {t('dashboard.lazySectionError.title')}
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t('dashboard.lazySectionError.description')}
+          </p>
+        </div>
+      </div>
+    ) : null
 
     return layout.sectionVisibility.forecastCache
       ? renderAnimatedSection(
@@ -78,8 +100,8 @@ export const forecastSectionRenderers = {
                 'h-[430px]',
               )}
             </div>
-            <ErrorBoundary fallback={null}>
-              <Suspense fallback={null}>
+            <ErrorBoundary fallback={forecastZoomErrorFallback}>
+              <Suspense fallback={forecastZoomLoadingFallback}>
                 <ForecastZoomDialog
                   open={forecastZoomOpen}
                   onOpenChange={setForecastZoomOpen}

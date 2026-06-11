@@ -77,6 +77,37 @@ describe('toktrack version status session warmup', () => {
     unsubscribe()
   })
 
+  it('coerces missing lookup status values from the API response to failed', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    apiMocks.fetchToktrackVersionStatus.mockResolvedValue({
+      configuredVersion: TOKTRACK_VERSION,
+      latestVersion: TOKTRACK_VERSION,
+      isLatest: true,
+    } as Awaited<ReturnType<typeof warmupToktrackVersionStatus>>)
+
+    await expect(warmupToktrackVersionStatus()).resolves.toMatchObject({
+      configuredVersion: TOKTRACK_VERSION,
+      latestVersion: TOKTRACK_VERSION,
+      isLatest: true,
+      lookupStatus: 'failed',
+    })
+    expect(getToktrackVersionStatusSnapshot()).toMatchObject({
+      lookupStatus: 'failed',
+      isLoading: false,
+    })
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Received invalid toktrack version lookup status.',
+      expect.objectContaining({
+        configuredVersion: TOKTRACK_VERSION,
+        latestVersion: TOKTRACK_VERSION,
+        lookupStatus: undefined,
+        message: undefined,
+      }),
+    )
+
+    warnSpy.mockRestore()
+  })
+
   it('caches a failed warmup for the browser session instead of retrying on later reads', async () => {
     apiMocks.fetchToktrackVersionStatus.mockRejectedValue(new Error('network unavailable'))
 

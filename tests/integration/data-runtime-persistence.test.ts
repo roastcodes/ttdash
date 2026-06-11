@@ -6,6 +6,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const fsPromises = fs.promises
+const { DEFAULT_APP_SETTINGS } = require('../../shared/app-settings.js') as {
+  DEFAULT_APP_SETTINGS: Record<string, unknown>
+}
 const { createDataRuntime } = require('../../server/data-runtime.js') as {
   createDataRuntime: (options: Record<string, unknown>) => {
     ensureAppDirs: () => void
@@ -14,8 +17,8 @@ const { createDataRuntime } = require('../../server/data-runtime.js') as {
       settingsFile: string
     }
     readData: () => unknown
-    readSettings: () => unknown
-    readSettingsForWrite: () => { cliAutoLoadActive: boolean }
+    readSettings: () => Record<string, unknown>
+    readSettingsForWrite: () => Record<string, unknown>
     writeSettings: (settings: unknown) => Promise<void>
   }
 }
@@ -65,11 +68,11 @@ describe('data runtime persistence', () => {
       expect(() => runtime.readSettings()).toThrow('Settings file is unreadable or corrupted.')
       expect(() => runtime.readData()).toThrow('Usage data file is unreadable or corrupted.')
       const recoveredSettings = runtime.readSettingsForWrite()
-      expect(recoveredSettings).toMatchObject({ cliAutoLoadActive: false })
+      expect(recoveredSettings).toEqual(DEFAULT_APP_SETTINGS)
 
       await runtime.writeSettings(recoveredSettings)
 
-      expect(runtime.readSettings()).toMatchObject({ cliAutoLoadActive: false })
+      expect(runtime.readSettings()).toEqual(DEFAULT_APP_SETTINGS)
     } finally {
       await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
     }

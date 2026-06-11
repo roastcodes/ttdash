@@ -424,6 +424,62 @@ describe('server helper utilities: file mutation locks', () => {
     await fsPromises.rm(targetDir, { recursive: true, force: true })
   })
 
+  it('reaps stale lock directories when owner metadata is missing', async () => {
+    const runtime = createShortTimeoutFileLockRuntime()
+    const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-missing-owner-lock-'))
+    const targetFile = path.join(targetDir, 'settings.json')
+    const lockDir = runtime.getFileMutationLockDir(targetFile)
+    const staleTime = new Date(Date.now() - 60_000)
+
+    await fsPromises.mkdir(lockDir, { recursive: true })
+    await fsPromises.utimes(lockDir, staleTime, staleTime)
+
+    await expect(runtime.withFileMutationLock(targetFile, async () => 'ok')).resolves.toBe('ok')
+    expect(existsSync(lockDir)).toBe(false)
+
+    await fsPromises.rm(targetDir, { recursive: true, force: true })
+  })
+
+  it('reaps stale lock directories when owner metadata is corrupted', async () => {
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => undefined)
+    const runtime = createShortTimeoutFileLockRuntime()
+    const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-corrupt-owner-lock-'))
+    const targetFile = path.join(targetDir, 'settings.json')
+    const lockDir = runtime.getFileMutationLockDir(targetFile)
+    const staleTime = new Date(Date.now() - 60_000)
+
+    try {
+      await fsPromises.mkdir(lockDir, { recursive: true })
+      await fsPromises.writeFile(path.join(lockDir, 'owner.json'), '{invalid json')
+      await fsPromises.utimes(lockDir, staleTime, staleTime)
+
+      await expect(runtime.withFileMutationLock(targetFile, async () => 'ok')).resolves.toBe('ok')
+      expect(existsSync(lockDir)).toBe(false)
+    } finally {
+      debugSpy.mockRestore()
+    }
+
+    await fsPromises.rm(targetDir, { recursive: true, force: true })
+  })
+
+  it('keeps recent lock directories when owner metadata is missing', async () => {
+    const runtime = createShortTimeoutFileLockRuntime()
+    const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-recent-owner-lock-'))
+    const targetFile = path.join(targetDir, 'settings.json')
+    const lockDir = runtime.getFileMutationLockDir(targetFile)
+    const recentTime = new Date(Date.now() + 60_000)
+
+    await fsPromises.mkdir(lockDir, { recursive: true })
+    await fsPromises.utimes(lockDir, recentTime, recentTime)
+
+    await expect(runtime.withFileMutationLock(targetFile, async () => 'ok')).rejects.toThrow(
+      'Could not acquire file mutation lock',
+    )
+    expect(existsSync(lockDir)).toBe(true)
+
+    await fsPromises.rm(targetDir, { recursive: true, force: true })
+  })
+
   it('serializes file mutations across processes via the sidecar lock directory', async () => {
     const targetDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-cross-process-lock-'))
     const targetFile = path.join(targetDir, 'data.json')
@@ -557,7 +613,7 @@ dataRuntime.withFileMutationLock(filePath, async () => {
 
       expect(caughtError).toBeInstanceOf(AggregateError)
       expect((caughtError as AggregateError).message).toContain(
-        'Failed atomic JSON write and temp-file cleanup',
+        `Failed atomic JSON write and temp-file cleanup for ${targetFile}.`,
       )
       expect((caughtError as AggregateError).errors).toEqual([renameError, cleanupError])
     } finally {
@@ -618,7 +674,7 @@ dataRuntime.withFileMutationLock(filePath, async () => {
 
       expect(caughtError).toBeInstanceOf(AggregateError)
       expect((caughtError as AggregateError).message).toContain(
-        'Failed atomic JSON write and temp-file cleanup',
+        `Failed atomic JSON write and temp-file cleanup for ${targetFile}.`,
       )
       expect((caughtError as AggregateError).errors).toEqual([renameError, cleanupError])
     } finally {

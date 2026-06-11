@@ -118,8 +118,9 @@ describe('auto-import stream routes', () => {
     await router.handleServerRequest(req, res)
 
     expect(res.status).toBe(200)
-    expect(res.ended).toBe(true)
+    expect(res.ended).toBe(false)
     expect(res.body).not.toContain('event: success')
+    expect(res.body).not.toContain('event: done')
     expect(lease.release).toHaveBeenCalledTimes(1)
   })
 })

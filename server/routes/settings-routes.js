@@ -22,7 +22,7 @@ function createSettingsRoutes({ json, validateMutationRequest, readMutationBody,
           if (isPersistedStateError(error, 'settings')) {
             return json(res, 500, { message: error.message });
           }
-          throw error;
+          return writeMutationServerError(json, res);
         }
       }
 

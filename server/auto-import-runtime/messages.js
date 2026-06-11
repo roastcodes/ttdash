@@ -50,7 +50,7 @@ function createAutoImportMessages({ toktrackVersion }) {
       case 'loadingUsageData':
         return `Loading usage data via ${event.vars?.command || 'unknown command'}...`;
       case 'processingUsageData':
-        return `Processing usage data... (${event.vars?.seconds || 0}s)`;
+        return `Processing usage data... (${event.vars?.seconds ?? 0}s)`;
       case 'autoImportRunning':
         return 'An auto-import is already running. Please wait.';
       case 'noRunnerFound':
@@ -62,13 +62,13 @@ function createAutoImportMessages({ toktrackVersion }) {
       case 'packageRunnerFailed':
         return `No compatible bunx or npm exec runner succeeded: ${event.vars?.message || 'Unknown error'}`;
       case 'packageRunnerWarmupTimedOut':
-        return `${event.vars?.runner || 'The package runner'} took longer than ${event.vars?.seconds || 0}s to prepare toktrack. The first run may need to download the package first. Please try again or verify network access.`;
+        return `${event.vars?.runner || 'The package runner'} took longer than ${event.vars?.seconds ?? 0}s to prepare toktrack. The first run may need to download the package first. Please try again or verify network access.`;
       case 'toktrackVersionCheckFailed':
         return `Toktrack was found, but the version check failed: ${event.vars?.message || 'Unknown error'}`;
       case 'toktrackExecutionFailed':
         return `Toktrack failed while loading usage data: ${event.vars?.message || 'Unknown error'}`;
       case 'toktrackExecutionTimedOut':
-        return `Toktrack did not finish loading usage data within ${event.vars?.seconds || 0}s via ${event.vars?.runner || 'the selected runner'}. Please try again.`;
+        return `Toktrack did not finish loading usage data within ${event.vars?.seconds ?? 0}s via ${event.vars?.runner || 'the selected runner'}. Please try again.`;
       case 'toktrackInvalidJson':
         return `Toktrack returned invalid JSON output: ${event.vars?.message || 'Unknown error'}`;
       case 'toktrackInvalidData':

@@ -30,6 +30,10 @@ export class MockResponse {
   body = ''
   ended = false
 
+  get writableEnded() {
+    return this.ended
+  }
+
   setHeader(name: string, value: HeaderValue) {
     const key = name.toLowerCase()
     this.headers[key] = normalizeHeaderValue(value)
@@ -92,6 +96,7 @@ export function createRouter({
     url: 'http://127.0.0.1:3000',
   })),
   httpUtilsOverrides = {},
+  logger,
   prepareHtmlResponse,
   readBody = vi.fn(async () => ({})),
   readFile = vi.fn(),
@@ -104,6 +109,7 @@ export function createRouter({
   generatePdfReport?: () => Promise<{ buffer: Buffer; filename: string }>
   getRuntimeSnapshot?: () => unknown
   httpUtilsOverrides?: Record<string, unknown>
+  logger?: { error: (...args: unknown[]) => void }
   prepareHtmlResponse?: (html: string) => { body: string; headers: Record<string, string> }
   readBody?: () => Promise<unknown>
   readFile?: (filePath: string) => Promise<Buffer>
@@ -211,6 +217,7 @@ export function createRouter({
     },
     generatePdfReport,
     getRuntimeSnapshot,
+    logger,
   })
 
   return { dataRuntime, generatePdfReport, getRuntimeSnapshot, readBody, router }

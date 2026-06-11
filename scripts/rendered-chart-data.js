@@ -68,6 +68,10 @@ async function waitForRenderedChartData(
     await sleepImpl(Math.min(pollMs, remainingBeforeSleepMs));
   }
 
+  if ((await countRenderedChartDataShapes(section)) >= minShapes) {
+    return;
+  }
+
   throw timeoutError();
 }
 

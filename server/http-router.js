@@ -67,6 +67,7 @@ function createHttpRouter({
     sendBuffer,
     dataRuntime,
     generatePdfReport,
+    logger,
   });
   const staticRoutes = createStaticRouteHandler({
     fs,
@@ -74,6 +75,7 @@ function createHttpRouter({
     staticRoot,
     securityHeaders,
     prepareHtmlResponse,
+    logger,
   });
   const apiRouteHandlers = [
     usageRoutes.handleUsageRoutes,

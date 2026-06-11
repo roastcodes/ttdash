@@ -12,7 +12,7 @@ function createAutoImportRuntime({
   normalizeIncomingData,
   withSettingsAndDataMutationLock,
   writeData,
-  updateDataLoadState,
+  _updateDataLoadStateUnlocked,
   toktrackPackageName,
   toktrackPackageSpec,
   toktrackVersion,
@@ -76,7 +76,7 @@ function createAutoImportRuntime({
     normalizeIncomingData,
     withSettingsAndDataMutationLock,
     writeData,
-    updateDataLoadState,
+    _updateDataLoadStateUnlocked,
   });
 
   return {

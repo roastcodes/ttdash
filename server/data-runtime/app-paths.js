@@ -9,43 +9,68 @@ function resolveDataRuntimeAppPaths({
   isWindows,
 }) {
   const env = processObject.env || {};
-  const osHomeDir = os.homedir();
-  const homeDir =
-    typeof osHomeDir === 'string' && osHomeDir ? osHomeDir : env.HOME || env.USERPROFILE || '.';
-  const runningOnDarwin = isDarwin === true;
-  const runningOnWindows = isWindows === true;
   const explicitPaths = {
     dataDir: env.TTDASH_DATA_DIR,
     configDir: env.TTDASH_CONFIG_DIR,
     cacheDir: env.TTDASH_CACHE_DIR,
   };
+  if (explicitPaths.dataDir && explicitPaths.configDir && explicitPaths.cacheDir) {
+    return explicitPaths;
+  }
+
+  function resolveHomeDir() {
+    // Do not fall back to "."; derived app paths must never point at the current working directory.
+    const candidates = [os.homedir(), env.HOME, env.USERPROFILE];
+    return candidates.find(
+      (candidate) => typeof candidate === 'string' && candidate && path.isAbsolute(candidate),
+    );
+  }
+
+  const homeDir = resolveHomeDir();
+  function requireHomeDir() {
+    if (homeDir) {
+      return homeDir;
+    }
+
+    throw new Error('User home directory could not be determined for TTDash app paths.');
+  }
+
+  const runningOnDarwin = isDarwin === true;
+  const runningOnWindows = isWindows === true;
   let platformPaths;
 
   if (runningOnDarwin) {
-    const appSupportDir = path.join(homeDir, 'Library', 'Application Support', appDirName);
+    const resolvedHomeDir = requireHomeDir();
+    const appSupportDir = path.join(resolvedHomeDir, 'Library', 'Application Support', appDirName);
     platformPaths = {
       dataDir: appSupportDir,
       configDir: appSupportDir,
-      cacheDir: path.join(homeDir, 'Library', 'Caches', appDirName),
+      cacheDir: path.join(resolvedHomeDir, 'Library', 'Caches', appDirName),
     };
   } else if (runningOnWindows) {
+    const localAppDataDir = env.LOCALAPPDATA || path.join(requireHomeDir(), 'AppData', 'Local');
     platformPaths = {
-      dataDir: path.join(env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'), appDirName),
-      configDir: path.join(env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'), appDirName),
-      cacheDir: path.join(
-        env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'),
+      dataDir: path.join(localAppDataDir, appDirName),
+      configDir: path.join(
+        env.APPDATA || path.join(requireHomeDir(), 'AppData', 'Roaming'),
         appDirName,
-        'Cache',
       ),
+      cacheDir: path.join(localAppDataDir, appDirName, 'Cache'),
     };
   } else {
     platformPaths = {
       dataDir: path.join(
-        env.XDG_DATA_HOME || path.join(homeDir, '.local', 'share'),
+        env.XDG_DATA_HOME || path.join(requireHomeDir(), '.local', 'share'),
         appDirNameLinux,
       ),
-      configDir: path.join(env.XDG_CONFIG_HOME || path.join(homeDir, '.config'), appDirNameLinux),
-      cacheDir: path.join(env.XDG_CACHE_HOME || path.join(homeDir, '.cache'), appDirNameLinux),
+      configDir: path.join(
+        env.XDG_CONFIG_HOME || path.join(requireHomeDir(), '.config'),
+        appDirNameLinux,
+      ),
+      cacheDir: path.join(
+        env.XDG_CACHE_HOME || path.join(requireHomeDir(), '.cache'),
+        appDirNameLinux,
+      ),
     };
   }
 

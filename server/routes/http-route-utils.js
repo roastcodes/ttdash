@@ -9,6 +9,22 @@ function getSSEErrorLog(logger) {
   return logger && typeof logger.error === 'function' ? logger.error.bind(logger) : console.error;
 }
 
+const SAFE_SSE_EVENT_PATTERN = /^[A-Za-z0-9_-]+$/;
+const fallbackSSEEventName = 'invalid_event';
+
+function getSafeSSEEventName(event, logger) {
+  const eventName = String(event);
+
+  if (SAFE_SSE_EVENT_PATTERN.test(eventName)) {
+    return eventName;
+  }
+
+  getSSEErrorLog(logger)(
+    `Invalid SSE event name "${eventName}". Falling back to "${fallbackSSEEventName}".`,
+  );
+  return fallbackSSEEventName;
+}
+
 /** Reads a mutation body and writes the matching client error response on parse/size failures. */
 async function readMutationBody(
   req,
@@ -43,14 +59,15 @@ function writeMutationServerError(json, res) {
 
 /** Writes one Server-Sent Event frame. */
 function sendSSE(res, event, data, logger = console) {
+  const safeEventName = getSafeSSEEventName(event, logger);
   let payload;
   try {
     payload = JSON.stringify(data);
   } catch (error) {
-    getSSEErrorLog(logger)(`Failed to serialize SSE payload for event "${event}":`, error);
-    payload = JSON.stringify({ message: 'Serialization error', event });
+    getSSEErrorLog(logger)(`Failed to serialize SSE payload for event "${safeEventName}":`, error);
+    payload = JSON.stringify({ message: 'Serialization error', event: safeEventName });
   }
-  res.write(`event: ${event}\ndata: ${payload}\n\n`);
+  res.write(`event: ${safeEventName}\ndata: ${payload}\n\n`);
 }
 
 module.exports = {

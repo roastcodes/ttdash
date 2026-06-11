@@ -131,6 +131,43 @@ describe('data runtime contracts', () => {
     }
   })
 
+  it('uses fully explicit app directories without a home directory', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-runtime-contract-'))
+    const cacheDir = path.join(runtimeRoot, 'cache')
+    const configDir = path.join(runtimeRoot, 'config')
+    const dataDir = path.join(runtimeRoot, 'data')
+
+    try {
+      const runtime = createRuntime({
+        env: {
+          TTDASH_CACHE_DIR: cacheDir,
+          TTDASH_CONFIG_DIR: configDir,
+          TTDASH_DATA_DIR: dataDir,
+        },
+        homeDir: '',
+        platform: 'linux',
+      })
+
+      expect(runtime.appPaths).toEqual({
+        cacheDir,
+        configDir,
+        dataDir,
+      })
+    } finally {
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('fails clearly when platform app directories need an unavailable home directory', () => {
+    expect(() =>
+      createRuntime({
+        env: {},
+        homeDir: '',
+        platform: 'linux',
+      }),
+    ).toThrow('User home directory could not be determined for TTDash app paths.')
+  })
+
   it('resolves macOS, Windows, and XDG platform paths without touching the host profile', () => {
     const darwinRuntime = createRuntime({
       homeDir: '/Users/alex',
@@ -188,6 +225,19 @@ describe('data runtime contracts', () => {
       configDir: '/fallback-home/.config/ttdash',
       cacheDir: '/fallback-home/.cache/ttdash',
     })
+  })
+
+  it('rejects relative home directory fallbacks for derived app paths', () => {
+    expect(() =>
+      createRuntime({
+        env: {
+          HOME: '.',
+          USERPROFILE: 'relative-profile',
+        },
+        homeDir: '',
+        platform: 'linux',
+      }),
+    ).toThrow('User home directory could not be determined for TTDash app paths.')
   })
 
   it('validates backup kinds before importing settings or usage payloads', () => {

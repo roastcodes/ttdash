@@ -532,10 +532,15 @@ export function buildCommandPaletteCommands({
     const selected = selectedProviders.includes(provider)
     return {
       id: `provider-${provider}`,
-      label: `${selected ? t('commandPalette.commands.clearProviders.label') : t('common.provider')}: ${provider}`,
+      label: t(
+        selected
+          ? 'commandPalette.commands.deselectProvider.label'
+          : 'commandPalette.commands.selectProvider.label',
+        { provider },
+      ),
       description: selected
-        ? `${t('commandPalette.commands.clearProviders.description')}: ${provider}`
-        : `${t('common.provider')} ${provider}`,
+        ? t('commandPalette.commands.deselectProvider.description', { provider })
+        : t('commandPalette.commands.selectProvider.description', { provider }),
       keywords: ['anbieter', 'provider', provider.toLowerCase()],
       aliases: [`filter ${provider.toLowerCase()}`, `${provider.toLowerCase()} daten`],
       icon: <Filter className="h-4 w-4" />,
@@ -549,10 +554,15 @@ export function buildCommandPaletteCommands({
     const selected = selectedModels.includes(model)
     return {
       id: `model-${model}`,
-      label: `${selected ? t('commandPalette.commands.clearModels.label') : t('common.model')}: ${model}`,
+      label: t(
+        selected
+          ? 'commandPalette.commands.deselectModel.label'
+          : 'commandPalette.commands.selectModel.label',
+        { model },
+      ),
       description: selected
-        ? `${t('commandPalette.commands.clearModels.description')}: ${model}`
-        : `${t('common.model')} ${model}`,
+        ? t('commandPalette.commands.deselectModel.description', { model })
+        : t('commandPalette.commands.selectModel.description', { model }),
       keywords: ['modell', 'model', model.toLowerCase()],
       aliases: [
         `filter ${model.toLowerCase()}`,

@@ -31,9 +31,14 @@ function createAutoImportRoutes({
 
     let autoImportLease;
     let aborted = false;
-    const writeSSE = (event, data) => sendSSE(res, event, data, logger);
+    const isWritable = () => !aborted && !res.writableEnded;
+    const writeSSE = (event, data) => {
+      if (isWritable()) {
+        sendSSE(res, event, data, logger);
+      }
+    };
     const endResponse = () => {
-      if (!res.writableEnded) {
+      if (isWritable()) {
         res.end();
       }
     };
@@ -65,19 +70,13 @@ function createAutoImportRoutes({
       const result = await performAutoImport({
         source: 'auto-import',
         onCheck: (event) => {
-          if (!aborted) {
-            writeSSE('check', event);
-          }
+          writeSSE('check', event);
         },
         onProgress: (event) => {
-          if (!aborted) {
-            writeSSE('progress', event);
-          }
+          writeSSE('progress', event);
         },
         onOutput: (line) => {
-          if (!aborted) {
-            writeSSE('stderr', { line });
-          }
+          writeSSE('stderr', { line });
         },
         signalOnClose: (close) => {
           // This second close listener aborts the long-running import command itself.

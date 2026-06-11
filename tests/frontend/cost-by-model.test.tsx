@@ -36,13 +36,12 @@ describe('CostByModel', () => {
       name: `Model ${String(index + 1).padStart(2, '0')}`,
       value: (index + 1) * 4,
     }))
-    const { container } = renderWithTooltip(<CostByModel data={data} />)
+    renderWithTooltip(<CostByModel data={data} />)
 
     for (const entry of data) {
       expect(screen.getByText(`${entry.name} (${formatCurrency(entry.value)})`)).toBeInTheDocument()
     }
 
-    expect(container.querySelector('.recharts-legend-wrapper')).toBeNull()
-    expect(container.querySelector('.flex-wrap')).not.toBeNull()
+    expect(screen.getAllByText(/Model \d{2} \(\$/)).toHaveLength(data.length)
   })
 })

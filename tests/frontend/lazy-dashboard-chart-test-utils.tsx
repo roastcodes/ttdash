@@ -194,13 +194,13 @@ export const weekdayData: WeekdayData[] = [
 
 // Legacy shape without weekdayIndex to verify defensive fallback in CostByWeekday.
 export const legacyWeekdayData: WeekdayData[] = [
-  { day: 'Lun', cost: 3 },
-  { day: 'Sáb.', cost: 2 },
-  { day: 'Mar', cost: 9 },
-  { day: 'Dom.', cost: 5 },
-  { day: 'Mié', cost: 6 },
-  { day: 'Jue', cost: 4 },
-  { day: 'Vie', cost: 7 },
+  { day: 'Mo', cost: 3 },
+  { day: 'Sa', cost: 2 },
+  { day: 'Di', cost: 9 },
+  { day: 'So', cost: 5 },
+  { day: 'Mi', cost: 6 },
+  { day: 'Do', cost: 4 },
+  { day: 'Fr', cost: 7 },
 ]
 
 export function assertLegacyWeekdayData(data: WeekdayData[]) {

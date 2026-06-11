@@ -104,7 +104,7 @@ describe('startup runtime', () => {
     const { dataRuntime, runtime } = createStartupRuntimeFixture()
 
     expect(formatCurrency(123.45)).toBe('$ 123')
-    expect(formatCurrency(-123.45)).toBe('$-123')
+    expect(formatCurrency(-123.45)).toBe('$ -123')
     expect(formatDayCount(1)).toBe('1 day')
     expect(formatDayCount(2)).toBe('2 days')
     expect(formatErrorMessage(' plain failure ')).toBe('plain failure')

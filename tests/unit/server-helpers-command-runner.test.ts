@@ -42,6 +42,22 @@ describe('server helper utilities: command runner', () => {
     )
   })
 
+  it('keeps a killed fake child process closed once with the kill exit code', async () => {
+    const spawnImpl = createSpawnSequence([{ stdout: 'late stdout\n' }])
+    const child = spawnImpl('fake-runner', [])
+    const closeEvents: Array<number | null> = []
+
+    child.on('close', (exitCode) => {
+      closeEvents.push(exitCode)
+    })
+    child.kill('SIGTERM')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(child.exitCode).toBe(143)
+    expect(closeEvents).toEqual([143])
+  })
+
   it('streams stderr and lets callers terminate a running command on close', async () => {
     const child = new FakeChildProcess()
     const spawnImpl = vi.fn(() => child)

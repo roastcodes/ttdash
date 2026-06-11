@@ -7,7 +7,7 @@ function createAutoImportExecutor({
   normalizeIncomingData,
   withSettingsAndDataMutationLock,
   writeData,
-  updateDataLoadState,
+  _updateDataLoadStateUnlocked,
 }) {
   const {
     createAutoImportError,
@@ -50,17 +50,21 @@ function createAutoImportExecutor({
   } = {}) {
     const ownsLease = !lease;
     let activeLease = lease;
-    if (!activeLease) {
-      activeLease = acquireAutoImportLease();
-    }
     let progressSeconds = 0;
-    const progressInterval = setInterval(() => {
-      progressSeconds += 5;
-      onProgress(createAutoImportMessageEvent('processingUsageData', { seconds: progressSeconds }));
-    }, 5000);
-    progressInterval.unref?.();
+    let progressInterval;
 
     try {
+      if (!activeLease) {
+        activeLease = acquireAutoImportLease();
+      }
+      progressInterval = setInterval(() => {
+        progressSeconds += 5;
+        onProgress(
+          createAutoImportMessageEvent('processingUsageData', { seconds: progressSeconds }),
+        );
+      }, 5000);
+      progressInterval.unref?.();
+
       onCheck({ tool: 'toktrack', status: 'checking' });
       onProgress(createAutoImportMessageEvent('startingLocalImport'));
 
@@ -205,7 +209,7 @@ function createAutoImportExecutor({
 
       await withSettingsAndDataMutationLock(async () => {
         await writeData(normalized);
-        await updateDataLoadState({
+        await _updateDataLoadStateUnlocked({
           lastLoadedAt: new Date().toISOString(),
           lastLoadSource: source,
         });

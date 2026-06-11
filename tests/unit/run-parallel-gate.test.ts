@@ -179,4 +179,30 @@ describe('parallel verification gate', () => {
     expect(output).toContain('static: status=0 duration=1.25s')
     expect(output).toContain('package-smoke: status=0 duration=1.25s')
   })
+
+  it('buffers split task output lines before prefixing them', async () => {
+    const stdout = { write: vi.fn() }
+    const stderr = { write: vi.fn() }
+    const spawnImpl = vi.fn((_command: string, args: string[]) => {
+      const child = new FakeChild()
+      queueMicrotask(() => {
+        if (args[1] === 'test:static') {
+          child.stdout.emit('data', 'split ')
+          child.stdout.emit('data', 'stdout\npartial stdout')
+          child.stderr.emit('data', 'split ')
+          child.stderr.emit('data', 'stderr\npartial stderr')
+        }
+        child.emit('close', 0)
+      })
+      return child
+    })
+
+    const status = await parallelGate.run([], { stdout, stderr }, spawnImpl)
+
+    expect(status).toBe(0)
+    expect(stdout.write.mock.calls.join('')).toContain('[static] split stdout\n')
+    expect(stdout.write.mock.calls.join('')).toContain('[static] partial stdout\n')
+    expect(stderr.write.mock.calls.join('')).toContain('[static] split stderr\n')
+    expect(stderr.write.mock.calls.join('')).toContain('[static] partial stderr\n')
+  })
 })
