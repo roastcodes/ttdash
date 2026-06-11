@@ -39,6 +39,7 @@ const { createDataRuntime } = require('../../server/data-runtime.js') as {
         addedDays: number
         unchangedDays: number
         conflictingDays: number
+        conflictingDates: string[]
         skippedDays: number
         totalDays: number
       }
@@ -172,6 +173,23 @@ describe('data runtime contracts', () => {
     })
   })
 
+  it('falls back when the OS home directory is unavailable and coerces platform flags', () => {
+    const runtime = createRuntime({
+      env: {
+        HOME: '/fallback-home',
+      },
+      homeDir: '',
+      isDarwin: 'darwin' as unknown as boolean,
+      platform: 'linux',
+    })
+
+    expect(runtime.appPaths).toEqual({
+      dataDir: '/fallback-home/.local/share/ttdash',
+      configDir: '/fallback-home/.config/ttdash',
+      cacheDir: '/fallback-home/.cache/ttdash',
+    })
+  })
+
   it('validates backup kinds before importing settings or usage payloads', () => {
     const runtime = createRuntime()
 
@@ -278,6 +296,7 @@ describe('data runtime contracts', () => {
       addedDays: 1,
       unchangedDays: 1,
       conflictingDays: 0,
+      conflictingDates: [],
       skippedDays: 0,
       totalDays: 2,
     })
@@ -291,6 +310,7 @@ describe('data runtime contracts', () => {
       addedDays: 0,
       unchangedDays: 0,
       conflictingDays: 1,
+      conflictingDates: ['2026-04-01'],
       skippedDays: 0,
       totalDays: 1,
     })
@@ -314,14 +334,14 @@ describe('data runtime contracts', () => {
     }
 
     const merge = runtime.mergeUsageData(null, {
-      daily: [{ ...validDay, date: '' }, validDay],
+      daily: [{ ...validDay, date: '' }, { ...validDay, date: 'not-a-date' }, validDay],
       totals: { totalCost: 9 },
     })
 
     expect(merge.summary).toMatchObject({
-      importedDays: 2,
+      importedDays: 3,
       addedDays: 1,
-      skippedDays: 1,
+      skippedDays: 2,
       totalDays: 1,
     })
     expect(merge.data.daily.map((day) => day.date)).toEqual(['2026-04-03'])

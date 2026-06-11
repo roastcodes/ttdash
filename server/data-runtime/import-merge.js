@@ -1,4 +1,5 @@
 const COST_COMPARISON_TOLERANCE = 1e-6;
+const USAGE_DAY_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -9,7 +10,12 @@ function areNumbersEquivalent(left, right, tolerance = COST_COMPARISON_TOLERANCE
 }
 
 function hasValidUsageDayDate(day) {
-  return typeof day?.date === 'string' && day.date.trim().length > 0;
+  if (typeof day?.date !== 'string' || !USAGE_DAY_DATE_PATTERN.test(day.date)) {
+    return false;
+  }
+
+  const date = new Date(`${day.date}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === day.date;
 }
 
 function sortStrings(values) {
@@ -230,6 +236,7 @@ function createDataRuntimeImportMerge({
           addedDays: validImportedDaily.length,
           unchangedDays: 0,
           conflictingDays: 0,
+          conflictingDates: [],
           skippedDays,
           totalDays: validImportedDaily.length,
         },
@@ -240,6 +247,7 @@ function createDataRuntimeImportMerge({
     let addedDays = 0;
     let unchangedDays = 0;
     let conflictingDays = 0;
+    const conflictingDates = [];
 
     for (const importedDay of validImportedDaily) {
       const existingDay = currentByDate.get(importedDay.date);
@@ -256,6 +264,7 @@ function createDataRuntimeImportMerge({
 
       // Preserve local data on conflicts and report the day so users can resolve it explicitly.
       conflictingDays += 1;
+      conflictingDates.push(importedDay.date);
     }
 
     const mergedDaily = [...currentByDate.values()].sort((left, right) =>
@@ -272,6 +281,7 @@ function createDataRuntimeImportMerge({
         addedDays,
         unchangedDays,
         conflictingDays,
+        conflictingDates,
         skippedDays,
         totalDays: mergedDaily.length,
       },

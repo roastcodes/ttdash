@@ -3,6 +3,7 @@ import {
   TOKTRACK_VERSION,
   getExecutableName,
   getLocalToktrackDisplayCommand,
+  getTimeoutSeconds,
   getToktrackLatestLookupTimeoutMs,
   getToktrackRunnerTimeouts,
   parseToktrackVersionOutput,
@@ -58,5 +59,11 @@ describe('server helper utilities: toktrack runner utils', () => {
 
   it('uses a less aggressive timeout for latest-version registry lookups', () => {
     expect(getToktrackLatestLookupTimeoutMs()).toBe(15000)
+  })
+
+  it('formats invalid timeout values with the documented fallback', () => {
+    expect(getTimeoutSeconds(1500)).toBe(2)
+    expect(getTimeoutSeconds(Number.NaN)).toBe(1)
+    expect(getTimeoutSeconds(undefined)).toBe(1)
   })
 })

@@ -32,17 +32,7 @@ export class MockResponse {
 
   setHeader(name: string, value: HeaderValue) {
     const key = name.toLowerCase()
-    const previous = this.headers[key]
-
-    if (previous === undefined) {
-      this.headers[key] = normalizeHeaderValue(value)
-      return
-    }
-
-    const previousValues = Array.isArray(previous) ? previous : [previous]
-    const normalizedValue = normalizeHeaderValue(value)
-    const nextValues = Array.isArray(normalizedValue) ? normalizedValue : [normalizedValue]
-    this.headers[key] = [...previousValues, ...nextValues]
+    this.headers[key] = normalizeHeaderValue(value)
   }
 
   writeHead(status: number, headers: Record<string, HeaderValue>) {
@@ -137,6 +127,7 @@ export function createRouter({
         addedDays: Array.isArray(importedData?.daily) ? importedData.daily.length : 0,
         unchangedDays: 0,
         conflictingDays: 0,
+        conflictingDates: [],
         skippedDays: 0,
         totalDays: Array.isArray(importedData?.daily) ? importedData.daily.length : 0,
       },

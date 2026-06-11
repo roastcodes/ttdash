@@ -49,7 +49,10 @@ function createAutoImportExecutor({
     lease = null,
   } = {}) {
     const ownsLease = !lease;
-    const activeLease = lease || acquireAutoImportLease();
+    let activeLease = lease;
+    if (!activeLease) {
+      activeLease = acquireAutoImportLease();
+    }
     let progressSeconds = 0;
     const progressInterval = setInterval(() => {
       progressSeconds += 5;
@@ -214,7 +217,7 @@ function createAutoImportExecutor({
       };
     } finally {
       clearInterval(progressInterval);
-      if (ownsLease) {
+      if (ownsLease && activeLease) {
         activeLease.release();
       }
     }

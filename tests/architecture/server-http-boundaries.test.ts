@@ -5,6 +5,26 @@ function readRepoFile(relativePath: string) {
   return readFileSync(path.resolve(process.cwd(), relativePath), 'utf8')
 }
 
+function stripSourceComments(source: string) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+}
+
+function getModuleSpecifiers(source: string) {
+  const sourceWithoutComments = stripSourceComments(source)
+  const requireSpecifiers = [
+    ...sourceWithoutComments.matchAll(/\brequire\(\s*['"]([^'"]+)['"]\s*\)/g),
+  ]
+  const importSpecifiers = [
+    ...sourceWithoutComments.matchAll(/\bimport\s+(?:[^'"]+\s+from\s+)?['"]([^'"]+)['"]/g),
+  ]
+
+  return [...requireSpecifiers, ...importSpecifiers].map((match) => match[1])
+}
+
+function importsModule(specifier: string, modulePath: string) {
+  return specifier === modulePath || specifier.startsWith(`${modulePath}/`)
+}
+
 const serverRouteFiles = [
   'server/routes/auto-import-routes.js',
   'server/routes/http-route-utils.js',
@@ -56,13 +76,22 @@ describe('server HTTP boundary contract', () => {
   })
 
   it('keeps route groups dependent on injected services instead of runtime implementations', () => {
-    for (const routeFile of serverRouteFiles) {
-      const routeSource = readRepoFile(routeFile)
+    const forbiddenRuntimeModules = [
+      '../data-runtime',
+      '../auto-import-runtime',
+      '../background-runtime',
+      '../http-router',
+    ]
 
-      expect(routeSource).not.toContain("require('../data-runtime")
-      expect(routeSource).not.toContain("require('../auto-import-runtime")
-      expect(routeSource).not.toContain("require('../background-runtime")
-      expect(routeSource).not.toContain("require('../http-router")
+    for (const routeFile of serverRouteFiles) {
+      const routeImports = getModuleSpecifiers(readRepoFile(routeFile))
+
+      for (const modulePath of forbiddenRuntimeModules) {
+        expect(
+          routeImports.some((specifier) => importsModule(specifier, modulePath)),
+          `${routeFile} must not import ${modulePath} directly`,
+        ).toBe(false)
+      }
     }
   })
 })

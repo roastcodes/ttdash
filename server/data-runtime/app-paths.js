@@ -8,33 +8,32 @@ function resolveDataRuntimeAppPaths({
   isDarwin,
   isWindows,
 }) {
-  const homeDir = os.homedir();
+  const env = processObject.env || {};
+  const osHomeDir = os.homedir();
+  const homeDir =
+    typeof osHomeDir === 'string' && osHomeDir ? osHomeDir : env.HOME || env.USERPROFILE || '.';
+  const runningOnDarwin = isDarwin === true;
+  const runningOnWindows = isWindows === true;
   const explicitPaths = {
-    dataDir: processObject.env.TTDASH_DATA_DIR,
-    configDir: processObject.env.TTDASH_CONFIG_DIR,
-    cacheDir: processObject.env.TTDASH_CACHE_DIR,
+    dataDir: env.TTDASH_DATA_DIR,
+    configDir: env.TTDASH_CONFIG_DIR,
+    cacheDir: env.TTDASH_CACHE_DIR,
   };
   let platformPaths;
 
-  if (isDarwin) {
+  if (runningOnDarwin) {
     const appSupportDir = path.join(homeDir, 'Library', 'Application Support', appDirName);
     platformPaths = {
       dataDir: appSupportDir,
       configDir: appSupportDir,
       cacheDir: path.join(homeDir, 'Library', 'Caches', appDirName),
     };
-  } else if (isWindows) {
+  } else if (runningOnWindows) {
     platformPaths = {
-      dataDir: path.join(
-        processObject.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'),
-        appDirName,
-      ),
-      configDir: path.join(
-        processObject.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'),
-        appDirName,
-      ),
+      dataDir: path.join(env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'), appDirName),
+      configDir: path.join(env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'), appDirName),
       cacheDir: path.join(
-        processObject.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'),
+        env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'),
         appDirName,
         'Cache',
       ),
@@ -42,17 +41,11 @@ function resolveDataRuntimeAppPaths({
   } else {
     platformPaths = {
       dataDir: path.join(
-        processObject.env.XDG_DATA_HOME || path.join(homeDir, '.local', 'share'),
+        env.XDG_DATA_HOME || path.join(homeDir, '.local', 'share'),
         appDirNameLinux,
       ),
-      configDir: path.join(
-        processObject.env.XDG_CONFIG_HOME || path.join(homeDir, '.config'),
-        appDirNameLinux,
-      ),
-      cacheDir: path.join(
-        processObject.env.XDG_CACHE_HOME || path.join(homeDir, '.cache'),
-        appDirNameLinux,
-      ),
+      configDir: path.join(env.XDG_CONFIG_HOME || path.join(homeDir, '.config'), appDirNameLinux),
+      cacheDir: path.join(env.XDG_CACHE_HOME || path.join(homeDir, '.cache'), appDirNameLinux),
     };
   }
 

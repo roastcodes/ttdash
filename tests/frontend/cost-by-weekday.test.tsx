@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { screen } from '@testing-library/react'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   assertLegacyWeekdayData,
   legacyWeekdayData,
@@ -12,7 +12,7 @@ import { initI18n } from '@/lib/i18n'
 import { renderWithTooltip } from '../test-utils'
 
 describe('CostByWeekday chart', () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
     await initI18n('en')
   })
 

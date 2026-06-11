@@ -54,12 +54,14 @@ describe('Dashboard language regressions', () => {
     await initI18n('de')
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     if (originalScrollIntoView) {
       Element.prototype.scrollIntoView = originalScrollIntoView
     } else {
       delete (Element.prototype as { scrollIntoView?: Element['scrollIntoView'] }).scrollIntoView
     }
+
+    await initI18n('en')
   })
 
   it('localizes expanded chart actions in German', () => {

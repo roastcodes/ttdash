@@ -10,7 +10,6 @@ function createSettingsRoutes({ json, validateMutationRequest, readMutationBody,
     updateSettings,
     withFileMutationLock,
     writeSettings,
-    normalizeSettings,
     paths: { settingsFile },
   } = dataRuntime;
 
@@ -93,7 +92,7 @@ function createSettingsRoutes({ json, validateMutationRequest, readMutationBody,
 
       let importedSettings;
       try {
-        importedSettings = normalizeSettings(extractSettingsImportPayload(bodyResult.body));
+        importedSettings = extractSettingsImportPayload(bodyResult.body);
       } catch (error) {
         return json(res, 400, { message: getErrorMessage(error, 'Invalid settings file') });
       }

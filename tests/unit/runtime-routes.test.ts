@@ -84,6 +84,22 @@ describe('runtime and API guard routes', () => {
     expect(rejectedMethod.body).toEqual({ message: 'Method Not Allowed' })
   })
 
+  it('returns an internal server error when runtime snapshots fail', async () => {
+    const { router } = createRouter({
+      getRuntimeSnapshot: vi.fn(() => {
+        throw new Error('snapshot unavailable')
+      }),
+    })
+
+    const { res, body } = await request(router, '/api/runtime', 'GET')
+
+    expect(res.status).toBe(500)
+    expect(body).toEqual({
+      message: 'Internal Server Error',
+      detail: 'snapshot unavailable',
+    })
+  })
+
   it('keeps unknown API endpoints distinct from stale API prefixes', async () => {
     const { router } = createRouter({
       httpUtilsOverrides: {

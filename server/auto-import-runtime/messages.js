@@ -21,7 +21,13 @@ function summarizeCommandError(error, fallbackMessage = 'Unknown error') {
 }
 
 function getTimeoutSeconds(timeoutMs) {
-  return Math.max(1, Math.ceil(Number(timeoutMs) / 1000));
+  const numericTimeoutMs = Number(timeoutMs);
+  // Invalid timeout configs fall back to one second so progress messages never render NaN.
+  if (!Number.isFinite(numericTimeoutMs)) {
+    return 1;
+  }
+
+  return Math.max(1, Math.ceil(numericTimeoutMs / 1000));
 }
 
 function createAutoImportMessages({ toktrackVersion }) {

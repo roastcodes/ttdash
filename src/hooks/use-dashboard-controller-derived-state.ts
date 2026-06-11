@@ -28,6 +28,7 @@ export function useDashboardControllerDerivedState({
 }: DashboardControllerDerivedStateParams): DashboardControllerDerivedState {
   const filters = useDashboardFilters(daily, settings.defaultFilters)
   const computed = useComputedMetrics(filters.filteredData, locale)
+  // Forecast and anomaly detection need the per-day cost series, not aggregate cost metrics.
   const dailyCosts = useMemo(
     () => filters.filteredData.map((entry) => entry.totalCost),
     [filters.filteredData],

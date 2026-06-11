@@ -66,6 +66,7 @@ const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js
       key: string
       vars?: Record<string, string | number>
     }) => string
+    getTimeoutSeconds: (timeoutMs: unknown) => number
     getExecutableName: (baseName: string, isWindows?: boolean) => string
     getLocalToktrackDisplayCommand: (isWindows?: boolean) => string
     getToktrackLatestLookupTimeoutMs: () => number
@@ -260,6 +261,7 @@ const {
   commandExists,
   getExecutableName,
   getLocalToktrackDisplayCommand,
+  getTimeoutSeconds,
   getToktrackLatestLookupTimeoutMs,
   getToktrackRunnerTimeouts,
   lookupLatestToktrackVersion,
@@ -291,6 +293,7 @@ export {
   getFileMutationLockDir,
   getLocalToktrackDisplayCommand,
   getPendingFileMutationLockCount,
+  getTimeoutSeconds,
   getToktrackLatestLookupTimeoutMs,
   getToktrackRunnerTimeouts,
   isLoopbackHost,

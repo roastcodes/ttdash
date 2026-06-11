@@ -86,6 +86,7 @@ function createAutoImportRuntime({
     formatAutoImportMessageEvent: messages.formatAutoImportMessageEvent,
     getExecutableName: commandRunner.getExecutableName,
     getLocalToktrackDisplayCommand: runnerResolver.getLocalToktrackDisplayCommand,
+    getTimeoutSeconds: messages.getTimeoutSeconds,
     getToktrackLatestLookupTimeoutMs: latestVersionLookup.getToktrackLatestLookupTimeoutMs,
     getToktrackRunnerTimeouts: runnerResolver.getToktrackRunnerTimeouts,
     isAutoImportRunning: importExecutor.isAutoImportRunning,

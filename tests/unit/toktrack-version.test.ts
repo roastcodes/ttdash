@@ -6,9 +6,9 @@ const require = createRequire(import.meta.url)
 const packageJson = require('../../package.json') as {
   dependencies?: Record<string, string>
 }
-
-const exactSemverPattern =
-  /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z][0-9A-Za-z-]*))*))?(?:\+(?:[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
+const semver = require('semver') as {
+  valid: (version: string) => string | null
+}
 
 function getToktrackDependency() {
   const version = packageJson.dependencies?.toktrack
@@ -29,13 +29,14 @@ describe('toktrack version constants', () => {
   })
 
   it('keeps the package dependency pinned to an exact SemVer version', () => {
-    expect(getToktrackDependency()).toMatch(exactSemverPattern)
+    const version = getToktrackDependency()
+
+    expect(semver.valid(version)).toBe(version)
   })
 
   it('rejects invalid exact SemVer prerelease identifiers', () => {
-    expect('1.0.0-01').not.toMatch(exactSemverPattern)
-    expect('1.0.0-alpha.01').not.toMatch(exactSemverPattern)
-    expect('1.0.0-').not.toMatch(exactSemverPattern)
-    expect('1.0.0--').not.toMatch(exactSemverPattern)
+    expect(semver.valid('1.0.0-01')).toBeNull()
+    expect(semver.valid('1.0.0-alpha.01')).toBeNull()
+    expect(semver.valid('1.0.0-')).toBeNull()
   })
 })

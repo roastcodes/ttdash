@@ -32,6 +32,12 @@ describe('server auto-import runtime boundary contract', () => {
     expect("from '../routes/auto-import-routes.js'").toMatch(
       createForbiddenImportPattern('../routes/'),
     )
+    expect("require('../background-runtime-extra')").not.toMatch(
+      createForbiddenImportPattern('../background-runtime'),
+    )
+    expect("require('../background-runtime").not.toMatch(
+      createForbiddenImportPattern('../background-runtime'),
+    )
   })
 
   it('keeps auto-import-runtime.js as the auto-import composition facade', () => {
