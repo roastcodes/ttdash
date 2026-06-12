@@ -164,7 +164,8 @@
     },
     "forecastCache": {
       "title": "Prognose & Cache",
-      "description": "Kostenprognose und Cache-Effizienz"
+      "description": "Kostenprognose und Cache-Effizienz",
+      "loadingForecast": "Prognose wird geladen"
     },
     "costAnalysis": {
       "title": "Kostenanalyse",

@@ -14,6 +14,27 @@ function resolveDataRuntimeAppPaths({
     configDir: env.TTDASH_CONFIG_DIR,
     cacheDir: env.TTDASH_CACHE_DIR,
   };
+  const explicitPathEnvVars = {
+    dataDir: 'TTDASH_DATA_DIR',
+    configDir: 'TTDASH_CONFIG_DIR',
+    cacheDir: 'TTDASH_CACHE_DIR',
+  };
+  const invalidExplicitPathEnvVars = Object.entries(explicitPaths)
+    .filter(([key, value]) => {
+      const envVar = explicitPathEnvVars[key];
+      return (
+        Object.prototype.hasOwnProperty.call(env, envVar) &&
+        (typeof value !== 'string' || !path.isAbsolute(value))
+      );
+    })
+    .map(([key]) => explicitPathEnvVars[key]);
+
+  if (invalidExplicitPathEnvVars.length > 0) {
+    throw new Error(
+      `TTDash app path environment variables must be absolute paths: ${invalidExplicitPathEnvVars.join(', ')}.`,
+    );
+  }
+
   if (explicitPaths.dataDir && explicitPaths.configDir && explicitPaths.cacheDir) {
     return explicitPaths;
   }

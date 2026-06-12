@@ -120,6 +120,25 @@ describe('startup runtime', () => {
     expect(runtime.describeDataFile()).toBe("2 days, $ 12.34, 5'678 tokens")
   })
 
+  it('keeps a negative currency sign when locale parts do not expose an integer part', () => {
+    const formatToPartsSpy = vi
+      .spyOn(Intl.NumberFormat.prototype, 'formatToParts')
+      .mockImplementation(
+        (value) =>
+          [
+            { type: 'currency', value: '$' },
+            { type: 'literal', value: ' ' },
+            { type: 'unknown', value: String(value) },
+          ] as Intl.NumberFormatPart[],
+      )
+
+    try {
+      expect(formatCurrency(-12.34)).toBe('-$ 12.34')
+    } finally {
+      formatToPartsSpy.mockRestore()
+    }
+  })
+
   it('prints local auth bootstrap details only when the browser will not auto-open', () => {
     const { logs, runtime } = createStartupRuntimeFixture({
       processObject: {

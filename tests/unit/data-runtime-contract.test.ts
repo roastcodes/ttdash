@@ -158,6 +158,44 @@ describe('data runtime contracts', () => {
     }
   })
 
+  it('rejects relative explicit app directory overrides', () => {
+    expect(() =>
+      createRuntime({
+        env: {
+          TTDASH_CACHE_DIR: '/tmp/ttdash/cache',
+          TTDASH_CONFIG_DIR: 'relative-config',
+          TTDASH_DATA_DIR: '/tmp/ttdash/data',
+        },
+        platform: 'linux',
+      }),
+    ).toThrow('TTDash app path environment variables must be absolute paths: TTDASH_CONFIG_DIR.')
+  })
+
+  it('combines absolute explicit app directory overrides with platform defaults', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-runtime-contract-'))
+    const dataDir = path.join(runtimeRoot, 'custom-data')
+
+    try {
+      const runtime = createRuntime({
+        env: {
+          TTDASH_DATA_DIR: dataDir,
+          XDG_CACHE_HOME: path.join(runtimeRoot, 'xdg-cache'),
+          XDG_CONFIG_HOME: path.join(runtimeRoot, 'xdg-config'),
+        },
+        homeDir: '/home/alex',
+        platform: 'linux',
+      })
+
+      expect(runtime.appPaths).toEqual({
+        dataDir,
+        configDir: path.join(runtimeRoot, 'xdg-config', 'ttdash'),
+        cacheDir: path.join(runtimeRoot, 'xdg-cache', 'ttdash'),
+      })
+    } finally {
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
   it('fails clearly when platform app directories need an unavailable home directory', () => {
     expect(() =>
       createRuntime({

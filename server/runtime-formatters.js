@@ -13,7 +13,7 @@ function formatCurrency(value, locale = 'de-CH') {
   }
 
   let signInserted = false;
-  return formatter
+  const formattedValue = formatter
     .formatToParts(Math.abs(numericValue))
     .map((part) => {
       if (!signInserted && part.type === 'integer') {
@@ -24,6 +24,8 @@ function formatCurrency(value, locale = 'de-CH') {
       return part.value;
     })
     .join('');
+
+  return signInserted ? formattedValue : `-${formattedValue}`;
 }
 
 /** Formats rounded whole-number counts for server startup/status logs. */

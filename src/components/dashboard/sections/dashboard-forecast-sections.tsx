@@ -28,7 +28,11 @@ export const forecastSectionRenderers = {
     const forecastZoomLoadingFallback = forecastZoomOpen ? (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
         <div className="rounded-lg border border-border bg-card p-4 shadow-lg">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-foreground" />
+          <div
+            aria-label={t('dashboard.forecastCache.loadingForecast')}
+            className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-foreground"
+            role="status"
+          />
         </div>
       </div>
     ) : null
