@@ -77,6 +77,14 @@ const translations: Record<string, string> = {
   'commandPalette.commands.clearProviders.description': 'Clear provider filters',
   'commandPalette.commands.clearModels.label': 'Clear models',
   'commandPalette.commands.clearModels.description': 'Clear model filters',
+  'commandPalette.commands.selectProvider.label': 'Select provider: {{provider}}',
+  'commandPalette.commands.selectProvider.description': 'Include {{provider}}',
+  'commandPalette.commands.deselectProvider.label': 'Deselect provider: {{provider}}',
+  'commandPalette.commands.deselectProvider.description': 'Remove {{provider}}',
+  'commandPalette.commands.selectModel.label': 'Select model: {{model}}',
+  'commandPalette.commands.selectModel.description': 'Include {{model}}',
+  'commandPalette.commands.deselectModel.label': 'Deselect model: {{model}}',
+  'commandPalette.commands.deselectModel.description': 'Remove {{model}}',
   'commandPalette.commands.clearDates.label': 'Clear dates',
   'commandPalette.commands.clearDates.description': 'Clear date range',
   'commandPalette.commands.resetAll.label': 'Reset all',
@@ -120,7 +128,9 @@ function createTranslator(dictionary: Record<string, string>) {
       return `Scroll to ${String(options?.section)}`
     }
 
-    return dictionary[key] ?? key
+    return (dictionary[key] ?? key).replace(/\{\{(\w+)\}\}/g, (_match, name: string) =>
+      String(options?.[name] ?? ''),
+    )
   }
 }
 
@@ -257,11 +267,13 @@ describe('command palette command builder', () => {
     const providerCommand = commands.find((cmd) => cmd.id === 'provider-OpenAI')
     const modelCommand = commands.find((cmd) => cmd.id === 'model-GPT-5.4')
 
-    expect(providerCommand?.label).toBe('Clear providers: OpenAI')
+    expect(providerCommand?.label).toBe('Deselect provider: OpenAI')
+    expect(providerCommand?.description).toBe('Remove OpenAI')
     providerCommand?.action()
     expect(onToggleProvider).toHaveBeenCalledWith('OpenAI')
 
-    expect(modelCommand?.label).toBe('Clear models: GPT-5.4')
+    expect(modelCommand?.label).toBe('Deselect model: GPT-5.4')
+    expect(modelCommand?.description).toBe('Remove GPT-5.4')
     modelCommand?.action()
     expect(onToggleModel).toHaveBeenCalledWith('GPT-5.4')
   })

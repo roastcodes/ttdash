@@ -120,6 +120,33 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
   }
 
   const getAriaSort = (field: RecentDaysSortKey) => getSortAria(field, { sortKey, sortAsc })
+  const renderSortableHeader = (
+    field: RecentDaysSortKey,
+    label: string,
+    { align = 'right', className }: { align?: 'left' | 'right'; className?: string } = {},
+  ) => (
+    <th
+      aria-sort={getAriaSort(field)}
+      className={cn(
+        'px-2 py-2 text-xs font-medium',
+        align === 'left' ? 'text-left' : 'text-right',
+        sortKey === field ? 'text-foreground' : 'text-muted-foreground',
+        className,
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => handleSort(field)}
+        className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        {label}{' '}
+        <ArrowUpDown
+          aria-hidden="true"
+          className={cn('h-3 w-3', sortKey === field && 'text-primary')}
+        />
+      </button>
+    </th>
+  )
 
   const handleRowKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLTableRowElement>, date: string) => {
@@ -316,103 +343,29 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border">
-                <th
-                  aria-sort={getAriaSort('date')}
-                  className={cn(
-                    'px-2 py-2 text-left text-xs font-medium',
-                    sortKey === 'date' ? 'text-foreground' : 'text-muted-foreground',
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleSort('date')}
-                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  >
-                    {t('tables.recentDays.date')}{' '}
-                    <ArrowUpDown
-                      aria-hidden="true"
-                      className={cn('h-3 w-3', sortKey === 'date' && 'text-primary')}
-                    />
-                  </button>
-                </th>
-                <th
-                  aria-sort={getAriaSort('cost')}
-                  className={cn(
-                    'px-2 py-2 text-right text-xs font-medium',
-                    sortKey === 'cost' ? 'text-foreground' : 'text-muted-foreground',
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleSort('cost')}
-                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  >
-                    {t('tables.recentDays.cost')}{' '}
-                    <ArrowUpDown
-                      aria-hidden="true"
-                      className={cn('h-3 w-3', sortKey === 'cost' && 'text-primary')}
-                    />
-                  </button>
-                </th>
-                <th
-                  aria-sort={getAriaSort('tokens')}
-                  className={cn(
-                    'px-2 py-2 text-right text-xs font-medium',
-                    sortKey === 'tokens' ? 'text-foreground' : 'text-muted-foreground',
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleSort('tokens')}
-                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  >
-                    {t('tables.recentDays.tokens')}{' '}
-                    <ArrowUpDown
-                      aria-hidden="true"
-                      className={cn('h-3 w-3', sortKey === 'tokens' && 'text-primary')}
-                    />
-                  </button>
-                </th>
-                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground md:table-cell">
-                  {t('common.input')}
-                </th>
-                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground md:table-cell">
-                  {t('common.output')}
-                </th>
-                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground lg:table-cell">
-                  {t('common.cacheWrite')}
-                </th>
-                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground lg:table-cell">
-                  {t('common.cacheRead')}
-                </th>
-                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground xl:table-cell">
-                  {t('common.thinking')}
-                </th>
-                <th className="hidden px-2 py-2 text-right text-xs font-medium text-muted-foreground xl:table-cell">
-                  {t('common.requestsShort')}
-                </th>
-                <th
-                  aria-sort={getAriaSort('costPerM')}
-                  className={cn(
-                    'px-2 py-2 text-right text-xs font-medium',
-                    sortKey === 'costPerM' ? 'text-foreground' : 'text-muted-foreground',
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleSort('costPerM')}
-                    className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  >
-                    $/1M{' '}
-                    <ArrowUpDown
-                      aria-hidden="true"
-                      className={cn('h-3 w-3', sortKey === 'costPerM' && 'text-primary')}
-                    />
-                  </button>
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-                  {t('tables.recentDays.models')}
-                </th>
+                {renderSortableHeader('date', t('tables.recentDays.date'), { align: 'left' })}
+                {renderSortableHeader('cost', t('tables.recentDays.cost'))}
+                {renderSortableHeader('tokens', t('tables.recentDays.tokens'))}
+                {renderSortableHeader('input', t('common.input'), {
+                  className: 'hidden md:table-cell',
+                })}
+                {renderSortableHeader('output', t('common.output'), {
+                  className: 'hidden md:table-cell',
+                })}
+                {renderSortableHeader('cacheWrite', t('common.cacheWrite'), {
+                  className: 'hidden lg:table-cell',
+                })}
+                {renderSortableHeader('cacheRead', t('common.cacheRead'), {
+                  className: 'hidden lg:table-cell',
+                })}
+                {renderSortableHeader('thinking', t('common.thinking'), {
+                  className: 'hidden xl:table-cell',
+                })}
+                {renderSortableHeader('requests', t('common.requestsShort'), {
+                  className: 'hidden xl:table-cell',
+                })}
+                {renderSortableHeader('costPerM', '$/1M')}
+                {renderSortableHeader('models', t('tables.recentDays.models'), { align: 'left' })}
               </tr>
             </thead>
             <tbody>

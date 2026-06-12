@@ -68,7 +68,18 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
     return nextPayload;
   }
 
+  function writeJsonResponse(res, status, payload) {
+    json(res, status, payload);
+    return true;
+  }
+
+  function writeServerError(res) {
+    writeMutationServerError(json, res);
+    return true;
+  }
+
   async function handleUsageRoutes(apiPath, req, res) {
+    // Route handlers return true when they handled a request and false when unmatched.
     if (apiPath === '/usage') {
       if (req.method === 'GET') {
         let data;
@@ -76,16 +87,18 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
           data = readData();
         } catch (error) {
           if (isPersistedStateError(error, 'usage')) {
-            return json(res, 500, { message: error.message });
+            return writeJsonResponse(res, 500, { message: error.message });
           }
           throw error;
         }
-        return json(res, 200, data || EMPTY_USAGE_RESPONSE);
+        return writeJsonResponse(res, 200, data || EMPTY_USAGE_RESPONSE);
       }
       if (req.method === 'DELETE') {
         const validationError = validateMutationRequest(req);
         if (validationError) {
-          return json(res, validationError.status, { message: validationError.message });
+          return writeJsonResponse(res, validationError.status, {
+            message: validationError.message,
+          });
         }
         try {
           await withSettingsAndDataMutationLock(async () => {
@@ -97,20 +110,22 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
           });
         } catch (error) {
           if (isPersistedStateError(error, 'usage') || isPersistedStateError(error, 'settings')) {
-            return json(res, 500, { message: error.message });
+            return writeJsonResponse(res, 500, { message: error.message });
           }
-          return writeMutationServerError(json, res);
+          return writeServerError(res);
         }
-        return json(res, 200, { success: true });
+        return writeJsonResponse(res, 200, { success: true });
       }
-      return json(res, 405, { message: 'Method Not Allowed' });
+      return writeJsonResponse(res, 405, { message: 'Method Not Allowed' });
     }
 
     if (apiPath === '/upload') {
       if (req.method === 'POST') {
         const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
         if (validationError) {
-          return json(res, validationError.status, { message: validationError.message });
+          return writeJsonResponse(res, validationError.status, {
+            message: validationError.message,
+          });
         }
 
         const bodyResult = await readMutationBody(req, res, {
@@ -126,7 +141,7 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
         try {
           nextData = normalizeIncomingUsagePayload(bodyResult.body, 'Invalid JSON');
         } catch (error) {
-          return json(res, 400, { message: getErrorMessage(error, 'Invalid JSON') });
+          return writeJsonResponse(res, 400, { message: getErrorMessage(error, 'Invalid JSON') });
         }
 
         try {
@@ -137,28 +152,30 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
               lastLoadSource: 'file',
             });
           });
-          return json(res, 200, {
+          return writeJsonResponse(res, 200, {
             days: nextData.daily.length,
             totalCost: nextData.totals.totalCost,
           });
         } catch (error) {
           if (isPersistedStateError(error, 'settings') || isPersistedStateError(error, 'usage')) {
-            return json(res, 500, { message: error.message });
+            return writeJsonResponse(res, 500, { message: error.message });
           }
-          return writeMutationServerError(json, res);
+          return writeServerError(res);
         }
       }
-      return json(res, 405, { message: 'Method Not Allowed' });
+      return writeJsonResponse(res, 405, { message: 'Method Not Allowed' });
     }
 
     if (apiPath === '/usage/import') {
       if (req.method !== 'POST') {
-        return json(res, 405, { message: 'Method Not Allowed' });
+        return writeJsonResponse(res, 405, { message: 'Method Not Allowed' });
       }
 
       const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
       if (validationError) {
-        return json(res, validationError.status, { message: validationError.message });
+        return writeJsonResponse(res, validationError.status, {
+          message: validationError.message,
+        });
       }
 
       const bodyResult = await readMutationBody(req, res, {
@@ -175,7 +192,9 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
         const usagePayload = extractUsageImportPayload(bodyResult.body);
         importedData = normalizeIncomingUsagePayload(usagePayload, 'Invalid usage backup file');
       } catch (error) {
-        return json(res, 400, { message: getErrorMessage(error, 'Invalid usage backup file') });
+        return writeJsonResponse(res, 400, {
+          message: getErrorMessage(error, 'Invalid usage backup file'),
+        });
       }
 
       try {
@@ -189,12 +208,12 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
           });
           return merged;
         });
-        return json(res, 200, result.summary);
+        return writeJsonResponse(res, 200, result.summary);
       } catch (error) {
         if (isPersistedStateError(error, 'usage') || isPersistedStateError(error, 'settings')) {
-          return json(res, 500, { message: error.message });
+          return writeJsonResponse(res, 500, { message: error.message });
         }
-        return writeMutationServerError(json, res);
+        return writeServerError(res);
       }
     }
 

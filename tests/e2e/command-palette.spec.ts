@@ -92,8 +92,9 @@ test('executes representative filter and quick-select commands', async ({ page }
 
   const palette = await openPalette(page)
   await palette.locator('input').fill('daily')
-  await expect(palette.locator('[data-testid="command-view-daily"]')).toBeVisible()
-  await page.keyboard.press('1')
+  const dailyCommand = palette.locator('[data-testid="command-view-daily"]')
+  await expect(dailyCommand).toBeVisible()
+  await dailyCommand.click()
 
   await expect(palette).toBeHidden()
   await expect(filters.getByRole('combobox', { name: viewModeComboboxPattern })).toContainText(

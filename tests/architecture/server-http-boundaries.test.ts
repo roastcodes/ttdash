@@ -5,6 +5,37 @@ function readRepoFile(relativePath: string) {
   return readFileSync(path.resolve(process.cwd(), relativePath), 'utf8')
 }
 
+function stripSourceComments(source: string) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+}
+
+function getModuleSpecifiers(source: string) {
+  const sourceWithoutComments = stripSourceComments(source)
+  const patterns = [
+    /\brequire\(\s*(['"`])([^'"`]+)\1\s*\)/g,
+    /\bimport\s+(?:[^'"`]+\s+from\s+)?(['"`])([^'"`]+)\1/g,
+    /\bimport\(\s*(['"`])([^'"`]+)\1\s*\)/g,
+  ]
+
+  return patterns.flatMap((pattern) =>
+    [...sourceWithoutComments.matchAll(pattern)].map((match) => match[2]),
+  )
+}
+
+const explicitModulePathExtensions = ['.js', '.mjs', '.cjs', '.ts'] as const
+
+function importsModule(specifier: string, modulePath: string) {
+  const modulePathVariants = [
+    modulePath,
+    ...explicitModulePathExtensions.map((extension) => `${modulePath}${extension}`),
+  ]
+
+  return modulePathVariants.some(
+    (modulePathVariant) =>
+      specifier === modulePathVariant || specifier.startsWith(`${modulePathVariant}/`),
+  )
+}
+
 const serverRouteFiles = [
   'server/routes/auto-import-routes.js',
   'server/routes/http-route-utils.js',
@@ -55,14 +86,50 @@ describe('server HTTP boundary contract', () => {
     expect(routerSource).not.toContain("apiPath === '/report/pdf'")
   })
 
-  it('keeps route groups dependent on injected services instead of runtime implementations', () => {
-    for (const routeFile of serverRouteFiles) {
-      const routeSource = readRepoFile(routeFile)
+  it('matches runtime imports with explicit module extensions', () => {
+    expect(importsModule('../data-runtime', '../data-runtime')).toBe(true)
+    expect(importsModule('../data-runtime/file-locks', '../data-runtime')).toBe(true)
+    expect(importsModule('../data-runtime.js', '../data-runtime')).toBe(true)
+    expect(importsModule('../data-runtime.mjs/file-locks', '../data-runtime')).toBe(true)
+    expect(importsModule('../data-runtime.cjs', '../data-runtime')).toBe(true)
+    expect(importsModule('../data-runtime.ts/file-locks', '../data-runtime')).toBe(true)
+    expect(importsModule('../data-runtime-extra', '../data-runtime')).toBe(false)
+    expect(importsModule('../data-runtime.jsx', '../data-runtime')).toBe(false)
+  })
 
-      expect(routeSource).not.toContain("require('../data-runtime")
-      expect(routeSource).not.toContain("require('../auto-import-runtime")
-      expect(routeSource).not.toContain("require('../background-runtime")
-      expect(routeSource).not.toContain("require('../http-router")
+  it('extracts static, dynamic, and template-literal module specifiers', () => {
+    expect(
+      getModuleSpecifiers(`
+        const runtime = require('../data-runtime.js')
+        const background = require(\`../background-runtime\`)
+        import settingsRoutes from '../routes/settings-routes'
+        await import('../auto-import-runtime.js')
+      `),
+    ).toEqual([
+      '../data-runtime.js',
+      '../background-runtime',
+      '../routes/settings-routes',
+      '../auto-import-runtime.js',
+    ])
+  })
+
+  it('keeps route groups dependent on injected services instead of runtime implementations', () => {
+    const forbiddenRuntimeModules = [
+      '../data-runtime',
+      '../auto-import-runtime',
+      '../background-runtime',
+      '../http-router',
+    ]
+
+    for (const routeFile of serverRouteFiles) {
+      const routeImports = getModuleSpecifiers(readRepoFile(routeFile))
+
+      for (const modulePath of forbiddenRuntimeModules) {
+        expect(
+          routeImports.some((specifier) => importsModule(specifier, modulePath)),
+          `${routeFile} must not import ${modulePath} directly`,
+        ).toBe(false)
+      }
     }
   })
 })

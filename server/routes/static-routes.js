@@ -1,5 +1,12 @@
 /** Creates the static asset and SPA fallback route handler. */
-function createStaticRouteHandler({ fs, path, staticRoot, securityHeaders, prepareHtmlResponse }) {
+function createStaticRouteHandler({
+  fs,
+  path,
+  staticRoot,
+  securityHeaders,
+  prepareHtmlResponse,
+  logger = console,
+}) {
   const mimeTypes = {
     '.html': 'text/html; charset=utf-8',
     '.css': 'text/css; charset=utf-8',
@@ -83,7 +90,7 @@ function createStaticRouteHandler({ fs, path, staticRoot, securityHeaders, prepa
           const html = await readStaticFile(indexPath);
           sendStaticFile(res, indexPath, html);
         } catch (fallbackError) {
-          console.error('SPA fallback read failed', {
+          logger.error('SPA fallback read failed', {
             error: fallbackError,
             indexPath,
             safePath,
@@ -103,7 +110,7 @@ function createStaticRouteHandler({ fs, path, staticRoot, securityHeaders, prepa
         status: 500,
         message: 'Internal Server Error',
       };
-      console.error('Static file read failed', {
+      logger.error('Static file read failed', {
         error,
         reqPath,
         safePath,

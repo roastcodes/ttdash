@@ -55,6 +55,7 @@ const FILE_MUTATION_LOCK_STALE_MS = 30000;
 function createAppRuntime({
   processObject = process,
   entrypointPath = path.join(ROOT, 'server.js'),
+  logger = console,
 } = {}) {
   const env = processObject.env || process.env;
   const argv = Array.isArray(processObject.argv) ? processObject.argv : process.argv;
@@ -71,6 +72,7 @@ function createAppRuntime({
   const remoteAuthToken = env.TTDASH_REMOTE_TOKEN || '';
   const localAuthToken = env.TTDASH_LOCAL_AUTH_TOKEN || '';
   const apiPrefix = env.API_PREFIX || '/api';
+  const isDarwin = processObject.platform === 'darwin';
   const isWindows = processObject.platform === 'win32';
   const toktrackLocalBin =
     env.TTDASH_TOKTRACK_LOCAL_BIN ||
@@ -99,6 +101,7 @@ function createAppRuntime({
     legacyDataFile,
     settingsBackupKind: SETTINGS_BACKUP_KIND,
     usageBackupKind: USAGE_BACKUP_KIND,
+    isDarwin,
     isWindows,
     secureDirMode: SECURE_DIR_MODE,
     secureFileMode: SECURE_FILE_MODE,
@@ -154,7 +157,7 @@ function createAppRuntime({
     normalizeIncomingData,
     withSettingsAndDataMutationLock: dataRuntime.withSettingsAndDataMutationLock,
     writeData: dataRuntime.writeData,
-    updateDataLoadState: dataRuntime._updateDataLoadStateUnlocked,
+    _updateDataLoadStateUnlocked: dataRuntime._updateDataLoadStateUnlocked,
     toktrackPackageName: TOKTRACK_PACKAGE_NAME,
     toktrackPackageSpec: TOKTRACK_PACKAGE_SPEC,
     toktrackVersion: TOKTRACK_VERSION,
@@ -192,6 +195,7 @@ function createAppRuntime({
     autoImportRuntime,
     generatePdfReport,
     getRuntimeSnapshot: runtimeState.getSnapshot,
+    logger,
   });
 
   const startupRuntime = createStartupRuntime({

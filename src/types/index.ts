@@ -48,6 +48,7 @@ export interface UsageImportSummary {
   addedDays: number
   unchangedDays: number
   conflictingDays: number
+  conflictingDates: string[]
   skippedDays: number
   totalDays: number
 }

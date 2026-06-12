@@ -31,6 +31,13 @@ const DEFAULT_TOKTRACK_VERSION_STATUS: ToktrackVersionStatusSnapshot = {
   isLoading: true,
 }
 
+const validLookupStatuses = new Set<ToktrackVersionStatus['lookupStatus']>([
+  'ok',
+  'failed',
+  'malformed-output',
+  'timeout',
+])
+
 const listeners = new Set<() => void>()
 
 let snapshot: ToktrackVersionStatusSnapshot = DEFAULT_TOKTRACK_VERSION_STATUS
@@ -55,12 +62,23 @@ function toSettledStatus(nextSnapshot: ToktrackVersionStatusSnapshot): ToktrackV
 function normalizeToktrackVersionStatus(
   status: ToktrackVersionStatus,
 ): ToktrackVersionStatusSnapshot {
+  const hasValidLookupStatus = validLookupStatuses.has(status.lookupStatus)
+  if (!hasValidLookupStatus) {
+    console.warn('Received invalid toktrack version lookup status.', {
+      configuredVersion: status.configuredVersion,
+      latestVersion: status.latestVersion,
+      lookupStatus: status.lookupStatus,
+      message: status.message,
+    })
+  }
+  const lookupStatus = hasValidLookupStatus ? status.lookupStatus : 'failed'
+
   return {
     ...status,
     configuredVersion: status.configuredVersion || TOKTRACK_VERSION,
     latestVersion: status.latestVersion ?? null,
     isLatest: typeof status.isLatest === 'boolean' ? status.isLatest : null,
-    lookupStatus: status.lookupStatus,
+    lookupStatus,
     isLoading: false,
   }
 }

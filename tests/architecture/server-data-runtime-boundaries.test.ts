@@ -27,6 +27,12 @@ describe('server data runtime boundary contract', () => {
       createForbiddenImportPattern('../auto-import-runtime'),
     )
     expect("from '../routes/usage-routes.js'").toMatch(createForbiddenImportPattern('../routes/'))
+    expect("require('../auto-import-runtime-extra')").not.toMatch(
+      createForbiddenImportPattern('../auto-import-runtime'),
+    )
+    expect("require('../auto-import-runtime").not.toMatch(
+      createForbiddenImportPattern('../auto-import-runtime'),
+    )
   })
 
   it('keeps data-runtime.js as the persistence composition facade', () => {

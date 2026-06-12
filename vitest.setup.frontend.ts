@@ -1,6 +1,4 @@
-import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
-import { afterEach, beforeAll, beforeEach, vi } from 'vitest'
+import { beforeAll, beforeEach, vi } from 'vitest'
 import { initI18n } from '@/lib/i18n'
 
 // jsdom can expose different Event/CustomEvent constructors on globalThis and window.
@@ -21,10 +19,6 @@ function syncDomEventConstructors() {
     value: window.CustomEvent,
   })
 }
-
-afterEach(() => {
-  cleanup()
-})
 
 beforeAll(async () => {
   await initI18n('de')

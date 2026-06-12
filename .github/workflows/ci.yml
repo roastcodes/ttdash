@@ -15,12 +15,15 @@ concurrency:
 
 jobs:
   static:
+    name: Static Checks
     runs-on: ubuntu-latest
     timeout-minutes: 12
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -50,7 +53,9 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -62,12 +67,16 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Run Vitest project
-        run: npm run test:vitest:${{ matrix.project }}
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: npm run "test:vitest:${PROJECT}"
 
       - name: Check Vitest timing budget
+        env:
+          PROJECT: ${{ matrix.project }}
         run: |
           node scripts/report-test-timings.js \
-            test-results/vitest-${{ matrix.project }}.junit.xml \
+            "test-results/vitest-${PROJECT}.junit.xml" \
             --max-suite-seconds=20 \
             --max-test-seconds=12
 
@@ -80,12 +89,15 @@ jobs:
           path: test-results/vitest-${{ matrix.project }}.junit.xml
 
   coverage:
+    name: Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -110,12 +122,15 @@ jobs:
             test-results/vitest-coverage.junit.xml
 
   build:
+    name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -137,13 +152,16 @@ jobs:
           path: dist/
 
   package-smoke:
+    name: Package Smoke
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: build
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -164,13 +182,16 @@ jobs:
         run: npm run verify:package
 
   e2e:
+    name: End-to-End Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: build
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -204,12 +225,15 @@ jobs:
             test-results/
 
   windows-smoke:
+    name: Windows Smoke
     runs-on: windows-latest
     timeout-minutes: 10
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -242,6 +266,14 @@ jobs:
 
     steps:
       - name: Verify required CI jobs
+        env:
+          STATIC_RESULT: ${{ needs.static.result }}
+          VITEST_RESULT: ${{ needs.vitest.result }}
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          PACKAGE_SMOKE_RESULT: ${{ needs['package-smoke'].result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+          WINDOWS_SMOKE_RESULT: ${{ needs['windows-smoke'].result }}
         run: |
           failed=0
 
@@ -257,12 +289,12 @@ jobs:
             fi
           }
 
-          check_result "static" "${{ needs.static.result }}"
-          check_result "vitest" "${{ needs.vitest.result }}"
-          check_result "coverage" "${{ needs.coverage.result }}"
-          check_result "build" "${{ needs.build.result }}"
-          check_result "package-smoke" "${{ needs['package-smoke'].result }}"
-          check_result "e2e" "${{ needs.e2e.result }}"
-          check_result "windows-smoke" "${{ needs['windows-smoke'].result }}"
+          check_result "static" "${STATIC_RESULT}"
+          check_result "vitest" "${VITEST_RESULT}"
+          check_result "coverage" "${COVERAGE_RESULT}"
+          check_result "build" "${BUILD_RESULT}"
+          check_result "package-smoke" "${PACKAGE_SMOKE_RESULT}"
+          check_result "e2e" "${E2E_RESULT}"
+          check_result "windows-smoke" "${WINDOWS_SMOKE_RESULT}"
 
           exit "${failed}"

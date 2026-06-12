@@ -70,6 +70,27 @@ describe('PDF report routes', () => {
     expect(body).toEqual({ message: 'Typst not found' })
   })
 
+  it('logs unexpected usage read failures through the injected logger', async () => {
+    const readError = new Error('usage store unavailable')
+    const logger = { error: vi.fn() }
+    const { router } = createRouter({
+      dataRuntimeOverrides: {
+        readData: vi.fn(() => {
+          throw readError
+        }),
+      },
+      logger,
+    })
+
+    await expect(request(router, '/api/report/pdf', 'POST')).rejects.toThrow(
+      'report-routes: unexpected error during usage handling',
+    )
+    expect(logger.error).toHaveBeenCalledWith(
+      'Unexpected report route usage read error:',
+      readError,
+    )
+  })
+
   it('sends generated PDF buffers with attachment headers', async () => {
     const usageData = createValidUsageData()
     const generatePdfReport = vi.fn(async () => ({

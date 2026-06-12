@@ -72,7 +72,7 @@ function parseArgs(argv) {
 
   if (!options.repo || !options.workflow || !options.sha) {
     fail(
-      'Usage: node scripts/verify-main-ci.js --repo <owner/repo> --workflow <file> --sha <commit> [--branch main] [--required-job <name>] [--retries N] [--retry-delay-ms MS]',
+      'Usage: node scripts/verify-main-ci.js --repo <owner/repo> --workflow <file> --sha <commit> [--branch main] [--required-job <id-or-name>] [--retries N] [--retry-delay-ms MS]',
     );
   }
 
@@ -95,14 +95,7 @@ async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchWorkflowRuns(options, token) {
-  const url = new URL(
-    `https://api.github.com/repos/${options.repo}/actions/workflows/${encodeURIComponent(options.workflow)}/runs`,
-  );
-  url.searchParams.set('branch', options.branch);
-  url.searchParams.set('event', 'push');
-  url.searchParams.set('per_page', '30');
-
+async function requestGitHubApi(url, token) {
   const response = await fetch(url, {
     headers: {
       Accept: 'application/vnd.github+json',
@@ -127,6 +120,17 @@ async function fetchWorkflowRuns(options, token) {
   return response.json();
 }
 
+async function fetchWorkflowRuns(options, token) {
+  const url = new URL(
+    `https://api.github.com/repos/${options.repo}/actions/workflows/${encodeURIComponent(options.workflow)}/runs`,
+  );
+  url.searchParams.set('branch', options.branch);
+  url.searchParams.set('event', 'push');
+  url.searchParams.set('per_page', '30');
+
+  return requestGitHubApi(url, token);
+}
+
 async function fetchWorkflowRunJobs(options, token, runId) {
   const jobs = [];
   let page = 1;
@@ -136,28 +140,7 @@ async function fetchWorkflowRunJobs(options, token, runId) {
     url.searchParams.set('per_page', '100');
     url.searchParams.set('page', String(page));
 
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: `Bearer ${token}`,
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'ttdash-release-workflow',
-      },
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      const normalizedBody = body.replace(/\s+/g, ' ').trim();
-      const maxPreviewLength = 200;
-      const bodyPreview =
-        normalizedBody.length > maxPreviewLength
-          ? `${normalizedBody.slice(0, maxPreviewLength)}…`
-          : normalizedBody;
-      const previewSuffix = bodyPreview ? ` Response preview: ${bodyPreview}` : '';
-      throw new Error(`GitHub API request failed with ${response.status}.${previewSuffix}`);
-    }
-
-    const payload = await response.json();
+    const payload = await requestGitHubApi(url, token);
     if (!Array.isArray(payload.jobs)) {
       return jobs;
     }
@@ -178,6 +161,20 @@ function describeRun(run) {
 
 function describeJob(job) {
   return `${job.name} (${job.status}/${job.conclusion ?? 'pending'})`;
+}
+
+function findRequiredJob(jobs, requiredJob) {
+  return (
+    jobs.find((candidate) => String(candidate.id) === String(requiredJob)) ||
+    jobs.find((candidate) => candidate.name === requiredJob)
+  );
+}
+
+function describeAvailableJobs(jobs) {
+  return jobs
+    .map((candidate) => `${candidate.id}:${candidate.name}`)
+    .sort()
+    .join(', ');
 }
 
 async function main() {
@@ -202,15 +199,12 @@ async function main() {
       );
     } else if (options.requiredJob) {
       const jobs = await fetchWorkflowRunJobs(options, token, run.id);
-      const job = jobs.find((candidate) => candidate.name === options.requiredJob);
+      const job = findRequiredJob(jobs, options.requiredJob);
 
       if (!job) {
-        const jobNames = jobs
-          .map((candidate) => candidate.name)
-          .sort()
-          .join(', ');
+        const availableJobs = describeAvailableJobs(jobs);
         fail(
-          `Required CI job "${options.requiredJob}" was not found in workflow run ${run.id} for ${options.sha}. Available jobs: ${jobNames || 'none'}.`,
+          `Required CI job id or name "${options.requiredJob}" was not found in workflow run ${run.id} for ${options.sha}. Available job ids and names: ${availableJobs || 'none'}.`,
         );
       } else if (job.status !== 'completed') {
         log(

@@ -12,7 +12,7 @@ const { createAppRuntime } = require('../../server/app-runtime.js') as {
   }
 }
 
-const REQUEST_TIMEOUT_MS = Number(process.env.TEST_TIMEOUT_MS || 5000)
+const TEST_TIMEOUT_MS = Number(process.env.TEST_TIMEOUT_MS || 5000)
 
 class MockRequest extends EventEmitter {
   method = 'GET'
@@ -78,7 +78,7 @@ async function emitServerRequest(
       response.off('error', onError)
       response.off('finish', onFinish)
       reject(new Error(`Timed out waiting for ${url}`))
-    }, REQUEST_TIMEOUT_MS)
+    }, TEST_TIMEOUT_MS)
 
     response.once('error', onError)
     response.once('finish', onFinish)

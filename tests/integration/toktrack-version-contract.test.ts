@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -221,25 +222,16 @@ function shouldSkipPath(relativePath: string) {
   return false
 }
 
-function collectScannedFiles(directory: string, collected: string[] = []) {
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const absolutePath = path.join(directory, entry.name)
-    const relativePath = path.relative(repoRoot, absolutePath)
-
-    if (shouldSkipPath(relativePath)) continue
-    if (entry.isSymbolicLink()) continue
-
-    if (entry.isDirectory()) {
-      collectScannedFiles(absolutePath, collected)
-      continue
-    }
-
-    if (entry.isFile() && scannedExtensions.has(path.extname(entry.name))) {
-      collected.push(relativePath)
-    }
-  }
-
-  return collected
+function collectTrackedScannedFiles() {
+  return execFileSync('git', ['ls-files'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  })
+    .split('\n')
+    .filter(Boolean)
+    .filter((relativePath) => !shouldSkipPath(relativePath))
+    .filter((relativePath) => existsSync(path.join(repoRoot, relativePath)))
+    .filter((relativePath) => scannedExtensions.has(path.extname(relativePath)))
 }
 
 describe('toktrack version repository contract', () => {
@@ -299,7 +291,7 @@ describe('toktrack version repository contract', () => {
   })
 
   it('keeps toktrack package specs free of hardcoded versions outside managed files', () => {
-    const offenders = collectScannedFiles(repoRoot).filter((relativePath) => {
+    const offenders = collectTrackedScannedFiles().filter((relativePath) => {
       const content = readFileSync(path.join(repoRoot, relativePath), 'utf8')
       return hardcodedToktrackVersionPattern.test(content)
     })

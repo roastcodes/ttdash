@@ -133,7 +133,38 @@ describe('rendered chart data helpers', () => {
     ).rejects.toThrow('Timed out waiting for rendered chart data in #charts')
 
     expect(waitFor).toHaveBeenCalledWith({ timeout: 1000 })
-    expect(evaluate).toHaveBeenCalledTimes(1)
+    expect(evaluate).toHaveBeenCalledTimes(2)
+    expect(sleepImpl).toHaveBeenCalledWith(200)
+  })
+
+  it('performs a final chart data check before reporting a timeout', async () => {
+    let currentTimeMs = 0
+    vi.spyOn(Date, 'now').mockImplementation(() => currentTimeMs)
+
+    const evaluate = vi
+      .fn<() => Promise<number>>()
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(3)
+    const waitFor = vi.fn(async () => {
+      currentTimeMs = 800
+    })
+    const locator = vi.fn(() => ({ evaluate, waitFor }))
+    const sleepImpl = vi.fn(async (ms: number) => {
+      currentTimeMs += ms
+    })
+
+    await waitForRenderedChartData(
+      { locator },
+      {
+        minShapes: 3,
+        pollMs: 250,
+        sectionSelector: '#charts',
+        sleepImpl,
+        timeoutMs: 1000,
+      },
+    )
+
+    expect(evaluate).toHaveBeenCalledTimes(2)
     expect(sleepImpl).toHaveBeenCalledWith(200)
   })
 })

@@ -26,7 +26,7 @@ function createRuntimeWithSpawn(
       options.withSettingsAndDataMutationLock ??
       vi.fn(async (operation: () => Promise<unknown>) => operation()),
     writeData: options.writeData ?? vi.fn(),
-    updateDataLoadState: options.updateDataLoadState ?? vi.fn(async () => undefined),
+    _updateDataLoadStateUnlocked: options.updateDataLoadState ?? vi.fn(async () => undefined),
     toktrackPackageName: 'toktrack',
     toktrackPackageSpec: `toktrack@${TOKTRACK_VERSION}`,
     toktrackVersion: TOKTRACK_VERSION,

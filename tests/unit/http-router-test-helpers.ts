@@ -18,30 +18,34 @@ const { createHttpRouter } = require('../../server/http-router.js') as {
 }
 
 type HeaderValue = string | number | string[]
+type StoredHeaderValue = string | string[]
+
+function normalizeHeaderValue(value: HeaderValue): StoredHeaderValue {
+  return Array.isArray(value) ? value.map(String) : String(value)
+}
 
 export class MockResponse {
   status = 0
-  headers: Record<string, HeaderValue> = {}
+  headers: Record<string, StoredHeaderValue> = {}
   body = ''
+  ended = false
+
+  get writableEnded() {
+    return this.ended
+  }
 
   setHeader(name: string, value: HeaderValue) {
     const key = name.toLowerCase()
-    const previous = this.headers[key]
-
-    if (previous === undefined) {
-      this.headers[key] = value
-      return
-    }
-
-    const previousValues = Array.isArray(previous) ? previous : [String(previous)]
-    const nextValues = Array.isArray(value) ? value.map(String) : [String(value)]
-    this.headers[key] = [...previousValues, ...nextValues]
+    this.headers[key] = normalizeHeaderValue(value)
   }
 
   writeHead(status: number, headers: Record<string, HeaderValue>) {
     this.status = status
     const normalizedHeaders = Object.fromEntries(
-      Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]),
+      Object.entries(headers).map(([key, value]) => [
+        key.toLowerCase(),
+        normalizeHeaderValue(value),
+      ]),
     )
     this.headers = { ...this.headers, ...normalizedHeaders }
   }
@@ -55,6 +59,7 @@ export class MockResponse {
   }
 
   end(body?: string | Buffer) {
+    this.ended = true
     if (body !== undefined) {
       this.body += Buffer.isBuffer(body) ? body.toString('utf8') : body
     }
@@ -91,6 +96,7 @@ export function createRouter({
     url: 'http://127.0.0.1:3000',
   })),
   httpUtilsOverrides = {},
+  logger,
   prepareHtmlResponse,
   readBody = vi.fn(async () => ({})),
   readFile = vi.fn(),
@@ -103,6 +109,7 @@ export function createRouter({
   generatePdfReport?: () => Promise<{ buffer: Buffer; filename: string }>
   getRuntimeSnapshot?: () => unknown
   httpUtilsOverrides?: Record<string, unknown>
+  logger?: { error: (...args: unknown[]) => void }
   prepareHtmlResponse?: (html: string) => { body: string; headers: Record<string, string> }
   readBody?: () => Promise<unknown>
   readFile?: (filePath: string) => Promise<Buffer>
@@ -126,6 +133,7 @@ export function createRouter({
         addedDays: Array.isArray(importedData?.daily) ? importedData.daily.length : 0,
         unchangedDays: 0,
         conflictingDays: 0,
+        conflictingDates: [],
         skippedDays: 0,
         totalDays: Array.isArray(importedData?.daily) ? importedData.daily.length : 0,
       },
@@ -209,6 +217,7 @@ export function createRouter({
     },
     generatePdfReport,
     getRuntimeSnapshot,
+    logger,
   })
 
   return { dataRuntime, generatePdfReport, getRuntimeSnapshot, readBody, router }

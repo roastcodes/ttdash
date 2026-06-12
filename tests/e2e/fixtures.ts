@@ -27,9 +27,7 @@ export function chartCardByTitle(section: ReturnType<Page['locator']>, titlePatt
   return section
     .getByText(titlePattern)
     .first()
-    .locator(
-      'xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " group ") and contains(concat(" ", normalize-space(@class), " "), " relative ")][1]',
-    )
+    .locator('xpath=ancestor::*[@data-testid="chart-card"][1]')
 }
 
 function buildWorkerServer(workerIndex: number) {

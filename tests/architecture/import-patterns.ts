@@ -4,11 +4,12 @@ export function escapeRegex(value: string) {
 
 export function createForbiddenImportPattern(importPath: string) {
   const escapedPath = escapeRegex(importPath)
-  const importBoundary = importPath.endsWith('/')
-    ? escapedPath
-    : String.raw`${escapedPath}(?=(?:['"./]|$))`
+  const importPathPattern = importPath.endsWith('/')
+    ? String.raw`${escapedPath}[^'"]*`
+    : String.raw`${escapedPath}(?:[./][^'"]*)?`
+  const quotedImportPath = String.raw`(?:'${importPathPattern}'|"${importPathPattern}")`
 
   return new RegExp(
-    String.raw`(?:require\s*\(\s*['"]${importBoundary}|from\s*['"]${importBoundary}|import\s*\(\s*['"]${importBoundary})`,
+    String.raw`(?:require\s*\(\s*${quotedImportPath}|from\s*${quotedImportPath}|import\s*\(\s*${quotedImportPath})`,
   )
 }

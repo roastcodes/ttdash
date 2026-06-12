@@ -39,6 +39,7 @@ const { createDataRuntime } = require('../../server/data-runtime.js') as {
         addedDays: number
         unchangedDays: number
         conflictingDays: number
+        conflictingDates: string[]
         skippedDays: number
         totalDays: number
       }
@@ -58,10 +59,12 @@ function createRuntime({
   isWindows = false,
   pathModule = path,
   platform = 'darwin',
+  isDarwin = platform === 'darwin',
 }: {
   env?: Record<string, string>
   getCliAutoLoadActive?: () => boolean
   homeDir?: string
+  isDarwin?: boolean
   isWindows?: boolean
   pathModule?: typeof path
   platform?: string
@@ -84,6 +87,7 @@ function createRuntime({
     legacyDataFile: pathModule.join(homeDir, 'legacy-data.json'),
     settingsBackupKind: 'ttdash-settings-backup',
     usageBackupKind: 'ttdash-usage-backup',
+    isDarwin,
     isWindows,
     secureDirMode: 0o700,
     secureFileMode: 0o600,
@@ -127,6 +131,81 @@ describe('data runtime contracts', () => {
     }
   })
 
+  it('uses fully explicit app directories without a home directory', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-runtime-contract-'))
+    const cacheDir = path.join(runtimeRoot, 'cache')
+    const configDir = path.join(runtimeRoot, 'config')
+    const dataDir = path.join(runtimeRoot, 'data')
+
+    try {
+      const runtime = createRuntime({
+        env: {
+          TTDASH_CACHE_DIR: cacheDir,
+          TTDASH_CONFIG_DIR: configDir,
+          TTDASH_DATA_DIR: dataDir,
+        },
+        homeDir: '',
+        platform: 'linux',
+      })
+
+      expect(runtime.appPaths).toEqual({
+        cacheDir,
+        configDir,
+        dataDir,
+      })
+    } finally {
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects relative explicit app directory overrides', () => {
+    expect(() =>
+      createRuntime({
+        env: {
+          TTDASH_CACHE_DIR: '/tmp/ttdash/cache',
+          TTDASH_CONFIG_DIR: 'relative-config',
+          TTDASH_DATA_DIR: '/tmp/ttdash/data',
+        },
+        platform: 'linux',
+      }),
+    ).toThrow('TTDash app path environment variables must be absolute paths: TTDASH_CONFIG_DIR.')
+  })
+
+  it('combines absolute explicit app directory overrides with platform defaults', async () => {
+    const runtimeRoot = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-runtime-contract-'))
+    const dataDir = path.join(runtimeRoot, 'custom-data')
+
+    try {
+      const runtime = createRuntime({
+        env: {
+          TTDASH_DATA_DIR: dataDir,
+          XDG_CACHE_HOME: path.join(runtimeRoot, 'xdg-cache'),
+          XDG_CONFIG_HOME: path.join(runtimeRoot, 'xdg-config'),
+        },
+        homeDir: '/home/alex',
+        platform: 'linux',
+      })
+
+      expect(runtime.appPaths).toEqual({
+        dataDir,
+        configDir: path.join(runtimeRoot, 'xdg-config', 'ttdash'),
+        cacheDir: path.join(runtimeRoot, 'xdg-cache', 'ttdash'),
+      })
+    } finally {
+      await fsPromises.rm(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('fails clearly when platform app directories need an unavailable home directory', () => {
+    expect(() =>
+      createRuntime({
+        env: {},
+        homeDir: '',
+        platform: 'linux',
+      }),
+    ).toThrow('User home directory could not be determined for TTDash app paths.')
+  })
+
   it('resolves macOS, Windows, and XDG platform paths without touching the host profile', () => {
     const darwinRuntime = createRuntime({
       homeDir: '/Users/alex',
@@ -167,6 +246,36 @@ describe('data runtime contracts', () => {
       configDir: '/home/alex/.config-root/ttdash',
       cacheDir: '/home/alex/.cache-root/ttdash',
     })
+  })
+
+  it('falls back when the OS home directory is unavailable and coerces platform flags', () => {
+    const runtime = createRuntime({
+      env: {
+        HOME: '/fallback-home',
+      },
+      homeDir: '',
+      isDarwin: 'darwin' as unknown as boolean,
+      platform: 'linux',
+    })
+
+    expect(runtime.appPaths).toEqual({
+      dataDir: '/fallback-home/.local/share/ttdash',
+      configDir: '/fallback-home/.config/ttdash',
+      cacheDir: '/fallback-home/.cache/ttdash',
+    })
+  })
+
+  it('rejects relative home directory fallbacks for derived app paths', () => {
+    expect(() =>
+      createRuntime({
+        env: {
+          HOME: '.',
+          USERPROFILE: 'relative-profile',
+        },
+        homeDir: '',
+        platform: 'linux',
+      }),
+    ).toThrow('User home directory could not be determined for TTDash app paths.')
   })
 
   it('validates backup kinds before importing settings or usage payloads', () => {
@@ -230,16 +339,16 @@ describe('data runtime contracts', () => {
     }
     const equivalentDay = {
       ...currentDay,
-      totalCost: 0.1 + 0.2 - 0.05,
+      totalCost: 0.2500005,
       modelsUsed: ['Claude', 'GPT-5.4'],
       modelBreakdowns: [
         {
           ...currentDay.modelBreakdowns[1],
-          cost: 0.15 + Number.EPSILON,
+          cost: 0.1500005,
         },
         {
           ...currentDay.modelBreakdowns[0],
-          cost: 0.1 + Number.EPSILON,
+          cost: 0.1000005,
         },
       ],
     }
@@ -275,6 +384,7 @@ describe('data runtime contracts', () => {
       addedDays: 1,
       unchangedDays: 1,
       conflictingDays: 0,
+      conflictingDates: [],
       skippedDays: 0,
       totalDays: 2,
     })
@@ -288,6 +398,7 @@ describe('data runtime contracts', () => {
       addedDays: 0,
       unchangedDays: 0,
       conflictingDays: 1,
+      conflictingDates: ['2026-04-01'],
       skippedDays: 0,
       totalDays: 1,
     })
@@ -311,14 +422,14 @@ describe('data runtime contracts', () => {
     }
 
     const merge = runtime.mergeUsageData(null, {
-      daily: [{ ...validDay, date: '' }, validDay],
+      daily: [{ ...validDay, date: '' }, { ...validDay, date: 'not-a-date' }, validDay],
       totals: { totalCost: 9 },
     })
 
     expect(merge.summary).toMatchObject({
-      importedDays: 2,
+      importedDays: 3,
       addedDays: 1,
-      skippedDays: 1,
+      skippedDays: 2,
       totalDays: 1,
     })
     expect(merge.data.daily.map((day) => day.date)).toEqual(['2026-04-03'])

@@ -66,6 +66,7 @@ const { createAutoImportRuntime } = require('../../server/auto-import-runtime.js
       key: string
       vars?: Record<string, string | number>
     }) => string
+    getTimeoutSeconds: (timeoutMs: unknown) => number
     getExecutableName: (baseName: string, isWindows?: boolean) => string
     getLocalToktrackDisplayCommand: (isWindows?: boolean) => string
     getToktrackLatestLookupTimeoutMs: () => number
@@ -169,14 +170,26 @@ export class FakeChildProcess extends EventEmitter {
   stdout = new EventEmitter()
   stderr = new EventEmitter()
   exitCode: number | null = null
+  private closed = false
+
+  close(exitCode: number) {
+    if (this.closed) {
+      return
+    }
+
+    this.exitCode = exitCode
+    this.closed = true
+    this.emit('close', this.exitCode)
+  }
 
   kill(signal: string) {
     if (this.exitCode !== null) {
       return
     }
 
-    this.exitCode = signal === 'SIGKILL' ? 137 : 143
-    queueMicrotask(() => this.emit('close', this.exitCode))
+    const exitCode = signal === 'SIGKILL' ? 137 : 143
+    this.exitCode = exitCode
+    queueMicrotask(() => this.close(exitCode))
   }
 }
 
@@ -194,10 +207,13 @@ export function createSpawnSequence(outcomes: FakeSpawnOutcome[]) {
 
     if (!outcome.hang) {
       queueMicrotask(() => {
+        if (child.exitCode !== null) {
+          return
+        }
+
         if (outcome.stdout) child.stdout.emit('data', Buffer.from(outcome.stdout))
         if (outcome.stderr) child.stderr.emit('data', Buffer.from(outcome.stderr))
-        child.exitCode = outcome.code ?? 0
-        child.emit('close', child.exitCode)
+        child.close(outcome.code ?? 0)
       })
     }
 
@@ -218,6 +234,7 @@ const dataRuntime = createDataRuntime({
   legacyDataFile: path.join(process.cwd(), 'data.json'),
   settingsBackupKind: 'ttdash-settings-backup',
   usageBackupKind: 'ttdash-usage-backup',
+  isDarwin: process.platform === 'darwin',
   isWindows: process.platform === 'win32',
   secureDirMode: 0o700,
   secureFileMode: 0o600,
@@ -231,7 +248,7 @@ const autoImportRuntime = createAutoImportRuntime({
   normalizeIncomingData,
   withSettingsAndDataMutationLock: dataRuntime.withSettingsAndDataMutationLock,
   writeData: dataRuntime.writeData,
-  updateDataLoadState: dataRuntime._updateDataLoadStateUnlocked,
+  _updateDataLoadStateUnlocked: dataRuntime._updateDataLoadStateUnlocked,
   toktrackPackageName: TOKTRACK_PACKAGE_NAME,
   toktrackPackageSpec: TOKTRACK_PACKAGE_SPEC,
   toktrackVersion: TOKTRACK_VERSION,
@@ -253,12 +270,13 @@ const autoImportRuntime = createAutoImportRuntime({
   toktrackLatestLookupTimeoutMs: 15000,
   toktrackLatestCacheSuccessTtlMs: 5 * 60 * 1000,
   toktrackLatestCacheFailureTtlMs: 60 * 1000,
-  probeLog: (message: string) => console.warn(message),
+  probeLog: () => undefined,
 })
 const {
   commandExists,
   getExecutableName,
   getLocalToktrackDisplayCommand,
+  getTimeoutSeconds,
   getToktrackLatestLookupTimeoutMs,
   getToktrackRunnerTimeouts,
   lookupLatestToktrackVersion,
@@ -290,6 +308,7 @@ export {
   getFileMutationLockDir,
   getLocalToktrackDisplayCommand,
   getPendingFileMutationLockCount,
+  getTimeoutSeconds,
   getToktrackLatestLookupTimeoutMs,
   getToktrackRunnerTimeouts,
   isLoopbackHost,

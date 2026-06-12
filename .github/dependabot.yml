@@ -48,6 +48,8 @@ updates:
       - '*'
     rebase-strategy: 'auto'
     versioning-strategy: 'increase-if-necessary'
+    # Dependabot's config parser does not support YAML aliases, so this block is intentionally
+    # repeated for each ecosystem that participates in the multi-ecosystem group.
     ignore:
       - dependency-name: 'eslint'
         update-types:

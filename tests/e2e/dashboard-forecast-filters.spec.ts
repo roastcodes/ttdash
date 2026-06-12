@@ -97,14 +97,14 @@ test('exposes pressed filter state and supports keyboard date selection in the d
   const dateDialog = page.getByRole('dialog')
   await expect(dateDialog).toBeVisible()
 
-  const midMonthDay = dateDialog.locator('button[aria-pressed]').filter({ hasText: /^15$/ })
+  const midMonthDay = dateDialog.locator('button[aria-pressed="false"]').filter({ hasText: /^15$/ })
   await midMonthDay.focus()
   await expect(midMonthDay).toBeFocused()
   const focusedDayBefore = await midMonthDay.getAttribute('aria-label')
   expect(focusedDayBefore ?? '').toMatch(/\d/)
 
   await page.keyboard.press('ArrowRight')
-  const focusedDay = dateDialog.locator('button[aria-pressed][tabindex="0"]')
+  const focusedDay = dateDialog.locator('button[aria-pressed="false"][tabindex="0"]')
   await expect(focusedDay).not.toHaveAttribute('aria-label', focusedDayBefore ?? '')
   await expect(focusedDay).toBeFocused()
   await expect(focusedDay).toHaveAttribute('aria-label', /\d/)

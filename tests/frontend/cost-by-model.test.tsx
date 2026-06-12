@@ -3,6 +3,7 @@
 import { screen } from '@testing-library/react'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { CostByModel } from '@/components/charts/CostByModel'
+import { formatCurrency } from '@/lib/formatters'
 import { initI18n } from '@/lib/i18n'
 import { renderWithTooltip } from '../test-utils'
 
@@ -28,5 +29,19 @@ describe('CostByModel', () => {
     expect(screen.getByText(/25% · \$25(?:\.0+)?/)).toBeInTheDocument()
     expect(screen.getByText('Other models')).toBeInTheDocument()
     expect(screen.getByText('5% · $5.00')).toBeInTheDocument()
+  })
+
+  it('keeps every model visible in a full wrapped legend when many models are present', () => {
+    const data = Array.from({ length: 12 }, (_, index) => ({
+      name: `Model ${String(index + 1).padStart(2, '0')}`,
+      value: (index + 1) * 4,
+    }))
+    renderWithTooltip(<CostByModel data={data} />)
+
+    for (const entry of data) {
+      expect(screen.getByText(`${entry.name} (${formatCurrency(entry.value)})`)).toBeInTheDocument()
+    }
+
+    expect(screen.getAllByText(/Model \d{2} \(\$/)).toHaveLength(data.length)
   })
 })

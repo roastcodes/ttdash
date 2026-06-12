@@ -5,6 +5,7 @@ function createAutoImportRoutes({
   securityHeaders,
   autoImportRuntime,
   sendSSE,
+  logger = console,
 }) {
   const {
     createAutoImportMessageEvent,
@@ -30,6 +31,17 @@ function createAutoImportRoutes({
 
     let autoImportLease;
     let aborted = false;
+    const isWritable = () => !aborted && !res.writableEnded;
+    const writeSSE = (event, data) => {
+      if (isWritable()) {
+        sendSSE(res, event, data, logger);
+      }
+    };
+    const endResponse = () => {
+      if (isWritable()) {
+        res.end();
+      }
+    };
     try {
       autoImportLease = acquireAutoImportLease();
     } catch (error) {
@@ -58,19 +70,13 @@ function createAutoImportRoutes({
       const result = await performAutoImport({
         source: 'auto-import',
         onCheck: (event) => {
-          if (!aborted) {
-            sendSSE(res, 'check', event);
-          }
+          writeSSE('check', event);
         },
         onProgress: (event) => {
-          if (!aborted) {
-            sendSSE(res, 'progress', event);
-          }
+          writeSSE('progress', event);
         },
         onOutput: (line) => {
-          if (!aborted) {
-            sendSSE(res, 'stderr', { line });
-          }
+          writeSSE('stderr', { line });
         },
         signalOnClose: (close) => {
           // This second close listener aborts the long-running import command itself.
@@ -80,19 +86,21 @@ function createAutoImportRoutes({
       });
 
       if (aborted) {
+        endResponse();
         return true;
       }
 
-      sendSSE(res, 'success', result);
-      sendSSE(res, 'done', {});
-      res.end();
+      writeSSE('success', result);
+      writeSSE('done', {});
+      endResponse();
     } catch (error) {
       if (aborted) {
+        endResponse();
         return true;
       }
-      sendSSE(res, 'error', toAutoImportErrorEvent(error));
-      sendSSE(res, 'done', {});
-      res.end();
+      writeSSE('error', toAutoImportErrorEvent(error));
+      writeSSE('done', {});
+      endResponse();
     } finally {
       autoImportLease.release();
     }

@@ -59,7 +59,7 @@ function createToktrackRunnerResolver({
   function createBunxToktrackRunner() {
     return {
       command: getExecutableName('bunx'),
-      prefixArgs: isWindows ? ['x', toktrackPackageSpec] : [toktrackPackageSpec],
+      prefixArgs: [toktrackPackageSpec],
       env: processObject.env,
       method: 'bunx',
       label: 'bunx',

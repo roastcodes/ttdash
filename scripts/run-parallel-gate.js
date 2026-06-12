@@ -112,12 +112,29 @@ Options:
 `);
 }
 
-function prefixChunk(stream, taskName, chunk) {
-  for (const line of chunk.toString().split(/\r?\n/)) {
+function createPrefixedStreamWriter(stream, taskName) {
+  let pendingLine = '';
+
+  function writeLine(line) {
     if (line.length > 0) {
       stream.write(`[${taskName}] ${line}\n`);
     }
   }
+
+  return {
+    flush() {
+      writeLine(pendingLine);
+      pendingLine = '';
+    },
+    write(chunk) {
+      const lines = `${pendingLine}${chunk.toString()}`.split(/\r?\n/);
+      pendingLine = lines.pop() || '';
+
+      for (const line of lines) {
+        writeLine(line);
+      }
+    },
+  };
 }
 
 function formatDuration(durationMs) {
@@ -135,15 +152,24 @@ function runTask(task, spawnImpl = spawn, streams = process) {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    child.stdout.on('data', (chunk) => prefixChunk(streams.stdout, task.name, chunk));
-    child.stderr.on('data', (chunk) => prefixChunk(streams.stderr, task.name, chunk));
+    const stdoutWriter = createPrefixedStreamWriter(streams.stdout, task.name);
+    const stderrWriter = createPrefixedStreamWriter(streams.stderr, task.name);
+    const flushOutput = () => {
+      stdoutWriter.flush();
+      stderrWriter.flush();
+    };
+
+    child.stdout.on('data', (chunk) => stdoutWriter.write(chunk));
+    child.stderr.on('data', (chunk) => stderrWriter.write(chunk));
     child.on('error', (error) => {
       const durationMs = Date.now() - startedAt;
+      flushOutput();
       streams.stderr.write(`[${task.name}] failed to start: ${error.message}\n`);
       resolve({ durationMs, task, status: 1 });
     });
     child.on('close', (status) => {
       const durationMs = Date.now() - startedAt;
+      flushOutput();
       streams.stdout.write(
         `[${task.name}] exited with ${status ?? 1} after ${formatDuration(durationMs)}\n`,
       );

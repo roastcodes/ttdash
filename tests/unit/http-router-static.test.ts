@@ -32,7 +32,9 @@ describe('HTTP router static file handling', () => {
 
   it('logs failed SPA fallback reads before returning a server error', async () => {
     const fallbackError = Object.assign(new Error('index missing'), { code: 'ENOENT' })
+    const logger = { error: vi.fn() }
     const { router } = createRouter({
+      logger,
       readFile: async (filePath) => {
         if (filePath.endsWith('index.html')) {
           throw fallbackError
@@ -47,7 +49,7 @@ describe('HTTP router static file handling', () => {
     expect(res.status).toBe(500)
     expect(res.headers['x-test-security']).toBe('1')
     expect(JSON.parse(res.body)).toEqual({ message: 'Internal Server Error' })
-    expect(consoleError).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       'SPA fallback read failed',
       expect.objectContaining({
         error: fallbackError,
@@ -56,6 +58,7 @@ describe('HTTP router static file handling', () => {
         staticRoot: '/app/dist',
       }),
     )
+    expect(consoleError).not.toHaveBeenCalled()
   })
 
   it('preserves base security headers when preparing HTML responses', async () => {

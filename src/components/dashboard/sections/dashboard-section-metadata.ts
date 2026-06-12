@@ -1,6 +1,11 @@
 import type { DashboardSectionId } from '@/types'
 
-/** Reserved placeholder heights used while dashboard sections lazy-render on scroll. */
+/**
+ * Reserved placeholder heights used while dashboard sections lazy-render on scroll.
+ * Values are measured from the current rendered desktop section compositions with
+ * room for responsive wrapping; update them when section cards, chart heights,
+ * table density, or breakpoints change.
+ */
 export const dashboardSectionPlaceholderClassName: Record<DashboardSectionId, string> = {
   insights: 'min-h-[260px]',
   metrics: 'min-h-[320px]',

@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { ChartLegend } from '@/components/charts/ChartLegend'
+import { renderWithTooltip } from '../test-utils'
 
 describe('ChartLegend', () => {
   it('wraps legend labels instead of relying on horizontal scroll', () => {
-    const { container } = render(
+    const { container } = renderWithTooltip(
       <ChartLegend
         payload={[
           { value: 'GPT-5.4 ($60)', color: 'hsl(40 70% 50%)' },
@@ -22,7 +23,7 @@ describe('ChartLegend', () => {
   })
 
   it('keeps custom rendered labels in the wrapped legend layout', () => {
-    const { container } = render(
+    const { container } = renderWithTooltip(
       <ChartLegend
         payload={[
           { value: 'Cache Write', color: 'hsl(120 70% 50%)' },
@@ -39,7 +40,7 @@ describe('ChartLegend', () => {
   })
 
   it('filters hidden entries before rendering the wrapped payload', () => {
-    render(
+    renderWithTooltip(
       <ChartLegend
         payload={[
           { value: 'Visible model', color: 'hsl(200 70% 50%)' },

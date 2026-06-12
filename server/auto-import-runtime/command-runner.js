@@ -94,10 +94,19 @@ function createAutoImportCommandRunner({
   }
 
   function getUtf8SafePrefixLength(chunkBuffer, maxBytes) {
-    let safeEnd = Math.min(maxBytes, chunkBuffer.length);
+    const byteLimit = Math.min(maxBytes, chunkBuffer.length);
+    if (byteLimit <= 0 || byteLimit >= chunkBuffer.length) {
+      return byteLimit;
+    }
+    if ((chunkBuffer[byteLimit] & 0b11000000) !== 0b10000000) {
+      return byteLimit;
+    }
+
+    let safeEnd = byteLimit - 1;
     while (safeEnd > 0 && (chunkBuffer[safeEnd] & 0b11000000) === 0b10000000) {
       safeEnd -= 1;
     }
+
     return safeEnd;
   }
 

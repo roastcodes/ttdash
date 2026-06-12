@@ -65,7 +65,7 @@ function createDataRuntimeFileIo({
         if (cleanupError?.code !== 'ENOENT') {
           throw new AggregateError(
             [error, cleanupError],
-            `Failed atomic JSON write and temp-file cleanup for ${path.basename(filePath)}.`,
+            `Failed atomic JSON write and temp-file cleanup for ${filePath}.`,
           );
         }
       }
@@ -95,7 +95,7 @@ function createDataRuntimeFileIo({
         if (unlinkError?.code !== 'ENOENT') {
           throw new AggregateError(
             [error, unlinkError],
-            `Failed atomic JSON write and temp-file cleanup for ${path.basename(filePath)}.`,
+            `Failed atomic JSON write and temp-file cleanup for ${filePath}.`,
           );
         }
       }

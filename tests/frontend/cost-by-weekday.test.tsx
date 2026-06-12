@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { screen } from '@testing-library/react'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   assertLegacyWeekdayData,
   legacyWeekdayData,
@@ -12,7 +12,7 @@ import { initI18n } from '@/lib/i18n'
 import { renderWithTooltip } from '../test-utils'
 
 describe('CostByWeekday chart', () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
     await initI18n('en')
   })
 
@@ -41,11 +41,12 @@ describe('CostByWeekday chart', () => {
     expect(fills.some((fill) => fill?.includes('weekdayLow'))).toBe(true)
   })
 
-  it('uses localized day labels as a defensive weekend fallback without weekday indices', () => {
+  it('uses localized day labels as a defensive weekend fallback without weekday indices', async () => {
+    await initI18n('de')
     assertLegacyWeekdayData(legacyWeekdayData)
 
     renderWithTooltip(<CostByWeekday data={legacyWeekdayData} />)
 
-    expect(screen.getByText('Peak: Mar · Low: Sáb. · Weekend 19%')).toBeInTheDocument()
+    expect(screen.getByText('Peak: Di · Low: Sa · Wochenende 19%')).toBeInTheDocument()
   })
 })

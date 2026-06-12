@@ -12,7 +12,7 @@ function createAutoImportRuntime({
   normalizeIncomingData,
   withSettingsAndDataMutationLock,
   writeData,
-  updateDataLoadState,
+  _updateDataLoadStateUnlocked,
   toktrackPackageName,
   toktrackPackageSpec,
   toktrackVersion,
@@ -76,7 +76,7 @@ function createAutoImportRuntime({
     normalizeIncomingData,
     withSettingsAndDataMutationLock,
     writeData,
-    updateDataLoadState,
+    _updateDataLoadStateUnlocked,
   });
 
   return {
@@ -86,6 +86,7 @@ function createAutoImportRuntime({
     formatAutoImportMessageEvent: messages.formatAutoImportMessageEvent,
     getExecutableName: commandRunner.getExecutableName,
     getLocalToktrackDisplayCommand: runnerResolver.getLocalToktrackDisplayCommand,
+    getTimeoutSeconds: messages.getTimeoutSeconds,
     getToktrackLatestLookupTimeoutMs: latestVersionLookup.getToktrackLatestLookupTimeoutMs,
     getToktrackRunnerTimeouts: runnerResolver.getToktrackRunnerTimeouts,
     isAutoImportRunning: importExecutor.isAutoImportRunning,

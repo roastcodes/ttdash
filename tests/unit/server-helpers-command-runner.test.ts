@@ -42,6 +42,22 @@ describe('server helper utilities: command runner', () => {
     )
   })
 
+  it('keeps a killed fake child process closed once with the kill exit code', async () => {
+    const spawnImpl = createSpawnSequence([{ stdout: 'late stdout\n' }])
+    const child = spawnImpl('fake-runner', [])
+    const closeEvents: Array<number | null> = []
+
+    child.on('close', (exitCode) => {
+      closeEvents.push(exitCode)
+    })
+    child.kill('SIGTERM')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(child.exitCode).toBe(143)
+    expect(closeEvents).toEqual([143])
+  })
+
   it('streams stderr and lets callers terminate a running command on close', async () => {
     const child = new FakeChildProcess()
     const spawnImpl = vi.fn(() => child)
@@ -200,6 +216,26 @@ describe('server helper utilities: command runner', () => {
       }),
     ).rejects.toMatchObject({
       stdout: 'a',
+      outputTruncated: true,
+      exitCode: 1,
+    })
+  })
+
+  it('keeps complete UTF-8 characters when truncation lands on their boundary', async () => {
+    const spawnImpl = createSpawnSequence([
+      {
+        code: 1,
+        stdout: '€x',
+      },
+    ])
+
+    await expect(
+      runCommandWithSpawn('fake-runner', ['daily', '--json'], {
+        maxOutputBytes: 3,
+        spawnImpl,
+      }),
+    ).rejects.toMatchObject({
+      stdout: '€',
       outputTruncated: true,
       exitCode: 1,
     })

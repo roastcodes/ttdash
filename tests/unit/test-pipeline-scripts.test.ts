@@ -79,7 +79,8 @@ describe('test pipeline scripts', () => {
     }
 
     expect(workflow).toContain('run: npm run test:static')
-    expect(workflow).toContain('run: npm run test:vitest:${{ matrix.project }}')
+    expect(workflow).toContain('PROJECT: ${{ matrix.project }}')
+    expect(workflow).toContain('run: npm run "test:vitest:${PROJECT}"')
     expect(workflow).toContain('node scripts/report-test-timings.js')
     expect(workflow).toContain('--max-suite-seconds=20')
     expect(workflow).toContain('--max-test-seconds=12')
@@ -96,9 +97,8 @@ describe('test pipeline scripts', () => {
     expect(workflow).toContain('- package-smoke')
     expect(workflow).toContain('- e2e')
     expect(workflow).toContain('- windows-smoke')
-    expect(workflow).toContain(
-      'check_result "windows-smoke" "${{ needs[\'windows-smoke\'].result }}"',
-    )
+    expect(workflow).toContain("WINDOWS_SMOKE_RESULT: ${{ needs['windows-smoke'].result }}")
+    expect(workflow).toContain('check_result "windows-smoke" "${WINDOWS_SMOKE_RESULT}"')
     expect(workflow).toContain('uses: actions/download-artifact@')
   })
 

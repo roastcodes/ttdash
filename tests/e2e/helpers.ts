@@ -90,7 +90,9 @@ async function requestApiWithRetry(
   url: string,
   options: ApiRequestOptions = {},
 ) {
-  let lastError: unknown
+  if (apiRequestRetryAttempts <= 0) {
+    throw new Error('API request retry attempts must be greater than 0')
+  }
 
   for (let attempt = 1; attempt <= apiRequestRetryAttempts; attempt += 1) {
     try {
@@ -99,16 +101,13 @@ async function requestApiWithRetry(
         method,
       })
     } catch (error) {
-      lastError = error
       if (attempt === apiRequestRetryAttempts || !isTransientApiRequestError(error)) {
         throw error
       }
 
-      await sleep(apiRequestRetryDelayMs * attempt)
+      await sleep(apiRequestRetryDelayMs * 2 ** (attempt - 1))
     }
   }
-
-  throw lastError
 }
 
 export function createApiUrl(pathname: string, baseURL?: string) {

@@ -12,22 +12,29 @@ import {
   sortProviderEfficiencyRows,
   sortRecentDays,
   summarizeRecentDays,
+  type RecentDaysSortKey,
 } from '@/lib/sortable-table-data'
 import type { AggregateMetrics, DailyUsage } from '@/types'
 
-function buildUsage(date: string, cost: number, tokens: number, requests: number): DailyUsage {
+function buildUsage(
+  date: string,
+  cost: number,
+  tokens: number,
+  requests: number,
+  overrides: Partial<DailyUsage> = {},
+): DailyUsage {
   return {
     date,
-    inputTokens: tokens,
-    outputTokens: 0,
-    cacheCreationTokens: 0,
-    cacheReadTokens: Math.floor(tokens / 2),
-    thinkingTokens: 0,
+    inputTokens: overrides.inputTokens ?? tokens,
+    outputTokens: overrides.outputTokens ?? 0,
+    cacheCreationTokens: overrides.cacheCreationTokens ?? 0,
+    cacheReadTokens: overrides.cacheReadTokens ?? Math.floor(tokens / 2),
+    thinkingTokens: overrides.thinkingTokens ?? 0,
     totalTokens: tokens,
     totalCost: cost,
     requestCount: requests,
-    modelsUsed: ['gpt-5.4'],
-    modelBreakdowns: [
+    modelsUsed: overrides.modelsUsed ?? ['gpt-5.4'],
+    modelBreakdowns: overrides.modelBreakdowns ?? [
       {
         modelName: 'openai/gpt-5.4',
         inputTokens: tokens,
@@ -50,6 +57,19 @@ function buildUsage(date: string, cost: number, tokens: number, requests: number
       },
     ],
   }
+}
+
+function buildModelBreakdowns(modelNames: string[]): DailyUsage['modelBreakdowns'] {
+  return modelNames.map((modelName) => ({
+    modelName,
+    inputTokens: 1,
+    outputTokens: 0,
+    cacheCreationTokens: 0,
+    cacheReadTokens: 0,
+    thinkingTokens: 0,
+    cost: 1,
+    requestCount: 1,
+  }))
 }
 
 describe('sortable table data', () => {
@@ -119,6 +139,61 @@ describe('sortable table data', () => {
     expect(rows[0]?.benchmark).toMatchObject({ prevCostDelta: 150, avgCost7: 2 })
     expect(rows[0]?.costPerM).toBe(10_000)
     expect(rows[0]?.uniqueModels).toEqual([{ name: 'GPT-5.4', provider: 'OpenAI' }])
+  })
+
+  it('sorts recent days by every visible table column', () => {
+    const days = [
+      buildUsage('2026-04-01', 2, 365, 4, {
+        inputTokens: 30,
+        outputTokens: 300,
+        cacheCreationTokens: 10,
+        cacheReadTokens: 20,
+        thinkingTokens: 5,
+        modelsUsed: ['openai/gpt-5.4'],
+        modelBreakdowns: buildModelBreakdowns(['openai/gpt-5.4']),
+      }),
+      buildUsage('2026-04-02', 8, 215, 9, {
+        inputTokens: 90,
+        outputTokens: 20,
+        cacheCreationTokens: 80,
+        cacheReadTokens: 10,
+        thinkingTokens: 15,
+        modelsUsed: ['openai/gpt-5.4', 'claude-sonnet-4-5', 'gemini-2.5-pro'],
+        modelBreakdowns: buildModelBreakdowns([
+          'openai/gpt-5.4',
+          'claude-sonnet-4-5',
+          'gemini-2.5-pro',
+        ]),
+      }),
+      buildUsage('2026-04-03', 4, 232, 2, {
+        inputTokens: 10,
+        outputTokens: 100,
+        cacheCreationTokens: 50,
+        cacheReadTokens: 70,
+        thinkingTokens: 2,
+        modelsUsed: ['openai/gpt-5.4', 'claude-sonnet-4-5'],
+        modelBreakdowns: buildModelBreakdowns(['openai/gpt-5.4', 'claude-sonnet-4-5']),
+      }),
+    ]
+    const expectedDescendingOrder: Record<RecentDaysSortKey, string[]> = {
+      date: ['2026-04-03', '2026-04-02', '2026-04-01'],
+      cost: ['2026-04-02', '2026-04-03', '2026-04-01'],
+      tokens: ['2026-04-01', '2026-04-03', '2026-04-02'],
+      input: ['2026-04-02', '2026-04-01', '2026-04-03'],
+      output: ['2026-04-01', '2026-04-03', '2026-04-02'],
+      cacheWrite: ['2026-04-02', '2026-04-03', '2026-04-01'],
+      cacheRead: ['2026-04-03', '2026-04-01', '2026-04-02'],
+      thinking: ['2026-04-02', '2026-04-01', '2026-04-03'],
+      requests: ['2026-04-02', '2026-04-01', '2026-04-03'],
+      costPerM: ['2026-04-02', '2026-04-03', '2026-04-01'],
+      models: ['2026-04-02', '2026-04-03', '2026-04-01'],
+    }
+
+    for (const [sortKey, expectedDates] of Object.entries(expectedDescendingOrder) as Array<
+      [RecentDaysSortKey, string[]]
+    >) {
+      expect(sortRecentDays(days, sortKey, false).map((day) => day.date)).toEqual(expectedDates)
+    }
   })
 
   it('summarizes recent days with cache share and top cost day', () => {

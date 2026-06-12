@@ -164,7 +164,8 @@
     },
     "forecastCache": {
       "title": "Forecast & Cache",
-      "description": "Cost forecast and cache efficiency"
+      "description": "Cost forecast and cache efficiency",
+      "loadingForecast": "Loading forecast"
     },
     "costAnalysis": {
       "title": "Cost analysis",
@@ -834,6 +835,22 @@
       "clearModels": {
         "label": "Reset model filter",
         "description": "Remove all active model filters"
+      },
+      "selectProvider": {
+        "label": "Select provider: {{provider}}",
+        "description": "Include {{provider}} in the provider filter"
+      },
+      "deselectProvider": {
+        "label": "Deselect provider: {{provider}}",
+        "description": "Remove {{provider}} from the provider filter"
+      },
+      "selectModel": {
+        "label": "Select model: {{model}}",
+        "description": "Include {{model}} in the model filter"
+      },
+      "deselectModel": {
+        "label": "Deselect model: {{model}}",
+        "description": "Remove {{model}} from the model filter"
       },
       "clearDates": {
         "label": "Reset date filter",

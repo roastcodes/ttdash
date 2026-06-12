@@ -1,14 +1,31 @@
 function formatCurrency(value, locale = 'de-CH') {
   const numericValue = Number(value) || 0;
   const fractionDigits = Math.abs(numericValue) >= 100 ? 0 : 2;
-
-  // Toktrack reports usage cost in USD; server logs keep the app's default Swiss locale.
-  return new Intl.NumberFormat(locale, {
+  const formatter = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
-  }).format(numericValue);
+  });
+  // Toktrack reports usage cost in USD; server logs keep the app's default Swiss locale.
+  if (numericValue >= 0) {
+    return formatter.format(numericValue);
+  }
+
+  let signInserted = false;
+  const formattedValue = formatter
+    .formatToParts(Math.abs(numericValue))
+    .map((part) => {
+      if (!signInserted && part.type === 'integer') {
+        signInserted = true;
+        return `-${part.value}`;
+      }
+
+      return part.value;
+    })
+    .join('');
+
+  return signInserted ? formattedValue : `-${formattedValue}`;
 }
 
 /** Formats rounded whole-number counts for server startup/status logs. */

@@ -36,7 +36,18 @@ export type ModelEfficiencySortKey =
   | 'costPerDay'
 
 /** Identifies sortable recent-days columns. */
-export type RecentDaysSortKey = 'date' | 'cost' | 'tokens' | 'costPerM'
+export type RecentDaysSortKey =
+  | 'date'
+  | 'cost'
+  | 'tokens'
+  | 'input'
+  | 'output'
+  | 'cacheWrite'
+  | 'cacheRead'
+  | 'thinking'
+  | 'requests'
+  | 'costPerM'
+  | 'models'
 
 /** Describes one provider-efficiency row with derived ratios. */
 export interface ProviderEfficiencyRow extends AggregateMetrics {
@@ -320,25 +331,55 @@ export function buildRecentDaysBenchmarkMap(data: DailyUsage[]): Map<string, Rec
   return map
 }
 
+function getRecentDayCostPerMillion(day: DailyUsage): number {
+  return day.totalTokens > 0 ? day.totalCost / (day.totalTokens / 1_000_000) : 0
+}
+
+function compareRecentDayNumbers(
+  first: DailyUsage,
+  second: DailyUsage,
+  sortAsc: boolean,
+  getValue: (day: DailyUsage) => number,
+): number {
+  const diff = getValue(first) - getValue(second)
+  return sortAsc ? diff : -diff
+}
+
 /** Sorts recent-day usage entries by the selected table field. */
 export function sortRecentDays(
   data: DailyUsage[],
   sortKey: RecentDaysSortKey,
   sortAsc: boolean,
 ): DailyUsage[] {
+  const modelCounts =
+    sortKey === 'models'
+      ? new Map(data.map((day) => [day, getUniqueModelsForDay(day).length]))
+      : null
+
   return [...data].sort((a, b) => {
     switch (sortKey) {
       case 'date':
         return sortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)
       case 'cost':
-        return sortAsc ? a.totalCost - b.totalCost : b.totalCost - a.totalCost
+        return compareRecentDayNumbers(a, b, sortAsc, (day) => day.totalCost)
       case 'tokens':
-        return sortAsc ? a.totalTokens - b.totalTokens : b.totalTokens - a.totalTokens
-      case 'costPerM': {
-        const aPerMillion = a.totalTokens > 0 ? a.totalCost / (a.totalTokens / 1_000_000) : 0
-        const bPerMillion = b.totalTokens > 0 ? b.totalCost / (b.totalTokens / 1_000_000) : 0
-        return sortAsc ? aPerMillion - bPerMillion : bPerMillion - aPerMillion
-      }
+        return compareRecentDayNumbers(a, b, sortAsc, (day) => day.totalTokens)
+      case 'input':
+        return compareRecentDayNumbers(a, b, sortAsc, (day) => day.inputTokens)
+      case 'output':
+        return compareRecentDayNumbers(a, b, sortAsc, (day) => day.outputTokens)
+      case 'cacheWrite':
+        return compareRecentDayNumbers(a, b, sortAsc, (day) => day.cacheCreationTokens)
+      case 'cacheRead':
+        return compareRecentDayNumbers(a, b, sortAsc, (day) => day.cacheReadTokens)
+      case 'thinking':
+        return compareRecentDayNumbers(a, b, sortAsc, (day) => day.thinkingTokens)
+      case 'requests':
+        return compareRecentDayNumbers(a, b, sortAsc, (day) => day.requestCount)
+      case 'costPerM':
+        return compareRecentDayNumbers(a, b, sortAsc, getRecentDayCostPerMillion)
+      case 'models':
+        return compareRecentDayNumbers(a, b, sortAsc, (day) => modelCounts?.get(day) ?? 0)
     }
   })
 }
@@ -351,7 +392,7 @@ export function buildRecentDayRows(
   return displayed.map((day) => ({
     day,
     benchmark: benchmarkMap.get(day.date),
-    costPerM: day.totalTokens > 0 ? day.totalCost / (day.totalTokens / 1_000_000) : 0,
+    costPerM: getRecentDayCostPerMillion(day),
     uniqueModels: getUniqueModelsForDay(day),
   }))
 }

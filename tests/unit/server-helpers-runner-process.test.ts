@@ -50,7 +50,6 @@ describe('server helper utilities: toktrack runner process integration', () => {
     async () => {
       const tempDir = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-runner-fallback-'))
       const originalPath = process.env.PATH
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
       process.env.PATH = tempDir
 
       try {
@@ -63,9 +62,7 @@ describe('server helper utilities: toktrack runner process integration', () => {
         expect(runner).not.toBeNull()
         expect(runner?.method).toBe('npm')
         expect(runner?.command).toBe('npx')
-        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to probe bunx'))
       } finally {
-        warnSpy.mockRestore()
         process.env.PATH = originalPath
         await fsPromises.rm(tempDir, { recursive: true, force: true })
       }

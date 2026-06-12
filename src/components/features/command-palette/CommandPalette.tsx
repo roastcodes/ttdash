@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Command } from 'cmdk'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -60,6 +60,14 @@ export function CommandPalette({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  const onScrollTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
+
+  const onScrollBottom = useCallback(() => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+  }, [])
+
   const commands = useMemo(
     () =>
       buildCommandPaletteCommands({
@@ -82,9 +90,8 @@ export function CommandPalette({
         onAutoImport,
         onOpenSettings,
         onScrollTo,
-        onScrollTop: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
-        onScrollBottom: () =>
-          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }),
+        onScrollTop,
+        onScrollBottom,
         onViewModeChange,
         onApplyPreset,
         onToggleProvider,
@@ -123,6 +130,8 @@ export function CommandPalette({
       onClearDateRange,
       onResetAll,
       onScrollTo,
+      onScrollTop,
+      onScrollBottom,
       onToggleProvider,
       onToggleModel,
       onLanguageChange,
