@@ -2,17 +2,11 @@ import type { DashboardMetrics, ViewMode } from '@/types'
 
 /** Identifies a request-quality metric card. */
 export type RequestQualityMetricId =
-  | 'tokensPerRequest'
-  | 'costPerRequest'
-  | 'cachePerRequest'
-  | 'thinkingPerRequest'
+  'tokensPerRequest' | 'costPerRequest' | 'cachePerRequest' | 'thinkingPerRequest'
 
 /** Identifies a request-quality summary tile. */
 export type RequestQualitySummaryId =
-  | 'requestDensity'
-  | 'cacheHitRate'
-  | 'inputOutput'
-  | 'topRequestModel'
+  'requestDensity' | 'cacheHitRate' | 'inputOutput' | 'topRequestModel'
 
 /** Describes one derived request-quality metric before localization. */
 export type RequestQualityMetricData = {

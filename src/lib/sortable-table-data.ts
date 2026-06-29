@@ -12,13 +12,7 @@ export type SortState<SortKey extends string> = {
 
 /** Identifies sortable provider-efficiency columns. */
 export type ProviderEfficiencySortKey =
-  | 'cost'
-  | 'share'
-  | 'requests'
-  | 'tokens'
-  | 'costPerRequest'
-  | 'costPerMillion'
-  | 'cacheShare'
+  'cost' | 'share' | 'requests' | 'tokens' | 'costPerRequest' | 'costPerMillion' | 'cacheShare'
 
 /** Identifies sortable model-efficiency columns. */
 export type ModelEfficiencySortKey =

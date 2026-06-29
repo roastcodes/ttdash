@@ -33,8 +33,7 @@ describe('toktrack version status session warmup', () => {
 
   it('deduplicates concurrent warmups and publishes the resolved status', async () => {
     let resolveStatus:
-      | ((value: Awaited<ReturnType<typeof warmupToktrackVersionStatus>>) => void)
-      | null = null
+      ((value: Awaited<ReturnType<typeof warmupToktrackVersionStatus>>) => void) | null = null
     apiMocks.fetchToktrackVersionStatus.mockImplementation(
       () =>
         new Promise((resolve) => {
