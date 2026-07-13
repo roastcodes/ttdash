@@ -9,6 +9,12 @@ reviews:
     eslint:
       enabled: false
 
+  # This project does not require per-function JSDoc; documentation and API
+  # behavior are enforced through review, tests, and the required CI checks.
+  pre_merge_checks:
+    docstrings:
+      mode: 'off'
+
   auto_review:
     ignore_title_keywords:
       - 'WIP'
