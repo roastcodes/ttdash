@@ -23,7 +23,7 @@ updates:
     # Keep eslint/@eslint/js on 9.x for now.
     # Verified on 2026-07-13: eslint-plugin-react@7.37.5, eslint-plugin-jsx-a11y@6.10.2,
     # and eslint-plugin-jest-dom@5.5.0 still publish peer ranges only through ESLint 9.
-    # These peer constraints prevent a supported joint upgrade, so keep both majors pending.
+    # These peer constraints prevent a supported ESLint 10 upgrade, so defer both 10.x updates.
     multi-ecosystem-group: 'javascript-dependencies'
     patterns:
       - '*'
