@@ -41,6 +41,7 @@ assert(
   semver.satisfies(toolingPackage.version, toolingSpec),
   `The installed tooling TypeScript ${toolingPackage.version} does not satisfy ${toolingSpec}.`,
 );
+// typescript-eslint supports TypeScript >=4.8.4 <6.1.0, so 6.1.x would break linting.
 assert(
   semver.satisfies(toolingPackage.version, '>=6.0.3 <6.1.0'),
   'The tooling TypeScript API must remain within the supported 6.0.x range.',
@@ -65,6 +66,7 @@ assert(
   semver.satisfies(nativePackage.version, nativeSpec.slice('npm:typescript@'.length)),
   `The installed native TypeScript ${nativePackage.version} does not satisfy ${nativeSpec}.`,
 );
+// Keep the separately invoked compiler on TypeScript 7 while the tooling API remains on 6.0.x.
 assert(
   semver.satisfies(nativePackage.version, '>=7 <8'),
   'The native TypeScript compiler must be version 7.x.',
