@@ -3,6 +3,12 @@
 reviews:
   profile: 'assertive'
 
+  # ESLint is enforced by the required Static Checks CI job. Avoid a duplicate
+  # dependency installation in CodeRabbit, which cannot resolve our npm alias.
+  tools:
+    eslint:
+      enabled: false
+
   auto_review:
     ignore_title_keywords:
       - 'WIP'
