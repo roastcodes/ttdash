@@ -30,6 +30,13 @@ updates:
     rebase-strategy: 'auto'
     versioning-strategy: 'increase-if-necessary'
     ignore:
+      # TypeScript 7.0 has no stable programmatic API, and typescript-eslint supports <6.1.
+      - dependency-name: 'typescript'
+        versions:
+          - '>=6.1.0'
+      # Dependabot's Bun updater currently treats this npm alias as a registry package.
+      # Update it manually in a lockfile-validated PR until upstream alias support lands.
+      - dependency-name: '@typescript/native'
       - dependency-name: 'eslint'
         update-types:
           - 'version-update:semver-major'
@@ -51,6 +58,10 @@ updates:
     # Dependabot's config parser does not support YAML aliases, so this block is intentionally
     # repeated for each ecosystem that participates in the multi-ecosystem group.
     ignore:
+      - dependency-name: 'typescript'
+        versions:
+          - '>=6.1.0'
+      - dependency-name: '@typescript/native'
       - dependency-name: 'eslint'
         update-types:
           - 'version-update:semver-major'

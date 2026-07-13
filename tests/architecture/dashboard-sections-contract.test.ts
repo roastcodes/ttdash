@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import ts from 'typescript'
+import * as ts from 'typescript'
 
 const dashboardSectionsPath = path.resolve(
   process.cwd(),

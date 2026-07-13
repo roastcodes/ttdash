@@ -201,13 +201,14 @@ function parseBunLockJsonc(source: string): BunLockJson {
 
 function getBunResolvedPackageVersion(packageName: string, bunLockJson: BunLockJson) {
   const packageSpec = bunLockJson.packages?.[packageName]?.[0]
-  const expectedPrefix = `${packageName}@`
-
-  if (typeof packageSpec !== 'string' || !packageSpec.startsWith(expectedPrefix)) {
+  if (typeof packageSpec !== 'string') {
     return null
   }
 
-  return packageSpec.slice(expectedPrefix.length)
+  const versionSeparatorIndex = packageSpec.lastIndexOf('@')
+  const version = packageSpec.slice(versionSeparatorIndex + 1)
+
+  return exactSemverPattern.test(version) ? version : null
 }
 
 function shouldSkipPath(relativePath: string) {
@@ -277,6 +278,23 @@ describe('toktrack version repository contract', () => {
         getBunResolvedPackageVersion(dependencyName, bunLockJson),
         `bun.lock packages.${dependencyName}`,
       ).toBe(dependencySpec)
+    }
+  })
+
+  it('keeps TypeScript tooling and compiler resolutions aligned across lockfiles', () => {
+    const bunLockJson = parseBunLockJsonc(readFileSync(path.join(repoRoot, 'bun.lock'), 'utf8'))
+
+    for (const dependencyName of ['typescript', '@typescript/native']) {
+      const npmPackageVersion =
+        packageLockJson.packages?.[`node_modules/${dependencyName}`]?.version
+
+      expect(npmPackageVersion, `package-lock.json packages.${dependencyName}`).toMatch(
+        exactSemverPattern,
+      )
+      expect(
+        getBunResolvedPackageVersion(dependencyName, bunLockJson),
+        `bun.lock packages.${dependencyName}`,
+      ).toBe(npmPackageVersion)
     }
   })
 

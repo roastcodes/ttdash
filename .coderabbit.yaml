@@ -3,6 +3,18 @@
 reviews:
   profile: 'assertive'
 
+  # ESLint is enforced by the required Static Checks CI job. Avoid a duplicate
+  # dependency installation in CodeRabbit, which cannot resolve our npm alias.
+  tools:
+    eslint:
+      enabled: false
+
+  # This project does not require per-function JSDoc; documentation and API
+  # behavior are enforced through review, tests, and the required CI checks.
+  pre_merge_checks:
+    docstrings:
+      mode: 'off'
+
   auto_review:
     ignore_title_keywords:
       - 'WIP'
