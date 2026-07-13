@@ -40,7 +40,7 @@ describe('test pipeline scripts', () => {
 
   it('keeps the static gate cached and avoids a duplicate docstring lint pass', () => {
     expect(scripts['test:static']).toBe(
-      'npm run format:check && npm run lint && npm run check:deps && npm run typecheck',
+      'npm run format:check && npm run lint && npm run check:deps && npm run verify:typescript-toolchain && npm run typecheck',
     )
     expect(scripts['test:static']).not.toContain('lint:docstrings')
     expect(scripts.lint).toContain('--cache-location .cache/eslint/full')
@@ -49,6 +49,10 @@ describe('test pipeline scripts', () => {
     expect(scripts.format).toContain('--cache-location .cache/prettier/write')
     expect(scripts['format:check']).toContain('--cache-location .cache/prettier/check')
     expect(scripts.typecheck).toContain('--tsBuildInfoFile .cache/tsc/tsconfig.tsbuildinfo')
+    expect(scripts.typecheck).toContain('./node_modules/@typescript/native/bin/tsc')
+    expect(scripts['verify:typescript-toolchain']).toBe(
+      'node scripts/verify-typescript-toolchain.js',
+    )
   })
 
   it('enables the JUnit reporter whenever a Vitest script writes JUnit output', () => {
@@ -64,6 +68,10 @@ describe('test pipeline scripts', () => {
 
   it('keeps CI split into parallel jobs that share one production bundle artifact', async () => {
     const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
+    const windowsSmokeBlock = workflow.slice(
+      workflow.indexOf('\n  windows-smoke:'),
+      workflow.indexOf('\n  bun-toolchain:'),
+    )
 
     for (const job of [
       'static',
@@ -73,6 +81,7 @@ describe('test pipeline scripts', () => {
       'package-smoke',
       'e2e',
       'windows-smoke',
+      'bun-toolchain',
       'ci-required',
     ]) {
       expect(workflow).toContain(`\n  ${job}:`)
@@ -97,17 +106,33 @@ describe('test pipeline scripts', () => {
     expect(workflow).toContain('- package-smoke')
     expect(workflow).toContain('- e2e')
     expect(workflow).toContain('- windows-smoke')
+    expect(workflow).toContain('- bun-toolchain')
     expect(workflow).toContain("WINDOWS_SMOKE_RESULT: ${{ needs['windows-smoke'].result }}")
+    expect(workflow).toContain("BUN_TOOLCHAIN_RESULT: ${{ needs['bun-toolchain'].result }}")
     expect(workflow).toContain('check_result "windows-smoke" "${WINDOWS_SMOKE_RESULT}"')
+    expect(workflow).toContain('check_result "bun-toolchain" "${BUN_TOOLCHAIN_RESULT}"')
+    expect(workflow).toContain('bun install --frozen-lockfile --ignore-scripts')
+    expect(workflow).toContain('run: bun run verify:typescript-toolchain')
+    expect(workflow).toContain('run: bun run lint')
+    expect(workflow).toContain('run: bun run typecheck')
+    expect(workflow).toContain('run: bun run test:architecture')
+    expect(workflow).toContain('run: bun run build:app')
+    expect(workflow).toContain('bun-version-file: .bun-version')
+    expect(windowsSmokeBlock).toContain('run: npm run typecheck')
     expect(workflow).toContain('uses: actions/download-artifact@')
   })
 
   it('uses the required CI job as the release gate', async () => {
     const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
     const verifyScript = await readFile('scripts/verify-main-ci.js', 'utf8')
+    const bunVersion = (await readFile('.bun-version', 'utf8')).trim()
 
     expect(releaseWorkflow).toContain('--workflow ci.yml')
     expect(releaseWorkflow).toContain('--required-job "CI Required"')
+    expect(releaseWorkflow).toContain('run: npm run typecheck')
+    expect(releaseWorkflow).toContain('run: npm run verify:typescript-toolchain')
+    expect(releaseWorkflow).toContain('bun-version-file: .bun-version')
+    expect(bunVersion).toBe('1.3.14')
     expect(verifyScript).toContain('--required-job')
     expect(verifyScript).toContain('/actions/runs/${runId}/jobs')
     expect(verifyScript).toContain('Required CI job')
@@ -138,8 +163,13 @@ describe('test pipeline scripts', () => {
       expect(updateBlock).not.toContain('target-branch:')
       expect(updateBlock).not.toContain('commit-message:')
       expect(updateBlock).not.toContain('pull-request-branch-name:')
+      expect(updateBlock).toContain("dependency-name: 'typescript'")
+      expect(updateBlock).toContain("versions:\n          - '>=6.1.0'")
+      expect(updateBlock).toContain("dependency-name: '@typescript/native'")
     }
 
     expect(config.match(/multi-ecosystem-group: 'javascript-dependencies'/g)).toHaveLength(2)
+    expect(config.match(/dependency-name: 'typescript'/g)).toHaveLength(2)
+    expect(config.match(/dependency-name: '@typescript\/native'/g)).toHaveLength(2)
   })
 })

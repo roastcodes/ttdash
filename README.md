@@ -342,6 +342,10 @@ npm run build
 npm run build:app
 ```
 
+Type checking uses the TypeScript 7 compiler with both npm and Bun. TypeScript 6 remains installed
+temporarily as the programmatic API required by `typescript-eslint`. The
+`verify:typescript-toolchain` script verifies that both roles resolve to the intended versions.
+
 Run the main local gate without Playwright:
 
 ```bash

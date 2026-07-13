@@ -2,7 +2,7 @@ import { createRequire } from 'node:module'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import ts from 'typescript'
+import * as ts from 'typescript'
 
 const require = createRequire(import.meta.url)
 

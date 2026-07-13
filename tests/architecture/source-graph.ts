@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
-import ts from 'typescript'
+import * as ts from 'typescript'
 
 const repoRoot = process.cwd()
 const sourceRoot = path.join(repoRoot, 'src')

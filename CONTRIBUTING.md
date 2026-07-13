@@ -93,6 +93,11 @@ npm install
 bun install --lockfile-only
 ```
 
+The repository temporarily uses TypeScript 6.0.x as the programmatic API for
+`typescript-eslint` and TypeScript 7 as the compiler. Updates to the `@typescript/native` npm
+alias are intentionally manual until Dependabot's Bun updater supports aliases; update and verify
+both lockfiles together.
+
 ## Pull Request Expectations
 
 Good pull requests are:
