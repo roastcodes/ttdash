@@ -21,9 +21,9 @@ updates:
   - package-ecosystem: 'npm'
     directory: '/'
     # Keep eslint/@eslint/js on 9.x for now.
-    # Verified on 2026-04-20: an isolated npm install of eslint@10.2.1 and @eslint/js@10.0.1
-    # still fails dependency resolution, and eslint-plugin-react@7.37.5 currently advertises
-    # eslint support only through ^9.7.
+    # Verified on 2026-07-13: eslint-plugin-react@7.37.5, eslint-plugin-jsx-a11y@6.10.2,
+    # and eslint-plugin-jest-dom@5.5.0 still publish peer ranges only through ESLint 9.
+    # eslint-plugin-react also fails at runtime under ESLint 10, so keep both majors pending.
     multi-ecosystem-group: 'javascript-dependencies'
     patterns:
       - '*'
