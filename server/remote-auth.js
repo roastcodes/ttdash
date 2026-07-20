@@ -9,6 +9,8 @@ const AUTH_REALM = 'TTDash API';
 const LOCAL_SESSION_TOKEN_BYTES = 32;
 const REMOTE_SESSION_MAX_ENTRIES = 128;
 const REMOTE_SESSION_RATE_LIMIT = 30;
+const REMOTE_SESSION_FAILURE_RATE_LIMIT = 10;
+const REMOTE_SESSION_RATE_CLIENT_MAX_ENTRIES = 256;
 const REMOTE_SESSION_RATE_WINDOW_MS = 60 * 1000;
 
 // Backward-compatible names for the existing remote-auth tests and imports.
@@ -138,6 +140,7 @@ function createServerAuth({
   secureCookies = false,
   remoteSessionMaxEntries = REMOTE_SESSION_MAX_ENTRIES,
   remoteSessionRateLimit = REMOTE_SESSION_RATE_LIMIT,
+  remoteSessionFailureRateLimit = REMOTE_SESSION_FAILURE_RATE_LIMIT,
 }) {
   const remoteAuthRequired = !isLoopbackHost(bindHost) && allowRemoteBind;
   const localAuthRequired = !remoteAuthRequired && requireLocalAuth;
@@ -152,7 +155,8 @@ function createServerAuth({
   const expectedDigest =
     normalizedToken.length >= AUTH_TOKEN_MIN_LENGTH ? hashToken(normalizedToken) : null;
   const remoteSessions = new Map();
-  const remoteSessionIssueTimes = [];
+  const remoteSessionIssueTimesByClient = new Map();
+  const remoteSessionFailureTimesByClient = new Map();
 
   function hashTokenKey(tokenValue) {
     return hashToken(tokenValue).toString('hex');
@@ -166,13 +170,52 @@ function createServerAuth({
     }
   }
 
-  function removeExpiredRemoteSessionIssueTimes(currentTime = now()) {
-    while (
-      remoteSessionIssueTimes.length > 0 &&
-      remoteSessionIssueTimes[0] <= currentTime - REMOTE_SESSION_RATE_WINDOW_MS
-    ) {
-      remoteSessionIssueTimes.shift();
+  function getRemoteSessionClientKey(req) {
+    return String(req.socket?.remoteAddress || 'unknown');
+  }
+
+  function getActiveRateLimitTimes(store, clientKey, currentTime) {
+    const issueTimes = store.get(clientKey);
+    if (!issueTimes) {
+      return [];
     }
+    while (issueTimes[0] <= currentTime - REMOTE_SESSION_RATE_WINDOW_MS) {
+      issueTimes.shift();
+    }
+    if (issueTimes.length === 0) {
+      store.delete(clientKey);
+    }
+    return issueTimes;
+  }
+
+  function recordRateLimitAttempt(store, clientKey, currentTime) {
+    let issueTimes = getActiveRateLimitTimes(store, clientKey, currentTime);
+    if (issueTimes.length === 0) {
+      while (store.size >= REMOTE_SESSION_RATE_CLIENT_MAX_ENTRIES) {
+        const oldestClientKey = store.keys().next().value;
+        if (typeof oldestClientKey !== 'string') break;
+        store.delete(oldestClientKey);
+      }
+      issueTimes = [];
+      store.set(clientKey, issueTimes);
+    }
+    issueTimes.push(currentTime);
+  }
+
+  function getRateLimitResponse(store, clientKey, limit, currentTime) {
+    const issueTimes = getActiveRateLimitTimes(store, clientKey, currentTime);
+    if (issueTimes.length < limit) {
+      return null;
+    }
+    const retryAfterMs = issueTimes[0] + REMOTE_SESSION_RATE_WINDOW_MS - currentTime;
+    return {
+      status: 429,
+      message: 'Too many authentication attempts',
+      headers: {
+        'Cache-Control': 'no-store',
+        'Retry-After': String(Math.max(1, Math.ceil(retryAfterMs / 1000))),
+      },
+    };
   }
 
   function matchesRemoteSession(candidate) {
@@ -263,7 +306,20 @@ function createServerAuth({
       return null;
     }
 
+    const currentTime = now();
+    const clientKey = getRemoteSessionClientKey(req);
+    const failureRateLimitResponse = getRateLimitResponse(
+      remoteSessionFailureTimesByClient,
+      clientKey,
+      remoteSessionFailureRateLimit,
+      currentTime,
+    );
+    if (failureRateLimitResponse) {
+      return failureRateLimitResponse;
+    }
+
     if (!matchesToken(extractBearerToken(req)) && !matchesToken(extractHeaderToken(req))) {
+      recordRateLimitAttempt(remoteSessionFailureTimesByClient, clientKey, currentTime);
       return {
         status: 401,
         message: 'Authentication required',
@@ -275,18 +331,14 @@ function createServerAuth({
       };
     }
 
-    const currentTime = now();
-    removeExpiredRemoteSessionIssueTimes(currentTime);
-    if (remoteSessionIssueTimes.length >= remoteSessionRateLimit) {
-      const retryAfterMs = remoteSessionIssueTimes[0] + REMOTE_SESSION_RATE_WINDOW_MS - currentTime;
-      return {
-        status: 429,
-        message: 'Too many authentication attempts',
-        headers: {
-          'Cache-Control': 'no-store',
-          'Retry-After': String(Math.max(1, Math.ceil(retryAfterMs / 1000))),
-        },
-      };
+    const issueRateLimitResponse = getRateLimitResponse(
+      remoteSessionIssueTimesByClient,
+      clientKey,
+      remoteSessionRateLimit,
+      currentTime,
+    );
+    if (issueRateLimitResponse) {
+      return issueRateLimitResponse;
     }
 
     const sessionToken = normalizeToken(remoteSessionTokenFactory());
@@ -307,7 +359,7 @@ function createServerAuth({
       hashTokenKey(sessionToken),
       currentTime + AUTH_COOKIE_MAX_AGE_SECONDS * 1000,
     );
-    remoteSessionIssueTimes.push(currentTime);
+    recordRateLimitAttempt(remoteSessionIssueTimesByClient, clientKey, currentTime);
 
     return {
       status: 204,

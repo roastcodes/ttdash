@@ -53,8 +53,9 @@ equivalent `X-TTDash-Remote-Token` header. Keep the token secret.
 `ttdash --docker` (or `TTDASH_DOCKER=1`) is an explicit remote-bind opt-in. It defaults to
 `HOST=0.0.0.0`, disables browser auto-open, and still refuses to start without a remote token of at
 least 24 characters. Docker mode trusts the exact browser hosts `localhost`, `127.0.0.1`, and `::1`
-in addition to the active socket address. Add server IP addresses or DNS names explicitly with a
-comma-separated `TTDASH_TRUSTED_HOSTS` value. Schemes, ports, paths, and wildcards are rejected.
+by default. Setting the comma-separated `TTDASH_TRUSTED_HOSTS` value replaces those defaults, so a
+server deployment exposes only its explicitly configured IP addresses or DNS names. Schemes, ports,
+paths, and wildcards are rejected.
 
 Remote browser sign-in exchanges the master token for a random, expiring HttpOnly/SameSite session.
 Set `TTDASH_SECURE_COOKIE=1` behind an HTTPS reverse proxy so those sessions receive a `Secure`

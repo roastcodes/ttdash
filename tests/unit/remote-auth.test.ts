@@ -20,6 +20,7 @@ const { REMOTE_AUTH_COOKIE_NAME, REMOTE_AUTH_QUERY_PARAM, createRemoteAuth } =
       secureCookies?: boolean
       remoteSessionMaxEntries?: number
       remoteSessionRateLimit?: number
+      remoteSessionFailureRateLimit?: number
     }) => {
       isRequired: () => boolean
       isLocalRequired: () => boolean
@@ -41,7 +42,7 @@ const { REMOTE_AUTH_COOKIE_NAME, REMOTE_AUTH_QUERY_PARAM, createRemoteAuth } =
       createRemoteSessionResponse: (
         req: EventEmitter & {
           headers?: Record<string, string>
-          socket?: { encrypted?: boolean }
+          socket?: { encrypted?: boolean; remoteAddress?: string }
         },
       ) => { status: number; headers: Record<string, string>; body?: string } | null
     }
@@ -53,6 +54,7 @@ const localToken = 'local-token-1234567890123456'
 
 class MockRequest extends EventEmitter {
   headers: Record<string, string> = {}
+  socket: { encrypted?: boolean; remoteAddress?: string } = {}
 }
 
 function createRemoteRequiredAuth() {
@@ -227,6 +229,48 @@ describe('remote auth', () => {
       status: 429,
       headers: { 'Retry-After': '60' },
     })
+  })
+
+  it('scopes session issuance rate limits by client address', () => {
+    const auth = createRemoteAuth({
+      bindHost: '0.0.0.0',
+      allowRemoteBind: true,
+      token: remoteToken,
+      remoteSessionRateLimit: 1,
+    })
+    const firstClient = new MockRequest()
+    firstClient.headers.authorization = remoteAuthHeader
+    firstClient.socket.remoteAddress = '192.0.2.10'
+    const secondClient = new MockRequest()
+    secondClient.headers.authorization = remoteAuthHeader
+    secondClient.socket.remoteAddress = '192.0.2.11'
+
+    expect(auth.createRemoteSessionResponse(firstClient)?.status).toBe(204)
+    expect(auth.createRemoteSessionResponse(firstClient)?.status).toBe(429)
+    expect(auth.createRemoteSessionResponse(secondClient)?.status).toBe(204)
+  })
+
+  it('rate-limits invalid session credentials per client address', () => {
+    const auth = createRemoteAuth({
+      bindHost: '0.0.0.0',
+      allowRemoteBind: true,
+      token: remoteToken,
+      remoteSessionFailureRateLimit: 2,
+    })
+    const noisyClient = new MockRequest()
+    noisyClient.headers.authorization = 'Bearer wrong-token'
+    noisyClient.socket.remoteAddress = '192.0.2.20'
+    const otherClient = new MockRequest()
+    otherClient.headers.authorization = 'Bearer wrong-token'
+    otherClient.socket.remoteAddress = '192.0.2.21'
+
+    expect(auth.createRemoteSessionResponse(noisyClient)?.status).toBe(401)
+    expect(auth.createRemoteSessionResponse(noisyClient)?.status).toBe(401)
+    expect(auth.createRemoteSessionResponse(noisyClient)).toMatchObject({
+      status: 429,
+      headers: { 'Retry-After': '60' },
+    })
+    expect(auth.createRemoteSessionResponse(otherClient)?.status).toBe(401)
   })
 
   it('returns a structured error when browser-session token generation fails', () => {

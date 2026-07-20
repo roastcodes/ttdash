@@ -45,9 +45,8 @@ function parseTrustedHosts(value, { dockerMode = false } = {}) {
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean);
-  const rawValues = dockerMode
-    ? [...DOCKER_DEFAULT_TRUSTED_HOSTS, ...configuredValues]
-    : configuredValues;
+  const rawValues =
+    dockerMode && configuredValues.length === 0 ? DOCKER_DEFAULT_TRUSTED_HOSTS : configuredValues;
   const trustedHosts = [];
 
   for (const rawValue of rawValues) {

@@ -186,7 +186,7 @@ Environment variables:
 | `TTDASH_ALLOW_REMOTE=1`                   | Explicitly allow binding to a non-loopback host        |
 | `TTDASH_REMOTE_TOKEN=<long-random-token>` | Required for non-loopback binds; use at least 24 chars |
 | `TTDASH_DOCKER=1`                         | Enable Docker defaults without the CLI flag            |
-| `TTDASH_TRUSTED_HOSTS=<hosts>`            | Add exact comma-separated hostnames or IP addresses    |
+| `TTDASH_TRUSTED_HOSTS=<hosts>`            | Set exact comma-separated hostnames or IP addresses    |
 | `TTDASH_SECURE_COOKIE=1`                  | Restrict remote browser sessions to HTTPS              |
 
 Binding to a non-loopback host such as `0.0.0.0` exposes the local dashboard API to your network, including destructive routes for local data and settings resets. TTDash refuses that bind unless you set both `TTDASH_ALLOW_REMOTE=1` and a `TTDASH_REMOTE_TOKEN` with at least 24 characters. Only use remote token access over a trusted LAN, VPN, or SSH tunnel; for any public hostname, put TTDash behind an HTTPS reverse proxy with valid TLS termination before sending the bearer token.

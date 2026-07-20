@@ -7,11 +7,16 @@ const { parseTrustedHosts } = require('../../server/docker-runtime.js') as {
 }
 
 describe('Docker runtime configuration', () => {
-  it('adds safe loopback defaults and exact configured hosts in Docker mode', () => {
-    expect(parseTrustedHosts('Dashboard.Example, 192.0.2.10', { dockerMode: true })).toEqual([
+  it('uses safe loopback defaults when Docker hosts are not explicitly configured', () => {
+    expect(parseTrustedHosts(undefined, { dockerMode: true })).toEqual([
       'localhost',
       '127.0.0.1',
       '::1',
+    ])
+  })
+
+  it('replaces Docker defaults with exact explicitly configured hosts', () => {
+    expect(parseTrustedHosts('Dashboard.Example, 192.0.2.10', { dockerMode: true })).toEqual([
       'dashboard.example',
       '192.0.2.10',
     ])

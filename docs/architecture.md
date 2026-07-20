@@ -80,7 +80,7 @@ The server runtime is intentionally split so `server.js` stays an executable shi
 - `server/http-request-guards.js`
   - owns Host, Origin, Sec-Fetch-Site, and JSON content-type request policy for local API protection
   - is consumed through `server/http-utils.js` so route handlers keep using one HTTP utility facade
-  - extends exact host acceptance with validated Docker loopback defaults and explicit `TTDASH_TRUSTED_HOSTS` entries without trusting forwarded-host headers
+  - uses validated Docker loopback defaults unless explicit `TTDASH_TRUSTED_HOSTS` entries replace them, without trusting forwarded-host headers
 - `server/security-headers.js`
   - owns shared browser security headers and the nonce-aware CSP used for HTML responses
   - keeps style directives strict by using `style-src-attr 'none'` and avoiding `unsafe-inline`

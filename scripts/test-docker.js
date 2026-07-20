@@ -10,7 +10,9 @@ function runDocker(args, { allowFailure = false } = {}) {
   const result = spawnSync('docker', args, { encoding: 'utf8', timeout: 5 * 60 * 1000 });
   if (!allowFailure && result.status !== 0) {
     throw new Error(
-      [`docker ${args.join(' ')} failed`, result.stdout, result.stderr].filter(Boolean).join('\n'),
+      [`docker ${args.join(' ')} failed`, result.error?.message, result.stdout, result.stderr]
+        .filter(Boolean)
+        .join('\n'),
     );
   }
   return result;
@@ -35,11 +37,11 @@ function request({ port, path = '/', method = 'GET', headers = {} }) {
   });
 }
 
-async function waitForServer(port) {
+async function waitForServer(port, headers = {}) {
   let lastError;
   for (let attempt = 0; attempt < 80; attempt += 1) {
     try {
-      const response = await request({ port, path: '/' });
+      const response = await request({ port, path: '/', headers });
       if (response.status === 200) return;
       lastError = new Error(`Dashboard returned ${response.status}`);
     } catch (error) {
@@ -87,8 +89,6 @@ async function main() {
     '127.0.0.1::3000',
     '--env',
     `TTDASH_REMOTE_TOKEN=${remoteToken}`,
-    '--env',
-    'TTDASH_TRUSTED_HOSTS=dashboard.example',
     imageTag,
   ]);
 
@@ -122,9 +122,31 @@ async function main() {
     200,
     'session-authenticated API',
   );
+
+  runDocker(['rm', '--force', containerName]);
+  runDocker([
+    'run',
+    '--detach',
+    '--name',
+    containerName,
+    '--publish',
+    '127.0.0.1::3000',
+    '--env',
+    `TTDASH_REMOTE_TOKEN=${remoteToken}`,
+    '--env',
+    'TTDASH_TRUSTED_HOSTS=dashboard.example',
+    imageTag,
+  ]);
+  const serverPortOutput = runDocker(['port', containerName, '3000/tcp']).stdout.trim();
+  const serverPort = Number(serverPortOutput.slice(serverPortOutput.lastIndexOf(':') + 1));
+  if (!Number.isInteger(serverPort)) {
+    throw new Error(`Could not resolve Docker port from ${serverPortOutput}`);
+  }
+  await waitForServer(serverPort, { Host: 'dashboard.example' });
+
   expectStatus(
     await request({
-      port,
+      port: serverPort,
       path: '/api/usage',
       headers: { Host: 'dashboard.example', Authorization: `Bearer ${remoteToken}` },
     }),
@@ -133,12 +155,21 @@ async function main() {
   );
   expectStatus(
     await request({
-      port,
+      port: serverPort,
       path: '/api/usage',
       headers: { Host: 'evil.example', Authorization: `Bearer ${remoteToken}` },
     }),
     403,
     'untrusted server host',
+  );
+  expectStatus(
+    await request({
+      port: serverPort,
+      path: '/api/usage',
+      headers: { Host: 'localhost', Authorization: `Bearer ${remoteToken}` },
+    }),
+    403,
+    'Docker loopback default replaced by explicit server host',
   );
 
   console.log(`Docker smoke passed (${Math.round(size / 1024 / 1024)} MiB image).`);
