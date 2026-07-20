@@ -80,6 +80,7 @@ The server runtime is intentionally split so `server.js` stays an executable shi
 - `server/http-request-guards.js`
   - owns Host, Origin, Sec-Fetch-Site, and JSON content-type request policy for local API protection
   - is consumed through `server/http-utils.js` so route handlers keep using one HTTP utility facade
+  - extends exact host acceptance with validated Docker loopback defaults and explicit `TTDASH_TRUSTED_HOSTS` entries without trusting forwarded-host headers
 - `server/security-headers.js`
   - owns shared browser security headers and the nonce-aware CSP used for HTML responses
   - keeps style directives strict by using `style-src-attr 'none'` and avoiding `unsafe-inline`
@@ -87,6 +88,9 @@ The server runtime is intentionally split so `server.js` stays an executable shi
   - owns token-based authentication for both default loopback sessions and explicitly enabled non-loopback binds
   - keeps browser bootstrap, HttpOnly cookie setup, and non-browser Bearer/header auth outside the route handlers
   - uses a generated per-start local session token for loopback and `TTDASH_REMOTE_TOKEN` for remote binds
+  - exchanges the remote master token for random, expiring HttpOnly browser sessions while keeping URL bootstrap local-only
+- `server/docker-runtime.js`
+  - owns Docker trusted-host defaults and fail-closed parsing of exact configured hostnames and IP addresses
 - `server/startup-runtime.js`
   - owns startup summaries, data-status formatting, browser opening, local auth-session file metadata, and startup auto-load logging
 - `server/server-lifecycle.js`

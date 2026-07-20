@@ -47,3 +47,22 @@ bearer token over public HTTP.
 
 Remote API requests can authenticate with `Authorization: Bearer $TTDASH_REMOTE_TOKEN` or the
 equivalent `X-TTDash-Remote-Token` header. Keep the token secret.
+
+### Docker mode
+
+`ttdash --docker` (or `TTDASH_DOCKER=1`) is an explicit remote-bind opt-in. It defaults to
+`HOST=0.0.0.0`, disables browser auto-open, and still refuses to start without a remote token of at
+least 24 characters. Docker mode trusts the exact browser hosts `localhost`, `127.0.0.1`, and `::1`
+in addition to the active socket address. Add server IP addresses or DNS names explicitly with a
+comma-separated `TTDASH_TRUSTED_HOSTS` value. Schemes, ports, paths, and wildcards are rejected.
+
+Remote browser sign-in exchanges the master token for a random, expiring HttpOnly/SameSite session.
+Set `TTDASH_SECURE_COOKIE=1` behind an HTTPS reverse proxy so those sessions receive a `Secure`
+cookie without trusting client-controlled proxy headers. The master token is not accepted as a
+remote query parameter and is not stored in browser storage. API clients should continue to use a
+token header.
+
+The provided Compose configuration binds only to host loopback by default. When publishing on a
+server interface, keep the existing trusted-LAN/VPN/SSH-tunnel restriction or terminate valid HTTPS
+at a reverse proxy. Preserve the original `Host`; TTDash intentionally ignores forwarded-host
+headers and continues to require same-host browser origins for mutations.

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const { createHttpRequestGuards } = require('../../server/http-request-guards.js') as {
-  createHttpRequestGuards: (args: { bindHost: string }) => {
+  createHttpRequestGuards: (args: { bindHost: string; trustedHosts?: string[] }) => {
     validateMutationRequest: (
       req: MockRequest,
       options?: { requiresJsonContentType?: boolean },
@@ -105,6 +105,19 @@ describe('http request guards', () => {
       status: 403,
       message: 'Untrusted host header',
     })
+  })
+
+  it('accepts exact Docker host aliases without trusting unrelated hosts', () => {
+    const guards = createHttpRequestGuards({
+      bindHost: '0.0.0.0',
+      trustedHosts: ['localhost', '127.0.0.1', '::1', 'dashboard.example'],
+    })
+    const dockerRequest = (host: string) =>
+      createRequest({ headers: { host: `${host}:3000` }, localAddress: '172.18.0.2' })
+
+    expect(guards.validateRequestHost(dockerRequest('localhost'))).toBeNull()
+    expect(guards.validateRequestHost(dockerRequest('dashboard.example'))).toBeNull()
+    expect(guards.validateRequestHost(dockerRequest('evil.example'))).toMatchObject({ status: 403 })
   })
 
   it('blocks mutation requests with missing, null, malformed, or cross-site origins', () => {

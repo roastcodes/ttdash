@@ -17,6 +17,7 @@ function createStartupRuntime({
   localAuthSessionFile,
   apiPrefix,
   bindHost,
+  trustedHosts = [],
   cliOptions,
   isBackgroundChild,
   forceOpenBrowser,
@@ -102,6 +103,10 @@ function createStartupRuntime({
     log(`  API:            ${usageApiUrl}`);
     log(`  Port:           ${port}`);
     log(`  Host:           ${bindHost}`);
+    if (cliOptions.docker) {
+      log('  Docker Mode:    enabled');
+      log(`  Trusted Hosts:  ${trustedHosts.join(', ')}`);
+    }
     if (remoteBind) {
       log(`  Exposure:       network-accessible via ${bindHost}`);
       log(`  Remote Auth:    ${remoteAuthRequired ? 'required' : 'disabled'}`);
@@ -125,7 +130,11 @@ function createStartupRuntime({
       log('');
       log('Security warning: this bind host exposes the dashboard to the network.');
       log('Use non-loopback hosts only on trusted networks and keep TTDASH_REMOTE_TOKEN secret.');
-      log('Use the bearer-token curl example below for remote API access.');
+      log(
+        remoteAuthRequired
+          ? 'Open the dashboard to sign in, or use the bearer-token curl example for API access.'
+          : 'Open the dashboard to access the server.',
+      );
     }
     log('');
     log('Available ways to load data:');
@@ -136,6 +145,7 @@ function createStartupRuntime({
     log(`  ttdash --port ${port}`);
     log(`  ttdash --port ${port} --no-open`);
     log('  ttdash --background');
+    log('  ttdash --docker');
     log('  ttdash stop');
     log(`  NO_OPEN_BROWSER=1 PORT=${port} node server.js`);
     log(

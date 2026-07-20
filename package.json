@@ -48,6 +48,7 @@
     "test:e2e": "npm run test:e2e:parallel",
     "test:e2e:parallel": "npm run build:app && playwright test",
     "test:e2e:ci": "playwright test --workers=2",
+    "test:docker": "node scripts/test-docker.js",
     "test:all": "npm run verify:full",
     "typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit --incremental --tsBuildInfoFile .cache/tsc/tsconfig.tsbuildinfo",
     "docs:screenshots": "node scripts/capture-readme-screenshots.js",
@@ -108,6 +109,7 @@
     "@typescript/native": "npm:typescript@^7.0.2",
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.8",
+    "i18next": "^26.3.1",
     "archunit": "^2.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -133,6 +135,8 @@
     "prettier-plugin-tailwindcss": "^0.8.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-i18next": "^17.0.8",
+    "react-is": "^19.2.7",
     "recharts": "^3.8.1",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.0",
@@ -143,9 +147,6 @@
   },
   "dependencies": {
     "cross-spawn": "^7.0.6",
-    "i18next": "^26.3.1",
-    "react-i18next": "^17.0.8",
-    "react-is": "^19.2.7",
     "semver": "^7.8.1",
     "toktrack": "2.16.0"
   }

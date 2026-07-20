@@ -168,6 +168,7 @@ Options:
 | `-no, --no-open`    | Disable browser auto-open                    |
 | `-al, --auto-load`  | Run local auto-import immediately on startup |
 | `-b, --background`  | Start TTDash as a background process         |
+| `--docker`          | Start with secure container defaults         |
 
 Commands:
 
@@ -184,6 +185,9 @@ Environment variables:
 | `HOST`                                    | Override the bind host                                 |
 | `TTDASH_ALLOW_REMOTE=1`                   | Explicitly allow binding to a non-loopback host        |
 | `TTDASH_REMOTE_TOKEN=<long-random-token>` | Required for non-loopback binds; use at least 24 chars |
+| `TTDASH_DOCKER=1`                         | Enable Docker defaults without the CLI flag            |
+| `TTDASH_TRUSTED_HOSTS=<hosts>`            | Add exact comma-separated hostnames or IP addresses    |
+| `TTDASH_SECURE_COOKIE=1`                  | Restrict remote browser sessions to HTTPS              |
 
 Binding to a non-loopback host such as `0.0.0.0` exposes the local dashboard API to your network, including destructive routes for local data and settings resets. TTDash refuses that bind unless you set both `TTDASH_ALLOW_REMOTE=1` and a `TTDASH_REMOTE_TOKEN` with at least 24 characters. Only use remote token access over a trusted LAN, VPN, or SSH tunnel; for any public hostname, put TTDash behind an HTTPS reverse proxy with valid TLS termination before sending the bearer token.
 
@@ -199,6 +203,49 @@ SSH-tunneled host. For public hostnames, call an HTTPS reverse proxy URL instead
 bearer token over public HTTP.
 
 Remote API requests can authenticate with the `Authorization: Bearer $TTDASH_REMOTE_TOKEN` header or the equivalent `X-TTDash-Remote-Token: $TTDASH_REMOTE_TOKEN` header.
+
+## Docker
+
+The repository includes a small multi-stage Alpine image and a hardened Compose configuration. Generate a token and start the localhost-only default:
+
+```bash
+export TTDASH_REMOTE_TOKEN="$(openssl rand -hex 32)"
+docker compose up --build -d
+```
+
+Open `http://127.0.0.1:3000` and enter the same token in the sign-in screen. TTDash exchanges it for a temporary HttpOnly browser session; the token is not stored in the URL or browser storage. The existing `?ttdash_token=...` bootstrap remains available only for normal loopback starts outside remote/Docker mode.
+
+The Compose service publishes to `127.0.0.1` by default, runs as an unprivileged user with dropped capabilities and a read-only root filesystem, and persists data, settings, and cache in the `ttdash-data` volume. The minimal image does not include Typst, so PDF export requires a custom image with Typst installed. Auto-import can only see usage sources mounted into the container; JSON upload works without additional mounts.
+
+For a server reached as `dashboard.example`, expose the port deliberately and allow that exact browser host:
+
+```bash
+export TTDASH_REMOTE_TOKEN="$(openssl rand -hex 32)"
+export TTDASH_PUBLISH_ADDRESS=0.0.0.0
+export TTDASH_TRUSTED_HOSTS=dashboard.example
+export TTDASH_SECURE_COOKIE=1
+docker compose up --build -d
+```
+
+Put public hostnames behind an HTTPS reverse proxy that preserves the original `Host` header, and set `TTDASH_SECURE_COOKIE=1` so browser sessions can only travel over HTTPS. Browser `Origin` and `Host` must agree for uploads, settings changes, imports, resets, and other mutations. TTDash does not trust `X-Forwarded-Host`. Direct public HTTP is unsupported because it exposes the bearer token and browser session in transit.
+
+The equivalent direct image invocation is:
+
+```bash
+docker build -t ttdash .
+docker run --rm \
+  --read-only \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+  --init \
+  -p 127.0.0.1:3000:3000 \
+  -e TTDASH_REMOTE_TOKEN="$TTDASH_REMOTE_TOKEN" \
+  -v ttdash-data:/data \
+  ttdash
+```
+
+Run the real container smoke test with `npm run test:docker`.
 
 ## Features
 

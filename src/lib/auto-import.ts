@@ -1,3 +1,5 @@
+import { apiFetch } from '@/lib/api'
+
 /** Describes one tool availability check emitted by auto import. */
 export interface CheckEvent {
   tool: string
@@ -253,7 +255,7 @@ export function startAutoImport(
   }
 
   const readStream = async () => {
-    const response = await fetch('/api/auto-import/stream', {
+    const response = await apiFetch('/api/auto-import/stream', {
       method: 'POST',
       signal: controller.signal,
     })

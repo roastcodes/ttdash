@@ -1,7 +1,7 @@
 const { createHttpRequestGuards } = require('./http-request-guards.js');
 
-function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders, bindHost }) {
-  const requestGuards = createHttpRequestGuards({ bindHost });
+function createHttpUtils({ apiPrefix, maxBodySize, securityHeaders, bindHost, trustedHosts }) {
+  const requestGuards = createHttpRequestGuards({ bindHost, trustedHosts });
 
   function readBody(req) {
     return new Promise((resolve, reject) => {

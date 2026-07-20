@@ -15,6 +15,11 @@ const { REMOTE_AUTH_COOKIE_NAME, REMOTE_AUTH_QUERY_PARAM, createRemoteAuth } =
       localToken?: string
       requireLocalAuth?: boolean
       tokenFactory?: () => string
+      remoteSessionTokenFactory?: () => string
+      now?: () => number
+      secureCookies?: boolean
+      remoteSessionMaxEntries?: number
+      remoteSessionRateLimit?: number
     }) => {
       isRequired: () => boolean
       isLocalRequired: () => boolean
@@ -23,13 +28,22 @@ const { REMOTE_AUTH_COOKIE_NAME, REMOTE_AUTH_QUERY_PARAM, createRemoteAuth } =
       validateApiRequest: (
         req: EventEmitter & { headers?: Record<string, string> },
       ) => { status: number; message: string; headers: Record<string, string> } | null
-      resolveBootstrapResponse: (url: URL) => {
+      resolveBootstrapResponse: (
+        url: URL,
+        req?: { socket?: { encrypted?: boolean } },
+      ) => {
         status: number
         headers: Record<string, string>
         body: string
       } | null
       createBootstrapUrl: (url: string) => string
       getAuthorizationHeader: () => string | null
+      createRemoteSessionResponse: (
+        req: EventEmitter & {
+          headers?: Record<string, string>
+          socket?: { encrypted?: boolean }
+        },
+      ) => { status: number; headers: Record<string, string>; body?: string } | null
     }
   }
 
@@ -112,18 +126,137 @@ describe('remote auth', () => {
     expect(() => shortToken.ensureConfigured()).toThrow('at least 24 characters')
   })
 
-  it('accepts bearer, explicit token header, and cookie credentials', () => {
+  it('accepts bearer and explicit token header credentials', () => {
     const auth = createRemoteRequiredAuth()
     const bearerRequest = new MockRequest()
     bearerRequest.headers.authorization = remoteAuthHeader
     const headerRequest = new MockRequest()
     headerRequest.headers['x-ttdash-remote-token'] = remoteToken
-    const cookieRequest = new MockRequest()
-    cookieRequest.headers.cookie = `${REMOTE_AUTH_COOKIE_NAME}=${encodeURIComponent(remoteToken)}`
 
     expect(auth.validateApiRequest(bearerRequest)).toBeNull()
     expect(auth.validateApiRequest(headerRequest)).toBeNull()
+  })
+
+  it('exchanges the remote token for an expiring HttpOnly browser session', () => {
+    let currentTime = 1000
+    const sessionToken = 'generated-browser-session-token-123456789'
+    const auth = createRemoteAuth({
+      bindHost: '0.0.0.0',
+      allowRemoteBind: true,
+      token: remoteToken,
+      remoteSessionTokenFactory: () => sessionToken,
+      now: () => currentTime,
+      secureCookies: true,
+    })
+    const loginRequest = new MockRequest()
+    loginRequest.headers.authorization = remoteAuthHeader
+    loginRequest.headers.origin = 'https://dashboard.example'
+
+    const response = auth.createRemoteSessionResponse(loginRequest)
+    expect(response).toMatchObject({ status: 204, body: '' })
+    expect(response?.headers['Set-Cookie']).toContain('HttpOnly')
+    expect(response?.headers['Set-Cookie']).toContain('SameSite=Strict')
+    expect(response?.headers['Set-Cookie']).toContain('Secure')
+
+    const cookieRequest = new MockRequest()
+    cookieRequest.headers.cookie = `${REMOTE_AUTH_COOKIE_NAME}=${encodeURIComponent(sessionToken)}`
     expect(auth.validateApiRequest(cookieRequest)).toBeNull()
+
+    currentTime += 12 * 60 * 60 * 1000
+    expect(auth.validateApiRequest(cookieRequest)).toMatchObject({ status: 401 })
+  })
+
+  it('rejects browser-session creation with a wrong remote token', () => {
+    const auth = createRemoteRequiredAuth()
+    const request = new MockRequest()
+    request.headers.authorization = 'Bearer wrong-token'
+
+    expect(auth.createRemoteSessionResponse(request)).toMatchObject({ status: 401 })
+  })
+
+  it('does not infer secure cookies from a client-controlled Origin header', () => {
+    const auth = createRemoteRequiredAuth()
+    const request = new MockRequest()
+    request.headers.authorization = remoteAuthHeader
+    request.headers.origin = 'https://dashboard.example'
+
+    const response = auth.createRemoteSessionResponse(request)
+    expect(response?.headers['Set-Cookie']).not.toContain('Secure')
+  })
+
+  it('bounds remote browser sessions with oldest-first eviction', () => {
+    let sessionNumber = 0
+    const auth = createRemoteAuth({
+      bindHost: '0.0.0.0',
+      allowRemoteBind: true,
+      token: remoteToken,
+      remoteSessionMaxEntries: 2,
+      remoteSessionRateLimit: 10,
+      remoteSessionTokenFactory: () => `generated-session-token-${++sessionNumber}-123456789`,
+    })
+    const loginRequest = new MockRequest()
+    loginRequest.headers.authorization = remoteAuthHeader
+    const cookies = Array.from({ length: 3 }, () => {
+      const response = auth.createRemoteSessionResponse(loginRequest)
+      return response?.headers['Set-Cookie'].split(';', 1)[0] || ''
+    })
+    const requestWithCookie = (cookie: string) => {
+      const request = new MockRequest()
+      request.headers.cookie = cookie
+      return request
+    }
+
+    expect(auth.validateApiRequest(requestWithCookie(cookies[0]))).toMatchObject({ status: 401 })
+    expect(auth.validateApiRequest(requestWithCookie(cookies[1]))).toBeNull()
+    expect(auth.validateApiRequest(requestWithCookie(cookies[2]))).toBeNull()
+  })
+
+  it('rate-limits repeated valid-token session issuance', () => {
+    const auth = createRemoteAuth({
+      bindHost: '0.0.0.0',
+      allowRemoteBind: true,
+      token: remoteToken,
+      remoteSessionRateLimit: 2,
+    })
+    const request = new MockRequest()
+    request.headers.authorization = remoteAuthHeader
+
+    expect(auth.createRemoteSessionResponse(request)?.status).toBe(204)
+    expect(auth.createRemoteSessionResponse(request)?.status).toBe(204)
+    expect(auth.createRemoteSessionResponse(request)).toMatchObject({
+      status: 429,
+      headers: { 'Retry-After': '60' },
+    })
+  })
+
+  it('returns a structured error when browser-session token generation fails', () => {
+    const auth = createRemoteAuth({
+      bindHost: '0.0.0.0',
+      allowRemoteBind: true,
+      token: remoteToken,
+      remoteSessionTokenFactory: () => 'too-short',
+    })
+    const request = new MockRequest()
+    request.headers.authorization = remoteAuthHeader
+
+    expect(auth.createRemoteSessionResponse(request)).toMatchObject({
+      status: 500,
+      message: 'Remote session token generation failed',
+    })
+  })
+
+  it('sets Secure on local bootstrap cookies when explicitly configured', () => {
+    const auth = createRemoteAuth({
+      bindHost: '127.0.0.1',
+      allowRemoteBind: false,
+      localToken,
+      secureCookies: true,
+    })
+
+    const response = auth.resolveBootstrapResponse(
+      new URL(`http://127.0.0.1:3000/?${REMOTE_AUTH_QUERY_PARAM}=${localToken}`),
+    )
+    expect(response?.headers['Set-Cookie']).toContain('Secure')
   })
 
   it('rejects missing, wrong, and differently sized credentials generically', () => {

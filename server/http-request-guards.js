@@ -81,7 +81,9 @@ function getSocketLocalAddress(req) {
   return normalizeHostname(req.socket?.localAddress || '');
 }
 
-function createHttpRequestGuards({ bindHost }) {
+function createHttpRequestGuards({ bindHost, trustedHosts = [] }) {
+  const normalizedTrustedHosts = new Set(trustedHosts.map(normalizeHostname).filter(Boolean));
+
   function hasTrustedHost(req) {
     const hostHeaderHost = getHostHeaderHost(req);
     if (!hostHeaderHost) {
@@ -90,6 +92,10 @@ function createHttpRequestGuards({ bindHost }) {
 
     const normalizedBindHost = normalizeHostname(bindHost);
     const socketLocalAddress = getSocketLocalAddress(req);
+
+    if (normalizedTrustedHosts.has(hostHeaderHost)) {
+      return true;
+    }
 
     if (isLoopbackHost(normalizedBindHost) || isLoopbackHost(socketLocalAddress)) {
       return isLoopbackHost(hostHeaderHost);

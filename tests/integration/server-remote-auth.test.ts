@@ -46,7 +46,7 @@ describe('remote server authentication', () => {
     expect(result.output).toContain('TTDASH_REMOTE_TOKEN')
   })
 
-  it('protects remote API routes with bearer, explicit header, and cookie credentials', async () => {
+  it('protects remote API routes with bearer, explicit header, and browser-session credentials', async () => {
     runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-remote-auth-api-test-'))
     standaloneServer = await startRemoteServer(runtimeRoot)
 
@@ -73,8 +73,16 @@ describe('remote server authentication', () => {
     expect(bootstrapResponse.status).not.toBe(303)
     expect(bootstrapResponse.headers.get('set-cookie')).toBeNull()
 
+    const loginResponse = await fetchTrusted(`${standaloneServer.url}/api/auth/session`, {
+      method: 'POST',
+      headers: { Authorization: remoteAuthHeader },
+    })
+    expect(loginResponse.status).toBe(204)
+    const sessionCookie = loginResponse.headers.get('set-cookie')?.split(';', 1)[0]
+    expect(sessionCookie).toMatch(/^ttdash_auth=/)
+
     const cookieResponse = await fetch(`${standaloneServer.url}/api/usage`, {
-      headers: { Cookie: `ttdash_auth=${encodeURIComponent(remoteToken)}` },
+      headers: { Cookie: sessionCookie || '' },
     })
     expect(cookieResponse.status).toBe(200)
   }, 20_000)

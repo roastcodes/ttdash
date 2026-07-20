@@ -4,6 +4,7 @@ const { createRuntimeRoutes } = require('./routes/runtime-routes');
 const { createSettingsRoutes } = require('./routes/settings-routes');
 const { createStaticRouteHandler } = require('./routes/static-routes');
 const { createUsageRoutes } = require('./routes/usage-routes');
+const { createAuthRoutes } = require('./routes/auth-routes');
 const { readMutationBody, sendSSE } = require('./routes/http-route-utils');
 
 /** Creates the HTTP router that validates requests and dispatches route groups. */
@@ -77,6 +78,12 @@ function createHttpRouter({
     prepareHtmlResponse,
     logger,
   });
+  const authRoutes = createAuthRoutes({
+    json,
+    securityHeaders,
+    validateMutationRequest,
+    serverAuth: remoteAuth,
+  });
   const apiRouteHandlers = [
     usageRoutes.handleUsageRoutes,
     settingsRoutes.handleSettingsRoutes,
@@ -114,6 +121,11 @@ function createHttpRouter({
 
     const apiPath = resolveApiPath(pathname);
 
+    if (apiPath === '/auth/session') {
+      authRoutes.handleAuthRoutes(apiPath, req, res);
+      return;
+    }
+
     if (apiPath !== null) {
       const authError = remoteAuth?.validateApiRequest(req);
       if (authError) {
@@ -134,7 +146,7 @@ function createHttpRouter({
       return json(res, 404, { message: 'API endpoint not found' });
     }
 
-    const bootstrapResponse = remoteAuth?.resolveBootstrapResponse(url);
+    const bootstrapResponse = remoteAuth?.resolveBootstrapResponse(url, req);
     if (bootstrapResponse) {
       res.writeHead(bootstrapResponse.status, {
         ...securityHeaders,

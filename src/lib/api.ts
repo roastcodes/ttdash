@@ -19,6 +19,8 @@ interface ApiErrorPayload {
   message?: string
 }
 
+const authenticationRequiredEvent = 'ttdash:authentication-required'
+
 async function parseResponseJson<T>(response: Response): Promise<T> {
   const data: unknown = await response.json()
   return data as T
@@ -35,17 +37,48 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
   }
 }
 
+/** Performs a same-origin API request and announces expired remote sessions. */
+export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const response = await fetch(input, init)
+  if (
+    typeof window !== 'undefined' &&
+    response.status === 401 &&
+    response.headers.get('X-TTDash-Auth-Mode') === 'remote'
+  ) {
+    window.dispatchEvent(new Event(authenticationRequiredEvent))
+  }
+  return response
+}
+
+/** Subscribes to remote-session expiry notifications from API requests. */
+export function onRemoteAuthenticationRequired(listener: () => void): () => void {
+  window.addEventListener(authenticationRequiredEvent, listener)
+  return () => window.removeEventListener(authenticationRequiredEvent, listener)
+}
+
+/** Exchanges the configured remote bearer token for an HttpOnly browser session. */
+export async function authenticateRemoteSession(token: string): Promise<void> {
+  const response = await fetch('/api/auth/session', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token.trim()}` },
+  })
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, i18n.t('remoteLogin.failed')))
+  }
+}
+
 /** Describes the bootstrap settings payload returned before the first render. */
 export interface BootstrapSettingsResult {
   settings: AppSettings
   errorMessage: string | null
   loadedFromServer: boolean
   fetchedAt: number | null
+  authenticationRequired: boolean
 }
 
 /** Loads the persisted usage dataset from the local API. */
 export async function fetchUsage(): Promise<UsageData> {
-  const res = await fetch('/api/usage')
+  const res = await apiFetch('/api/usage')
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, i18n.t('api.fetchUsageFailed')))
   }
@@ -54,7 +87,7 @@ export async function fetchUsage(): Promise<UsageData> {
 
 /** Uploads a full usage payload to the local API. */
 export async function uploadData(data: unknown): Promise<{ days: number; totalCost: number }> {
-  const res = await fetch('/api/upload', {
+  const res = await apiFetch('/api/upload', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -67,13 +100,13 @@ export async function uploadData(data: unknown): Promise<{ days: number; totalCo
 
 /** Deletes the persisted usage dataset from the local API. */
 export async function deleteUsage(): Promise<void> {
-  const res = await fetch('/api/usage', { method: 'DELETE' })
+  const res = await apiFetch('/api/usage', { method: 'DELETE' })
   if (!res.ok) throw new Error(i18n.t('api.deleteFailed'))
 }
 
 /** Imports usage data by merging it into the existing dataset. */
 export async function importUsageData(data: unknown): Promise<UsageImportSummary> {
-  const res = await fetch('/api/usage/import', {
+  const res = await apiFetch('/api/usage/import', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -97,7 +130,7 @@ export interface UpdateSettingsRequest {
 
 /** Loads persisted app settings from the local API. */
 export async function fetchSettings(): Promise<AppSettings> {
-  const res = await fetch('/api/settings')
+  const res = await apiFetch('/api/settings')
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, i18n.t('api.fetchSettingsFailed')))
   }
@@ -108,7 +141,17 @@ export async function fetchSettings(): Promise<AppSettings> {
 export async function loadBootstrapSettings(): Promise<BootstrapSettingsResult> {
   try {
     const fetchedAt = Date.now()
-    const response = await fetch('/api/settings')
+    const response = await apiFetch('/api/settings')
+
+    if (response.status === 401 && response.headers.get('X-TTDash-Auth-Mode') === 'remote') {
+      return {
+        settings: DEFAULT_APP_SETTINGS,
+        errorMessage: null,
+        loadedFromServer: false,
+        fetchedAt: null,
+        authenticationRequired: true,
+      }
+    }
 
     if (!response.ok) {
       return {
@@ -116,6 +159,7 @@ export async function loadBootstrapSettings(): Promise<BootstrapSettingsResult> 
         errorMessage: await readErrorMessage(response, i18n.t('api.fetchSettingsFailed')),
         loadedFromServer: false,
         fetchedAt: null,
+        authenticationRequired: false,
       }
     }
 
@@ -124,6 +168,7 @@ export async function loadBootstrapSettings(): Promise<BootstrapSettingsResult> 
       errorMessage: null,
       loadedFromServer: true,
       fetchedAt,
+      authenticationRequired: false,
     }
   } catch {
     return {
@@ -131,13 +176,14 @@ export async function loadBootstrapSettings(): Promise<BootstrapSettingsResult> 
       errorMessage: null,
       loadedFromServer: false,
       fetchedAt: null,
+      authenticationRequired: false,
     }
   }
 }
 
 /** Persists a partial settings update through the local API. */
 export async function updateSettings(patch: UpdateSettingsRequest): Promise<AppSettings> {
-  const res = await fetch('/api/settings', {
+  const res = await apiFetch('/api/settings', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
@@ -150,7 +196,7 @@ export async function updateSettings(patch: UpdateSettingsRequest): Promise<AppS
 
 /** Resets persisted settings and returns the normalized defaults. */
 export async function deleteSettings(): Promise<AppSettings> {
-  const res = await fetch('/api/settings', { method: 'DELETE' })
+  const res = await apiFetch('/api/settings', { method: 'DELETE' })
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, i18n.t('api.deleteSettingsFailed')))
   }
@@ -161,7 +207,7 @@ export async function deleteSettings(): Promise<AppSettings> {
 
 /** Imports a settings backup through the local API. */
 export async function importSettings(data: unknown): Promise<AppSettings> {
-  const res = await fetch('/api/settings/import', {
+  const res = await apiFetch('/api/settings/import', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -174,7 +220,7 @@ export async function importSettings(data: unknown): Promise<AppSettings> {
 
 /** Loads the pinned toktrack version and current latest-version status. */
 export async function fetchToktrackVersionStatus(): Promise<ToktrackVersionStatus> {
-  const res = await fetch('/api/toktrack/version-status')
+  const res = await apiFetch('/api/toktrack/version-status')
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, i18n.t('api.fetchToktrackVersionFailed')))
   }
@@ -194,7 +240,7 @@ export interface PdfReportRequest {
 
 /** Requests a PDF report for the current dashboard state. */
 export async function generatePdfReport(request: PdfReportRequest): Promise<Blob> {
-  const res = await fetch('/api/report/pdf', {
+  const res = await apiFetch('/api/report/pdf', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),

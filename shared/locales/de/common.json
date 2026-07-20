@@ -47,6 +47,15 @@
     "settingsCorrupted": "Die lokale Einstellungsdatei ist unlesbar oder beschädigt.",
     "usageCorrupted": "Die lokale Nutzungsdatei ist unlesbar oder beschädigt."
   },
+  "remoteLogin": {
+    "title": "Bei TTDash anmelden",
+    "description": "Diese TTDash-Instanz ist über das Netzwerk erreichbar und erfordert das konfigurierte Remote-Token.",
+    "tokenLabel": "Remote-Token",
+    "submit": "Anmelden",
+    "signingIn": "Anmeldung läuft …",
+    "failed": "Das Remote-Token ist ungültig.",
+    "securityNote": "Das Token wird nur für die Anmeldung übertragen und von TTDash nicht dauerhaft gespeichert."
+  },
   "viewModes": {
     "daily": "Tagesansicht",
     "monthly": "Monatsansicht",

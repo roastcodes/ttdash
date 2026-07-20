@@ -27,6 +27,7 @@ const { createServerLifecycle } = require('./server-lifecycle');
 const { sleep, isProcessRunning, formatDateTime } = require('./process-utils');
 const { ensureBindHostAllowed, isLoopbackHost, listenOnAvailablePort } = require('./runtime');
 const { createServerRuntimeState } = require('./runtime-state');
+const { parseTrustedHosts } = require('./docker-runtime');
 
 const ROOT = path.resolve(__dirname, '..');
 const APP_DIR_NAME = 'TTDash';
@@ -64,14 +65,22 @@ function createAppRuntime({
   const rawCliArgs = argv.slice(2);
   const normalizedCliArgs = normalizeCliArgs(rawCliArgs);
   const cliOptions = parseCliArgs(rawCliArgs, { appVersion: APP_VERSION });
+  const dockerMode = Boolean(cliOptions.docker || env.TTDASH_DOCKER === '1');
+  const effectiveCliOptions = {
+    ...cliOptions,
+    docker: dockerMode,
+    noOpen: cliOptions.noOpen || dockerMode,
+  };
   const envStartPort = parseInt(env.PORT, 10);
   const startPort = cliOptions.port ?? (Number.isFinite(envStartPort) ? envStartPort : 3000);
   const maxPort = Math.min(startPort + 100, 65535);
-  const bindHost = env.HOST || '127.0.0.1';
-  const allowRemoteBind = env.TTDASH_ALLOW_REMOTE === '1';
+  const bindHost = env.HOST || (dockerMode ? '0.0.0.0' : '127.0.0.1');
+  const allowRemoteBind = dockerMode || env.TTDASH_ALLOW_REMOTE === '1';
   const remoteAuthToken = env.TTDASH_REMOTE_TOKEN || '';
+  const secureCookies = env.TTDASH_SECURE_COOKIE === '1';
   const localAuthToken = env.TTDASH_LOCAL_AUTH_TOKEN || '';
   const apiPrefix = env.API_PREFIX || '/api';
+  const trustedHosts = parseTrustedHosts(env.TTDASH_TRUSTED_HOSTS, { dockerMode });
   const isDarwin = processObject.platform === 'darwin';
   const isWindows = processObject.platform === 'win32';
   const toktrackLocalBin =
@@ -115,6 +124,7 @@ function createAppRuntime({
     allowRemoteBind,
     remoteToken: remoteAuthToken,
     localToken: localAuthToken || undefined,
+    secureCookies,
   });
   const authorizationHeader = serverAuth.getAuthorizationHeader();
 
@@ -137,7 +147,7 @@ function createAppRuntime({
     remoteAuthHeader: authorizationHeader,
     runtimeInstance,
     normalizedCliArgs,
-    cliOptions,
+    cliOptions: effectiveCliOptions,
     forceOpenBrowser,
     isWindows,
     secureDirMode: SECURE_DIR_MODE,
@@ -181,6 +191,7 @@ function createAppRuntime({
     maxBodySize: MAX_BODY_SIZE,
     securityHeaders,
     bindHost,
+    trustedHosts,
   });
 
   const router = createHttpRouter({
@@ -210,7 +221,8 @@ function createAppRuntime({
     localAuthSessionFile,
     apiPrefix,
     bindHost,
-    cliOptions,
+    trustedHosts,
+    cliOptions: effectiveCliOptions,
     isBackgroundChild,
     forceOpenBrowser,
     isLoopbackHost,
@@ -234,7 +246,7 @@ function createAppRuntime({
     maxPort,
     bindHost,
     allowRemoteBind,
-    cliOptions,
+    cliOptions: effectiveCliOptions,
     isBackgroundChild,
   });
 }

@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ToastProvider } from '@/components/ui/toast'
 import { Dashboard } from '@/components/Dashboard'
-import { fetchSettings } from '@/lib/api'
+import { RemoteLogin } from '@/components/features/remote-login/RemoteLogin'
+import { fetchSettings, onRemoteAuthenticationRequired } from '@/lib/api'
 import { AppMotionProvider } from '@/lib/motion'
 import type { AppSettings } from '@/types'
 
@@ -12,6 +13,7 @@ interface AppProps {
   initialSettingsError?: string | null
   initialSettingsLoadedFromServer?: boolean
   initialSettingsFetchedAt?: number | null
+  initialAuthenticationRequired?: boolean
 }
 
 function AppSettingsMotionProvider({
@@ -49,7 +51,11 @@ export function App({
   initialSettingsError = null,
   initialSettingsLoadedFromServer = false,
   initialSettingsFetchedAt = null,
+  initialAuthenticationRequired = false,
 }: AppProps) {
+  const [authenticationRequired, setAuthenticationRequired] = useState(
+    initialAuthenticationRequired,
+  )
   const [queryClient] = useState(() => {
     return new QueryClient({
       defaultOptions: {
@@ -60,6 +66,12 @@ export function App({
       },
     })
   })
+
+  useEffect(() => onRemoteAuthenticationRequired(() => setAuthenticationRequired(true)), [])
+
+  if (authenticationRequired) {
+    return <RemoteLogin />
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -84,6 +84,28 @@ describe('local server startup CLI integration', () => {
     }
   }, 20_000)
 
+  it('starts Docker mode with secure network and trusted-host defaults', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-docker-mode-test-'))
+    let standaloneServer: Awaited<ReturnType<typeof startStandaloneServer>> | null = null
+
+    try {
+      standaloneServer = await startStandaloneServer({
+        root: runtimeRoot,
+        args: ['--docker'],
+        envOverrides: { HOST: '', TTDASH_REMOTE_TOKEN: remoteToken },
+        readinessHeaders: { Authorization: remoteAuthHeader },
+      })
+
+      expect(standaloneServer.getOutput()).toContain('Host:           0.0.0.0')
+      expect(standaloneServer.getOutput()).toContain('Docker Mode:    enabled')
+      expect(standaloneServer.getOutput()).toContain('Trusted Hosts:  localhost, 127.0.0.1, ::1')
+      expect(standaloneServer.getOutput()).toContain('Browser Open:   disabled')
+    } finally {
+      if (standaloneServer) await stopProcess(standaloneServer.child)
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  }, 20_000)
+
   itIfPosix('tightens existing app directories to restrictive permissions on startup', async () => {
     const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-existing-dir-permissions-test-'))
     const dataDir = getCliDataDir(runtimeRoot)

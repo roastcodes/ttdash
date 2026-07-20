@@ -28,18 +28,21 @@ function printHelp({ appVersion, log = console.log } = {}) {
   log('  -no, --no-open      Disable browser auto-open');
   log('  -al, --auto-load    Run auto-import immediately on startup');
   log('  -b, -bg, --background  Start TTDash as a background process');
+  log('  --docker            Start with secure container defaults');
   log('');
   log('Examples:');
   log('  ttdash --port 3010');
   log('  ttdash -p 3010 -no');
   log('  ttdash --auto-load');
   log('  ttdash --background');
+  log('  ttdash --docker');
   log('  ttdash stop');
   log('');
   log('Environment variables:');
   log('  PORT=3010 ttdash');
   log('  NO_OPEN_BROWSER=1 ttdash');
   log('  HOST=127.0.0.1 ttdash');
+  log('  TTDASH_DOCKER=1 TTDASH_REMOTE_TOKEN=<long-random-token> ttdash');
   log('  TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=0.0.0.0 ttdash');
 }
 
@@ -88,6 +91,9 @@ function parseCliArgs(
         background: {
           type: 'boolean',
           short: 'b',
+        },
+        docker: {
+          type: 'boolean',
         },
       },
     });
@@ -162,6 +168,7 @@ function parseCliArgs(
     noOpen: Boolean(parsed.values['no-open']),
     autoLoad: Boolean(parsed.values['auto-load']),
     background: Boolean(parsed.values.background),
+    docker: Boolean(parsed.values.docker),
   };
 }
 
