@@ -54,9 +54,10 @@ equivalent `X-TTDash-Remote-Token` header. Keep the token secret.
 `HOST=0.0.0.0`, disables browser auto-open, and still refuses to start without a remote token of at
 least 24 characters. Docker mode trusts the exact browser hosts `localhost`, `127.0.0.1`, and `::1`
 by default. Setting the comma-separated `TTDASH_TRUSTED_HOSTS` value replaces those defaults, so a
-server deployment accepts browser requests only for its explicitly configured IP addresses or DNS
-names. This does not restrict the listening interface or firewall exposure. Schemes, ports, paths,
-and wildcards are rejected.
+server deployment accepts its explicitly configured IP addresses or DNS names. The request guard
+also permits loopback hosts for loopback-bound or loopback-local connections and the concrete
+socket-local address for wildcard binds. These checks do not restrict the listening interface or
+firewall exposure. Schemes, ports, paths, and wildcards are rejected.
 
 Remote browser sign-in exchanges the master token for a random, expiring HttpOnly/SameSite session.
 Set `TTDASH_SECURE_COOKIE=1` behind an HTTPS reverse proxy so those sessions receive a `Secure`
