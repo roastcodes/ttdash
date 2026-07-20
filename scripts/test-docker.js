@@ -18,6 +18,21 @@ function runDocker(args, { allowFailure = false } = {}) {
   return result;
 }
 
+function startContainer(extraArgs = []) {
+  runDocker([
+    'run',
+    '--detach',
+    '--name',
+    containerName,
+    '--publish',
+    '127.0.0.1::3000',
+    '--env',
+    `TTDASH_REMOTE_TOKEN=${remoteToken}`,
+    ...extraArgs,
+    imageTag,
+  ]);
+}
+
 function request({ port, path = '/', method = 'GET', headers = {} }) {
   return new Promise((resolve, reject) => {
     const req = http.request({ hostname: '127.0.0.1', port, path, method, headers }, (res) => {
@@ -80,17 +95,7 @@ async function main() {
     throw new Error('Docker image must fail closed when TTDASH_REMOTE_TOKEN is missing');
   }
 
-  runDocker([
-    'run',
-    '--detach',
-    '--name',
-    containerName,
-    '--publish',
-    '127.0.0.1::3000',
-    '--env',
-    `TTDASH_REMOTE_TOKEN=${remoteToken}`,
-    imageTag,
-  ]);
+  startContainer();
 
   const portOutput = runDocker(['port', containerName, '3000/tcp']).stdout.trim();
   const port = Number(portOutput.slice(portOutput.lastIndexOf(':') + 1));
@@ -124,19 +129,7 @@ async function main() {
   );
 
   runDocker(['rm', '--force', containerName]);
-  runDocker([
-    'run',
-    '--detach',
-    '--name',
-    containerName,
-    '--publish',
-    '127.0.0.1::3000',
-    '--env',
-    `TTDASH_REMOTE_TOKEN=${remoteToken}`,
-    '--env',
-    'TTDASH_TRUSTED_HOSTS=dashboard.example',
-    imageTag,
-  ]);
+  startContainer(['--env', 'TTDASH_TRUSTED_HOSTS=dashboard.example']);
   const serverPortOutput = runDocker(['port', containerName, '3000/tcp']).stdout.trim();
   const serverPort = Number(serverPortOutput.slice(serverPortOutput.lastIndexOf(':') + 1));
   if (!Number.isInteger(serverPort)) {

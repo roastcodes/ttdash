@@ -20,6 +20,18 @@ interface ApiErrorPayload {
 }
 
 const authenticationRequiredEvent = 'ttdash:authentication-required'
+const remoteAuthenticationRequiredByTarget = new WeakMap<object, boolean>()
+
+function setRemoteAuthenticationRequired(required: boolean): void {
+  if (typeof window !== 'undefined') {
+    remoteAuthenticationRequiredByTarget.set(window, required)
+  }
+}
+
+/** Returns whether this browser context has observed an expired remote session. */
+export function isRemoteAuthenticationRequired(): boolean {
+  return typeof window !== 'undefined' && remoteAuthenticationRequiredByTarget.get(window) === true
+}
 
 async function parseResponseJson<T>(response: Response): Promise<T> {
   const data: unknown = await response.json()
@@ -45,6 +57,7 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
     response.status === 401 &&
     response.headers.get('X-TTDash-Auth-Mode') === 'remote'
   ) {
+    setRemoteAuthenticationRequired(true)
     window.dispatchEvent(new Event(authenticationRequiredEvent))
   }
   return response
@@ -53,6 +66,9 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
 /** Subscribes to remote-session expiry notifications from API requests. */
 export function onRemoteAuthenticationRequired(listener: () => void): () => void {
   window.addEventListener(authenticationRequiredEvent, listener)
+  if (isRemoteAuthenticationRequired()) {
+    listener()
+  }
   return () => window.removeEventListener(authenticationRequiredEvent, listener)
 }
 
@@ -65,6 +81,7 @@ export async function authenticateRemoteSession(token: string): Promise<void> {
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, i18n.t('remoteLogin.failed')))
   }
+  setRemoteAuthenticationRequired(false)
 }
 
 /** Describes the bootstrap settings payload returned before the first render. */

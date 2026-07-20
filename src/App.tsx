@@ -4,7 +4,11 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { ToastProvider } from '@/components/ui/toast'
 import { Dashboard } from '@/components/Dashboard'
 import { RemoteLogin } from '@/components/features/remote-login/RemoteLogin'
-import { fetchSettings, onRemoteAuthenticationRequired } from '@/lib/api'
+import {
+  fetchSettings,
+  isRemoteAuthenticationRequired,
+  onRemoteAuthenticationRequired,
+} from '@/lib/api'
 import { AppMotionProvider } from '@/lib/motion'
 import type { AppSettings } from '@/types'
 
@@ -54,7 +58,7 @@ export function App({
   initialAuthenticationRequired = false,
 }: AppProps) {
   const [authenticationRequired, setAuthenticationRequired] = useState(
-    initialAuthenticationRequired,
+    () => initialAuthenticationRequired || isRemoteAuthenticationRequired(),
   )
   const [queryClient] = useState(() => {
     return new QueryClient({

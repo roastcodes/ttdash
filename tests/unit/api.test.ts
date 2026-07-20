@@ -168,6 +168,27 @@ describe('api error handling', () => {
     expect(listener).toHaveBeenCalledOnce()
   })
 
+  it('replays a remote authentication requirement observed before subscription', async () => {
+    const browserEvents = new EventTarget()
+    vi.stubGlobal('window', browserEvents)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(null, {
+          status: 401,
+          headers: { 'X-TTDash-Auth-Mode': 'remote' },
+        }),
+      ),
+    )
+    const listener = vi.fn()
+
+    await apiFetch('/api/usage')
+    const unsubscribe = onRemoteAuthenticationRequired(listener)
+
+    expect(listener).toHaveBeenCalledOnce()
+    unsubscribe()
+  })
+
   it('surfaces the server message when remote token exchange fails', async () => {
     vi.stubGlobal(
       'fetch',
