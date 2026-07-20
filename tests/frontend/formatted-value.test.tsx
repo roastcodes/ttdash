@@ -30,8 +30,8 @@ describe('FormattedValue', () => {
 
     fireEvent.focus(trigger)
 
-    expect(await screen.findAllByText(formatCurrencyExact(5046.25))).toHaveLength(2)
-    expect(screen.getAllByText('Average spend per active day')).toHaveLength(2)
+    expect(await screen.findByText(formatCurrencyExact(5046.25))).toBeInTheDocument()
+    expect(screen.getByText('Average spend per active day')).toBeInTheDocument()
   })
 
   it('keeps non-abbreviated values static', () => {
