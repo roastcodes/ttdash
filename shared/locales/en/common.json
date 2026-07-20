@@ -47,6 +47,15 @@
     "settingsCorrupted": "The local settings file is unreadable or corrupted.",
     "usageCorrupted": "The local usage data file is unreadable or corrupted."
   },
+  "remoteLogin": {
+    "title": "Sign in to TTDash",
+    "description": "This TTDash instance is network-accessible and requires the configured remote token.",
+    "tokenLabel": "Remote token",
+    "submit": "Sign in",
+    "signingIn": "Signing in…",
+    "failed": "The remote token is invalid.",
+    "securityNote": "The token is transmitted only for sign-in and is not persisted by TTDash."
+  },
   "viewModes": {
     "daily": "Daily view",
     "monthly": "Monthly view",

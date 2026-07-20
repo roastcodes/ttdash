@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const net = require('net');
 const { isLoopbackHost } = require('./runtime.js');
 
 const AUTH_COOKIE_NAME = 'ttdash_auth';
@@ -7,6 +8,11 @@ const AUTH_TOKEN_MIN_LENGTH = 24;
 const AUTH_COOKIE_MAX_AGE_SECONDS = 12 * 60 * 60;
 const AUTH_REALM = 'TTDash API';
 const LOCAL_SESSION_TOKEN_BYTES = 32;
+const REMOTE_SESSION_MAX_ENTRIES = 128;
+const REMOTE_SESSION_RATE_LIMIT = 30;
+const REMOTE_SESSION_FAILURE_RATE_LIMIT = 10;
+const REMOTE_SESSION_RATE_CLIENT_MAX_ENTRIES = 256;
+const REMOTE_SESSION_RATE_WINDOW_MS = 60 * 1000;
 
 // Backward-compatible names for the existing remote-auth tests and imports.
 const REMOTE_AUTH_COOKIE_NAME = AUTH_COOKIE_NAME;
@@ -88,14 +94,22 @@ function extractCookieToken(req) {
   return parseCookieHeader(getHeaderValue(req, 'cookie')).get(REMOTE_AUTH_COOKIE_NAME) || '';
 }
 
-function buildCookieHeader(token) {
-  return [
+function buildCookieHeader(token, { secure = false, maxAge = AUTH_COOKIE_MAX_AGE_SECONDS } = {}) {
+  const parts = [
     `${REMOTE_AUTH_COOKIE_NAME}=${encodeURIComponent(token)}`,
     'Path=/',
     'HttpOnly',
     'SameSite=Strict',
-    `Max-Age=${AUTH_COOKIE_MAX_AGE_SECONDS}`,
-  ].join('; ');
+    `Max-Age=${maxAge}`,
+  ];
+  if (secure) {
+    parts.push('Secure');
+  }
+  return parts.join('; ');
+}
+
+function requestUsesHttps(req, secureCookies) {
+  return Boolean(secureCookies || req.socket?.encrypted);
 }
 
 function buildBootstrapRedirectLocation(url) {
@@ -122,6 +136,13 @@ function createServerAuth({
   token,
   requireLocalAuth = true,
   tokenFactory = createSessionToken,
+  remoteSessionTokenFactory = createSessionToken,
+  now = Date.now,
+  secureCookies = false,
+  trustProxy = false,
+  remoteSessionMaxEntries = REMOTE_SESSION_MAX_ENTRIES,
+  remoteSessionRateLimit = REMOTE_SESSION_RATE_LIMIT,
+  remoteSessionFailureRateLimit = REMOTE_SESSION_FAILURE_RATE_LIMIT,
 }) {
   const remoteAuthRequired = !isLoopbackHost(bindHost) && allowRemoteBind;
   const localAuthRequired = !remoteAuthRequired && requireLocalAuth;
@@ -135,6 +156,89 @@ function createServerAuth({
   const normalizedToken = normalizeToken(configuredToken);
   const expectedDigest =
     normalizedToken.length >= AUTH_TOKEN_MIN_LENGTH ? hashToken(normalizedToken) : null;
+  const remoteSessions = new Map();
+  const remoteSessionIssueTimesByClient = new Map();
+  const remoteSessionFailureTimesByClient = new Map();
+
+  function hashTokenKey(tokenValue) {
+    return hashToken(tokenValue).toString('hex');
+  }
+
+  function removeExpiredRemoteSessions(currentTime = now()) {
+    for (const [digest, expiresAt] of remoteSessions) {
+      if (expiresAt <= currentTime) {
+        remoteSessions.delete(digest);
+      }
+    }
+  }
+
+  function getRemoteSessionClientKey(req) {
+    if (trustProxy) {
+      const forwardedAddresses = getHeaderValue(req, 'x-forwarded-for')
+        .split(',')
+        .map((address) => address.trim())
+        .filter(Boolean);
+      const forwardedAddress = forwardedAddresses.at(-1) || '';
+      if (net.isIP(forwardedAddress)) {
+        return forwardedAddress;
+      }
+    }
+    return String(req.socket?.remoteAddress || 'unknown');
+  }
+
+  function getActiveRateLimitTimes(store, clientKey, currentTime) {
+    const issueTimes = store.get(clientKey);
+    if (!issueTimes) {
+      return [];
+    }
+    while (issueTimes[0] <= currentTime - REMOTE_SESSION_RATE_WINDOW_MS) {
+      issueTimes.shift();
+    }
+    if (issueTimes.length === 0) {
+      store.delete(clientKey);
+    }
+    return issueTimes;
+  }
+
+  function recordRateLimitAttempt(store, clientKey, currentTime) {
+    let issueTimes = getActiveRateLimitTimes(store, clientKey, currentTime);
+    if (issueTimes.length === 0) {
+      while (store.size >= REMOTE_SESSION_RATE_CLIENT_MAX_ENTRIES) {
+        const oldestClientKey = store.keys().next().value;
+        if (typeof oldestClientKey !== 'string') break;
+        store.delete(oldestClientKey);
+      }
+      issueTimes = [];
+      store.set(clientKey, issueTimes);
+    }
+    issueTimes.push(currentTime);
+  }
+
+  function getRateLimitResponse(store, clientKey, limit, currentTime) {
+    const issueTimes = getActiveRateLimitTimes(store, clientKey, currentTime);
+    if (issueTimes.length < limit) {
+      return null;
+    }
+    const retryAfterMs = issueTimes[0] + REMOTE_SESSION_RATE_WINDOW_MS - currentTime;
+    return {
+      status: 429,
+      message: 'Too many authentication attempts',
+      headers: {
+        'Cache-Control': 'no-store',
+        'Retry-After': String(Math.max(1, Math.ceil(retryAfterMs / 1000))),
+      },
+    };
+  }
+
+  function matchesRemoteSession(candidate) {
+    if (!remoteAuthRequired || !normalizeToken(candidate)) {
+      return false;
+    }
+    const currentTime = now();
+    removeExpiredRemoteSessions(currentTime);
+    const expiresAt = remoteSessions.get(hashTokenKey(candidate));
+    return typeof expiresAt === 'number' && expiresAt > currentTime;
+  }
 
   function getConfigurationError() {
     if (!authRequired) {
@@ -191,7 +295,9 @@ function createServerAuth({
     if (
       matchesToken(extractBearerToken(req)) ||
       matchesToken(extractHeaderToken(req)) ||
-      matchesToken(extractCookieToken(req))
+      (localAuthRequired
+        ? matchesToken(extractCookieToken(req))
+        : matchesRemoteSession(extractCookieToken(req)))
     ) {
       return null;
     }
@@ -202,11 +308,84 @@ function createServerAuth({
       headers: {
         'Cache-Control': 'no-store',
         'WWW-Authenticate': `Bearer realm="${AUTH_REALM}"`,
+        'X-TTDash-Auth-Mode': mode,
       },
     };
   }
 
-  function resolveBootstrapResponse(url) {
+  function createRemoteSessionResponse(req) {
+    if (!remoteAuthRequired) {
+      return null;
+    }
+
+    const currentTime = now();
+    const clientKey = getRemoteSessionClientKey(req);
+    const failureRateLimitResponse = getRateLimitResponse(
+      remoteSessionFailureTimesByClient,
+      clientKey,
+      remoteSessionFailureRateLimit,
+      currentTime,
+    );
+    if (failureRateLimitResponse) {
+      return failureRateLimitResponse;
+    }
+
+    if (!matchesToken(extractBearerToken(req)) && !matchesToken(extractHeaderToken(req))) {
+      recordRateLimitAttempt(remoteSessionFailureTimesByClient, clientKey, currentTime);
+      return {
+        status: 401,
+        message: 'Authentication required',
+        headers: {
+          'Cache-Control': 'no-store',
+          'WWW-Authenticate': `Bearer realm="${AUTH_REALM}"`,
+          'X-TTDash-Auth-Mode': mode,
+        },
+      };
+    }
+
+    const issueRateLimitResponse = getRateLimitResponse(
+      remoteSessionIssueTimesByClient,
+      clientKey,
+      remoteSessionRateLimit,
+      currentTime,
+    );
+    if (issueRateLimitResponse) {
+      return issueRateLimitResponse;
+    }
+
+    const sessionToken = normalizeToken(remoteSessionTokenFactory());
+    if (sessionToken.length < AUTH_TOKEN_MIN_LENGTH) {
+      return {
+        status: 500,
+        message: 'Remote session token generation failed',
+        headers: { 'Cache-Control': 'no-store' },
+      };
+    }
+    removeExpiredRemoteSessions(currentTime);
+    while (remoteSessions.size >= remoteSessionMaxEntries) {
+      const oldestDigest = remoteSessions.keys().next().value;
+      if (typeof oldestDigest !== 'string') break;
+      remoteSessions.delete(oldestDigest);
+    }
+    remoteSessions.set(
+      hashTokenKey(sessionToken),
+      currentTime + AUTH_COOKIE_MAX_AGE_SECONDS * 1000,
+    );
+    recordRateLimitAttempt(remoteSessionIssueTimesByClient, clientKey, currentTime);
+
+    return {
+      status: 204,
+      headers: {
+        'Cache-Control': 'no-store',
+        'Set-Cookie': buildCookieHeader(sessionToken, {
+          secure: requestUsesHttps(req, secureCookies),
+        }),
+      },
+      body: '',
+    };
+  }
+
+  function resolveBootstrapResponse(url, req = {}) {
     if (!localAuthRequired || !url.searchParams.has(AUTH_QUERY_PARAM)) {
       return null;
     }
@@ -228,7 +407,9 @@ function createServerAuth({
       status: 303,
       headers: {
         Location: buildBootstrapRedirectLocation(url),
-        'Set-Cookie': buildCookieHeader(normalizedToken),
+        'Set-Cookie': buildCookieHeader(normalizedToken, {
+          secure: requestUsesHttps(req, secureCookies),
+        }),
         'Cache-Control': 'no-store',
       },
       body: '',
@@ -263,6 +444,7 @@ function createServerAuth({
     ensureConfigured,
     getConfigurationError,
     validateApiRequest,
+    createRemoteSessionResponse,
     resolveBootstrapResponse,
     createBootstrapUrl,
     getAuthorizationHeader,

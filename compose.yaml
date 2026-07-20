@@ -1,0 +1,25 @@
+services:
+  ttdash:
+    build:
+      context: .
+    environment:
+      TTDASH_REMOTE_TOKEN: ${TTDASH_REMOTE_TOKEN:?Set TTDASH_REMOTE_TOKEN; the server validates its minimum length at startup}
+      TTDASH_TRUSTED_HOSTS: ${TTDASH_TRUSTED_HOSTS:-}
+      TTDASH_SECURE_COOKIE: ${TTDASH_SECURE_COOKIE:-0}
+      TTDASH_TRUST_PROXY: ${TTDASH_TRUST_PROXY:-0}
+    ports:
+      - '${TTDASH_PUBLISH_ADDRESS:-127.0.0.1}:3000:3000'
+    volumes:
+      - ttdash-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    restart: unless-stopped
+
+volumes:
+  ttdash-data:

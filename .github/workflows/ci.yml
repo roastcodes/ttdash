@@ -224,6 +224,25 @@ jobs:
             playwright-report/
             test-results/
 
+  docker-smoke:
+    name: Docker Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: Build and test the Docker image
+        run: npm run test:docker
+
   windows-smoke:
     name: Windows Smoke
     runs-on: windows-latest
@@ -303,6 +322,7 @@ jobs:
       - build
       - package-smoke
       - e2e
+      - docker-smoke
       - windows-smoke
       - bun-toolchain
     if: ${{ always() }}
@@ -316,6 +336,7 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
           PACKAGE_SMOKE_RESULT: ${{ needs['package-smoke'].result }}
           E2E_RESULT: ${{ needs.e2e.result }}
+          DOCKER_SMOKE_RESULT: ${{ needs['docker-smoke'].result }}
           WINDOWS_SMOKE_RESULT: ${{ needs['windows-smoke'].result }}
           BUN_TOOLCHAIN_RESULT: ${{ needs['bun-toolchain'].result }}
         run: |
@@ -339,6 +360,7 @@ jobs:
           check_result "build" "${BUILD_RESULT}"
           check_result "package-smoke" "${PACKAGE_SMOKE_RESULT}"
           check_result "e2e" "${E2E_RESULT}"
+          check_result "docker-smoke" "${DOCKER_SMOKE_RESULT}"
           check_result "windows-smoke" "${WINDOWS_SMOKE_RESULT}"
           check_result "bun-toolchain" "${BUN_TOOLCHAIN_RESULT}"
 

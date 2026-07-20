@@ -18,6 +18,7 @@ const { normalizeCliArgs, parseCliArgs, printHelp } = require('../../server/cli.
     noOpen: boolean
     autoLoad: boolean
     background: boolean
+    docker: boolean
   } | null
   printHelp: (options: { appVersion: string; log: (message: string) => void }) => void
 }
@@ -50,6 +51,7 @@ describe('server CLI parsing', () => {
       noOpen: true,
       autoLoad: true,
       background: true,
+      docker: false,
     })
 
     expect(parseCliArgs(['stop'])).toEqual({
@@ -57,6 +59,15 @@ describe('server CLI parsing', () => {
       noOpen: false,
       autoLoad: false,
       background: false,
+      docker: false,
+    })
+
+    expect(parseCliArgs(['--docker'])).toEqual({
+      command: null,
+      noOpen: false,
+      autoLoad: false,
+      background: false,
+      docker: true,
     })
   })
 
@@ -102,6 +113,7 @@ describe('server CLI parsing', () => {
     expect(lines).toContain('  -no, --no-open      Disable browser auto-open')
     expect(lines).toContain('  -al, --auto-load    Run auto-import immediately on startup')
     expect(lines).toContain('  -b, -bg, --background  Start TTDash as a background process')
+    expect(lines).toContain('  --docker            Start with secure container defaults')
     expect(lines).toContain(
       '  TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=0.0.0.0 ttdash',
     )

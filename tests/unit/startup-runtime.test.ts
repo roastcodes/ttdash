@@ -205,13 +205,36 @@ describe('startup runtime', () => {
     runtime.printStartupSummary('http://0.0.0.0:3000', 3000)
 
     expect(logs).toContain('  Remote Auth:    required')
-    expect(logs).toContain('Use the bearer-token curl example below for remote API access.')
+    expect(logs).toContain(
+      'Open the dashboard to sign in, or use the bearer-token curl example for API access.',
+    )
     expect(logs).not.toContain(
       'Open remote browsers once with ?ttdash_token=<TTDASH_REMOTE_TOKEN>.',
     )
     expect(logs).toContain(
       '  curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" http://0.0.0.0:3000/api/usage',
     )
+  })
+
+  it('prints Docker mode and its effective trusted hosts', () => {
+    const { logs, runtime } = createStartupRuntimeFixture({
+      bindHost: '0.0.0.0',
+      trustedHosts: ['localhost', '127.0.0.1', '::1', 'dashboard.example'],
+      cliOptions: { noOpen: true, autoLoad: false, docker: true },
+      isLoopbackHost: () => false,
+      serverAuth: {
+        mode: 'remote',
+        createBootstrapUrl: vi.fn((url: string) => url),
+        getAuthorizationHeader: vi.fn(() => ['Bearer', 'remote-token'].join(' ')),
+        isLocalRequired: vi.fn(() => false),
+        isRemoteRequired: vi.fn(() => true),
+      },
+    })
+
+    runtime.printStartupSummary('http://localhost:3000', 3000)
+
+    expect(logs).toContain('  Docker Mode:    enabled')
+    expect(logs).toContain('  Trusted Hosts:  localhost, 127.0.0.1, ::1, dashboard.example')
   })
 
   it('opens the platform browser with the provided bootstrap URL when allowed', () => {

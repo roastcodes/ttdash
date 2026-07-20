@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  authenticateRemoteSession,
+  apiFetch,
   deleteSettings,
   deleteUsage,
   fetchSettings,
@@ -8,6 +10,7 @@ import {
   importSettings,
   importUsageData,
   loadBootstrapSettings,
+  onRemoteAuthenticationRequired,
   uploadData,
   updateSettings,
 } from '@/lib/api'
@@ -107,7 +110,97 @@ describe('api error handling', () => {
       errorMessage: 'Failed to load settings',
       loadedFromServer: false,
       fetchedAt: null,
+      authenticationRequired: false,
     })
+  })
+
+  it('identifies remote authentication during settings bootstrap', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ message: 'Authentication required' }), {
+          status: 401,
+          headers: { 'X-TTDash-Auth-Mode': 'remote' },
+        }),
+      ),
+    )
+
+    await expect(loadBootstrapSettings()).resolves.toMatchObject({
+      authenticationRequired: true,
+      errorMessage: null,
+      loadedFromServer: false,
+    })
+  })
+
+  it('sends remote login tokens only in the Authorization header', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await authenticateRemoteSession('  remote-login-token  ')
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/session', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer remote-login-token' },
+    })
+  })
+
+  it('announces remote 401 responses to registered listeners only', async () => {
+    const browserEvents = new EventTarget()
+    vi.stubGlobal('window', browserEvents)
+    const listener = vi.fn()
+    const unsubscribe = onRemoteAuthenticationRequired(listener)
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, { status: 401, headers: { 'X-TTDash-Auth-Mode': 'remote' } }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await apiFetch('/api/usage')
+    expect(listener).toHaveBeenCalledOnce()
+
+    await apiFetch('/api/usage')
+    expect(listener).toHaveBeenCalledOnce()
+
+    unsubscribe()
+    browserEvents.dispatchEvent(new Event('ttdash:authentication-required'))
+    expect(listener).toHaveBeenCalledOnce()
+  })
+
+  it('replays a remote authentication requirement observed before subscription', async () => {
+    const browserEvents = new EventTarget()
+    vi.stubGlobal('window', browserEvents)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(null, {
+          status: 401,
+          headers: { 'X-TTDash-Auth-Mode': 'remote' },
+        }),
+      ),
+    )
+    const listener = vi.fn()
+
+    await apiFetch('/api/usage')
+    const unsubscribe = onRemoteAuthenticationRequired(listener)
+
+    expect(listener).toHaveBeenCalledOnce()
+    unsubscribe()
+  })
+
+  it('surfaces the server message when remote token exchange fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ message: 'Remote login rejected' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+
+    await expect(authenticateRemoteSession('wrong-token')).rejects.toThrow('Remote login rejected')
   })
 
   it('fills in the system motion preference when bootstrap settings omit the field', async () => {
@@ -146,6 +239,7 @@ describe('api error handling', () => {
       errorMessage: null,
       loadedFromServer: false,
       fetchedAt: null,
+      authenticationRequired: false,
     })
   })
 
