@@ -262,7 +262,7 @@ describe('remote auth', () => {
       })
     const firstClient = new MockRequest()
     firstClient.headers.authorization = remoteAuthHeader
-    firstClient.headers['x-forwarded-for'] = '192.0.2.30'
+    firstClient.headers['x-forwarded-for'] = '203.0.113.99, 192.0.2.30'
     firstClient.socket.remoteAddress = '192.0.2.1'
     const secondClient = new MockRequest()
     secondClient.headers.authorization = remoteAuthHeader

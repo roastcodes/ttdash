@@ -174,7 +174,11 @@ function createServerAuth({
 
   function getRemoteSessionClientKey(req) {
     if (trustProxy) {
-      const forwardedAddress = getHeaderValue(req, 'x-forwarded-for').split(',', 1)[0].trim();
+      const forwardedAddresses = getHeaderValue(req, 'x-forwarded-for')
+        .split(',')
+        .map((address) => address.trim())
+        .filter(Boolean);
+      const forwardedAddress = forwardedAddresses.at(-1) || '';
       if (net.isIP(forwardedAddress)) {
         return forwardedAddress;
       }

@@ -229,7 +229,7 @@ export TTDASH_TRUST_PROXY=1
 docker compose up --build -d
 ```
 
-Put public hostnames behind an HTTPS reverse proxy that preserves the original `Host` header, overwrites `X-Forwarded-For`, and is the container's only ingress. Set `TTDASH_SECURE_COOKIE=1` whenever `TTDASH_PUBLISH_ADDRESS` is exposed beyond loopback behind HTTPS, so browser sessions can only travel over HTTPS. Enable `TTDASH_TRUST_PROXY=1` only with that restricted proxy topology; otherwise client-supplied forwarded addresses could bypass per-client login rate limits. Browser `Origin` and `Host` must agree for uploads, settings changes, imports, resets, and other mutations. TTDash does not trust `X-Forwarded-Host`. Direct public HTTP is unsupported because it exposes the bearer token and browser session in transit.
+Put public hostnames behind an HTTPS reverse proxy that preserves the original `Host` header, writes the actual client IP as the last `X-Forwarded-For` entry, and is the container's only ingress. Set `TTDASH_SECURE_COOKIE=1` whenever `TTDASH_PUBLISH_ADDRESS` is exposed beyond loopback behind HTTPS, so browser sessions can only travel over HTTPS. Enable `TTDASH_TRUST_PROXY=1` only with that restricted proxy topology; otherwise client-supplied forwarded addresses could bypass per-client login rate limits. Browser `Origin` and `Host` must agree for uploads, settings changes, imports, resets, and other mutations. TTDash does not trust `X-Forwarded-Host`. Direct public HTTP is unsupported because it exposes the bearer token and browser session in transit.
 
 The equivalent direct image invocation is:
 

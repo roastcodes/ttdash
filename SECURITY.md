@@ -64,9 +64,10 @@ cookie without trusting client-controlled proxy headers. The master token is not
 remote query parameter and is not stored in browser storage. API clients should continue to use a
 token header.
 
-`TTDASH_TRUST_PROXY=1` lets authentication rate limits use the first `X-Forwarded-For` client IP.
-Enable it only when a trusted reverse proxy is the container's sole ingress and overwrites that
-header. Otherwise TTDash ignores forwarded client addresses and uses the direct socket address.
+`TTDASH_TRUST_PROXY=1` lets authentication rate limits use the last `X-Forwarded-For` client IP.
+Enable it only when a trusted reverse proxy is the container's sole ingress and writes the actual
+client address as that last entry. Otherwise TTDash ignores forwarded client addresses and uses the
+direct socket address.
 
 The provided Compose configuration binds only to host loopback by default. When publishing on a
 server interface, keep the existing trusted-LAN/VPN/SSH-tunnel restriction or terminate valid HTTPS
