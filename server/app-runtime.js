@@ -78,6 +78,7 @@ function createAppRuntime({
   const allowRemoteBind = dockerMode || env.TTDASH_ALLOW_REMOTE === '1';
   const remoteAuthToken = env.TTDASH_REMOTE_TOKEN || '';
   const secureCookies = env.TTDASH_SECURE_COOKIE === '1';
+  const trustProxy = env.TTDASH_TRUST_PROXY === '1';
   const localAuthToken = env.TTDASH_LOCAL_AUTH_TOKEN || '';
   const apiPrefix = env.API_PREFIX || '/api';
   const trustedHosts = parseTrustedHosts(env.TTDASH_TRUSTED_HOSTS, { dockerMode });
@@ -125,6 +126,7 @@ function createAppRuntime({
     remoteToken: remoteAuthToken,
     localToken: localAuthToken || undefined,
     secureCookies,
+    trustProxy,
   });
   const authorizationHeader = serverAuth.getAuthorizationHeader();
 

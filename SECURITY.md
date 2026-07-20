@@ -54,14 +54,19 @@ equivalent `X-TTDash-Remote-Token` header. Keep the token secret.
 `HOST=0.0.0.0`, disables browser auto-open, and still refuses to start without a remote token of at
 least 24 characters. Docker mode trusts the exact browser hosts `localhost`, `127.0.0.1`, and `::1`
 by default. Setting the comma-separated `TTDASH_TRUSTED_HOSTS` value replaces those defaults, so a
-server deployment exposes only its explicitly configured IP addresses or DNS names. Schemes, ports,
-paths, and wildcards are rejected.
+server deployment accepts browser requests only for its explicitly configured IP addresses or DNS
+names. This does not restrict the listening interface or firewall exposure. Schemes, ports, paths,
+and wildcards are rejected.
 
 Remote browser sign-in exchanges the master token for a random, expiring HttpOnly/SameSite session.
 Set `TTDASH_SECURE_COOKIE=1` behind an HTTPS reverse proxy so those sessions receive a `Secure`
 cookie without trusting client-controlled proxy headers. The master token is not accepted as a
 remote query parameter and is not stored in browser storage. API clients should continue to use a
 token header.
+
+`TTDASH_TRUST_PROXY=1` lets authentication rate limits use the first `X-Forwarded-For` client IP.
+Enable it only when a trusted reverse proxy is the container's sole ingress and overwrites that
+header. Otherwise TTDash ignores forwarded client addresses and uses the direct socket address.
 
 The provided Compose configuration binds only to host loopback by default. When publishing on a
 server interface, keep the existing trusted-LAN/VPN/SSH-tunnel restriction or terminate valid HTTPS

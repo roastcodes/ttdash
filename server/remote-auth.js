@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const net = require('net');
 const { isLoopbackHost } = require('./runtime.js');
 
 const AUTH_COOKIE_NAME = 'ttdash_auth';
@@ -138,6 +139,7 @@ function createServerAuth({
   remoteSessionTokenFactory = createSessionToken,
   now = Date.now,
   secureCookies = false,
+  trustProxy = false,
   remoteSessionMaxEntries = REMOTE_SESSION_MAX_ENTRIES,
   remoteSessionRateLimit = REMOTE_SESSION_RATE_LIMIT,
   remoteSessionFailureRateLimit = REMOTE_SESSION_FAILURE_RATE_LIMIT,
@@ -171,6 +173,12 @@ function createServerAuth({
   }
 
   function getRemoteSessionClientKey(req) {
+    if (trustProxy) {
+      const forwardedAddress = getHeaderValue(req, 'x-forwarded-for').split(',', 1)[0].trim();
+      if (net.isIP(forwardedAddress)) {
+        return forwardedAddress;
+      }
+    }
     return String(req.socket?.remoteAddress || 'unknown');
   }
 

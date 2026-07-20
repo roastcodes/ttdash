@@ -18,6 +18,7 @@ const { REMOTE_AUTH_COOKIE_NAME, REMOTE_AUTH_QUERY_PARAM, createRemoteAuth } =
       remoteSessionTokenFactory?: () => string
       now?: () => number
       secureCookies?: boolean
+      trustProxy?: boolean
       remoteSessionMaxEntries?: number
       remoteSessionRateLimit?: number
       remoteSessionFailureRateLimit?: number
@@ -248,6 +249,33 @@ describe('remote auth', () => {
     expect(auth.createRemoteSessionResponse(firstClient)?.status).toBe(204)
     expect(auth.createRemoteSessionResponse(firstClient)?.status).toBe(429)
     expect(auth.createRemoteSessionResponse(secondClient)?.status).toBe(204)
+  })
+
+  it('uses forwarded client addresses only with explicit proxy trust', () => {
+    const createAuth = (trustProxy: boolean) =>
+      createRemoteAuth({
+        bindHost: '0.0.0.0',
+        allowRemoteBind: true,
+        token: remoteToken,
+        trustProxy,
+        remoteSessionRateLimit: 1,
+      })
+    const firstClient = new MockRequest()
+    firstClient.headers.authorization = remoteAuthHeader
+    firstClient.headers['x-forwarded-for'] = '192.0.2.30'
+    firstClient.socket.remoteAddress = '192.0.2.1'
+    const secondClient = new MockRequest()
+    secondClient.headers.authorization = remoteAuthHeader
+    secondClient.headers['x-forwarded-for'] = '192.0.2.31'
+    secondClient.socket.remoteAddress = '192.0.2.1'
+
+    const directAuth = createAuth(false)
+    expect(directAuth.createRemoteSessionResponse(firstClient)?.status).toBe(204)
+    expect(directAuth.createRemoteSessionResponse(secondClient)?.status).toBe(429)
+
+    const proxyAuth = createAuth(true)
+    expect(proxyAuth.createRemoteSessionResponse(firstClient)?.status).toBe(204)
+    expect(proxyAuth.createRemoteSessionResponse(secondClient)?.status).toBe(204)
   })
 
   it('rate-limits invalid session credentials per client address', () => {

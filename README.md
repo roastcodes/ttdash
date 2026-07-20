@@ -188,6 +188,7 @@ Environment variables:
 | `TTDASH_DOCKER=1`                         | Enable Docker defaults without the CLI flag            |
 | `TTDASH_TRUSTED_HOSTS=<hosts>`            | Set exact comma-separated hostnames or IP addresses    |
 | `TTDASH_SECURE_COOKIE=1`                  | Restrict remote browser sessions to HTTPS              |
+| `TTDASH_TRUST_PROXY=1`                    | Trust proxy-overwritten `X-Forwarded-For` client IPs   |
 
 Binding to a non-loopback host such as `0.0.0.0` exposes the local dashboard API to your network, including destructive routes for local data and settings resets. TTDash refuses that bind unless you set both `TTDASH_ALLOW_REMOTE=1` and a `TTDASH_REMOTE_TOKEN` with at least 24 characters. Only use remote token access over a trusted LAN, VPN, or SSH tunnel; for any public hostname, put TTDash behind an HTTPS reverse proxy with valid TLS termination before sending the bearer token.
 
@@ -224,10 +225,11 @@ export TTDASH_REMOTE_TOKEN="$(openssl rand -hex 32)"
 export TTDASH_PUBLISH_ADDRESS=0.0.0.0
 export TTDASH_TRUSTED_HOSTS=dashboard.example
 export TTDASH_SECURE_COOKIE=1
+export TTDASH_TRUST_PROXY=1
 docker compose up --build -d
 ```
 
-Put public hostnames behind an HTTPS reverse proxy that preserves the original `Host` header, and set `TTDASH_SECURE_COOKIE=1` so browser sessions can only travel over HTTPS. Browser `Origin` and `Host` must agree for uploads, settings changes, imports, resets, and other mutations. TTDash does not trust `X-Forwarded-Host`. Direct public HTTP is unsupported because it exposes the bearer token and browser session in transit.
+Put public hostnames behind an HTTPS reverse proxy that preserves the original `Host` header, overwrites `X-Forwarded-For`, and is the container's only ingress. Set `TTDASH_SECURE_COOKIE=1` whenever `TTDASH_PUBLISH_ADDRESS` is exposed beyond loopback behind HTTPS, so browser sessions can only travel over HTTPS. Enable `TTDASH_TRUST_PROXY=1` only with that restricted proxy topology; otherwise client-supplied forwarded addresses could bypass per-client login rate limits. Browser `Origin` and `Host` must agree for uploads, settings changes, imports, resets, and other mutations. TTDash does not trust `X-Forwarded-Host`. Direct public HTTP is unsupported because it exposes the bearer token and browser session in transit.
 
 The equivalent direct image invocation is:
 

@@ -86,6 +86,7 @@ The server runtime is intentionally split so `server.js` stays an executable shi
   - keeps style directives strict by using `style-src-attr 'none'` and avoiding `unsafe-inline`
 - `server/remote-auth.js`
   - owns token-based authentication for both default loopback sessions and explicitly enabled non-loopback binds
+  - keys login rate limits by the direct peer address unless explicit proxy trust enables a proxy-overwritten `X-Forwarded-For` address
   - keeps browser bootstrap, HttpOnly cookie setup, and non-browser Bearer/header auth outside the route handlers
   - uses a generated per-start local session token for loopback and `TTDASH_REMOTE_TOKEN` for remote binds
   - exchanges the remote master token for random, expiring HttpOnly browser sessions while keeping URL bootstrap local-only
