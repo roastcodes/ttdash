@@ -79,8 +79,7 @@ describe('documentation contracts', () => {
     )
     expect(usageGuide).toContain('`bunx`')
     expect(usageGuide).toContain('`npx --yes`')
-    expect(`${readme}\n${usageGuide}`).not.toMatch(/toktrack@\d+\.\d+\.\d+/)
-    expect(`${readme}\n${usageGuide}`).not.toContain('toktrack@<pinned version>')
+    expect(`${readme}\n${usageGuide}`).not.toMatch(/\btoktrack@[^\s`'\")]+/)
   })
 
   it('keeps contributor Playwright docs on the stable local command path', async () => {
@@ -164,6 +163,7 @@ describe('documentation contracts', () => {
         const target = rawTarget.replace(/^<|>$/g, '').split('#')[0]
         if (!target || /^(?:https?:|mailto:)/i.test(target)) continue
 
+        expect(path.isAbsolute(target), `${markdownPath}: ${rawTarget}`).toBe(false)
         const resolved = path.resolve(path.dirname(markdownPath), target)
         expect(existsSync(resolved), `${markdownPath}: ${rawTarget}`).toBe(true)
       }

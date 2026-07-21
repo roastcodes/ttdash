@@ -106,7 +106,7 @@ For `tests/architecture`, prefer the shared source graph helper for simple file,
 
 ## Documentation Contracts
 
-`tests/unit/documentation-contract.test.ts` protects public documentation against implementation
+`tests/integration/documentation-contract.test.ts` protects public documentation against implementation
 drift. Keep its assertions behavior-oriented:
 
 - public CLI options and aliases appear in the configuration reference

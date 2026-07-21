@@ -246,7 +246,7 @@ Reason: the repo has stable layer boundaries, but it is not structured around st
 
 Keep internal child-process and test-only environment variables out of the public configuration
 contract. When a public runtime surface changes, update its canonical guide and
-`tests/unit/documentation-contract.test.ts` in the same change.
+`tests/integration/documentation-contract.test.ts` in the same change.
 
 ## Contributor Rules
 

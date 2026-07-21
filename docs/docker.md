@@ -86,7 +86,8 @@ Schemes, ports, paths, empty labels, and wildcards are rejected.
 
 ```bash
 export TTDASH_REMOTE_TOKEN="$(openssl rand -hex 32)"
-export TTDASH_PUBLISH_ADDRESS=0.0.0.0
+# Keep the container port private when the HTTPS reverse proxy runs on this host.
+export TTDASH_PUBLISH_ADDRESS=127.0.0.1
 export TTDASH_TRUSTED_HOSTS=dashboard.example
 export TTDASH_SECURE_COOKIE=1
 export TTDASH_TRUST_PROXY=1
@@ -100,6 +101,9 @@ The reverse proxy must:
 - preserve the original `Host: dashboard.example` header
 - overwrite the forwarded client chain so the actual client IP is the last `X-Forwarded-For` entry
 - avoid relying on `X-Forwarded-Host`, which TTDash intentionally ignores
+
+If the reverse proxy runs on another host, bind to a private interface instead and restrict port
+`3000` to that proxy with a firewall or private container network.
 
 Browser mutations require `Origin` and `Host` to agree. `TTDASH_SECURE_COOKIE=1` marks the remote session cookie as HTTPS-only. `TTDASH_TRUST_PROXY=1` affects only per-client authentication rate limits; without a restricted proxy topology, client-supplied forwarded addresses could weaken those limits.
 
