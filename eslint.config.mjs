@@ -289,9 +289,12 @@ export default defineConfig(
     },
   },
   {
-    files: ['docs-site/**/*.{js,mjs,ts,tsx}'],
+    files: ['docs-site/astro.config.mjs', 'docs-site/src/content.config.ts'],
     rules: {
-      'import-x/no-unresolved': ['error', { ignore: ['^astro:'] }],
+      // The documentation package owns these dependencies and validates them
+      // through Astro after its isolated install. Root-only lint jobs must not
+      // require docs-site/node_modules just to lint the configuration files.
+      'import-x/no-unresolved': 'off',
     },
   },
   {
