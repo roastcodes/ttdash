@@ -1,24 +1,20 @@
+import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-async function readRepoFile(path: string) {
-  return readFile(path, 'utf8')
-}
-
-const activeMarkdownFiles = [
-  'README.md',
-  'CONTRIBUTING.md',
-  'SECURITY.md',
-  'RELEASING.md',
-  'docs/api.md',
-  'docs/architecture.md',
-  'docs/configuration.md',
-  'docs/docker.md',
-  'docs/testing.md',
-  'docs/usage.md',
-]
+const publicDocsRoot = 'docs-site/src/content/docs'
+const rootDocumentationFiles = ['README.md', 'CONTRIBUTING.md', 'SECURITY.md', 'RELEASING.md']
+const canonicalDocs = {
+  architecture: `${publicDocsRoot}/contributing/architecture.md`,
+  api: `${publicDocsRoot}/reference/http-api.md`,
+  configuration: `${publicDocsRoot}/deploying/configuration.md`,
+  dataFormats: `${publicDocsRoot}/reference/data-formats.md`,
+  importingData: `${publicDocsRoot}/getting-started/importing-data.md`,
+  remoteAccess: `${publicDocsRoot}/deploying/remote-access.md`,
+  testing: `${publicDocsRoot}/contributing/testing.md`,
+} as const
 
 const publicRuntimeVariables = [
   'PORT',
@@ -46,59 +42,127 @@ const internalRuntimeVariables = [
   'TTDASH_LOCAL_AUTH_TOKEN',
 ]
 
+async function readRepoFile(filePath: string) {
+  return readFile(filePath, 'utf8')
+}
+
+async function listMarkdownFiles(directory: string): Promise<string[]> {
+  const entries = await readdir(directory, { withFileTypes: true })
+  const files = await Promise.all(
+    entries.map(async (entry) => {
+      const entryPath = path.join(directory, entry.name)
+      if (entry.isDirectory()) return listMarkdownFiles(entryPath)
+      return /\.mdx?$/i.test(entry.name) ? [entryPath] : []
+    }),
+  )
+
+  return files.flat().sort()
+}
+
+async function readPublicDocsCorpus() {
+  const files = await listMarkdownFiles(publicDocsRoot)
+  const contents = await Promise.all(files.map((filePath) => readRepoFile(filePath)))
+  return contents.join('\n')
+}
+
+function markdownTargetCandidates(markdownPath: string, rawTarget: string) {
+  const withoutFragment = rawTarget.replace(/^<|>$/g, '').split(/[?#]/, 1)[0]
+  if (!withoutFragment) return []
+
+  let resolved: string
+  if (withoutFragment.startsWith('/ttdash/')) {
+    const routePath = withoutFragment.slice('/ttdash/'.length)
+    resolved = path.resolve(publicDocsRoot, routePath)
+  } else {
+    resolved = path.resolve(path.dirname(markdownPath), withoutFragment)
+  }
+
+  return [
+    resolved,
+    `${resolved}.md`,
+    `${resolved}.mdx`,
+    path.join(resolved, 'index.md'),
+    path.join(resolved, 'index.mdx'),
+  ]
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function gitOutput(args: string[]) {
+  return execFileSync('git', args, {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+}
+
 describe('documentation contracts', () => {
-  it('keeps remote binding examples aligned with token authentication', async () => {
+  it('keeps remote binding guidance aligned with token authentication', async () => {
     const docs = {
-      'README.md': await readRepoFile('README.md'),
       'SECURITY.md': await readRepoFile('SECURITY.md'),
+      [canonicalDocs.remoteAccess]: await readRepoFile(canonicalDocs.remoteAccess),
     }
     const bindAddressApiUrlPattern = /http:\/\/0\.0\.0\.0(?::\d+)?\/api\/usage/
 
-    for (const [path, content] of Object.entries(docs)) {
-      expect(content, path).not.toMatch(bindAddressApiUrlPattern)
-      expect(content, path).toMatch(/TTDASH_REMOTE_TOKEN=(?:<long-random-token>|"\$\(openssl rand)/)
-      expect(content, path).toContain('TTDASH_ALLOW_REMOTE=1')
-      expect(content, path).toContain('HOST=0.0.0.0')
-      expect(content, path).toContain('trusted LAN, VPN, or SSH tunnel')
-      expect(content, path).toContain('HTTPS reverse proxy')
-      expect(content, path).toContain('do not send the')
+    for (const [filePath, content] of Object.entries(docs)) {
+      expect(content, filePath).not.toMatch(bindAddressApiUrlPattern)
+      expect(content, filePath).toContain('TTDASH_REMOTE_TOKEN')
+      expect(content, filePath).toContain('TTDASH_ALLOW_REMOTE=1')
+      expect(content, filePath).toContain('HOST=0.0.0.0')
+      expect(content, filePath).toMatch(/trusted LAN, VPN,(?: or)? SSH tunnel/i)
+      expect(content, filePath).toMatch(/HTTPS reverse proxy/i)
+      expect(content, filePath).toContain('Authorization: Bearer $TTDASH_REMOTE_TOKEN')
+      expect(content, filePath).toContain('X-TTDash-Remote-Token')
     }
 
-    expect(docs['README.md']).toContain('Authorization: Bearer $TTDASH_REMOTE_TOKEN')
-    expect(docs['README.md']).toContain('X-TTDash-Remote-Token')
-    expect(docs['SECURITY.md']).toContain('Authorization: Bearer $TTDASH_REMOTE_TOKEN')
-    expect(docs['SECURITY.md']).toContain('X-TTDash-Remote-Token')
-  })
-
-  it('keeps README toktrack fallback docs version-agnostic', async () => {
     const readme = await readRepoFile('README.md')
-    const usageGuide = await readRepoFile('docs/usage.md')
-
-    expect(usageGuide).toContain(
-      'exact `toktrack` package spec pinned by the current TTDash release',
-    )
-    expect(usageGuide).toContain('`bunx`')
-    expect(usageGuide).toContain('`npx --yes`')
-    expect(`${readme}\n${usageGuide}`).not.toMatch(/\btoktrack@[^\s`'\")]+/)
+    expect(readme).toContain('https://roastcodes.github.io/ttdash/deploying/remote-access/')
+    expect(readme).toMatch(/do not send the token or session over public HTTP/i)
   })
 
-  it('keeps contributor Playwright docs on the stable local command path', async () => {
+  it('keeps toktrack fallback documentation version-agnostic', async () => {
+    const readme = await readRepoFile('README.md')
+    const importingData = await readRepoFile(canonicalDocs.importingData)
+
+    expect(importingData).toMatch(/exact (?:`?toktrack`? )?package version pinned by/i)
+    expect(importingData).toContain('`bunx`')
+    expect(importingData).toContain('`npx --yes`')
+    expect(`${readme}\n${importingData}`).not.toMatch(/\btoktrack@[^\s`'\")]+/)
+  })
+
+  it('does not hardcode release or toktrack versions in public Markdown', async () => {
+    const packageJson = JSON.parse(await readRepoFile('package.json')) as {
+      dependencies: { toktrack: string }
+      version: string
+    }
+    const publicMarkdownFiles = await listMarkdownFiles(publicDocsRoot)
+
+    for (const markdownPath of publicMarkdownFiles) {
+      const content = await readRepoFile(markdownPath)
+      expect(content, `${markdownPath}: current TTDash version`).not.toContain(packageJson.version)
+      expect(content, `${markdownPath}: current toktrack version`).not.toContain(
+        packageJson.dependencies.toktrack,
+      )
+    }
+  })
+
+  it('keeps contributor guidance on the complete application and docs gates', async () => {
     const docs = {
       'CONTRIBUTING.md': await readRepoFile('CONTRIBUTING.md'),
-      'docs/testing.md': await readRepoFile('docs/testing.md'),
+      [canonicalDocs.testing]: await readRepoFile(canonicalDocs.testing),
     }
-    const uncappedPortOverridePattern =
-      /PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e(?!:(?:ci|parallel|smoke))/
 
-    for (const [path, content] of Object.entries(docs)) {
-      expect(content, path).toContain('npm run verify:full')
-      expect(content, path).toContain('PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:ci')
-      expect(content, path).not.toMatch(uncappedPortOverridePattern)
+    for (const [filePath, content] of Object.entries(docs)) {
+      expect(content, filePath).toContain('npm run verify:full')
+      expect(content, filePath).toContain('npm run docs:verify')
+      expect(content, filePath).toContain('npm run test:docs:e2e')
     }
   })
 
   it('documents every public CLI option and alias in the canonical configuration guide', async () => {
-    const configuration = await readRepoFile('docs/configuration.md')
+    const configuration = await readRepoFile(canonicalDocs.configuration)
 
     for (const option of [
       '--port',
@@ -120,9 +184,9 @@ describe('documentation contracts', () => {
   })
 
   it('keeps the canonical environment reference complete and excludes internal variables', async () => {
-    const configuration = await readRepoFile('docs/configuration.md')
-    const tableStart = configuration.indexOf('## Runtime Environment Variables')
-    const tableEnd = configuration.indexOf('## Precedence and Modes')
+    const configuration = await readRepoFile(canonicalDocs.configuration)
+    const tableStart = configuration.indexOf('## Runtime environment variables')
+    const tableEnd = configuration.indexOf('## Precedence and modes')
     const environmentReference = configuration.slice(tableStart, tableEnd)
 
     expect(tableStart).toBeGreaterThanOrEqual(0)
@@ -133,14 +197,18 @@ describe('documentation contracts', () => {
     }
 
     for (const variable of internalRuntimeVariables) {
-      expect(configuration, variable).not.toContain(`\`${variable}`)
+      expect(configuration, variable).not.toContain(`\`${variable}\``)
     }
   })
 
-  it('only documents npm run commands that exist in package.json', async () => {
+  it('only documents npm run commands that exist in the root package', async () => {
     const packageJson = JSON.parse(await readRepoFile('package.json')) as {
       scripts: Record<string, string>
     }
+    const activeMarkdownFiles = [
+      ...rootDocumentationFiles,
+      ...(await listMarkdownFiles(publicDocsRoot)),
+    ]
 
     for (const markdownPath of activeMarkdownFiles) {
       const content = await readRepoFile(markdownPath)
@@ -154,24 +222,34 @@ describe('documentation contracts', () => {
     }
   })
 
-  it('keeps local links and images in active documentation resolvable', async () => {
+  it('keeps local links and images in public documentation resolvable', async () => {
+    const activeMarkdownFiles = [
+      ...rootDocumentationFiles,
+      ...(await listMarkdownFiles(publicDocsRoot)),
+    ]
+
     for (const markdownPath of activeMarkdownFiles) {
       const content = await readRepoFile(markdownPath)
       const targets = [...content.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/g)].map((match) => match[1])
 
       for (const rawTarget of targets) {
-        const target = rawTarget.replace(/^<|>$/g, '').split('#')[0]
-        if (!target || /^(?:https?:|mailto:)/i.test(target)) continue
+        if (/^(?:https?:|mailto:)/i.test(rawTarget) || rawTarget.startsWith('#')) continue
 
-        expect(path.isAbsolute(target), `${markdownPath}: ${rawTarget}`).toBe(false)
-        const resolved = path.resolve(path.dirname(markdownPath), target)
-        expect(existsSync(resolved), `${markdownPath}: ${rawTarget}`).toBe(true)
+        expect(
+          rawTarget.startsWith('/') ? rawTarget.startsWith('/ttdash/') : true,
+          `${markdownPath}: ${rawTarget}`,
+        ).toBe(true)
+        const candidates = markdownTargetCandidates(markdownPath, rawTarget)
+        expect(
+          candidates.some((candidate) => existsSync(candidate)),
+          `${markdownPath}: ${rawTarget}`,
+        ).toBe(true)
       }
     }
   })
 
-  it('keeps the compact API reference aligned with the supported route surface', async () => {
-    const api = await readRepoFile('docs/api.md')
+  it('keeps the HTTP API reference aligned with every supported method and route', async () => {
+    const api = await readRepoFile(canonicalDocs.api)
     const routes = [
       ['POST', '/api/auth/session'],
       ['GET', '/api/usage'],
@@ -189,9 +267,72 @@ describe('documentation contracts', () => {
     ]
 
     for (const [method, route] of routes) {
-      expect(api, `${method} ${route}`).toMatch(
-        new RegExp(`\\|\\s*\\\`${method}\\\`\\s*\\|\\s*\\\`${route}\\\``),
+      const methodAndRoute = new RegExp(
+        `${escapeRegExp(method)}[^\\n]{0,80}${escapeRegExp(route)}|${escapeRegExp(route)}[^\\n]{0,80}${escapeRegExp(method)}`,
       )
+      expect(api, `${method} ${route}`).toMatch(methodAndRoute)
     }
+
+    expect(api).toContain('text/event-stream')
+    expect(api).toMatch(/10 MiB/i)
+  })
+
+  it('documents every normalized daily and model-breakdown data field', async () => {
+    const dataFormats = await readRepoFile(canonicalDocs.dataFormats)
+
+    for (const field of [
+      'date',
+      'inputTokens',
+      'outputTokens',
+      'cacheCreationTokens',
+      'cacheReadTokens',
+      'thinkingTokens',
+      'totalTokens',
+      'totalCost',
+      'requestCount',
+      'modelsUsed',
+      'modelBreakdowns',
+      'modelName',
+      'cost',
+    ]) {
+      expect(dataFormats, field).toContain(`\`${field}\``)
+    }
+  })
+
+  it('keeps private review material ignored, untracked, and outside the public collection', async () => {
+    for (const privatePath of [
+      'docs/security/pentest-publication-probe.md',
+      'docs/review/publication-probe.md',
+      'docs/application-stack-reference.md',
+    ]) {
+      expect(() =>
+        gitOutput(['check-ignore', '--no-index', '--quiet', '--', privatePath]),
+      ).not.toThrow()
+    }
+
+    const trackedPrivateFiles = gitOutput([
+      'ls-files',
+      '--',
+      'docs/security',
+      'docs/review',
+      'docs/application-stack-reference.md',
+    ])
+    expect(trackedPrivateFiles).toBe('')
+
+    const publicDocs = await readPublicDocsCorpus()
+    expect(publicDocs).not.toMatch(/docs\/(?:security|review)\//i)
+    expect(publicDocs).not.toContain('application-stack-reference')
+    expect(publicDocs).not.toMatch(/\bpentest(?:[._/-]|\b)/i)
+  })
+
+  it('derives the visible documentation version from the root package', async () => {
+    const component = await readRepoFile('docs-site/src/components/VersionBadge.astro')
+    const config = await readRepoFile('docs-site/astro.config.mjs')
+
+    expect(component).toContain("import rootPackage from '../../../package.json'")
+    expect(component).toContain('data-ttdash-version={rootPackage.version}')
+    expect(config).toContain("new URL('../package.json', import.meta.url)")
+    expect(config).toContain("base: '/ttdash'")
+    expect(config).toContain("site: 'https://roastcodes.github.io'")
   })
 })

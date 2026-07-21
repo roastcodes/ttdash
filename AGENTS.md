@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-`src/` contains the Vite frontend. Use `components/` for UI, grouped by `ui/`, `layout/`, `cards/`, `charts/`, `tables/`, and `features/`. Put shared logic in `lib/`, reusable stateful logic in `hooks/`, and TypeScript shapes in `types/`. Static assets live in `public/`. The production bundle is generated into `dist/`. `server.js` serves `dist/`, exposes `/api`, and handles local data import.
+`src/` contains the Vite frontend. Use `components/` for UI, grouped by `ui/`, `layout/`, `cards/`, `charts/`, `tables/`, and `features/`. Put shared logic in `lib/`, reusable stateful logic in `hooks/`, and TypeScript shapes in `types/`. Static assets live in `public/`. The production bundle is generated into `dist/`. `server.js` serves `dist/`, exposes `/api`, and handles local data import. `docs-site/` is an independent Astro/Starlight package; only `docs-site/src/content/docs/` is publishable documentation. Root `docs/` contains ignored local review and security material and must never be used as a Pages content source.
 
 ## Build, Test, and Development Commands
 
@@ -15,6 +15,10 @@ Install dependencies with `npm install`.
 - `npm run verify`: runs the main local quality gate (`format:check`, `lint`, `tsc --noEmit`, unit tests, `build:app`, and `verify:package`).
 - `npm run preview`: serves the built frontend for a production-style check.
 - `npm start`: runs the packaged server entrypoint.
+- `npm run docs:install`: installs the independent documentation package from its lockfile.
+- `npm run docs:dev`: starts the documentation development server.
+- `npm run docs:verify`: lints, checks, builds, and verifies the public documentation boundary.
+- `npm run test:docs:e2e`: tests the built documentation, search, responsive navigation, and accessibility.
 
 During development, keep `npm run dev` and `node server.js` running in separate terminals so `/api` requests resolve correctly.
 
@@ -24,7 +28,7 @@ Frontend code is TypeScript + React. Follow the existing style: 2-space indentat
 
 ## Testing Guidelines
 
-Automated tests are part of the repo now. Before opening a PR, run `npm run verify:full`; on a local machine with enough CPU, `PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel` is the faster non-coverage fast path across the main test surfaces. If you only need the main local gate without Playwright, run `npm run verify`. If local port `3015` is already in use, run Playwright with `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`. Use `npm run test:timings` to inspect the slowest Vitest suites and cases after larger test changes, but do not run it in parallel with another Vitest command that writes the same JUnit report. Architecture and dependency boundaries are guarded by `npm run test:architecture` and `npm run check:deps`; when you add or move modules, keep [`docs/architecture.md`](docs/architecture.md) aligned with the actual structure.
+Automated tests are part of the repo now. Before opening a PR, run `npm run verify:full`; on a local machine with enough CPU, `PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel` is the faster non-coverage fast path across the main test surfaces. Documentation changes also require `npm run docs:verify` and `npm run test:docs:e2e` after `npm run docs:install`. If you only need the main local gate without Playwright, run `npm run verify`. If local port `3015` is already in use, run Playwright with `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e`. Use `npm run test:timings` to inspect the slowest Vitest suites and cases after larger test changes, but do not run it in parallel with another Vitest command that writes the same JUnit report. Architecture and dependency boundaries are guarded by `npm run test:architecture` and `npm run check:deps`; when you add or move modules, keep the Starlight architecture guide aligned with the actual structure.
 
 When adding tests:
 
@@ -32,6 +36,7 @@ When adding tests:
 - use `tests/frontend` for React/jsdom behavior
 - use `tests/integration` for local server, CLI, filesystem, and API behavior without a browser
 - use `tests/e2e` only for real browser journeys
+- use `tests/docs-e2e` for the built Starlight site, Pagefind, Pages base-path, and docs accessibility journeys
 - prefer focused `*.test.ts` or `*.test.tsx` files over broad catch-all regression suites
 - use the shared helpers in `tests/test-utils.tsx` instead of ad hoc provider wrappers
 - use real subprocesses only when shell/PATH/CLI or cross-process behavior is the thing being tested
@@ -48,4 +53,4 @@ Recent history favors short, imperative subjects, often with a version prefix, f
 
 ## Configuration Tips
 
-Use `PORT=8080 node server.js` to override the default server port. Do not commit generated `dist/` output or local usage data unless the change explicitly requires it.
+Use `PORT=8080 node server.js` to override the default server port. Do not commit generated app or documentation `dist/` output, Astro caches, or local usage data unless the change explicitly requires it. Never copy ignored files from `docs/security/`, `docs/review/`, or `docs/application-stack-reference.md` into the public documentation tree.

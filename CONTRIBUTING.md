@@ -47,6 +47,15 @@ Run the full local gate before opening a PR:
 npm run verify:full
 ```
 
+Documentation changes also use their own reproducible workspace and browser gate. Node.js 22.12
+or newer is required for this workspace; documentation CI runs on Node.js 24:
+
+```bash
+npm run docs:install
+npm run docs:verify
+npm run test:docs:e2e
+```
+
 On a local machine with enough CPU, the staged parallel gate gives faster feedback across the same
 main test surfaces without the coverage-instrumented pass:
 
@@ -147,21 +156,41 @@ The frontend dev server runs on `http://localhost:5173` and the local API/static
 
 ## Documentation
 
-Keep user-facing behavior in sync across the implementation and the canonical guide that owns it:
+The Astro/Starlight site at
+[roastcodes.github.io/ttdash](https://roastcodes.github.io/ttdash/) is the canonical public
+documentation. Its independent workspace lives in `docs-site/` and its publishable content is
+explicitly allowlisted under `docs-site/src/content/docs/`.
 
-- `README.md`: project overview, quick start, common workflows, and documentation navigation
-- `docs/usage.md`: imports, dashboard operation, exports, and backups
-- `docs/configuration.md`: public CLI options, environment variables, precedence, and storage
-- `docs/docker.md`: container deployment and proxy scenarios
-- `docs/api.md`: supported HTTP authentication and endpoints
+Keep user-facing behavior in sync with the guide that owns it:
+
+- `README.md`: concise project overview, quick start, and documentation navigation
+- `docs-site/src/content/docs/getting-started/`: first run and data-import workflows
+- `docs-site/src/content/docs/guides/`: dashboard operation, exports, backups, and troubleshooting
+- `docs-site/src/content/docs/deploying/`: CLI, environment, storage, remote access, and Docker
+- `docs-site/src/content/docs/reference/`: accepted data formats and supported HTTP endpoints
+- `docs-site/src/content/docs/contributing/`: public architecture and test guidance
 - `SECURITY.md`: vulnerability reporting and security invariants
-- `docs/architecture.md` and `docs/testing.md`: contributor-facing architecture and test contracts
 
 When a public option, environment variable, endpoint, package command, or storage default changes,
-update its canonical guide and the relevant documentation contract test in the same pull request.
-Use relative repository links so documentation works on branches and forks.
+update its canonical page and the relevant documentation contract test in the same pull request.
+Use `/ttdash/`-rooted links for documentation pages so the GitHub Pages project base remains valid.
 
-Refresh the committed README screenshots after intentional dashboard visual changes:
+Do not import content into the public site from the repository-level `docs/` directory. Local
+security audits, review notes, and internal reference material there are intentionally ignored and
+must never enter a Pages artifact. `npm run docs:verify` enforces this publication boundary, checks
+content and links, and validates the generated static artifact.
+
+Useful documentation commands:
+
+```bash
+npm run docs:dev
+npm run docs:check
+npm run docs:build
+npm run docs:verify
+npm run test:docs:e2e
+```
+
+Refresh the committed site and README screenshots after intentional dashboard visual changes:
 
 ```bash
 npm run docs:screenshots
@@ -169,12 +198,12 @@ npm run docs:screenshots
 
 ## Related Docs
 
-- Usage guide: [`docs/usage.md`](docs/usage.md)
-- Configuration reference: [`docs/configuration.md`](docs/configuration.md)
-- Docker guide: [`docs/docker.md`](docs/docker.md)
-- API reference: [`docs/api.md`](docs/api.md)
-- Architecture: [`docs/architecture.md`](docs/architecture.md)
-- Testing: [`docs/testing.md`](docs/testing.md)
+- Documentation: [roastcodes.github.io/ttdash](https://roastcodes.github.io/ttdash/)
+- Configuration reference: [documentation site](https://roastcodes.github.io/ttdash/deploying/configuration/)
+- Docker guide: [documentation site](https://roastcodes.github.io/ttdash/deploying/docker/)
+- API reference: [documentation site](https://roastcodes.github.io/ttdash/reference/http-api/)
+- Architecture: [documentation site](https://roastcodes.github.io/ttdash/contributing/architecture/)
+- Testing: [documentation site](https://roastcodes.github.io/ttdash/contributing/testing/)
 - Release process: [`RELEASING.md`](RELEASING.md)
 - Security reporting: [`SECURITY.md`](SECURITY.md)
 - Conduct expectations: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)

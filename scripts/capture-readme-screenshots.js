@@ -9,7 +9,7 @@ const { normalizeIncomingData } = require('../usage-normalizer.js');
 const { waitForRenderedChartData } = require('./rendered-chart-data.js');
 
 const root = path.resolve(__dirname, '..');
-const docsDir = path.join(root, 'docs');
+const screenshotsDir = path.join(root, 'docs-site', 'public', 'screenshots');
 const sampleUsagePath = path.join(root, 'examples', 'sample-usage.json');
 const screenshotRuntimeRoot = path.join(root, '.tmp-playwright', 'readme-screenshots');
 const screenshotServerRuntimeRoot = path.join(screenshotRuntimeRoot, 'app');
@@ -271,7 +271,7 @@ async function stopServer(server, { shutdownGraceMs = 5_000 } = {}) {
 }
 
 async function captureScreenshots() {
-  fs.mkdirSync(docsDir, { recursive: true });
+  fs.mkdirSync(screenshotsDir, { recursive: true });
   fs.rmSync(screenshotRuntimeRoot, { recursive: true, force: true });
   fs.mkdirSync(screenshotRuntimeRoot, { recursive: true });
 
@@ -318,13 +318,13 @@ async function captureScreenshots() {
 
       await page.evaluate(() => globalThis.scrollTo(0, 0));
       await page.screenshot({
-        path: path.join(docsDir, 'ttdash-dashboard.png'),
+        path: path.join(screenshotsDir, 'ttdash-dashboard.png'),
       });
 
       await page.locator('#charts').scrollIntoViewIfNeeded();
       await waitForRenderedChartData(page, { sectionSelector: '#charts' });
       await page.locator('#charts').screenshot({
-        path: path.join(docsDir, 'ttdash-dashboard-analytics.png'),
+        path: path.join(screenshotsDir, 'ttdash-dashboard-analytics.png'),
       });
 
       await page.evaluate(() => {
@@ -333,7 +333,7 @@ async function captureScreenshots() {
       const dialog = page.getByRole('dialog');
       await dialog.waitFor({ state: 'visible' });
       await dialog.screenshot({
-        path: path.join(docsDir, 'ttdash-dashboard-settings.png'),
+        path: path.join(screenshotsDir, 'ttdash-dashboard-settings.png'),
       });
     } finally {
       await closeBrowserResources(context, browser);

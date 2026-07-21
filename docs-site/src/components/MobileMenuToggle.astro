@@ -1,0 +1,118 @@
+---
+import { Icon } from '@astrojs/starlight/components'
+---
+
+<!--
+  Starlight 0.41.3 updates aria-expanded on the custom-element host only.
+  Keep the host and the actual control synchronized until the upstream
+  component does so itself.
+-->
+<starlight-menu-button class="print:hidden">
+  <button
+    aria-expanded="false"
+    aria-label={Astro.locals.t('menuButton.accessibleLabel')}
+    aria-controls="starlight__sidebar"
+    class="sl-flex md:sl-hidden"
+  >
+    <Icon name="bars" class="open-menu" />
+    <Icon name="close" class="close-menu" />
+  </button>
+</starlight-menu-button>
+
+<script>
+  class TTDashStarlightMenuButton extends HTMLElement {
+    btn = this.querySelector('button')!
+
+    constructor() {
+      super()
+      this.btn.addEventListener('click', () => this.toggleExpanded())
+
+      const parentNav = this.closest('nav')
+      if (parentNav) {
+        parentNav.addEventListener('keyup', (event) => this.closeOnEscape(event))
+      }
+
+      matchMedia('(min-width: 50em)').addEventListener('change', () => this.setExpanded(false))
+    }
+
+    setExpanded(expanded: boolean) {
+      const value = String(expanded)
+      this.setAttribute('aria-expanded', value)
+      this.btn.setAttribute('aria-expanded', value)
+      document.body.toggleAttribute('data-mobile-menu-expanded', expanded)
+
+      document.querySelectorAll<HTMLElement>('.main-frame, .sl-skip-link').forEach((element) => {
+        element.toggleAttribute('inert', expanded)
+      })
+    }
+
+    toggleExpanded() {
+      this.setExpanded(this.getAttribute('aria-expanded') !== 'true')
+    }
+
+    closeOnEscape(event: KeyboardEvent) {
+      if (event.code !== 'Escape') return
+
+      this.setExpanded(false)
+      this.btn.focus()
+    }
+  }
+
+  customElements.define('starlight-menu-button', TTDashStarlightMenuButton)
+</script>
+
+<style>
+  @layer starlight.core {
+    button {
+      position: fixed;
+      top: calc((var(--sl-nav-height) - var(--sl-menu-button-size)) / 2);
+      inset-inline-end: var(--sl-nav-pad-x);
+      z-index: var(--sl-z-index-navbar);
+      width: var(--sl-menu-button-size);
+      height: var(--sl-menu-button-size);
+      padding: 0.5rem;
+      border: 0;
+      border-radius: 50%;
+      background-color: var(--sl-color-white);
+      color: var(--sl-color-black);
+      box-shadow: var(--sl-shadow-md);
+      cursor: pointer;
+    }
+
+    [aria-expanded='true'] button {
+      background-color: var(--sl-color-gray-2);
+      box-shadow: none;
+    }
+
+    [aria-expanded='true'] button .open-menu {
+      display: none;
+    }
+
+    :not([aria-expanded='true']) button .close-menu {
+      display: none;
+    }
+
+    :global([data-theme='light']) button {
+      background-color: var(--sl-color-black);
+      color: var(--sl-color-white);
+    }
+
+    :global([data-theme='light']) [aria-expanded='true'] button {
+      background-color: var(--sl-color-gray-5);
+    }
+  }
+</style>
+
+<style is:global>
+  @layer starlight.core {
+    [data-mobile-menu-expanded] {
+      overflow: hidden;
+    }
+
+    @media (min-width: 50rem) {
+      [data-mobile-menu-expanded] {
+        overflow: auto;
+      }
+    }
+  }
+</style>

@@ -19,7 +19,11 @@ export default defineConfig(
     ignores: [
       'coverage/**',
       'dist/**',
+      'docs-site/.astro/**',
+      'docs-site/dist/**',
+      'docs-site/node_modules/**',
       'node_modules/**',
+      'playwright-docs-report/**',
       'playwright-report/**',
       'test-results/**',
       '.playwright-mcp/**',
@@ -251,7 +255,7 @@ export default defineConfig(
     },
   },
   {
-    files: ['tests/e2e/**/*.ts'],
+    files: ['tests/e2e/**/*.ts', 'tests/docs-e2e/**/*.ts'],
     extends: [playwright.configs['flat/recommended']],
   },
   {
@@ -282,6 +286,12 @@ export default defineConfig(
       'import-x/no-named-as-default': 'off',
       'import-x/no-named-as-default-member': 'off',
       'import-x/no-unresolved': 'error',
+    },
+  },
+  {
+    files: ['docs-site/**/*.{js,mjs,ts,tsx}'],
+    rules: {
+      'import-x/no-unresolved': ['error', { ignore: ['^astro:'] }],
     },
   },
   {

@@ -7,6 +7,7 @@ data.json
 .tmp-playwright/
 .tmp-smoke-*/
 playwright-report/
+playwright-docs-report/
 test-results/
 test-json/
 .envrc.local
@@ -20,9 +21,11 @@ test-json/
 .idea
 coverage/
 requirements/
-docs/security/
-docs/review/*
-docs/application-stack-reference.md
+
+# Local security and review material. These files must never enter the public docs site.
+/docs/security/
+/docs/review/
+/docs/application-stack-reference.md
 /activity-*.png
 /cache-hit-rate-*.png
 /request-*.png

@@ -49,8 +49,9 @@ Remote API requests can authenticate with `Authorization: Bearer $TTDASH_REMOTE_
 equivalent `X-TTDash-Remote-Token` header. Keep the token secret.
 
 The complete public option and authentication reference is maintained in
-[`docs/configuration.md`](docs/configuration.md), and the supported endpoint surface is documented in
-[`docs/api.md`](docs/api.md).
+[the configuration guide](https://roastcodes.github.io/ttdash/deploying/configuration/), and the
+supported endpoint surface is documented in the
+[HTTP API reference](https://roastcodes.github.io/ttdash/reference/http-api/).
 
 ### Docker mode
 
@@ -79,6 +80,6 @@ server interface, keep the existing trusted-LAN/VPN/SSH-tunnel restriction or te
 at a reverse proxy. Preserve the original `Host`; TTDash intentionally ignores forwarded-host
 headers and continues to require same-host browser origins for mutations.
 
-Use the scenario-based [`docs/docker.md`](docs/docker.md) guide for the current Compose and
-`docker run` commands. `SECURITY.md` remains the source of truth when a convenience example and a
-security restriction appear to conflict.
+Use the scenario-based [Docker guide](https://roastcodes.github.io/ttdash/deploying/docker/) for the
+current Compose and `docker run` commands. `SECURITY.md` remains the source of truth when a
+convenience example and a security restriction appear to conflict.
