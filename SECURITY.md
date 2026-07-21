@@ -48,6 +48,10 @@ bearer token over public HTTP.
 Remote API requests can authenticate with `Authorization: Bearer $TTDASH_REMOTE_TOKEN` or the
 equivalent `X-TTDash-Remote-Token` header. Keep the token secret.
 
+The complete public option and authentication reference is maintained in
+[`docs/configuration.md`](docs/configuration.md), and the supported endpoint surface is documented in
+[`docs/api.md`](docs/api.md).
+
 ### Docker mode
 
 `ttdash --docker` (or `TTDASH_DOCKER=1`) is an explicit remote-bind opt-in. It defaults to
@@ -74,3 +78,7 @@ The provided Compose configuration binds only to host loopback by default. When 
 server interface, keep the existing trusted-LAN/VPN/SSH-tunnel restriction or terminate valid HTTPS
 at a reverse proxy. Preserve the original `Host`; TTDash intentionally ignores forwarded-host
 headers and continues to require same-host browser origins for mutations.
+
+Use the scenario-based [`docs/docker.md`](docs/docker.md) guide for the current Compose and
+`docker run` commands. `SECURITY.md` remains the source of truth when a convenience example and a
+security restriction appear to conflict.

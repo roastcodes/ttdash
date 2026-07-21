@@ -19,6 +19,10 @@ Architecture constraints are documented separately in [`docs/architecture.md`](.
   - Browser flows with Playwright
   - Keep these focused on end-to-end user journeys and smoke coverage
 
+The Docker smoke test is intentionally outside Vitest because it builds and starts the real image.
+Use `npm run test:docker` whenever Dockerfile, Compose, container runtime, authentication, or Docker
+documentation changes.
+
 ## Standard Helpers
 
 - Use `renderWithAppProviders(...)` from [tests/test-utils.tsx](../tests/test-utils.tsx) for most frontend tests.
@@ -100,6 +104,20 @@ For `tests/architecture`, prefer the shared source graph helper for simple file,
 - Reuse the smallest fixture that still proves the behavior.
 - Keep deep regression tests separate from baseline component behavior so hot paths stay readable and cheap to run.
 
+## Documentation Contracts
+
+`tests/integration/documentation-contract.test.ts` protects public documentation against implementation
+drift. Keep its assertions behavior-oriented:
+
+- public CLI options and aliases appear in the configuration reference
+- public runtime variables have one canonical reference
+- documented npm commands exist in `package.json`
+- local Markdown links and images resolve to tracked files
+- remote and Docker examples retain token, trusted-network, and HTTPS requirements
+
+Do not publish internal process-coordination or test-fixture variables merely because the runtime
+reads them. A variable belongs in the public contract only when users are expected to configure it.
+
 ## Coverage Scope
 
 `npm run test:vitest:coverage` reports product-runtime coverage. `npm run test:unit:coverage` is kept as the underlying compatibility command. The configured coverage scope intentionally includes frontend runtime modules, the local server runtime, shared runtime contracts, and `usage-normalizer.js` instead of only the historically high-signal frontend subset.
@@ -145,9 +163,10 @@ Prioritize targeted branch coverage in runtime-heavy modules before adding anoth
 - Per-project timing budget pass: `npm run test:timings:projects`
 - Three-run timing benchmark: `npm run test:timings:benchmark`
 - Playwright only, with a fresh app build: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:parallel`
-- CI-style Playwright smoke: `npm run test:e2e:ci`
+- CI-style Playwright smoke on an isolated local port: `PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:ci`
 - Serial local mirror of the CI gate: `npm run verify:ci`
 - Optional parallel local gate without Playwright: `npm run verify:parallel`
+- Real Docker image and Compose smoke: `npm run test:docker`
 
 ## Architecture Guardrails
 

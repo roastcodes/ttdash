@@ -3,15 +3,210 @@
 [![CI](https://github.com/roastcodes/ttdash/actions/workflows/ci.yml/badge.svg)](https://github.com/roastcodes/ttdash/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/%40roastcodes%2Fttdash)](https://www.npmjs.com/package/@roastcodes/ttdash)
 [![License](https://img.shields.io/github/license/roastcodes/ttdash)](LICENSE)
-[![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://github.com/roastcodes/ttdash/blob/main/package.json)
+[![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](package.json)
 
-`TTDash` is a local-first dashboard and CLI for `toktrack` usage data. It runs entirely on your machine, turns raw usage exports into charts and operational summaries, and keeps your stored data, settings, and imports on local disk instead of a hosted backend.
+TTDash is a local-first dashboard and CLI for [`toktrack`](https://github.com/mag123c/toktrack) usage data. It turns local AI usage exports into cost, token, request, model, and provider analysis without sending your data to a hosted TTDash backend.
 
-`TTDash` is built around the usage data provided by [`toktrack`](https://github.com/mag123c/toktrack). Thanks to [mag123c](https://github.com/mag123c) for creating and maintaining the data source this dashboard builds on.
+![TTDash dashboard](docs/ttdash-dashboard.png)
 
-## Keep Claude Code History
+## Why TTDash
 
-Claude Code cleans up old sessions after 30 days by default. If you want long-term cost history in `toktrack` and `TTDash`, raise or effectively disable that cleanup in `~/.claude/settings.json`:
+- Review costs, tokens, requests, cache use, and model/provider mix in one dashboard.
+- Import current `toktrack` output or legacy `ccusage`-style daily JSON.
+- Filter by date, month, provider, model, and daily/monthly/yearly aggregation.
+- Explore forecasts, anomalies, comparisons, concentration, limits, and efficiency.
+- Export the current view as CSV or, with Typst installed, as PDF.
+- Keep usage data, settings, and backups on your machine by default.
+- Run interactively, in the background, remotely with authentication, or in Docker.
+
+TTDash builds on the data produced by `toktrack`. Thanks to [mag123c](https://github.com/mag123c) for creating and maintaining it.
+
+## Requirements
+
+- Node.js 20 or newer for npm/npx installations
+- A modern browser
+- npm or Bun for auto-import fallback execution
+- [Typst](https://typst.app/) only for PDF export
+- Docker with Compose v2 only for container deployments
+
+## Quick Start
+
+Run the latest published package without installing it globally:
+
+```bash
+npx --yes @roastcodes/ttdash@latest
+```
+
+Or use Bun:
+
+```bash
+bunx @roastcodes/ttdash@latest
+```
+
+TTDash starts on `http://127.0.0.1:3000`, retries up to the next 100 ports when necessary, and opens a browser when the terminal supports it. On first use, choose one of these paths:
+
+1. Select **Auto-Import** to run the pinned `toktrack` version.
+2. Upload a `toktrack daily --json` result.
+3. Upload a legacy TTDash/`ccusage` daily JSON export.
+4. Import an existing usage backup from **Settings**.
+
+See the [usage guide](docs/usage.md) for accepted formats, dashboard controls, exports, backups, and shortcuts.
+
+## Installation
+
+### Global npm installation
+
+```bash
+npm install --global @roastcodes/ttdash
+ttdash
+```
+
+### Global Bun installation
+
+```bash
+bun add --global @roastcodes/ttdash
+ttdash
+```
+
+Verify either package runner without starting the server:
+
+```bash
+npx --yes @roastcodes/ttdash@latest --help
+bunx @roastcodes/ttdash@latest --help
+```
+
+For source installations, see [Development and source installation](#development-and-source-installation).
+
+## Common Commands
+
+```bash
+# Choose the first port to try.
+ttdash --port 3010
+
+# Do not open a browser.
+ttdash --no-open
+
+# Import toktrack data during startup.
+ttdash --auto-load
+
+# Run as a managed background process.
+ttdash --background
+
+# Stop a running background instance; select one if several are active.
+ttdash stop
+
+# Enable container-safe runtime defaults for a custom container entrypoint.
+TTDASH_REMOTE_TOKEN="$(openssl rand -hex 32)" ttdash --docker
+```
+
+Flags can be combined:
+
+```bash
+ttdash --background --port 3010 --auto-load
+ttdash --background --no-open
+```
+
+The corresponding environment-variable form is useful for services and containers:
+
+```bash
+PORT=3010 NO_OPEN_BROWSER=1 ttdash
+```
+
+The full option, alias, environment, precedence, and storage-path reference is in [`docs/configuration.md`](docs/configuration.md).
+
+## CLI Reference
+
+```text
+ttdash [options]
+ttdash stop
+```
+
+| Option          | Aliases     | Purpose                                                      |
+| --------------- | ----------- | ------------------------------------------------------------ |
+| `--port <port>` | `-p`        | Set the first port to try; valid range is 1–65535            |
+| `--help`        | `-h`        | Print version, usage, options, and examples                  |
+| `--no-open`     | `-no`       | Disable automatic browser opening                            |
+| `--auto-load`   | `-al`       | Run auto-import once during startup                          |
+| `--background`  | `-b`, `-bg` | Start a managed background instance                          |
+| `--docker`      | —           | Enable explicit container defaults and remote authentication |
+
+`ttdash stop` prunes stale entries, stops the only active background instance automatically, or prompts when multiple instances are running. Background logs and the instance registry are stored under the platform-specific TTDash cache and configuration directories.
+
+## Dashboard Workflows
+
+TTDash includes:
+
+- KPI summaries for the selected range, today, and the current month
+- cost, request, token, cache, model, provider, weekday, and calendar views
+- month-end cost forecasts, provider forecasts, cache ROI, and provider limits
+- period comparisons, anomaly detection, distributions, correlations, and concentration risk
+- sortable provider, model, and recent-period tables with drilldowns
+- daily, monthly, and yearly views plus preset and custom date ranges
+- provider and model filters with persisted defaults
+- configurable section visibility and ordering, theme, language, and motion preferences
+- command palette (`Ctrl+K`/`Cmd+K`), numeric quick selection, help, and keyboard navigation
+- CSV export of the filtered view and localized PDF reports
+- settings and usage backup import/export
+
+![TTDash analytics](docs/ttdash-dashboard-analytics.png)
+
+![TTDash settings](docs/ttdash-dashboard-settings.png)
+
+The [usage guide](docs/usage.md) explains how replacement uploads differ from non-destructive backup imports and how filters affect exports and reports.
+
+## Remote Access
+
+The default loopback server still requires a generated per-start local session token, but TTDash places that token in its one-time bootstrap URL and opens it automatically. For a non-loopback bind, you must deliberately enable remote access and provide a token of at least 24 characters:
+
+```bash
+export TTDASH_REMOTE_TOKEN="$(openssl rand -hex 32)"
+TTDASH_ALLOW_REMOTE=1 HOST=0.0.0.0 ttdash
+```
+
+Open the server's LAN/VPN address and enter the token in the sign-in screen. API clients authenticate with either supported header:
+
+```bash
+curl \
+  -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" \
+  http://192.0.2.10:3000/api/usage
+
+curl \
+  -H "X-TTDash-Remote-Token: $TTDASH_REMOTE_TOKEN" \
+  http://192.0.2.10:3000/api/usage
+```
+
+Use remote HTTP only on a trusted LAN, VPN, or SSH tunnel. Public hostnames require an HTTPS reverse proxy; do not send the token or session over public HTTP. Read the [configuration guide](docs/configuration.md), [API guide](docs/api.md), and [security policy](SECURITY.md) before exposing TTDash beyond loopback.
+
+## Docker
+
+The repository includes a multi-stage Alpine image and a hardened Compose service. For localhost-only access:
+
+```bash
+export TTDASH_REMOTE_TOKEN="$(openssl rand -hex 32)"
+docker compose up --build -d
+```
+
+Open `http://127.0.0.1:3000` and enter the same token. The Compose default publishes only to host loopback and persists data, settings, and cache in the `ttdash-data` volume.
+
+For server publishing, trusted hosts, HTTPS proxies, direct `docker run`, mounted auto-import sources, health checks, and the image's Typst limitation, use the complete [Docker guide](docs/docker.md).
+
+## Data, Storage, and Privacy
+
+TTDash has no hosted backend, remote database, analytics, tracking, or third-party fonts. It does contact the npm registry when it needs the pinned `toktrack` package or checks the latest `toktrack` version.
+
+Default directories:
+
+| Platform | Usage data                                 | Settings                                | Cache and background logs             |
+| -------- | ------------------------------------------ | --------------------------------------- | ------------------------------------- |
+| macOS    | `~/Library/Application Support/TTDash/`    | same directory                          | `~/Library/Caches/TTDash/`            |
+| Linux    | `${XDG_DATA_HOME:-~/.local/share}/ttdash/` | `${XDG_CONFIG_HOME:-~/.config}/ttdash/` | `${XDG_CACHE_HOME:-~/.cache}/ttdash/` |
+| Windows  | `%LOCALAPPDATA%\TTDash\`                   | `%APPDATA%\TTDash\`                     | `%LOCALAPPDATA%\TTDash\Cache\`        |
+
+Usage is stored as `data.json`; settings are stored as `settings.json`. TTDash creates application directories with restrictive permissions where the platform supports them. Absolute path overrides and the Docker layout are documented in the [configuration guide](docs/configuration.md).
+
+### Claude Code history retention
+
+Claude Code removes old sessions after 30 days by default. To preserve a longer history for `toktrack`, configure its retention in `~/.claude/settings.json`, for example:
 
 ```json
 {
@@ -19,342 +214,78 @@ Claude Code cleans up old sessions after 30 days by default. If you want long-te
 }
 ```
 
-![TTDash dashboard screenshot](docs/ttdash-dashboard.png)
+## Troubleshooting
 
-## Why TTDash
+### `ttdash` is not found
 
-- Local-first by default: no cloud backend, no remote database, no analytics
-- Fast to try: `npx` and `bunx` work without a global install
-- Built for daily usage review, cost tracking, and model/provider breakdowns
-- Works with `toktrack` exports and legacy `ccusage` JSON
-- Can auto-import local `toktrack` data and run in the background
-
-## Dashboard At A Glance
-
-Deeper cost and model analysis:
-
-![TTDash analytics screenshot](docs/ttdash-dashboard-analytics.png)
-
-Settings, local backups, and saved defaults:
-
-![TTDash settings screenshot](docs/ttdash-dashboard-settings.png)
-
-## Quick Start
-
-Requirements:
-
-- Node.js `20+`
-- A modern browser on the same machine
-- Typst CLI only if you want PDF export
-
-Run `TTDash` directly from the npm registry:
+Ensure the global npm or Bun binary directory is in `PATH`. For Bun, check:
 
 ```bash
-npx --yes @roastcodes/ttdash@latest
+echo "$PATH"
+ls -la ~/.bun/bin/ttdash
 ```
 
-Or with Bun:
+### The expected port is busy
 
-```bash
-bunx @roastcodes/ttdash@latest
-```
-
-Smoke-check the published CLI without starting the dashboard:
-
-```bash
-npx --yes @roastcodes/ttdash@latest --help
-bunx @roastcodes/ttdash@latest --help
-```
-
-For a persistent global install:
-
-```bash
-npm install -g @roastcodes/ttdash
-ttdash
-```
-
-```bash
-bun add -g @roastcodes/ttdash
-ttdash
-```
-
-## First Run
-
-Start the app:
-
-```bash
-ttdash
-```
-
-`TTDash` starts a local server, opens the dashboard in your browser, and automatically retries on the next free port if `3000` is already in use.
-
-Then either:
-
-1. Click `Auto-Import` to load local `toktrack` data
-2. Upload a `toktrack` JSON file manually
-3. Upload a legacy `ccusage` export
-4. Open `Settings` to export or import local backups
-
-The auto-import path prefers:
-
-1. local `toktrack`
-2. `bunx` with the exact `toktrack` package spec pinned by this TTDash release
-3. `npx --yes` with the exact `toktrack` package spec pinned by this TTDash release
-
-## Common Commands
-
-Quick examples:
-
-Run on a specific port:
+TTDash tries the requested port and up to 100 following ports, capped at 65535. Check the startup summary for the selected URL or choose another starting port:
 
 ```bash
 ttdash --port 3010
 ```
 
-Disable browser auto-open:
+### Auto-import cannot run
 
-```bash
-ttdash --no-open
-```
-
-Import local data immediately on startup:
-
-```bash
-ttdash --auto-load
-```
-
-Start in the background:
-
-```bash
-ttdash --background
-```
-
-Stop a running background instance:
-
-```bash
-ttdash stop
-```
-
-Combine flags when needed:
-
-```bash
-ttdash --background --port 3010 --auto-load
-ttdash --background --no-open
-```
-
-Environment-variable equivalents:
-
-```bash
-PORT=3010 ttdash
-NO_OPEN_BROWSER=1 ttdash
-HOST=127.0.0.1 ttdash
-```
-
-## CLI Reference
-
-Usage:
-
-```bash
-ttdash [options]
-ttdash stop
-```
-
-Options:
-
-| Option              | Description                                  |
-| ------------------- | -------------------------------------------- |
-| `-p, --port <port>` | Set the start port                           |
-| `-h, --help`        | Show CLI help                                |
-| `-no, --no-open`    | Disable browser auto-open                    |
-| `-al, --auto-load`  | Run local auto-import immediately on startup |
-| `-b, --background`  | Start TTDash as a background process         |
-| `--docker`          | Start with secure container defaults         |
-
-Commands:
-
-| Command       | Description                                                                                                             |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `ttdash stop` | Stop one or more running background instances. If multiple instances are running, TTDash prompts for which one to stop. |
-
-Environment variables:
-
-| Variable                                  | Description                                            |
-| ----------------------------------------- | ------------------------------------------------------ |
-| `PORT`                                    | Override the start port                                |
-| `NO_OPEN_BROWSER=1`                       | Disable browser auto-open                              |
-| `HOST`                                    | Override the bind host                                 |
-| `TTDASH_ALLOW_REMOTE=1`                   | Explicitly allow binding to a non-loopback host        |
-| `TTDASH_REMOTE_TOKEN=<long-random-token>` | Required for non-loopback binds; use at least 24 chars |
-| `TTDASH_DOCKER=1`                         | Enable Docker defaults without the CLI flag            |
-| `TTDASH_TRUSTED_HOSTS=<hosts>`            | Set exact comma-separated hostnames or IP addresses    |
-| `TTDASH_SECURE_COOKIE=1`                  | Restrict remote browser sessions to HTTPS              |
-| `TTDASH_TRUST_PROXY=1`                    | Trust proxy-overwritten `X-Forwarded-For` client IPs   |
-
-Binding to a non-loopback host such as `0.0.0.0` exposes the local dashboard API to your network, including destructive routes for local data and settings resets. TTDash refuses that bind unless you set both `TTDASH_ALLOW_REMOTE=1` and a `TTDASH_REMOTE_TOKEN` with at least 24 characters. Only use remote token access over a trusted LAN, VPN, or SSH tunnel; for any public hostname, put TTDash behind an HTTPS reverse proxy with valid TLS termination before sending the bearer token.
-
-Example:
-
-```bash
-TTDASH_ALLOW_REMOTE=1 TTDASH_REMOTE_TOKEN=<long-random-token> HOST=0.0.0.0 ttdash
-curl -H "Authorization: Bearer $TTDASH_REMOTE_TOKEN" http://127.0.0.1:3000/api/usage
-```
-
-When calling the server from another device, replace `127.0.0.1` with the server's LAN, VPN, or
-SSH-tunneled host. For public hostnames, call an HTTPS reverse proxy URL instead; do not send the
-bearer token over public HTTP.
-
-Remote API requests can authenticate with the `Authorization: Bearer $TTDASH_REMOTE_TOKEN` header or the equivalent `X-TTDash-Remote-Token: $TTDASH_REMOTE_TOKEN` header.
-
-## Docker
-
-The repository includes a small multi-stage Alpine image and a hardened Compose configuration. Generate a token and start the localhost-only default:
-
-```bash
-export TTDASH_REMOTE_TOKEN="$(openssl rand -hex 32)"
-docker compose up --build -d
-```
-
-Open `http://127.0.0.1:3000` and enter the same token in the sign-in screen. TTDash exchanges it for a temporary HttpOnly browser session; the token is not stored in the URL or browser storage. The existing `?ttdash_token=...` bootstrap remains available only for normal loopback starts outside remote/Docker mode.
-
-The Compose service publishes to `127.0.0.1` by default, runs as an unprivileged user with dropped capabilities and a read-only root filesystem, and persists data, settings, and cache in the `ttdash-data` volume. The minimal image does not include Typst, so PDF export requires a custom image with Typst installed. Auto-import can only see usage sources mounted into the container; JSON upload works without additional mounts.
-
-For a server reached as `dashboard.example`, expose the port deliberately and allow that exact browser host:
-
-```bash
-export TTDASH_REMOTE_TOKEN="$(openssl rand -hex 32)"
-export TTDASH_PUBLISH_ADDRESS=0.0.0.0
-export TTDASH_TRUSTED_HOSTS=dashboard.example
-export TTDASH_SECURE_COOKIE=1
-export TTDASH_TRUST_PROXY=1
-docker compose up --build -d
-```
-
-Put public hostnames behind an HTTPS reverse proxy that preserves the original `Host` header, writes the actual client IP as the last `X-Forwarded-For` entry, and is the container's only ingress. Set `TTDASH_SECURE_COOKIE=1` whenever `TTDASH_PUBLISH_ADDRESS` is exposed beyond loopback behind HTTPS, so browser sessions can only travel over HTTPS. Enable `TTDASH_TRUST_PROXY=1` only with that restricted proxy topology; otherwise client-supplied forwarded addresses could bypass per-client login rate limits. Browser `Origin` and `Host` must agree for uploads, settings changes, imports, resets, and other mutations. TTDash does not trust `X-Forwarded-Host`. Direct public HTTP is unsupported because it exposes the bearer token and browser session in transit.
-
-The equivalent direct image invocation is:
-
-```bash
-docker build -t ttdash .
-docker run --rm \
-  --read-only \
-  --cap-drop ALL \
-  --security-opt no-new-privileges \
-  --tmpfs /tmp:rw,noexec,nosuid,size=64m \
-  --init \
-  -p 127.0.0.1:3000:3000 \
-  -e TTDASH_REMOTE_TOKEN="$TTDASH_REMOTE_TOKEN" \
-  -v ttdash-data:/data \
-  ttdash
-```
-
-Run the real container smoke test with `npm run test:docker`.
-
-## Features
-
-- Provider and model filtering across OpenAI, Anthropic, Google, and other imported providers
-- KPI sections for overall usage, today, and current month
-- Cost charts, cumulative projection, forecast, token mix, model mix, heatmap, and weekday analysis
-- Drill-down modal for per-day details
-- CSV export and PDF export
-- Command palette, keyboard shortcuts, and responsive layout
-- Settings-backed defaults, section visibility, and local backups
-
-## Local Storage and Privacy
-
-`TTDash` is designed to stay local:
-
-- No cloud backend
-- No remote database
-- No third-party fonts, analytics, or runtime tracking
-- Imported usage data is stored on your machine
-- Settings such as language, theme, provider limits, filters, and layout are stored on your machine
-
-Platform paths:
-
-- macOS: `~/Library/Application Support/TTDash/`
-- Windows: `%LOCALAPPDATA%\\TTDash\\` for data and `%APPDATA%\\TTDash\\` for settings
-- Linux: `~/.local/share/ttdash/` for data and `~/.config/ttdash/` for settings
-
-## Backups
-
-The `Settings` dialog can export and import:
-
-- app settings backups
-- stored usage data backups
-
-Data-backup import is conservative by design:
-
-- missing days are added
-- identical days are skipped
-- conflicting existing days stay local and are reported instead of being overwritten silently
-
-If you want to fully replace the current dataset with a fresh `toktrack` JSON, keep using the normal upload action in the header.
-
-## Troubleshooting
-
-### `ttdash` not found after install
-
-Make sure your global package manager bin directory is in `PATH`.
-
-For Bun:
-
-```bash
-echo $PATH
-ls -la ~/.bun/bin/ttdash
-```
-
-### Port already in use
-
-`TTDash` automatically retries on the next port. You can also force one:
-
-```bash
-PORT=3010 ttdash
-```
-
-### Auto-import cannot find `toktrack`
-
-Install `toktrack` locally or ensure `bunx` / `npx` can execute it in the same terminal environment where you run `ttdash`.
+Ensure npm or Bun is available in the same environment as TTDash. To force a specific compatible executable, set `TTDASH_TOKTRACK_LOCAL_BIN` to an absolute binary path. Container auto-import can only read sources mounted into the container.
 
 ### PDF export fails
 
-PDF export requires the Typst CLI to be installed locally.
+Install Typst and confirm `typst --version` works in the same environment. The standard Docker image intentionally does not contain Typst.
 
-macOS:
+### Remote access reports an untrusted host
 
-```bash
-brew install typst
-```
+Set `TTDASH_TRUSTED_HOSTS` to the exact DNS names or IP addresses used by browsers. Do not include a scheme, port, path, or wildcard. See [Docker deployment scenarios](docs/docker.md#deployment-scenarios).
 
-Other platforms:
+More diagnostics are available in the [usage](docs/usage.md), [configuration](docs/configuration.md), and [Docker](docs/docker.md) guides. Bugs and support questions can be opened in [GitHub Issues](https://github.com/roastcodes/ttdash/issues); report vulnerabilities privately as described in [`SECURITY.md`](SECURITY.md).
 
-- install Typst from `https://typst.app/`
-- make sure `typst --version` works in the same terminal where you run `ttdash`
+## Development and Source Installation
 
-## Installation From Source
-
-Clone the repository and install locally:
-
-macOS / Linux:
+Clone the repository, then install and run the frontend and API server separately:
 
 ```bash
-sh install.sh
-ttdash
+npm install
+npm run dev
 ```
 
-Windows:
+In another terminal:
 
-```bat
-install.bat
-ttdash
+```bash
+node server.js
 ```
 
-Manual source install:
+- Vite frontend: `http://localhost:5173`
+- API and production static server: `http://localhost:3000`
+
+Build and run the main local quality gate:
+
+```bash
+npm run build
+npm run verify
+```
+
+Before a pull request, run the full browser-inclusive gate:
+
+```bash
+npm run verify:full
+```
+
+Source installation helpers remain available for macOS/Linux (`sh install.sh`) and Windows (`install.bat`). See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`docs/testing.md`](docs/testing.md) for the full development workflow and test matrix.
+
+To install a built checkout globally without the helper scripts:
 
 ```bash
 npm install
 npm run build
-npm install -g .
-ttdash
+npm install --global .
 ```
 
 Or with Bun:
@@ -362,105 +293,23 @@ Or with Bun:
 ```bash
 bun install
 bun run build
-bun add -g "file:$(pwd)"
-ttdash
+bun add --global "file:$(pwd)"
 ```
 
-## Development
+## Project Documentation
 
-Run the app locally from the repo:
-
-```bash
-npm install
-npm run dev
-node server.js
-```
-
-- Vite dev server: `http://localhost:5173`
-- API / production server: `http://localhost:3000`
-
-Build the production bundle:
-
-```bash
-npm run build
-```
-
-`npm run build` is the gated build and runs `format:check` and `lint` before bundling. If you only want the Vite production bundle, use:
-
-```bash
-npm run build:app
-```
-
-Type checking uses the TypeScript 7 compiler with both npm and Bun. TypeScript 6 remains installed
-temporarily as the programmatic API required by `typescript-eslint`. The
-`verify:typescript-toolchain` script verifies that both roles resolve to the intended versions.
-
-Run the main local gate without Playwright:
-
-```bash
-npm run verify
-```
-
-For the full serial CI/release-style local gate, including coverage thresholds and Playwright, use:
-
-```bash
-npm run verify:full
-```
-
-On a local machine with enough CPU, the staged parallel fast path gives quicker feedback across the
-same main test surfaces without the coverage-instrumented pass:
-
-```bash
-PLAYWRIGHT_TEST_PORT=3016 npm run verify:full:parallel
-```
-
-Keep `npm run verify:full` or `npm run test:vitest:coverage` in the final validation path whenever
-coverage thresholds matter.
-
-If you want to run the steps individually, use:
-
-```bash
-npm run check:deps
-npm run test:architecture
-npm run test:unit:coverage
-npm run test:e2e:ci
-```
-
-To inspect the slowest suites and test cases after a Vitest run:
-
-```bash
-npm run test:timings
-```
-
-The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/`. For
-stable Playwright-only validation from another base port, use the CI-style worker cap:
-
-```bash
-PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:ci
-```
-
-Use `npm run test:e2e` when you intentionally want the fresh app build plus the default local worker
-count.
-
-Refresh the README screenshots:
-
-```bash
-npm run docs:screenshots
-```
-
-## Release and Project Docs
-
-- Contributor guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- Release guide: [`RELEASING.md`](RELEASING.md)
-- Architecture rules: [`docs/architecture.md`](docs/architecture.md)
-- Test architecture: [`docs/testing.md`](docs/testing.md)
-- Security policy: [`SECURITY.md`](SECURITY.md)
-- Code of conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
-
-## Status
-
-GitHub Actions now runs formatting checks, ESLint, `tsc --noEmit`, unit/integration coverage, the production bundle, packaged-artifact verification, and Playwright smoke tests for pull requests and pushes to `main`.
+- [Usage guide](docs/usage.md)
+- [Configuration reference](docs/configuration.md)
+- [Docker guide](docs/docker.md)
+- [HTTP API reference](docs/api.md)
+- [Architecture guardrails](docs/architecture.md)
+- [Testing architecture](docs/testing.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Release process](RELEASING.md)
+- [Changelog](CHANGELOG.md)
+- [Code of conduct](CODE_OF_CONDUCT.md)
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+TTDash is available under the [MIT License](LICENSE).
