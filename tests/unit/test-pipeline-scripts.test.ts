@@ -122,6 +122,73 @@ describe('test pipeline scripts', () => {
     expect(workflow).toContain('uses: actions/download-artifact@')
   })
 
+  it('keeps documentation verification in required CI and deploys only the tested main commit', async () => {
+    const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
+    const pagesWorkflow = await readFile('.github/workflows/pages.yml', 'utf8')
+    const documentationBlock = workflow.slice(
+      workflow.indexOf('\n  documentation:'),
+      workflow.indexOf('\n  ci-required:'),
+    )
+    const requiredBlock = workflow.slice(
+      workflow.indexOf('\n  ci-required:'),
+      workflow.indexOf('\n  publish-documentation:'),
+    )
+    const publishBlock = workflow.slice(workflow.indexOf('\n  publish-documentation:'))
+    const verifiedArtifactBlock = documentationBlock.slice(
+      documentationBlock.indexOf('- name: Upload verified documentation site'),
+      documentationBlock.indexOf('- name: Upload documentation test reports'),
+    )
+
+    expect(scripts['docs:verify']).toContain('node scripts/verify-docs-publication.js')
+    expect(scripts['test:docs:e2e']).toBe('npm run docs:build && npm run test:docs:e2e:built')
+    expect(documentationBlock).toContain('run: npm run docs:verify')
+    expect(documentationBlock).toContain('run: npm run test:docs:e2e:built')
+    expect(documentationBlock).toContain('name: documentation-site')
+    expect(documentationBlock).toContain('name: documentation-test-reports')
+    expect(verifiedArtifactBlock).not.toContain('if: always()')
+    expect(requiredBlock).toContain('- documentation')
+    expect(requiredBlock).toContain('DOCUMENTATION_RESULT: ${{ needs.documentation.result }}')
+    expect(requiredBlock).toContain('check_result "documentation" "${DOCUMENTATION_RESULT}"')
+    expect(publishBlock).toContain('needs: ci-required')
+    expect(publishBlock).toContain("github.event_name == 'push'")
+    expect(publishBlock).toContain("github.ref == 'refs/heads/main'")
+    expect(publishBlock).toContain('uses: ./.github/workflows/pages.yml')
+
+    expect(pagesWorkflow).toContain('workflow_call:')
+    expect(pagesWorkflow).toContain('workflow_dispatch:')
+    expect(pagesWorkflow).not.toContain('inputs:')
+    expect(pagesWorkflow).toContain("if: github.ref == 'refs/heads/main'")
+    expect(pagesWorkflow).toContain('ref: ${{ github.sha }}')
+    expect(pagesWorkflow).toContain('name: Verify exact main commit passed required CI')
+    expect(pagesWorkflow).toContain('--sha "${{ github.sha }}"')
+    expect(pagesWorkflow).toContain('--required-job "CI Required"')
+    expect(pagesWorkflow).toContain('actions: read')
+    expect(pagesWorkflow).toContain('pages: write')
+    expect(pagesWorkflow).toContain('id-token: write')
+    expect(pagesWorkflow).toContain('run: npm run docs:verify')
+    expect(pagesWorkflow).toContain('run: npm run test:docs:e2e:built')
+    expect(pagesWorkflow).toContain('path: docs-site/dist')
+    expect(pagesWorkflow).toContain('group: pages')
+    expect(pagesWorkflow).toContain('cancel-in-progress: false')
+  })
+
+  it('keeps release and scheduled link checks aligned with the public documentation boundary', async () => {
+    const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
+    const linksWorkflow = await readFile('.github/workflows/docs-links.yml', 'utf8')
+
+    expect(releaseWorkflow).toContain('run: npm run docs:install')
+    expect(releaseWorkflow).toContain('run: npm run docs:verify')
+    expect(releaseWorkflow).toContain('run: npm run test:docs:e2e:built')
+
+    expect(linksWorkflow).toContain('schedule:')
+    expect(linksWorkflow).toContain('workflow_dispatch:')
+    expect(linksWorkflow).toContain('GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}')
+    expect(linksWorkflow).toContain("--exclude '^file://'")
+    expect(linksWorkflow).toContain("'docs-site/src/content/docs/**/*.md'")
+    expect(linksWorkflow).toContain("'docs-site/src/content/docs/**/*.mdx'")
+    expect(linksWorkflow).not.toContain("'docs/")
+  })
+
   it('uses the required CI job as the release gate', async () => {
     const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
     const verifyScript = await readFile('scripts/verify-main-ci.js', 'utf8')
@@ -171,5 +238,7 @@ describe('test pipeline scripts', () => {
     expect(config.match(/multi-ecosystem-group: 'javascript-dependencies'/g)).toHaveLength(2)
     expect(config.match(/dependency-name: 'typescript'/g)).toHaveLength(2)
     expect(config.match(/dependency-name: '@typescript\/native'/g)).toHaveLength(2)
+    expect(config).toContain("directory: '/docs-site'")
+    expect(config).toContain("prefix: 'deps(docs)'")
   })
 })

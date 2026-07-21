@@ -1,0 +1,48 @@
+name: Documentation Links
+
+on:
+  schedule:
+    - cron: '23 5 * * 1'
+      timezone: 'Europe/Zurich'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-links
+  cancel-in-progress: true
+
+jobs:
+  links:
+    name: Check external documentation links
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check public documentation links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          fail: true
+          args: >-
+            --no-progress
+            --verbose
+            --exclude-loopback
+            --exclude '^file://'
+            --max-retries 3
+            --retry-wait-time 2
+            --timeout 30
+            'README.md'
+            'CODE_OF_CONDUCT.md'
+            'CONTRIBUTING.md'
+            'RELEASING.md'
+            'SECURITY.md'
+            'docs-site/src/content/docs/**/*.md'
+            'docs-site/src/content/docs/**/*.mdx'
