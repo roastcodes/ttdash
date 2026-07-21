@@ -86,6 +86,12 @@ Then manually verify the main user flows touched by your change:
 - filtering
 - CSV/PDF export when relevant
 
+For Docker or deployment changes, also run the real image smoke test:
+
+```bash
+npm run test:docker
+```
+
 If you change dependencies, update both lockfiles so npm and Bun installs stay reproducible:
 
 ```bash
@@ -139,8 +145,36 @@ The frontend dev server runs on `http://localhost:5173` and the local API/static
 - Keep feature UI colocated under `src/components/features/`
 - Prefer small, targeted changes over broad cleanup refactors
 
+## Documentation
+
+Keep user-facing behavior in sync across the implementation and the canonical guide that owns it:
+
+- `README.md`: project overview, quick start, common workflows, and documentation navigation
+- `docs/usage.md`: imports, dashboard operation, exports, and backups
+- `docs/configuration.md`: public CLI options, environment variables, precedence, and storage
+- `docs/docker.md`: container deployment and proxy scenarios
+- `docs/api.md`: supported HTTP authentication and endpoints
+- `SECURITY.md`: vulnerability reporting and security invariants
+- `docs/architecture.md` and `docs/testing.md`: contributor-facing architecture and test contracts
+
+When a public option, environment variable, endpoint, package command, or storage default changes,
+update its canonical guide and the relevant documentation contract test in the same pull request.
+Use relative repository links so documentation works on branches and forks.
+
+Refresh the committed README screenshots after intentional dashboard visual changes:
+
+```bash
+npm run docs:screenshots
+```
+
 ## Related Docs
 
+- Usage guide: [`docs/usage.md`](docs/usage.md)
+- Configuration reference: [`docs/configuration.md`](docs/configuration.md)
+- Docker guide: [`docs/docker.md`](docs/docker.md)
+- API reference: [`docs/api.md`](docs/api.md)
+- Architecture: [`docs/architecture.md`](docs/architecture.md)
+- Testing: [`docs/testing.md`](docs/testing.md)
 - Release process: [`RELEASING.md`](RELEASING.md)
 - Security reporting: [`SECURITY.md`](SECURITY.md)
 - Conduct expectations: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)

@@ -228,8 +228,25 @@ Reason: the repo has stable layer boundaries, but it is not structured around st
 - all Vitest projects without coverage: `npm run test:vitest`
 - architecture tests only: `npm run test:architecture`
 - main release-style local gate: `npm run verify:full`
+- real container smoke test: `npm run test:docker`
 
 `ci.yml` runs static checks, architecture tests, Vitest projects, coverage, build, package smoke, and Playwright as separate DAG jobs so independent failures are visible without waiting for one serial full-gate job. `release.yml` still runs `check:deps` and `test:architecture` explicitly during the release path so dependency and architecture violations are not hidden inside a larger local gate.
+
+## Documentation Ownership
+
+- `README.md` is the entrypoint and must link to the detailed guides rather than duplicating every
+  operational edge case.
+- `docs/usage.md` owns end-user workflows and accepted import behavior.
+- `docs/configuration.md` owns the public CLI, environment, precedence, and storage contract.
+- `docs/docker.md` owns container topology and deployment examples.
+- `docs/api.md` owns the supported HTTP surface; route modules remain the implementation source of
+  truth.
+- `SECURITY.md` owns security invariants and private vulnerability reporting.
+- `docs/testing.md` owns test-layer and quality-gate guidance.
+
+Keep internal child-process and test-only environment variables out of the public configuration
+contract. When a public runtime surface changes, update its canonical guide and
+`tests/unit/documentation-contract.test.ts` in the same change.
 
 ## Contributor Rules
 
