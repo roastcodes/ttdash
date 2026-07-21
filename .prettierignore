@@ -2,8 +2,10 @@ coverage/
 dist/
 node_modules/
 playwright-report/
+playwright-docs-report/
 test-results/
 .playwright-mcp/
+.astro/
 .tmp-playwright/
 .tmp-smoke-*/
 package-lock.json

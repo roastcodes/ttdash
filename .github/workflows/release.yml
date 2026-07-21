@@ -38,7 +38,7 @@ jobs:
           repositories: ttdash
 
       - name: Check out repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           ref: main
@@ -47,7 +47,8 @@ jobs:
 
       - name: Verify release version input
         run: |
-          export CURRENT_VERSION="$(node -p "require('./package.json').version")"
+          CURRENT_VERSION="$(node -p "require('./package.json').version")"
+          export CURRENT_VERSION
           export RELEASE_VERSION
           echo "CURRENT_VERSION=${CURRENT_VERSION}" >> "$GITHUB_ENV"
           node - <<'NODE'
@@ -133,6 +134,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      - name: Install documentation dependencies
+        run: npm run docs:install
+
       - name: Check formatting
         run: npm run format:check
 
@@ -163,11 +167,17 @@ jobs:
       - name: Verify packed npm artifact
         run: npm run verify:package
 
+      - name: Verify documentation build and publication boundary
+        run: npm run docs:verify
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
       - name: Run end-to-end smoke tests
         run: npm run test:e2e:ci
+
+      - name: Run documentation browser and accessibility tests
+        run: npm run test:docs:e2e:built
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -285,6 +295,7 @@ jobs:
       - name: Wait for npm registry propagation
         run: |
           for attempt in 1 2 3 4 5 6; do
+            echo "Checking npm registry propagation (${attempt}/6)."
             if npm view "@roastcodes/ttdash@${RELEASE_VERSION}" version >/dev/null 2>&1; then
               exit 0
             fi

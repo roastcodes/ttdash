@@ -19,7 +19,11 @@ export default defineConfig(
     ignores: [
       'coverage/**',
       'dist/**',
+      'docs-site/.astro/**',
+      'docs-site/dist/**',
+      'docs-site/node_modules/**',
       'node_modules/**',
+      'playwright-docs-report/**',
       'playwright-report/**',
       'test-results/**',
       '.playwright-mcp/**',
@@ -251,7 +255,7 @@ export default defineConfig(
     },
   },
   {
-    files: ['tests/e2e/**/*.ts'],
+    files: ['tests/e2e/**/*.ts', 'tests/docs-e2e/**/*.ts'],
     extends: [playwright.configs['flat/recommended']],
   },
   {
@@ -282,6 +286,42 @@ export default defineConfig(
       'import-x/no-named-as-default': 'off',
       'import-x/no-named-as-default-member': 'off',
       'import-x/no-unresolved': 'error',
+    },
+  },
+  {
+    files: ['docs-site/astro.config.mjs'],
+    rules: {
+      // The documentation package owns these dependencies and validates them
+      // through Astro after its isolated install. Root-only lint jobs must not
+      // require docs-site/node_modules just to lint the configuration files.
+      'import-x/no-unresolved': [
+        'error',
+        {
+          ignore: [
+            '^@astrojs/markdown-remark$',
+            '^@astrojs/starlight$',
+            '^astro/config$',
+            '^starlight-links-validator$',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['docs-site/src/content.config.ts'],
+    rules: {
+      // Astro supplies its virtual content module, while Starlight is owned by
+      // the independently installed documentation package.
+      'import-x/no-unresolved': [
+        'error',
+        {
+          ignore: [
+            '^@astrojs/starlight/loaders$',
+            '^@astrojs/starlight/schema$',
+            '^astro:content$',
+          ],
+        },
+      ],
     },
   },
   {

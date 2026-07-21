@@ -7,7 +7,7 @@
     "type": "git",
     "url": "git+https://github.com/roastcodes/ttdash.git"
   },
-  "homepage": "https://github.com/roastcodes/ttdash#readme",
+  "homepage": "https://roastcodes.github.io/ttdash/",
   "bugs": {
     "url": "https://github.com/roastcodes/ttdash/issues"
   },
@@ -48,9 +48,17 @@
     "test:e2e": "npm run test:e2e:parallel",
     "test:e2e:parallel": "npm run build:app && playwright test",
     "test:e2e:ci": "playwright test --workers=2",
+    "test:docs:e2e": "npm run docs:build && npm run test:docs:e2e:built",
+    "test:docs:e2e:built": "playwright test --config playwright.docs.config.ts",
     "test:docker": "node scripts/test-docker.js",
     "test:all": "npm run verify:full",
     "typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit --incremental --tsBuildInfoFile .cache/tsc/tsconfig.tsbuildinfo",
+    "docs:install": "npm ci --prefix docs-site --ignore-scripts",
+    "docs:dev": "npm --prefix docs-site run dev",
+    "docs:check": "npm --prefix docs-site run check",
+    "docs:build": "npm --prefix docs-site run build",
+    "docs:preview": "npm --prefix docs-site run preview --",
+    "docs:verify": "npm --prefix docs-site run verify && node scripts/verify-docs-publication.js",
     "docs:screenshots": "node scripts/capture-readme-screenshots.js",
     "deps:graph": "dependency-cruiser --config .dependency-cruiser.cjs -T archi src shared server server.js usage-normalizer.js",
     "pack:dry-run": "npm pack --dry-run",
@@ -92,6 +100,7 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.60.0",
     "@radix-ui/react-dialog": "^1.1.16",
@@ -132,6 +141,7 @@
     "jsdom": "^29.1.1",
     "lucide-react": "^1.17.0",
     "prettier": "^3.8.4",
+    "prettier-plugin-astro": "^0.14.1",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

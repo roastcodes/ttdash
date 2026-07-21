@@ -4,19 +4,36 @@ import packageJson from '../../package.json'
 
 const scripts = packageJson.scripts as Record<string, string>
 
-function getDependabotUpdateBlock(config: string, ecosystem: string) {
+function getWorkflowJobBlock(workflow: string, jobName: string) {
+  const lines = workflow.split('\n')
+  const startIndex = lines.findIndex((line) => line === `  ${jobName}:`)
+
+  expect(startIndex, `${jobName} workflow job`).toBeGreaterThanOrEqual(0)
+
+  const nextJobIndex = lines.findIndex(
+    (line, index) => index > startIndex && /^  [a-zA-Z0-9_-]+:$/.test(line),
+  )
+
+  return lines.slice(startIndex, nextJobIndex === -1 ? lines.length : nextJobIndex).join('\n')
+}
+
+function getDependabotUpdateBlock(config: string, ecosystem: string, directory = '/') {
   const lines = config.split('\n')
-  const startIndex = lines.findIndex(
-    (line) => line.trim() === `- package-ecosystem: '${ecosystem}'`,
+  const startIndexes = lines.flatMap((line, index) =>
+    line.startsWith('  - package-ecosystem: ') ? [index] : [],
+  )
+  const updateBlocks = startIndexes.map((startIndex, index) =>
+    lines.slice(startIndex, startIndexes[index + 1] ?? lines.length).join('\n'),
+  )
+  const updateBlock = updateBlocks.find(
+    (block) =>
+      block.startsWith(`  - package-ecosystem: '${ecosystem}'`) &&
+      block.includes(`directory: '${directory}'`),
   )
 
-  expect(startIndex, `${ecosystem} Dependabot update entry`).toBeGreaterThanOrEqual(0)
+  expect(updateBlock, `${ecosystem} Dependabot update entry for ${directory}`).toBeDefined()
 
-  const nextUpdateIndex = lines.findIndex(
-    (line, index) => index > startIndex && line.startsWith('  - package-ecosystem: '),
-  )
-
-  return lines.slice(startIndex, nextUpdateIndex === -1 ? lines.length : nextUpdateIndex).join('\n')
+  return updateBlock as string
 }
 
 describe('test pipeline scripts', () => {
@@ -122,16 +139,82 @@ describe('test pipeline scripts', () => {
     expect(workflow).toContain('uses: actions/download-artifact@')
   })
 
+  it('keeps documentation verification in required CI and deploys only the tested main commit', async () => {
+    const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
+    const pagesWorkflow = await readFile('.github/workflows/pages.yml', 'utf8')
+    const documentationBlock = getWorkflowJobBlock(workflow, 'documentation')
+    const requiredBlock = getWorkflowJobBlock(workflow, 'ci-required')
+    const publishBlock = getWorkflowJobBlock(workflow, 'publish-documentation')
+    const pagesBuildBlock = getWorkflowJobBlock(pagesWorkflow, 'build')
+    const pagesDeployBlock = getWorkflowJobBlock(pagesWorkflow, 'deploy')
+    const verifiedArtifactBlock = documentationBlock.slice(
+      documentationBlock.indexOf('- name: Upload verified documentation site'),
+      documentationBlock.indexOf('- name: Upload documentation test reports'),
+    )
+
+    expect(scripts['docs:verify']).toContain('node scripts/verify-docs-publication.js')
+    expect(scripts['test:docs:e2e']).toBe('npm run docs:build && npm run test:docs:e2e:built')
+    expect(documentationBlock).toContain('run: npm run docs:verify')
+    expect(documentationBlock).toContain('run: npm run test:docs:e2e:built')
+    expect(documentationBlock).toContain('name: documentation-site')
+    expect(documentationBlock).toContain('name: documentation-test-reports')
+    expect(verifiedArtifactBlock).not.toContain('if: always()')
+    expect(requiredBlock).toContain('- documentation')
+    expect(requiredBlock).toContain('DOCUMENTATION_RESULT: ${{ needs.documentation.result }}')
+    expect(requiredBlock).toContain('check_result "documentation" "${DOCUMENTATION_RESULT}"')
+    expect(publishBlock).toContain('needs: ci-required')
+    expect(publishBlock).toContain("github.event_name == 'push'")
+    expect(publishBlock).toContain("github.ref == 'refs/heads/main'")
+    expect(publishBlock).toContain('uses: ./.github/workflows/pages.yml')
+
+    expect(pagesWorkflow).toContain('workflow_call:')
+    expect(pagesWorkflow).toContain('workflow_dispatch:')
+    expect(pagesWorkflow).not.toContain('inputs:')
+    expect(pagesBuildBlock).toContain("if: github.ref == 'refs/heads/main'")
+    expect(pagesBuildBlock).toContain('ref: ${{ github.sha }}')
+    expect(pagesBuildBlock).toContain('name: Verify exact main commit passed required CI')
+    expect(pagesBuildBlock).toContain('--sha "${{ github.sha }}"')
+    expect(pagesBuildBlock).toContain('--required-job "CI Required"')
+    expect(pagesBuildBlock).toContain('actions: read')
+    expect(pagesBuildBlock).toContain('run: npm run docs:verify')
+    expect(pagesBuildBlock).toContain('run: npm run test:docs:e2e:built')
+    expect(pagesBuildBlock).toContain('path: docs-site/dist')
+    expect(pagesDeployBlock).toContain('pages: write')
+    expect(pagesDeployBlock).toContain('id-token: write')
+    expect(pagesWorkflow).toContain('group: pages')
+    expect(pagesWorkflow).toContain('cancel-in-progress: false')
+  })
+
+  it('keeps release and scheduled link checks aligned with the public documentation boundary', async () => {
+    const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
+    const linksWorkflow = await readFile('.github/workflows/docs-links.yml', 'utf8')
+    const releaseBlock = getWorkflowJobBlock(releaseWorkflow, 'release')
+    const linksBlock = getWorkflowJobBlock(linksWorkflow, 'links')
+
+    expect(releaseBlock).toContain('run: npm run docs:install')
+    expect(releaseBlock).toContain('run: npm run docs:verify')
+    expect(releaseBlock).toContain('run: npm run test:docs:e2e:built')
+
+    expect(linksWorkflow).toContain('schedule:')
+    expect(linksWorkflow).toContain('workflow_dispatch:')
+    expect(linksBlock).toContain('GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}')
+    expect(linksBlock).toContain("--exclude '^file://'")
+    expect(linksBlock).toContain("'docs-site/src/content/docs/**/*.md'")
+    expect(linksBlock).toContain("'docs-site/src/content/docs/**/*.mdx'")
+    expect(linksBlock).not.toContain("'docs/")
+  })
+
   it('uses the required CI job as the release gate', async () => {
     const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
     const verifyScript = await readFile('scripts/verify-main-ci.js', 'utf8')
     const bunVersion = (await readFile('.bun-version', 'utf8')).trim()
+    const releaseBlock = getWorkflowJobBlock(releaseWorkflow, 'release')
 
-    expect(releaseWorkflow).toContain('--workflow ci.yml')
-    expect(releaseWorkflow).toContain('--required-job "CI Required"')
-    expect(releaseWorkflow).toContain('run: npm run typecheck')
-    expect(releaseWorkflow).toContain('run: npm run verify:typescript-toolchain')
-    expect(releaseWorkflow).toContain('bun-version-file: .bun-version')
+    expect(releaseBlock).toContain('--workflow ci.yml')
+    expect(releaseBlock).toContain('--required-job "CI Required"')
+    expect(releaseBlock).toContain('run: npm run typecheck')
+    expect(releaseBlock).toContain('run: npm run verify:typescript-toolchain')
+    expect(releaseBlock).toContain('bun-version-file: .bun-version')
     expect(bunVersion).toBe('1.3.14')
     expect(verifyScript).toContain('--required-job')
     expect(verifyScript).toContain('/actions/runs/${runId}/jobs')
@@ -171,5 +254,9 @@ describe('test pipeline scripts', () => {
     expect(config.match(/multi-ecosystem-group: 'javascript-dependencies'/g)).toHaveLength(2)
     expect(config.match(/dependency-name: 'typescript'/g)).toHaveLength(2)
     expect(config.match(/dependency-name: '@typescript\/native'/g)).toHaveLength(2)
+    const docsUpdateBlock = getDependabotUpdateBlock(config, 'npm', '/docs-site')
+
+    expect(docsUpdateBlock).toContain("directory: '/docs-site'")
+    expect(docsUpdateBlock).toContain("prefix: 'deps(docs)'")
   })
 })

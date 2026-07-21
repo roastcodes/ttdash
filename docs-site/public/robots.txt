@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://roastcodes.github.io/ttdash/sitemap-index.xml

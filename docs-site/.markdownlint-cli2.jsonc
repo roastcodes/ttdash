@@ -1,0 +1,25 @@
+{
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD024": {
+      "siblings_only": true,
+    },
+    "MD033": {
+      "allowed_elements": [
+        "br",
+        "details",
+        "summary",
+        "kbd",
+        "figure",
+        "img",
+        "figcaption",
+        "VersionBadge",
+        "CardGrid",
+        "Card",
+        "LinkCard",
+      ],
+    },
+    "MD041": false,
+  },
+}
