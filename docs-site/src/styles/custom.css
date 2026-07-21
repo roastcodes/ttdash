@@ -1,7 +1,7 @@
 :root {
   --sl-font:
     'Avenir Next', 'Segoe UI Variable', 'Segoe UI', 'Helvetica Neue', 'Arial Nova', sans-serif;
-  --sl-font-mono: 'SFMono-Regular', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --sl-font-mono: 'SFMono-Regular', 'SF Mono', menlo, consolas, 'Liberation Mono', monospace;
   --sl-color-accent-low: #14213a;
   --sl-color-accent: #528de0;
   --sl-color-accent-high: #c7dcfb;
@@ -46,7 +46,7 @@ html {
 
 body {
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  text-rendering: optimizelegibility;
 }
 
 :where(a, button, input, select, textarea):focus-visible {

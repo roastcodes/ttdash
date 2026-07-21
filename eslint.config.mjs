@@ -289,12 +289,39 @@ export default defineConfig(
     },
   },
   {
-    files: ['docs-site/astro.config.mjs', 'docs-site/src/content.config.ts'],
+    files: ['docs-site/astro.config.mjs'],
     rules: {
       // The documentation package owns these dependencies and validates them
       // through Astro after its isolated install. Root-only lint jobs must not
       // require docs-site/node_modules just to lint the configuration files.
-      'import-x/no-unresolved': 'off',
+      'import-x/no-unresolved': [
+        'error',
+        {
+          ignore: [
+            '^@astrojs/markdown-remark$',
+            '^@astrojs/starlight$',
+            '^astro/config$',
+            '^starlight-links-validator$',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['docs-site/src/content.config.ts'],
+    rules: {
+      // Astro supplies its virtual content module, while Starlight is owned by
+      // the independently installed documentation package.
+      'import-x/no-unresolved': [
+        'error',
+        {
+          ignore: [
+            '^@astrojs/starlight/loaders$',
+            '^@astrojs/starlight/schema$',
+            '^astro:content$',
+          ],
+        },
+      ],
     },
   },
   {

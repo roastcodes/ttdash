@@ -26,7 +26,7 @@ If you want npm provenance on the published package, the GitHub repository must 
 Before using the manual release workflow, make sure:
 
 1. `main` is protected and requires the `CI Required` status check before merges
-2. CodeQL is enabled in the GitHub UI if you want it as a manual release gate
+2. CodeQL is enabled in the GitHub UI and its JavaScript/TypeScript and Actions analyses are mandatory release-readiness checks
 3. the `ttdash-release` GitHub App is allowed to push the version-bump commit and signed tag back to `main`
 4. the `roast.codes` domain remains verified for the `roastcodes` organization so the workflow-created `on-behalf-of: @roastcodes <github@roast.codes>` trailer continues to render correctly on GitHub (check GitHub organization settings under verified domains; if verification lapses, restore or confirm the DNS TXT record and re-verify the domain as documented at https://docs.github.com/en/organizations/managing-organization-settings/verifying-or-approving-a-domain-for-your-organization)
 5. GitHub Pages uses **GitHub Actions** as its publishing source
@@ -38,7 +38,7 @@ If branch protection or rulesets block the `ttdash-release` app from writing to 
 
 1. Merge the intended release state to `main`
 2. Confirm the latest `CI Required` job on `main` succeeded, including the mandatory `Documentation` job
-3. Confirm CodeQL is green in the GitHub UI
+3. Confirm the CodeQL analyses for the latest `main` commit are green in the GitHub UI
 4. Start the `Release` workflow manually from GitHub Actions and provide the target version in `x.y.z` format
 
 Optional local confidence check before starting the workflow:
