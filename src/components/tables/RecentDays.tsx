@@ -81,10 +81,8 @@ export function RecentDays({ data, onClickDay, viewMode = 'daily' }: RecentDaysP
       return
     }
 
-    const frameId = scheduleProgressiveRowReveal(
-      sorted.length,
-      setVisibleCount,
-      window.requestAnimationFrame,
+    const frameId = scheduleProgressiveRowReveal(sorted.length, setVisibleCount, (callback) =>
+      window.requestAnimationFrame(callback),
     )
 
     return () => {
