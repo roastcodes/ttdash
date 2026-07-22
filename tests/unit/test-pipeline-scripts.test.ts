@@ -252,11 +252,13 @@ describe('test pipeline scripts', () => {
     }
 
     expect(config.match(/multi-ecosystem-group: 'javascript-dependencies'/g)).toHaveLength(2)
-    expect(config.match(/dependency-name: 'typescript'/g)).toHaveLength(2)
+    expect(config.match(/dependency-name: 'typescript'/g)).toHaveLength(3)
     expect(config.match(/dependency-name: '@typescript\/native'/g)).toHaveLength(2)
     const docsUpdateBlock = getDependabotUpdateBlock(config, 'npm', '/docs-site')
 
     expect(docsUpdateBlock).toContain("directory: '/docs-site'")
     expect(docsUpdateBlock).toContain("prefix: 'deps(docs)'")
+    expect(docsUpdateBlock).toContain("dependency-name: 'typescript'")
+    expect(docsUpdateBlock).toContain("versions:\n          - '>=7.0.0'")
   })
 })
