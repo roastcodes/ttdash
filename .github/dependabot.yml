@@ -91,6 +91,12 @@ updates:
       prefix: 'deps(docs)'
     pull-request-branch-name:
       separator: '-'
+    ignore:
+      # @astrojs/check@0.9.9 supports TypeScript 5 and 6 only.
+      # Keep the docs checker installable until Astro officially supports TypeScript 7.
+      - dependency-name: 'typescript'
+        versions:
+          - '>=7.0.0'
     groups:
       documentation:
         patterns:
