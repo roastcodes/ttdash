@@ -41,14 +41,16 @@ For feature requests, explain the user problem first. Suggestions that only desc
 
 Make sure the change is small, focused, and aligned with the existing product direction.
 
+Building and testing the repository requires Node.js 22.13 or newer on an even-numbered release;
+CI uses Node.js 24. The published TTDash CLI keeps its separate Node.js 20 runtime contract.
+
 Run the full local gate before opening a PR:
 
 ```bash
 npm run verify:full
 ```
 
-Documentation changes also use their own reproducible workspace and browser gate. Node.js 22.12
-or newer is required for this workspace; documentation CI runs on Node.js 24:
+Documentation changes also use their own reproducible workspace and browser gate:
 
 ```bash
 npm run docs:install
@@ -85,7 +87,9 @@ PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:ci
 The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/` and
 should not reuse your normal local dashboard data. Use `npm run test:e2e` only when you intentionally
 want the fresh app build plus the default local worker count. `npm run verify:package` builds the
-real tarball and verifies that the packaged CLI can start outside the repo checkout.
+real tarball and verifies that the packaged CLI can start outside the repo checkout. CI builds that
+tarball once on Node.js 24, then installs and starts the exact same artifact on every runtime in the
+package smoke matrix.
 
 Then manually verify the main user flows touched by your change:
 

@@ -100,10 +100,18 @@ function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
         return
       }
 
-      const id = (typeof window !== 'undefined' ? window.setTimeout : setTimeout)(() => {
+      const runCallback = () => {
         scheduledFocusRef.current = null
         callback()
-      }, 0)
+      }
+
+      if (typeof window !== 'undefined') {
+        const id = window.setTimeout(runCallback, 0)
+        scheduledFocusRef.current = { kind: 'timeout', id }
+        return
+      }
+
+      const id = setTimeout(runCallback, 0)
       scheduledFocusRef.current = { kind: 'timeout', id }
     },
     [clearScheduledFocus],

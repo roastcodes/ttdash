@@ -101,6 +101,10 @@ reverse proxy; do not send the token or session over public HTTP. Read the
 
 ## Development
 
+Building and testing the repository requires Node.js 22.13 or newer on an even-numbered release;
+the published TTDash CLI continues to support Node.js 20 and newer. CI uses Node.js 24 for the
+development toolchain.
+
 Install dependencies and run the Vite frontend:
 
 ```bash
@@ -117,8 +121,7 @@ npm run docs:verify
 npm run test:docs:e2e
 ```
 
-The documentation workspace requires Node.js 22.12 or newer; CI uses Node.js 24. See
-[`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow.
 
 ## Project links
 
