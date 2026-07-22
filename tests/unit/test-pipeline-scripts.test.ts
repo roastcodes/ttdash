@@ -99,6 +99,7 @@ describe('test pipeline scripts', () => {
 
   it('keeps CI split into parallel jobs that share one production bundle artifact', async () => {
     const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
+    const buildBlock = getWorkflowJobBlock(workflow, 'build')
     const packageSmokeBlock = getWorkflowJobBlock(workflow, 'package-smoke')
     const windowsSmokeBlock = workflow.slice(
       workflow.indexOf('\n  windows-smoke:'),
@@ -127,6 +128,9 @@ describe('test pipeline scripts', () => {
     expect(workflow).toContain('--max-test-seconds=12')
     expect(workflow).toContain('run: npm run test:vitest:coverage')
     expect(workflow).toContain('name: production-dist')
+    expect(buildBlock).toContain('npm pack --json --ignore-scripts')
+    expect(buildBlock).toContain('name: production-package')
+    expect(buildBlock).toContain('path: package-artifact/*.tgz')
     expect(workflow).toContain('package-smoke:')
     expect(workflow).toContain('e2e:')
     expect(workflow).toContain('needs: build')
@@ -154,7 +158,11 @@ describe('test pipeline scripts', () => {
     expect(packageSmokeBlock).toContain('node-version: [20, 24]')
     expect(packageSmokeBlock).toContain('node-version: ${{ matrix.node-version }}')
     expect(packageSmokeBlock).not.toContain('run: npm ci')
-    expect(packageSmokeBlock).toContain('run: npm run verify:package')
+    expect(packageSmokeBlock).toContain('name: production-package')
+    expect(packageSmokeBlock).not.toContain('name: production-dist')
+    expect(packageSmokeBlock).toContain(
+      'run: npm run verify:package -- --tarball-dir package-artifact',
+    )
     expect(windowsSmokeBlock).toContain('run: npm run typecheck')
     expect(workflow).toContain('uses: actions/download-artifact@')
   })

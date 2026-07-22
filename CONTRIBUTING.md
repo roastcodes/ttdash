@@ -87,7 +87,9 @@ PLAYWRIGHT_TEST_PORT=3016 npm run test:e2e:ci
 The Playwright suite starts an isolated local app per worker under `.tmp-playwright/workers/` and
 should not reuse your normal local dashboard data. Use `npm run test:e2e` only when you intentionally
 want the fresh app build plus the default local worker count. `npm run verify:package` builds the
-real tarball and verifies that the packaged CLI can start outside the repo checkout.
+real tarball and verifies that the packaged CLI can start outside the repo checkout. CI builds that
+tarball once on Node.js 24, then installs and starts the exact same artifact on every runtime in the
+package smoke matrix.
 
 Then manually verify the main user flows touched by your change:
 
