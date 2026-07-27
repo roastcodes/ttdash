@@ -827,7 +827,11 @@ export function ProviderLimitsSection({
                         value: TooltipValueType | undefined,
                         name: string | number | undefined,
                       ) => [formatCurrencyExact(Math.abs(toTooltipNumber(value))), name ?? '']}
-                      labelFormatter={(label) => formatMonthYear(String(label))}
+                      labelFormatter={(label) =>
+                        typeof label === 'string' || typeof label === 'number'
+                          ? formatMonthYear(String(label))
+                          : ''
+                      }
                       contentStyle={{
                         borderRadius: 12,
                         borderColor: 'hsl(var(--border))',

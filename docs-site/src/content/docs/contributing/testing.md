@@ -5,6 +5,8 @@ description: Choose the narrowest TTDash test layer, use shared fixtures, and ru
 
 TTDash uses four product test layers plus executable architecture and documentation checks. Add coverage at the narrowest layer that can falsify the behavior.
 
+Building and testing the repository requires Node.js 22.13 or newer on an even-numbered release; CI uses Node.js 24. The published TTDash CLI keeps its separate Node.js 20 runtime contract.
+
 ## Test layers
 
 | Location            | Use it for                                                                                 |

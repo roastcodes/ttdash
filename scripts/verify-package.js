@@ -74,6 +74,37 @@ function parsePackJson(output) {
   throw new Error(`npm pack did not produce JSON output.\n${output}`);
 }
 
+function parseArguments(args) {
+  if (args.length === 0) {
+    return { tarballDir: null };
+  }
+
+  if (args.length !== 2 || args[0] !== '--tarball-dir' || !args[1]) {
+    throw new Error('Usage: verify-package.js [--tarball-dir <directory>]');
+  }
+
+  return { tarballDir: path.resolve(ROOT, args[1]) };
+}
+
+function resolvePackedTarball(tarballDir) {
+  if (!fs.existsSync(tarballDir) || !fs.statSync(tarballDir).isDirectory()) {
+    throw new Error(`Packed artifact directory missing: ${tarballDir}`);
+  }
+
+  const tarballs = fs
+    .readdirSync(tarballDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.tgz'))
+    .map((entry) => path.join(tarballDir, entry.name));
+
+  if (tarballs.length !== 1) {
+    throw new Error(
+      `Expected exactly one packed artifact in ${tarballDir}; found ${tarballs.length}.`,
+    );
+  }
+
+  return tarballs[0];
+}
+
 function cliBinName() {
   return process.platform === 'win32' ? 'ttdash.cmd' : 'ttdash';
 }
@@ -219,36 +250,48 @@ function verifyInstalledCli(command, tarballPath, npmEnv) {
 }
 
 async function main() {
+  const { tarballDir } = parseArguments(process.argv.slice(2));
   const command = npmCommand();
-  const packDir = mktemp('ttdash-pack-');
   const appDataRoot = mktemp('ttdash-pack-app-');
   const npmEnv = createNpmEnv();
 
-  if (!fs.existsSync(path.join(ROOT, 'dist', 'index.html'))) {
-    log('Production bundle missing, running build first.');
-    run(command, ['run', 'build:app'], { env: npmEnv });
-  }
+  let tarballPath;
+  let tarballSize;
 
-  const packJson = run(
-    command,
-    ['pack', '--json', '--ignore-scripts', '--pack-destination', packDir],
-    {
-      env: npmEnv,
-    },
-  );
-  const [packInfo] = parsePackJson(packJson);
+  if (tarballDir) {
+    tarballPath = resolvePackedTarball(tarballDir);
+    tarballSize = fs.statSync(tarballPath).size;
+  } else {
+    const packDir = mktemp('ttdash-pack-');
 
-  if (!packInfo || !packInfo.filename) {
-    throw new Error('npm pack did not return a tarball filename.');
-  }
+    if (!fs.existsSync(path.join(ROOT, 'dist', 'index.html'))) {
+      log('Production bundle missing, running build first.');
+      run(command, ['run', 'build:app'], { env: npmEnv });
+    }
 
-  const tarballPath = path.join(packDir, packInfo.filename);
-  if (!fs.existsSync(tarballPath)) {
-    throw new Error(`Packed tarball missing: ${tarballPath}`);
+    const packJson = run(
+      command,
+      ['pack', '--json', '--ignore-scripts', '--pack-destination', packDir],
+      {
+        env: npmEnv,
+      },
+    );
+    const [packInfo] = parsePackJson(packJson);
+
+    if (!packInfo || !packInfo.filename) {
+      throw new Error('npm pack did not return a tarball filename.');
+    }
+
+    tarballPath = path.join(packDir, packInfo.filename);
+    if (!fs.existsSync(tarballPath)) {
+      throw new Error(`Packed tarball missing: ${tarballPath}`);
+    }
+
+    tarballSize = packInfo.size;
   }
 
   log(`Packed artifact: ${tarballPath}`);
-  log(`Tarball size: ${packInfo.size} bytes`);
+  log(`Tarball size: ${tarballSize} bytes`);
 
   const { installDir, installedCliPath } = verifyInstalledCli(command, tarballPath, npmEnv);
 
