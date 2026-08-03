@@ -138,7 +138,7 @@
     "eslint-plugin-testing-library": "^7.16.2",
     "framer-motion": "^12.40.0",
     "globals": "^17.6.0",
-    "jsdom": "^29.1.1",
+    "jsdom": "^30.0.1",
     "lucide-react": "^1.17.0",
     "prettier": "^3.8.4",
     "prettier-plugin-astro": "^0.14.1",
