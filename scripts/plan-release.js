@@ -293,9 +293,24 @@ async function releaseExists(tag, token) {
   }
 }
 
+function hasNpmVersion(payload, version) {
+  if (
+    payload === null ||
+    typeof payload !== 'object' ||
+    Array.isArray(payload) ||
+    payload.versions === null ||
+    typeof payload.versions !== 'object' ||
+    Array.isArray(payload.versions)
+  ) {
+    fail('npm returned an invalid package metadata response.');
+  }
+
+  return Object.hasOwn(payload.versions, version);
+}
+
 async function npmVersionExists(version) {
   const payload = await requestJson(NPM_PACKAGE_METADATA_URL, null);
-  return Object.hasOwn(payload.versions ?? {}, version);
+  return hasNpmVersion(payload, version);
 }
 
 async function fetchAllMergedPullRequests(token) {
@@ -523,6 +538,7 @@ module.exports = {
   decideAutomaticRelease,
   decideManualRelease,
   findMergeGroupShas,
+  hasNpmVersion,
   nextPatchVersion,
   parseVersion,
   requestJson,

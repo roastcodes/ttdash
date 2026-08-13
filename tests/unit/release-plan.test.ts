@@ -8,6 +8,7 @@ const {
   decideAutomaticRelease,
   decideManualRelease,
   findMergeGroupShas,
+  hasNpmVersion,
   nextPatchVersion,
   parseVersion,
   requestJson,
@@ -17,6 +18,7 @@ const {
   decideAutomaticRelease: (input: AutomaticReleaseInput) => ReleasePlan
   decideManualRelease: (input: ManualReleaseInput) => ReleasePlan
   findMergeGroupShas: (commits: UnpublishedCommit[], runs: MergeGroupRun[]) => string[]
+  hasNpmVersion: (payload: unknown, version: string) => boolean
   nextPatchVersion: (version: string) => string
   parseVersion: (version: string) => number[]
   requestJson: (url: string, token: string | null) => Promise<unknown>
@@ -138,6 +140,13 @@ describe('release planning', () => {
     expect(compareVersions('6.3.14', '6.3.15')).toBe(-1)
     expect(nextPatchVersion('6.3.15')).toBe('6.3.16')
     expect(() => parseVersion('v6.3.15')).toThrow('x.y.z')
+  })
+
+  it('fails closed for malformed npm package metadata', () => {
+    expect(hasNpmVersion({ versions: { '6.3.15': {} } }, '6.3.15')).toBe(true)
+    expect(hasNpmVersion({ versions: { '6.3.15': {} } }, '6.3.16')).toBe(false)
+    expect(() => hasNpmVersion(null, '6.3.15')).toThrow('invalid package metadata')
+    expect(() => hasNpmVersion({}, '6.3.15')).toThrow('invalid package metadata')
   })
 
   it('creates one patch for multiple successfully merged Dependabot PRs', () => {
