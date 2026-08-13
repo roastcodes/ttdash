@@ -32,6 +32,7 @@ jobs:
       should_bump: ${{ steps.plan.outputs.should_bump }}
       version: ${{ steps.plan.outputs.version }}
       target_sha: ${{ steps.plan.outputs.target_sha }}
+      merge_group_shas: ${{ steps.plan.outputs.merge_group_shas }}
       reason: ${{ steps.plan.outputs.reason }}
 
     steps:
@@ -70,6 +71,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           TARGET_SHA: ${{ steps.plan.outputs.target_sha }}
+          MERGE_GROUP_SHAS: ${{ steps.plan.outputs.merge_group_shas }}
         run: |
           node scripts/verify-main-ci.js \
             --repo "${GITHUB_REPOSITORY}" \
@@ -91,15 +93,20 @@ jobs:
             --retries 90 \
             --retry-delay-ms 10000
 
-          node scripts/verify-main-ci.js \
-            --repo "${GITHUB_REPOSITORY}" \
-            --workflow ci.yml \
-            --event merge_group \
-            --no-branch-filter \
-            --sha "${TARGET_SHA}" \
-            --required-job "security/snyk (roastcodes)" \
-            --retries 90 \
-            --retry-delay-ms 10000
+          if [[ -n "${MERGE_GROUP_SHAS}" ]]; then
+            IFS=',' read -ra QUEUE_COMMITS <<< "${MERGE_GROUP_SHAS}"
+            for QUEUE_COMMIT in "${QUEUE_COMMITS[@]}"; do
+              node scripts/verify-main-ci.js \
+                --repo "${GITHUB_REPOSITORY}" \
+                --workflow ci.yml \
+                --event merge_group \
+                --no-branch-filter \
+                --sha "${QUEUE_COMMIT}" \
+                --required-job "security/snyk (roastcodes)" \
+                --retries 90 \
+                --retry-delay-ms 10000
+            done
+          fi
 
   release:
     needs: prepare

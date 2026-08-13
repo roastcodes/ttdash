@@ -8,7 +8,12 @@ const DEPENDABOT_LOGIN = 'dependabot[bot]';
 const EXPECTED_REPOSITORY = 'roastcodes/ttdash';
 const PACKAGE_NAME = '@roastcodes/ttdash';
 const ALLOWED_REQUEST_ORIGINS = new Set(['https://api.github.com', 'https://registry.npmjs.org']);
+const GITHUB_PULLS_URL =
+  'https://api.github.com/repos/roastcodes/ttdash/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=100';
+const GITHUB_MERGE_GROUP_RUNS_URL =
+  'https://api.github.com/repos/roastcodes/ttdash/actions/workflows/ci.yml/runs?event=merge_group&per_page=100';
 const SEMVER_PATTERN = /^(\d+)\.(\d+)\.(\d+)$/;
+const SHA_PATTERN = /^[0-9a-f]{40}$/;
 
 function fail(message) {
   throw new Error(message);
@@ -251,6 +256,14 @@ function createAllowedRequestUrl(value) {
   return url;
 }
 
+function assertGitSha(value, label) {
+  if (!SHA_PATTERN.test(value ?? '')) {
+    fail(`${label} must be a full lowercase Git commit SHA.`);
+  }
+
+  return value;
+}
+
 async function requestJson(
   url,
   token,
@@ -276,9 +289,9 @@ async function requestJson(
   return response.json();
 }
 
-async function releaseExists(repo, tag, token) {
+async function releaseExists(tag, token) {
   const payload = await requestJson(
-    `https://api.github.com/repos/${repo}/releases/tags/${encodeURIComponent(tag)}`,
+    `https://api.github.com/repos/roastcodes/ttdash/releases/tags/${encodeURIComponent(tag)}`,
     token,
     { accept: 'application/vnd.github+json', allowNotFound: true },
   );
@@ -294,26 +307,81 @@ async function npmVersionExists(version) {
   return payload !== null;
 }
 
-async function fetchPullRequestsForCommit(repo, sha, token) {
-  const payload = await requestJson(
-    `https://api.github.com/repos/${repo}/commits/${sha}/pulls?per_page=100`,
-    token,
-    { accept: 'application/vnd.github+json' },
-  );
+async function fetchAllMergedPullRequests(token) {
+  const pullRequests = [];
 
-  return payload
-    .filter(
-      (pullRequest) =>
-        pullRequest.merged_at &&
-        pullRequest.base?.ref === 'main' &&
-        pullRequest.merge_commit_sha === sha,
-    )
-    .map((pullRequest) => ({
-      number: pullRequest.number,
-      author: pullRequest.user?.login ?? null,
-      mergeCommitSha: pullRequest.merge_commit_sha,
-      url: pullRequest.html_url,
-    }));
+  for (let page = 1; ; page += 1) {
+    const url = new URL(GITHUB_PULLS_URL);
+    url.searchParams.set('page', String(page));
+    const payload = await requestJson(url, token, { accept: 'application/vnd.github+json' });
+
+    if (!Array.isArray(payload)) {
+      fail('GitHub returned an invalid pull request response.');
+    }
+
+    pullRequests.push(
+      ...payload
+        .filter((pullRequest) => pullRequest.merged_at && pullRequest.base?.ref === 'main')
+        .map((pullRequest) => ({
+          number: pullRequest.number,
+          author: pullRequest.user?.login ?? null,
+          headSha: pullRequest.head?.sha ?? null,
+          mergeCommitSha: pullRequest.merge_commit_sha,
+          url: pullRequest.html_url,
+        })),
+    );
+
+    if (payload.length < 100) return pullRequests;
+  }
+}
+
+async function fetchAllMergeGroupRuns(token) {
+  const runs = [];
+
+  for (let page = 1; ; page += 1) {
+    const url = new URL(GITHUB_MERGE_GROUP_RUNS_URL);
+    url.searchParams.set('page', String(page));
+    const payload = await requestJson(url, token, { accept: 'application/vnd.github+json' });
+
+    if (!Array.isArray(payload.workflow_runs)) {
+      fail('GitHub returned an invalid merge-group workflow response.');
+    }
+
+    runs.push(...payload.workflow_runs);
+    if (payload.workflow_runs.length < 100) return runs;
+  }
+}
+
+function findMergeGroupShas(commits, runs) {
+  const mergeGroupShas = [];
+
+  for (const commit of commits) {
+    for (const pullRequest of commit.pullRequests) {
+      assertGitSha(pullRequest.headSha, `Head commit for PR #${pullRequest.number}`);
+      const expectedBranch = `gh-readonly-queue/main/pr-${pullRequest.number}-${pullRequest.headSha}`;
+      const matchingRuns = runs
+        .filter(
+          (run) =>
+            run.head_branch === expectedBranch &&
+            run.status === 'completed' &&
+            run.conclusion === 'success' &&
+            SHA_PATTERN.test(run.head_sha ?? ''),
+        )
+        .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at));
+      const exactRun = matchingRuns.find((run) => run.head_sha === commit.sha);
+      const selectedRun = exactRun ?? matchingRuns[0];
+
+      if (!selectedRun) {
+        fail(
+          `Could not find a successful merge-queue CI run for Dependabot PR #${pullRequest.number}.`,
+        );
+      }
+
+      mergeGroupShas.push(selectedRun.head_sha);
+    }
+  }
+
+  return [...new Set(mergeGroupShas)];
 }
 
 function writeOutputs(plan) {
@@ -322,6 +390,7 @@ function writeOutputs(plan) {
     should_bump: String(plan.shouldBump),
     version: plan.version,
     target_sha: plan.targetSha,
+    merge_group_shas: (plan.mergeGroupShas ?? []).join(','),
     reason: plan.reason,
   };
 
@@ -345,6 +414,7 @@ function writeSummary({ mode, plan, currentVersion, commits = [], releaseState =
     `- Current version: \`${currentVersion}\``,
     `- Planned version: \`${plan.version}\``,
     `- Target commit: \`${plan.targetSha}\``,
+    `- Merge-group commits: \`${(plan.mergeGroupShas ?? []).join(', ') || 'none'}\``,
     `- Release job: \`${plan.shouldRelease ? 'run' : 'skip'}\``,
   ];
 
@@ -400,7 +470,7 @@ async function createPlan(options) {
 
   const [npmPublished, githubRelease] = await Promise.all([
     npmVersionExists(currentVersion),
-    releaseExists(options.repo, tag, token),
+    releaseExists(tag, token),
   ]);
   const releaseState = {
     tagMatches: tagCommitSha === releaseCommitSha,
@@ -412,8 +482,11 @@ async function createPlan(options) {
   let commits = [];
   if (releaseComplete) {
     commits = listFirstParentCommits(releaseCommitSha, headSha);
+    const mergedPullRequests = await fetchAllMergedPullRequests(token);
     for (const commit of commits) {
-      commit.pullRequests = await fetchPullRequestsForCommit(options.repo, commit.sha, token);
+      commit.pullRequests = mergedPullRequests.filter(
+        (pullRequest) => pullRequest.mergeCommitSha === commit.sha,
+      );
     }
   }
 
@@ -428,6 +501,11 @@ async function createPlan(options) {
     quietHours: options.quietHours,
     unpublishedCommits: commits,
   });
+
+  if (plan.shouldBump && plan.reason === 'automatic_patch') {
+    const mergeGroupRuns = await fetchAllMergeGroupRuns(token);
+    plan.mergeGroupShas = findMergeGroupShas(commits, mergeGroupRuns);
+  }
 
   return { plan, currentVersion, commits, releaseState };
 }
@@ -451,6 +529,7 @@ module.exports = {
   createAllowedRequestUrl,
   decideAutomaticRelease,
   decideManualRelease,
+  findMergeGroupShas,
   nextPatchVersion,
   parseVersion,
 };

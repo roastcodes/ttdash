@@ -7,6 +7,7 @@ const {
   createAllowedRequestUrl,
   decideAutomaticRelease,
   decideManualRelease,
+  findMergeGroupShas,
   nextPatchVersion,
   parseVersion,
 } = require('../../scripts/plan-release.js') as {
@@ -14,14 +15,24 @@ const {
   createAllowedRequestUrl: (value: string) => URL
   decideAutomaticRelease: (input: AutomaticReleaseInput) => ReleasePlan
   decideManualRelease: (input: ManualReleaseInput) => ReleasePlan
+  findMergeGroupShas: (commits: UnpublishedCommit[], runs: MergeGroupRun[]) => string[]
   nextPatchVersion: (version: string) => string
   parseVersion: (version: string) => number[]
 }
 
 type PullRequest = {
   author: string
+  headSha: string
   mergeCommitSha: string
   number: number
+}
+
+type MergeGroupRun = {
+  conclusion: string
+  created_at: string
+  head_branch: string
+  head_sha: string
+  status: string
 }
 
 type UnpublishedCommit = {
@@ -49,6 +60,7 @@ type ManualReleaseInput = {
 
 type ReleasePlan = {
   blockingCommits?: string[]
+  mergeGroupShas?: string[]
   reason: string
   shouldBump: boolean
   shouldRelease: boolean
@@ -58,6 +70,7 @@ type ReleasePlan = {
 
 const releaseSha = '1'.repeat(40)
 const headSha = '2'.repeat(40)
+const pullRequestHeadSha = 'a'.repeat(40)
 
 function dependabotCommit(sha = headSha): UnpublishedCommit {
   return {
@@ -65,6 +78,7 @@ function dependabotCommit(sha = headSha): UnpublishedCommit {
     pullRequests: [
       {
         author: 'dependabot[bot]',
+        headSha: pullRequestHeadSha,
         mergeCommitSha: sha,
         number: 123,
       },
@@ -126,6 +140,58 @@ describe('release planning', () => {
     })
   })
 
+  it('maps every merged Dependabot PR to its successful merge-queue commit', () => {
+    const secondCommitSha = '3'.repeat(40)
+    const secondPullRequestHeadSha = 'b'.repeat(40)
+    const commits = [
+      dependabotCommit(headSha),
+      {
+        sha: secondCommitSha,
+        pullRequests: [
+          {
+            author: 'dependabot[bot]',
+            headSha: secondPullRequestHeadSha,
+            mergeCommitSha: secondCommitSha,
+            number: 124,
+          },
+        ],
+      },
+    ]
+    const olderQueueSha = '4'.repeat(40)
+    const fallbackQueueSha = '5'.repeat(40)
+    const runs: MergeGroupRun[] = [
+      {
+        status: 'completed',
+        conclusion: 'success',
+        head_branch: `gh-readonly-queue/main/pr-123-${pullRequestHeadSha}`,
+        head_sha: olderQueueSha,
+        created_at: '2026-08-13T10:00:00Z',
+      },
+      {
+        status: 'completed',
+        conclusion: 'success',
+        head_branch: `gh-readonly-queue/main/pr-123-${pullRequestHeadSha}`,
+        head_sha: headSha,
+        created_at: '2026-08-13T09:00:00Z',
+      },
+      {
+        status: 'completed',
+        conclusion: 'success',
+        head_branch: `gh-readonly-queue/main/pr-124-${secondPullRequestHeadSha}`,
+        head_sha: fallbackQueueSha,
+        created_at: '2026-08-13T11:00:00Z',
+      },
+    ]
+
+    expect(findMergeGroupShas(commits, runs)).toEqual([headSha, fallbackQueueSha])
+  })
+
+  it('fails closed when a merged Dependabot PR has no successful queue run', () => {
+    expect(() => findMergeGroupShas([dependabotCommit()], [])).toThrow(
+      'successful merge-queue CI run',
+    )
+  })
+
   it('does not require open or failed Dependabot PRs to be part of the release', () => {
     const plan = decideAutomaticRelease(
       automaticInput({ unpublishedCommits: [dependabotCommit()] }),
@@ -159,7 +225,14 @@ describe('release planning', () => {
           dependabotCommit(),
           {
             sha: humanSha,
-            pullRequests: [{ author: 'maintainer', mergeCommitSha: humanSha, number: 124 }],
+            pullRequests: [
+              {
+                author: 'maintainer',
+                headSha: 'b'.repeat(40),
+                mergeCommitSha: humanSha,
+                number: 124,
+              },
+            ],
           },
         ],
       }),

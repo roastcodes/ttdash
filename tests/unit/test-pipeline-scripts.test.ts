@@ -291,6 +291,13 @@ describe('test pipeline scripts', () => {
     expect(prepareBlock).toContain('--workflow codeql.yml')
     expect(prepareBlock).toContain('--event merge_group')
     expect(prepareBlock).toContain('--no-branch-filter')
+    expect(prepareBlock).toContain('merge_group_shas: ${{ steps.plan.outputs.merge_group_shas }}')
+    expect(prepareBlock).toContain('MERGE_GROUP_SHAS: ${{ steps.plan.outputs.merge_group_shas }}')
+    expect(prepareBlock).toContain(`IFS=',' read -ra QUEUE_COMMITS <<< "${'${MERGE_GROUP_SHAS}'}"`)
+    expect(prepareBlock).toContain('--sha "${QUEUE_COMMIT}"')
+    expect(prepareBlock).not.toContain(
+      '--sha "${TARGET_SHA}" \\\n            --required-job "security/snyk (roastcodes)"',
+    )
     expect(prepareBlock).toContain('--required-job "CI Required"')
     expect(prepareBlock).toContain('--required-job "Analyze (javascript-typescript)"')
     expect(prepareBlock).toContain('--required-job "security/snyk (roastcodes)"')
