@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  statuses: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -19,6 +20,76 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  snyk-gate:
+    name: security/snyk (roastcodes)
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+
+    steps:
+      - name: Resolve Snyk-tested commit
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" = "pull_request" ]]; then
+            SOURCE_SHA="${PR_HEAD_SHA}"
+          else
+            PARENT_COUNT="$(
+              gh api "repos/${GITHUB_REPOSITORY}/git/commits/${GITHUB_SHA}" \
+                --jq '.parents | length'
+            )"
+            if [[ "${PARENT_COUNT}" != "2" ]]; then
+              echo "Expected one pull request in the merge group; found ${PARENT_COUNT} commit parents."
+              exit 1
+            fi
+            SOURCE_SHA="$(
+              gh api "repos/${GITHUB_REPOSITORY}/git/commits/${GITHUB_SHA}" \
+                --jq '.parents[1].sha'
+            )"
+          fi
+
+          if [[ ! "${SOURCE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Could not resolve the commit tested by Snyk."
+            exit 1
+          fi
+          echo "sha=${SOURCE_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: Require successful Snyk PR status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          for attempt in {1..90}; do
+            SNYK_STATE="$(
+              gh api "repos/${GITHUB_REPOSITORY}/commits/${SOURCE_SHA}/status" \
+                --jq '[.statuses[] | select(.context == "security/snyk (roastcodes)")][0].state // "missing"'
+            )"
+
+            case "${SNYK_STATE}" in
+              success)
+                echo "Snyk passed for ${SOURCE_SHA}."
+                exit 0
+                ;;
+              failure | error)
+                echo "Snyk reported ${SNYK_STATE} for ${SOURCE_SHA}."
+                exit 1
+                ;;
+              pending | missing)
+                echo "Waiting for Snyk on ${SOURCE_SHA} (${attempt}/90; state: ${SNYK_STATE})."
+                sleep 10
+                ;;
+              *)
+                echo "Unexpected Snyk state ${SNYK_STATE} for ${SOURCE_SHA}."
+                exit 1
+                ;;
+            esac
+          done
+
+          echo "Snyk did not report success for ${SOURCE_SHA} within 15 minutes."
+          exit 1
+
   static:
     name: Static Checks
     runs-on: ubuntu-latest
