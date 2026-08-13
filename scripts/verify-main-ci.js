@@ -17,6 +17,8 @@ function parseArgs(argv) {
     repo: null,
     workflow: null,
     branch: 'main',
+    event: 'push',
+    useBranchFilter: true,
     sha: null,
     requiredJob: null,
     retries: DEFAULT_RETRIES,
@@ -42,6 +44,17 @@ function parseArgs(argv) {
     if (arg === '--branch' && next) {
       options.branch = next;
       index += 1;
+      continue;
+    }
+
+    if (arg === '--event' && next) {
+      options.event = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--no-branch-filter') {
+      options.useBranchFilter = false;
       continue;
     }
 
@@ -72,8 +85,12 @@ function parseArgs(argv) {
 
   if (!options.repo || !options.workflow || !options.sha) {
     fail(
-      'Usage: node scripts/verify-main-ci.js --repo <owner/repo> --workflow <file> --sha <commit> [--branch main] [--required-job <id-or-name>] [--retries N] [--retry-delay-ms MS]',
+      'Usage: node scripts/verify-main-ci.js --repo <owner/repo> --workflow <file> --sha <commit> [--event push] [--branch main|--no-branch-filter] [--required-job <id-or-name>] [--retries N] [--retry-delay-ms MS]',
     );
+  }
+
+  if (!options.event) {
+    fail('Workflow event must not be empty.');
   }
 
   if (!Number.isInteger(options.retries) || options.retries <= 0) {
@@ -124,8 +141,11 @@ async function fetchWorkflowRuns(options, token) {
   const url = new URL(
     `https://api.github.com/repos/${options.repo}/actions/workflows/${encodeURIComponent(options.workflow)}/runs`,
   );
-  url.searchParams.set('branch', options.branch);
-  url.searchParams.set('event', 'push');
+  if (options.useBranchFilter) {
+    url.searchParams.set('branch', options.branch);
+  }
+  url.searchParams.set('event', options.event);
+  url.searchParams.set('head_sha', options.sha);
   url.searchParams.set('per_page', '30');
 
   return requestGitHubApi(url, token);

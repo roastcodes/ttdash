@@ -7,42 +7,121 @@ on:
         description: Release version in x.y.z format
         required: true
         type: string
+  schedule:
+    # Dependabot starts between 06:00 and 06:15 Europe/Zurich every Monday.
+    # The daily controller runs well after that window and also picks up later fixes.
+    - cron: '30 12 * * *'
 
-permissions:
-  actions: read
-  contents: write
-  id-token: write
+permissions: {}
 
 concurrency:
   group: release-main
   cancel-in-progress: false
 
 jobs:
-  release:
-    environment: release
+  prepare:
+    name: Plan release
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      RELEASE_VERSION: ${{ inputs.version }}
+    timeout-minutes: 50
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    outputs:
+      should_release: ${{ steps.plan.outputs.should_release }}
+      should_bump: ${{ steps.plan.outputs.should_bump }}
+      version: ${{ steps.plan.outputs.version }}
+      target_sha: ${{ steps.plan.outputs.target_sha }}
+      reason: ${{ steps.plan.outputs.reason }}
 
     steps:
-      - name: Create release app token
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          # v3 prefers client-id over the deprecated app-id input.
-          client-id: ${{ secrets.APP_CLIENT_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          permission-contents: write
-          repositories: ttdash
-
-      - name: Check out repository
+      - name: Check out main without credentials
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           ref: main
-          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Plan automatic or manual release
+        id: plan
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_MODE: ${{ github.event_name == 'schedule' && 'automatic' || 'manual' }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          ARGS=(
+            --mode "${RELEASE_MODE}"
+            --repo "${GITHUB_REPOSITORY}"
+            --quiet-hours 2
+          )
+          if [[ "${RELEASE_MODE}" = "manual" ]]; then
+            ARGS+=(--requested-version "${REQUESTED_VERSION}")
+          fi
+          node scripts/plan-release.js "${ARGS[@]}"
+
+      - name: Verify exact release candidate checks
+        if: steps.plan.outputs.should_release == 'true' && steps.plan.outputs.should_bump == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ steps.plan.outputs.target_sha }}
+        run: |
+          node scripts/verify-main-ci.js \
+            --repo "${GITHUB_REPOSITORY}" \
+            --workflow ci.yml \
+            --event push \
+            --branch main \
+            --sha "${TARGET_SHA}" \
+            --required-job "CI Required" \
+            --retries 90 \
+            --retry-delay-ms 10000
+
+          node scripts/verify-main-ci.js \
+            --repo "${GITHUB_REPOSITORY}" \
+            --workflow codeql.yml \
+            --event push \
+            --branch main \
+            --sha "${TARGET_SHA}" \
+            --required-job "Analyze (javascript-typescript)" \
+            --retries 90 \
+            --retry-delay-ms 10000
+
+          node scripts/verify-main-ci.js \
+            --repo "${GITHUB_REPOSITORY}" \
+            --workflow ci.yml \
+            --event merge_group \
+            --no-branch-filter \
+            --sha "${TARGET_SHA}" \
+            --required-job "security/snyk (roastcodes)" \
+            --retries 90 \
+            --retry-delay-ms 10000
+
+  release:
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.target_sha }}
+      PLANNED_SHOULD_BUMP: ${{ needs.prepare.outputs.should_bump }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ env.RELEASE_TARGET_SHA }}
           persist-credentials: false
 
       - name: Verify release version input
@@ -50,6 +129,7 @@ jobs:
           CURRENT_VERSION="$(node -p "require('./package.json').version")"
           export CURRENT_VERSION
           export RELEASE_VERSION
+          export RELEASE_TARGET_SHA
           echo "CURRENT_VERSION=${CURRENT_VERSION}" >> "$GITHUB_ENV"
           node - <<'NODE'
           const current = process.env.CURRENT_VERSION
@@ -73,23 +153,14 @@ jobs:
             throw new Error(`Release version ${requested} must not be lower than current package version ${current}`)
           }
           NODE
+          if [[ "$(git rev-parse HEAD)" != "${RELEASE_TARGET_SHA}" ]]; then
+            echo "Checked-out commit does not match planned release target ${RELEASE_TARGET_SHA}."
+            exit 1
+          fi
           echo "RELEASE_TAG=v${RELEASE_VERSION}" >> "$GITHUB_ENV"
           if [[ "${RELEASE_VERSION}" = "${CURRENT_VERSION}" ]]; then
-            RELEASE_COMMIT_SHA="$(git log origin/main --first-parent --format=%H --grep "^v${RELEASE_VERSION}: Release$" -n 1)"
-            if [[ -z "${RELEASE_COMMIT_SHA}" ]]; then
-              echo "Could not locate the original release commit for ${RELEASE_VERSION} on origin/main."
-              exit 1
-            fi
-
-            RELEASE_COMMIT_VERSION="$(git show "${RELEASE_COMMIT_SHA}:package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
-            if [[ "${RELEASE_COMMIT_VERSION}" != "${RELEASE_VERSION}" ]]; then
-              echo "Release commit ${RELEASE_COMMIT_SHA} does not contain package.json version ${RELEASE_VERSION}."
-              exit 1
-            fi
-
-            echo "EXISTING_RELEASE_COMMIT=${RELEASE_COMMIT_SHA}" >> "$GITHUB_ENV"
-            if [[ "$(git rev-parse HEAD)" != "${RELEASE_COMMIT_SHA}" ]]; then
-              echo "main has moved past ${RELEASE_VERSION}; cut a new release instead of retrying."
+            if [[ "$(git log -1 --format=%s)" != "v${RELEASE_VERSION}: Release" ]]; then
+              echo "Retry target is not the release commit for ${RELEASE_VERSION}."
               exit 1
             fi
 
@@ -99,33 +170,21 @@ jobs:
             echo "SHOULD_BUMP=true" >> "$GITHUB_ENV"
           fi
 
+          EXPECTED_SHOULD_BUMP=true
+          if [[ "${RELEASE_VERSION}" = "${CURRENT_VERSION}" ]]; then
+            EXPECTED_SHOULD_BUMP=false
+          fi
+          if [[ "${PLANNED_SHOULD_BUMP}" != "${EXPECTED_SHOULD_BUMP}" ]]; then
+            echo "Release plan and checked-out package version disagree about whether a bump is required."
+            exit 1
+          fi
+
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
-
-      - name: Verify main CI succeeded
-        if: env.SHOULD_BUMP == 'true'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          MAIN_SHA="$(git rev-parse HEAD)"
-          node scripts/verify-main-ci.js \
-            --repo "${{ github.repository }}" \
-            --workflow ci.yml \
-            --branch main \
-            --sha "${MAIN_SHA}" \
-            --required-job "CI Required" \
-            --retries 90 \
-            --retry-delay-ms 10000
-
-      - name: Configure authenticated remote
-        env:
-          APP_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
       - name: Bump package version
         if: env.SHOULD_BUMP == 'true'
@@ -184,6 +243,17 @@ jobs:
         with:
           bun-version-file: .bun-version
 
+      - name: Create release app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          # v3 prefers client-id over the deprecated app-id input.
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: write
+          repositories: ttdash
+
       - name: Validate 1Password base URL format
         env:
           OP_SSH_BASE_URL: ${{ secrets.OP_SSH_BASE_URL }}
@@ -237,6 +307,12 @@ jobs:
           git tag -v "${PROBE_TAG}"
           git tag -d "${PROBE_TAG}"
 
+      - name: Configure authenticated remote
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
       - name: Create signed release commit and tag
         run: |
           git fetch --tags origin
@@ -264,10 +340,18 @@ jobs:
       - name: Push release commit and tag
         run: |
           if [[ "${SHOULD_BUMP}" = "true" ]]; then
-            git push origin HEAD:main
-          fi
+            git fetch origin main
+            REMOTE_MAIN_SHA="$(git rev-parse FETCH_HEAD)"
+            if [[ "${REMOTE_MAIN_SHA}" != "${RELEASE_TARGET_SHA}" ]]; then
+              echo "main moved from ${RELEASE_TARGET_SHA} to ${REMOTE_MAIN_SHA}; release aborted before push."
+              exit 1
+            fi
 
-          if git ls-remote --tags origin "refs/tags/${RELEASE_TAG}" | grep -q .; then
+            git push --atomic origin \
+              HEAD:refs/heads/main \
+              "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+            echo "Release commit and tag were pushed atomically."
+          elif git ls-remote --tags origin "refs/tags/${RELEASE_TAG}" | grep -q .; then
             git fetch --tags origin "${RELEASE_TAG}" >/dev/null 2>&1 || true
             git tag -v "${RELEASE_TAG}"
             if [[ "$(git rev-list -n 1 "${RELEASE_TAG}")" != "$(git rev-parse HEAD)" ]]; then
@@ -277,6 +361,7 @@ jobs:
             echo "Tag ${RELEASE_TAG} already exists on origin, is signed, and matches HEAD."
           else
             git push origin "${RELEASE_TAG}"
+            echo "Missing retry tag ${RELEASE_TAG} was pushed."
           fi
 
       - name: Detect existing npm publication
