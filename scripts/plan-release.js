@@ -6,12 +6,13 @@ const { appendFileSync, readFileSync } = require('node:fs');
 const DEFAULT_QUIET_HOURS = 2;
 const DEPENDABOT_LOGIN = 'dependabot[bot]';
 const EXPECTED_REPOSITORY = 'roastcodes/ttdash';
-const PACKAGE_NAME = '@roastcodes/ttdash';
 const ALLOWED_REQUEST_ORIGINS = new Set(['https://api.github.com', 'https://registry.npmjs.org']);
 const GITHUB_PULLS_URL =
   'https://api.github.com/repos/roastcodes/ttdash/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=100';
+const GITHUB_RELEASES_URL = 'https://api.github.com/repos/roastcodes/ttdash/releases?per_page=100';
 const GITHUB_MERGE_GROUP_RUNS_URL =
   'https://api.github.com/repos/roastcodes/ttdash/actions/workflows/ci.yml/runs?event=merge_group&per_page=100';
+const NPM_PACKAGE_METADATA_URL = 'https://registry.npmjs.org/%40roastcodes%2Fttdash';
 const SEMVER_PATTERN = /^(\d+)\.(\d+)\.(\d+)$/;
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 
@@ -264,11 +265,7 @@ function assertGitSha(value, label) {
   return value;
 }
 
-async function requestJson(
-  url,
-  token,
-  { accept = 'application/json', allowNotFound = false } = {},
-) {
+async function requestJson(url, token, { accept = 'application/json' } = {}) {
   const requestUrl = createAllowedRequestUrl(url);
   // lgtm[js/file-access-to-http] Only validated release metadata is sent to fixed, allowlisted APIs.
   const response = await fetch(requestUrl, {
@@ -278,10 +275,10 @@ async function requestJson(
       'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'ttdash-release-planner',
     },
+    redirect: 'error',
     signal: AbortSignal.timeout(30000),
   });
 
-  if (allowNotFound && response.status === 404) return null;
   if (!response.ok) {
     throw new Error(`Request to ${requestUrl.origin} failed with status ${response.status}.`);
   }
@@ -290,21 +287,23 @@ async function requestJson(
 }
 
 async function releaseExists(tag, token) {
-  const payload = await requestJson(
-    `https://api.github.com/repos/roastcodes/ttdash/releases/tags/${encodeURIComponent(tag)}`,
-    token,
-    { accept: 'application/vnd.github+json', allowNotFound: true },
-  );
-  return payload !== null;
+  for (let page = 1; ; page += 1) {
+    const url = new URL(GITHUB_RELEASES_URL);
+    url.searchParams.set('page', String(page));
+    const payload = await requestJson(url, token, { accept: 'application/vnd.github+json' });
+
+    if (!Array.isArray(payload)) {
+      fail('GitHub returned an invalid releases response.');
+    }
+
+    if (payload.some((release) => release.tag_name === tag)) return true;
+    if (payload.length < 100) return false;
+  }
 }
 
 async function npmVersionExists(version) {
-  const payload = await requestJson(
-    `https://registry.npmjs.org/${encodeURIComponent(PACKAGE_NAME)}/${encodeURIComponent(version)}`,
-    null,
-    { allowNotFound: true },
-  );
-  return payload !== null;
+  const payload = await requestJson(NPM_PACKAGE_METADATA_URL, null);
+  return Object.hasOwn(payload.versions ?? {}, version);
 }
 
 async function fetchAllMergedPullRequests(token) {
@@ -532,4 +531,5 @@ module.exports = {
   findMergeGroupShas,
   nextPatchVersion,
   parseVersion,
+  requestJson,
 };

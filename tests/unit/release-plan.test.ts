@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const {
@@ -10,6 +10,7 @@ const {
   findMergeGroupShas,
   nextPatchVersion,
   parseVersion,
+  requestJson,
 } = require('../../scripts/plan-release.js') as {
   compareVersions: (left: string, right: string) => number
   createAllowedRequestUrl: (value: string) => URL
@@ -18,6 +19,7 @@ const {
   findMergeGroupShas: (commits: UnpublishedCommit[], runs: MergeGroupRun[]) => string[]
   nextPatchVersion: (version: string) => string
   parseVersion: (version: string) => number[]
+  requestJson: (url: string, token: string | null) => Promise<unknown>
 }
 
 type PullRequest = {
@@ -112,6 +114,24 @@ describe('release planning', () => {
       'untrusted origin',
     )
     expect(() => createAllowedRequestUrl('https://example.com/private')).toThrow('untrusted origin')
+  })
+
+  it('rejects redirects from an allowed metadata endpoint', async () => {
+    const fetchMock = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      expect(init?.redirect).toBe('error')
+      return Promise.reject(new TypeError('redirect mode rejected the response'))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    try {
+      await expect(
+        requestJson('https://api.github.com/repos/roastcodes/ttdash/releases', 'test-token'),
+      ).rejects.toThrow('redirect mode rejected')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+
+    expect(fetchMock).toHaveBeenCalledOnce()
   })
 
   it('parses, compares, and increments strict release versions', () => {
