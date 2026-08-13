@@ -191,6 +191,8 @@ describe('test pipeline scripts', () => {
     expect(workflow).toContain('private-key: ${{ secrets.APP_PRIVATE_KEY }}')
     expect(workflow).toContain('permission-contents: write')
     expect(workflow).toContain('permission-pull-requests: write')
+    expect(workflow).toContain('EXPECTED_APP_SLUG: ttdash-dependabot-automerge')
+    expect(workflow).toContain('if [[ "${ACTUAL_APP_SLUG}" != "${EXPECTED_APP_SLUG}" ]]; then')
     expect(workflow).toContain('gh pr merge "${PR_NUMBER}" --repo "${GH_REPO}" --auto --merge')
     expect(workflow).not.toContain('actions/checkout')
   })
