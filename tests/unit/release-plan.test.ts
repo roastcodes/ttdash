@@ -4,12 +4,14 @@ import { describe, expect, it } from 'vitest'
 const require = createRequire(import.meta.url)
 const {
   compareVersions,
+  createAllowedRequestUrl,
   decideAutomaticRelease,
   decideManualRelease,
   nextPatchVersion,
   parseVersion,
 } = require('../../scripts/plan-release.js') as {
   compareVersions: (left: string, right: string) => number
+  createAllowedRequestUrl: (value: string) => URL
   decideAutomaticRelease: (input: AutomaticReleaseInput) => ReleasePlan
   decideManualRelease: (input: ManualReleaseInput) => ReleasePlan
   nextPatchVersion: (version: string) => string
@@ -85,6 +87,19 @@ function automaticInput(overrides: Partial<AutomaticReleaseInput> = {}): Automat
 }
 
 describe('release planning', () => {
+  it('restricts release metadata requests to the GitHub and npm APIs', () => {
+    expect(createAllowedRequestUrl('https://api.github.com/repos/roastcodes/ttdash').origin).toBe(
+      'https://api.github.com',
+    )
+    expect(
+      createAllowedRequestUrl('https://registry.npmjs.org/%40roastcodes%2Fttdash/6.3.15').origin,
+    ).toBe('https://registry.npmjs.org')
+    expect(() => createAllowedRequestUrl('http://api.github.com/repos/roastcodes/ttdash')).toThrow(
+      'untrusted origin',
+    )
+    expect(() => createAllowedRequestUrl('https://example.com/private')).toThrow('untrusted origin')
+  })
+
   it('parses, compares, and increments strict release versions', () => {
     expect(parseVersion('6.3.15')).toEqual([6, 3, 15])
     expect(compareVersions('6.4.0', '6.3.15')).toBe(1)

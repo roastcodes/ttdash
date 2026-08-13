@@ -5,7 +5,9 @@ const { appendFileSync, readFileSync } = require('node:fs');
 
 const DEFAULT_QUIET_HOURS = 2;
 const DEPENDABOT_LOGIN = 'dependabot[bot]';
+const EXPECTED_REPOSITORY = 'roastcodes/ttdash';
 const PACKAGE_NAME = '@roastcodes/ttdash';
+const ALLOWED_REQUEST_ORIGINS = new Set(['https://api.github.com', 'https://registry.npmjs.org']);
 const SEMVER_PATTERN = /^(\d+)\.(\d+)\.(\d+)$/;
 
 function fail(message) {
@@ -180,6 +182,10 @@ function parseArgs(argv) {
     );
   }
 
+  if (options.repo !== EXPECTED_REPOSITORY) {
+    fail(`Release planning is restricted to ${EXPECTED_REPOSITORY}. Received: ${options.repo}`);
+  }
+
   if (options.mode === 'manual' && !options.requestedVersion) {
     fail('--requested-version is required in manual mode.');
   }
@@ -236,12 +242,23 @@ function getToken() {
   return process.env.GITHUB_TOKEN || process.env.GH_TOKEN || null;
 }
 
+function createAllowedRequestUrl(value) {
+  const url = new URL(value);
+  if (url.protocol !== 'https:' || !ALLOWED_REQUEST_ORIGINS.has(url.origin)) {
+    fail(`Release planning cannot request untrusted origin ${url.origin}.`);
+  }
+
+  return url;
+}
+
 async function requestJson(
   url,
   token,
   { accept = 'application/json', allowNotFound = false } = {},
 ) {
-  const response = await fetch(url, {
+  const requestUrl = createAllowedRequestUrl(url);
+  // lgtm[js/file-access-to-http] Only validated release metadata is sent to fixed, allowlisted APIs.
+  const response = await fetch(requestUrl, {
     headers: {
       Accept: accept,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -253,7 +270,7 @@ async function requestJson(
 
   if (allowNotFound && response.status === 404) return null;
   if (!response.ok) {
-    throw new Error(`Request to ${new URL(url).origin} failed with status ${response.status}.`);
+    throw new Error(`Request to ${requestUrl.origin} failed with status ${response.status}.`);
   }
 
   return response.json();
@@ -431,6 +448,7 @@ if (require.main === module) {
 
 module.exports = {
   compareVersions,
+  createAllowedRequestUrl,
   decideAutomaticRelease,
   decideManualRelease,
   nextPatchVersion,
