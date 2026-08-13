@@ -24,7 +24,6 @@ const {
 
 type PullRequest = {
   author: string
-  headSha: string
   mergeCommitSha: string
   number: number
 }
@@ -72,7 +71,6 @@ type ReleasePlan = {
 
 const releaseSha = '1'.repeat(40)
 const headSha = '2'.repeat(40)
-const pullRequestHeadSha = 'a'.repeat(40)
 
 function dependabotCommit(sha = headSha): UnpublishedCommit {
   return {
@@ -80,7 +78,6 @@ function dependabotCommit(sha = headSha): UnpublishedCommit {
     pullRequests: [
       {
         author: 'dependabot[bot]',
-        headSha: pullRequestHeadSha,
         mergeCommitSha: sha,
         number: 123,
       },
@@ -162,7 +159,6 @@ describe('release planning', () => {
 
   it('maps every merged Dependabot PR to its successful merge-queue commit', () => {
     const secondCommitSha = '3'.repeat(40)
-    const secondPullRequestHeadSha = 'b'.repeat(40)
     const commits = [
       dependabotCommit(headSha),
       {
@@ -170,7 +166,6 @@ describe('release planning', () => {
         pullRequests: [
           {
             author: 'dependabot[bot]',
-            headSha: secondPullRequestHeadSha,
             mergeCommitSha: secondCommitSha,
             number: 124,
           },
@@ -183,21 +178,21 @@ describe('release planning', () => {
       {
         status: 'completed',
         conclusion: 'success',
-        head_branch: `gh-readonly-queue/main/pr-123-${pullRequestHeadSha}`,
+        head_branch: `gh-readonly-queue/main/pr-123-${'a'.repeat(40)}`,
         head_sha: olderQueueSha,
         created_at: '2026-08-13T10:00:00Z',
       },
       {
         status: 'completed',
         conclusion: 'success',
-        head_branch: `gh-readonly-queue/main/pr-123-${pullRequestHeadSha}`,
+        head_branch: `gh-readonly-queue/main/pr-123-${'b'.repeat(40)}`,
         head_sha: headSha,
         created_at: '2026-08-13T09:00:00Z',
       },
       {
         status: 'completed',
         conclusion: 'success',
-        head_branch: `gh-readonly-queue/main/pr-124-${secondPullRequestHeadSha}`,
+        head_branch: `gh-readonly-queue/main/pr-124-${'c'.repeat(40)}`,
         head_sha: fallbackQueueSha,
         created_at: '2026-08-13T11:00:00Z',
       },
@@ -248,7 +243,6 @@ describe('release planning', () => {
             pullRequests: [
               {
                 author: 'maintainer',
-                headSha: 'b'.repeat(40),
                 mergeCommitSha: humanSha,
                 number: 124,
               },

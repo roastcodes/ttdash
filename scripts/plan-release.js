@@ -257,14 +257,6 @@ function createAllowedRequestUrl(value) {
   return url;
 }
 
-function assertGitSha(value, label) {
-  if (!SHA_PATTERN.test(value ?? '')) {
-    fail(`${label} must be a full lowercase Git commit SHA.`);
-  }
-
-  return value;
-}
-
 async function requestJson(url, token, { accept = 'application/json' } = {}) {
   const requestUrl = createAllowedRequestUrl(url);
   // lgtm[js/file-access-to-http] Only validated release metadata is sent to fixed, allowlisted APIs.
@@ -324,7 +316,6 @@ async function fetchAllMergedPullRequests(token) {
         .map((pullRequest) => ({
           number: pullRequest.number,
           author: pullRequest.user?.login ?? null,
-          headSha: pullRequest.head?.sha ?? null,
           mergeCommitSha: pullRequest.merge_commit_sha,
           url: pullRequest.html_url,
         })),
@@ -356,12 +347,15 @@ function findMergeGroupShas(commits, runs) {
 
   for (const commit of commits) {
     for (const pullRequest of commit.pullRequests) {
-      assertGitSha(pullRequest.headSha, `Head commit for PR #${pullRequest.number}`);
-      const expectedBranch = `gh-readonly-queue/main/pr-${pullRequest.number}-${pullRequest.headSha}`;
+      if (!Number.isSafeInteger(pullRequest.number) || pullRequest.number <= 0) {
+        fail('GitHub returned an invalid pull request number.');
+      }
+
+      const expectedBranchPrefix = `gh-readonly-queue/main/pr-${pullRequest.number}-`;
       const matchingRuns = runs
         .filter(
           (run) =>
-            run.head_branch === expectedBranch &&
+            run.head_branch?.startsWith(expectedBranchPrefix) &&
             run.status === 'completed' &&
             run.conclusion === 'success' &&
             SHA_PATTERN.test(run.head_sha ?? ''),
