@@ -167,6 +167,34 @@ describe('test pipeline scripts', () => {
     expect(workflow).toContain('uses: actions/download-artifact@')
   })
 
+  it('runs required checks for merge queue commits', async () => {
+    const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
+    const codeqlWorkflow = await readFile('.github/workflows/codeql.yml', 'utf8')
+    const mergeGroupTrigger = 'merge_group:\n    types:\n      - checks_requested'
+
+    expect(workflow).toContain(mergeGroupTrigger)
+    expect(codeqlWorkflow).toContain(mergeGroupTrigger)
+  })
+
+  it('enables app-authenticated auto-merge only for trusted Dependabot PRs', async () => {
+    const workflow = await readFile('.github/workflows/dependabot-automerge.yml', 'utf8')
+
+    expect(workflow).toContain('pull_request_target:')
+    expect(workflow).toContain('- ready_for_review')
+    expect(workflow).toContain("github.actor == 'dependabot[bot]'")
+    expect(workflow).toContain("github.event.pull_request.user.login == 'dependabot[bot]'")
+    expect(workflow).toContain("github.event.pull_request.base.ref == 'main'")
+    expect(workflow).toContain('github.event.pull_request.head.repo.full_name == github.repository')
+    expect(workflow).toContain('github.event.pull_request.draft == false')
+    expect(workflow).toContain('environment: dependabot-automerge')
+    expect(workflow).toContain('client-id: ${{ secrets.APP_CLIENT_ID }}')
+    expect(workflow).toContain('private-key: ${{ secrets.APP_PRIVATE_KEY }}')
+    expect(workflow).toContain('permission-contents: write')
+    expect(workflow).toContain('permission-pull-requests: write')
+    expect(workflow).toContain('gh pr merge "${PR_NUMBER}" --repo "${GH_REPO}" --auto --merge')
+    expect(workflow).not.toContain('actions/checkout')
+  })
+
   it('keeps documentation verification in required CI and deploys only the tested main commit', async () => {
     const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
     const pagesWorkflow = await readFile('.github/workflows/pages.yml', 'utf8')
