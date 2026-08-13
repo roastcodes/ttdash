@@ -171,9 +171,17 @@ describe('test pipeline scripts', () => {
     const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
     const codeqlWorkflow = await readFile('.github/workflows/codeql.yml', 'utf8')
     const mergeGroupTrigger = 'merge_group:\n    types:\n      - checks_requested'
+    const snykGateBlock = getWorkflowJobBlock(workflow, 'snyk-gate')
 
     expect(workflow).toContain(mergeGroupTrigger)
     expect(codeqlWorkflow).toContain(mergeGroupTrigger)
+    expect(workflow).toContain('statuses: read')
+    expect(snykGateBlock).toContain('name: security/snyk (roastcodes)')
+    expect(snykGateBlock).toContain("github.event_name == 'merge_group'")
+    expect(snykGateBlock).toContain("--jq '.parents | length'")
+    expect(snykGateBlock).toContain('if [[ "${PARENT_COUNT}" != "2" ]]')
+    expect(snykGateBlock).toContain('security/snyk (roastcodes)')
+    expect(snykGateBlock).toContain('Snyk did not report success')
   })
 
   it('enables app-authenticated auto-merge only for trusted Dependabot PRs', async () => {
@@ -191,6 +199,8 @@ describe('test pipeline scripts', () => {
     expect(workflow).toContain('private-key: ${{ secrets.APP_PRIVATE_KEY }}')
     expect(workflow).toContain('permission-contents: write')
     expect(workflow).toContain('permission-pull-requests: write')
+    expect(workflow).toContain('EXPECTED_APP_SLUG: ttdash-dependabot-automerge')
+    expect(workflow).toContain('if [[ "${ACTUAL_APP_SLUG}" != "${EXPECTED_APP_SLUG}" ]]; then')
     expect(workflow).toContain('gh pr merge "${PR_NUMBER}" --repo "${GH_REPO}" --auto --merge')
     expect(workflow).not.toContain('actions/checkout')
   })

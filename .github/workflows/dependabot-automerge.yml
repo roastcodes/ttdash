@@ -42,6 +42,16 @@ jobs:
           permission-pull-requests: write
           repositories: ttdash
 
+      - name: Verify auto-merge app identity
+        env:
+          ACTUAL_APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          EXPECTED_APP_SLUG: ttdash-dependabot-automerge
+        run: |
+          if [[ "${ACTUAL_APP_SLUG}" != "${EXPECTED_APP_SLUG}" ]]; then
+            echo "Expected GitHub App ${EXPECTED_APP_SLUG}, got ${ACTUAL_APP_SLUG:-<empty>}."
+            exit 1
+          fi
+
       - name: Enable merge when ready
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
