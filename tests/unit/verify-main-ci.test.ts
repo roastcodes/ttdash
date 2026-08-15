@@ -85,6 +85,19 @@ describe('main CI verification', () => {
     expect(selected?.run_attempt).toBe(2)
   })
 
+  it('uses the larger run ID when timestamps and retries match', () => {
+    const createdAt = '2026-08-13T10:00:00Z'
+    const selected = selectLatestWorkflowRun(
+      [
+        { id: 10, head_sha: sha, created_at: createdAt, run_attempt: 1 },
+        { id: 11, head_sha: sha, created_at: createdAt, run_attempt: 1 },
+      ],
+      sha,
+    )
+
+    expect(selected?.id).toBe(11)
+  })
+
   it('matches required jobs by id or exact name and rejects malformed run responses', async () => {
     const jobs = [{ id: 42, name: 'CI Required' }]
     expect(findRequiredJob(jobs, '42')).toEqual(jobs[0])
