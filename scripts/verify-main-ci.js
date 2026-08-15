@@ -2,10 +2,14 @@
 
 const DEFAULT_RETRIES = 30;
 const DEFAULT_RETRY_DELAY_MS = 10000;
+const EXPECTED_REPOSITORY = 'roastcodes/ttdash';
+const ALLOWED_WORKFLOWS = new Set(['ci.yml', 'codeql.yml']);
+const ALLOWED_EVENTS = new Set(['push', 'merge_group']);
+const GITHUB_API_ORIGIN = 'https://api.github.com';
+const SHA_PATTERN = /^[0-9a-f]{40}$/;
 
 function fail(message) {
-  process.stderr.write(`${message}\n`);
-  process.exit(1);
+  throw new Error(message);
 }
 
 function log(message) {
@@ -89,8 +93,24 @@ function parseArgs(argv) {
     );
   }
 
-  if (!options.event) {
-    fail('Workflow event must not be empty.');
+  if (options.repo !== EXPECTED_REPOSITORY) {
+    fail(`CI verification is restricted to ${EXPECTED_REPOSITORY}. Received: ${options.repo}`);
+  }
+
+  if (!ALLOWED_WORKFLOWS.has(options.workflow)) {
+    fail(`CI verification does not allow workflow ${options.workflow}.`);
+  }
+
+  if (!ALLOWED_EVENTS.has(options.event)) {
+    fail(`CI verification does not allow event ${options.event}.`);
+  }
+
+  if (options.useBranchFilter && options.branch !== 'main') {
+    fail(`CI verification is restricted to the main branch. Received: ${options.branch}`);
+  }
+
+  if (!SHA_PATTERN.test(options.sha)) {
+    fail(`Invalid commit SHA: ${options.sha}`);
   }
 
   if (!Number.isInteger(options.retries) || options.retries <= 0) {
@@ -113,13 +133,20 @@ async function sleep(ms) {
 }
 
 async function requestGitHubApi(url, token) {
-  const response = await fetch(url, {
+  const requestUrl = new URL(url);
+  if (requestUrl.protocol !== 'https:' || requestUrl.origin !== GITHUB_API_ORIGIN) {
+    fail(`CI verification cannot request untrusted origin ${requestUrl.origin}.`);
+  }
+
+  const response = await fetch(requestUrl, {
     headers: {
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${token}`,
       'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'ttdash-release-workflow',
     },
+    redirect: 'error',
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!response.ok) {
@@ -148,7 +175,12 @@ async function fetchWorkflowRuns(options, token) {
   url.searchParams.set('head_sha', options.sha);
   url.searchParams.set('per_page', '30');
 
-  return requestGitHubApi(url, token);
+  const payload = await requestGitHubApi(url, token);
+  if (!Array.isArray(payload.workflow_runs)) {
+    fail('GitHub returned an invalid workflow-runs response.');
+  }
+
+  return payload.workflow_runs;
 }
 
 async function fetchWorkflowRunJobs(options, token, runId) {
@@ -162,7 +194,7 @@ async function fetchWorkflowRunJobs(options, token, runId) {
 
     const payload = await requestGitHubApi(url, token);
     if (!Array.isArray(payload.jobs)) {
-      return jobs;
+      fail('GitHub returned an invalid workflow-jobs response.');
     }
 
     jobs.push(...payload.jobs);
@@ -197,6 +229,29 @@ function describeAvailableJobs(jobs) {
     .join(', ');
 }
 
+function runTimestamp(run) {
+  for (const value of [run.run_started_at, run.created_at, run.updated_at]) {
+    const timestamp = Date.parse(value ?? '');
+    if (Number.isFinite(timestamp)) return timestamp;
+  }
+
+  return 0;
+}
+
+function selectLatestWorkflowRun(runs, sha) {
+  return runs
+    .filter((candidate) => candidate.head_sha === sha)
+    .sort((left, right) => {
+      const timestampDifference = runTimestamp(right) - runTimestamp(left);
+      if (timestampDifference !== 0) return timestampDifference;
+
+      const attemptDifference = (right.run_attempt ?? 0) - (left.run_attempt ?? 0);
+      if (attemptDifference !== 0) return attemptDifference;
+
+      return (right.id ?? 0) - (left.id ?? 0);
+    })[0];
+}
+
 async function main() {
   const token = getToken();
   if (!token) {
@@ -206,8 +261,8 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
 
   for (let attempt = 1; attempt <= options.retries; attempt += 1) {
-    const payload = await fetchWorkflowRuns(options, token);
-    const run = payload.workflow_runs.find((candidate) => candidate.head_sha === options.sha);
+    const runs = await fetchWorkflowRuns(options, token);
+    const run = selectLatestWorkflowRun(runs, options.sha);
 
     if (!run) {
       log(
@@ -259,6 +314,17 @@ async function main() {
   fail(`CI workflow for ${options.sha} did not reach a successful conclusion in time.`);
 }
 
-main().catch((error) => {
-  fail(error instanceof Error ? error.message : String(error));
-});
+if (require.main === module) {
+  main().catch((error) => {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  fetchWorkflowRuns,
+  findRequiredJob,
+  parseArgs,
+  requestGitHubApi,
+  selectLatestWorkflowRun,
+};

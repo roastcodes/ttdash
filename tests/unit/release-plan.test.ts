@@ -1,27 +1,36 @@
 import { createRequire } from 'node:module'
-import { describe, expect, it, vi } from 'vitest'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const {
   compareVersions,
+  createOutputValues,
   createAllowedRequestUrl,
   decideAutomaticRelease,
   decideManualRelease,
   findMergeGroupShas,
+  formatPlanLog,
   hasNpmVersion,
   nextPatchVersion,
   parseVersion,
   requestJson,
+  writeOutputs,
 } = require('../../scripts/plan-release.js') as {
   compareVersions: (left: string, right: string) => number
+  createOutputValues: (plan: ReleasePlan) => Record<string, string>
   createAllowedRequestUrl: (value: string) => URL
   decideAutomaticRelease: (input: AutomaticReleaseInput) => ReleasePlan
   decideManualRelease: (input: ManualReleaseInput) => ReleasePlan
   findMergeGroupShas: (commits: UnpublishedCommit[], runs: MergeGroupRun[]) => string[]
+  formatPlanLog: (plan: ReleasePlan) => string
   hasNpmVersion: (payload: unknown, version: string) => boolean
   nextPatchVersion: (version: string) => string
   parseVersion: (version: string) => number[]
   requestJson: (url: string, token: string | null) => Promise<unknown>
+  writeOutputs: (plan: ReleasePlan) => void
 }
 
 type PullRequest = {
@@ -73,6 +82,11 @@ type ReleasePlan = {
 
 const releaseSha = '1'.repeat(40)
 const headSha = '2'.repeat(40)
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+  vi.restoreAllMocks()
+})
 
 function dependabotCommit(sha = headSha): UnpublishedCommit {
   return {
@@ -139,7 +153,76 @@ describe('release planning', () => {
     expect(compareVersions('6.3.15', '6.3.15')).toBe(0)
     expect(compareVersions('6.3.14', '6.3.15')).toBe(-1)
     expect(nextPatchVersion('6.3.15')).toBe('6.3.16')
+    expect(nextPatchVersion('6.3.99')).toBe('6.3.100')
     expect(() => parseVersion('v6.3.15')).toThrow('x.y.z')
+  })
+
+  it('reports a no-op decision clearly while preserving workflow outputs', () => {
+    const plan = decideAutomaticRelease(
+      automaticInput({
+        headSha: releaseSha,
+        unpublishedCommits: [],
+      }),
+    )
+
+    expect(createOutputValues(plan)).toEqual({
+      should_release: 'false',
+      should_bump: 'false',
+      version: '6.3.15',
+      target_sha: releaseSha,
+      merge_group_shas: '',
+      reason: 'no_unreleased_changes',
+    })
+    expect(formatPlanLog(plan)).toContain('Release decision: no_unreleased_changes')
+    expect(formatPlanLog(plan)).toContain('Release job: skip')
+    expect(formatPlanLog(plan)).toContain('Version: 6.3.15')
+  })
+
+  it('reports the calculated patch and all merge-group commits', () => {
+    const plan: ReleasePlan = {
+      shouldRelease: true,
+      shouldBump: true,
+      version: '6.3.16',
+      targetSha: headSha,
+      mergeGroupShas: ['3'.repeat(40), '4'.repeat(40)],
+      reason: 'automatic_patch',
+    }
+
+    expect(createOutputValues(plan)).toMatchObject({
+      should_release: 'true',
+      should_bump: 'true',
+      version: '6.3.16',
+      merge_group_shas: `${'3'.repeat(40)},${'4'.repeat(40)}`,
+    })
+    expect(formatPlanLog(plan)).toContain('Release job: run')
+    expect(formatPlanLog(plan)).toContain(
+      `Merge-group commits: ${'3'.repeat(40)},${'4'.repeat(40)}`,
+    )
+  })
+
+  it('writes Actions outputs and still prints the release decision', () => {
+    const outputDirectory = mkdtempSync(join(tmpdir(), 'ttdash-release-output-'))
+    const outputFile = join(outputDirectory, 'github-output')
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    vi.stubEnv('GITHUB_OUTPUT', outputFile)
+
+    try {
+      writeOutputs(
+        decideAutomaticRelease(
+          automaticInput({
+            headSha: releaseSha,
+            unpublishedCommits: [],
+          }),
+        ),
+      )
+
+      expect(readFileSync(outputFile, 'utf8')).toContain('reason=no_unreleased_changes\n')
+      expect(stdoutSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Release decision: no_unreleased_changes'),
+      )
+    } finally {
+      rmSync(outputDirectory, { force: true, recursive: true })
+    }
   })
 
   it('fails closed for malformed npm package metadata', () => {

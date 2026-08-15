@@ -392,8 +392,8 @@ function findMergeGroupShas(commits, runs) {
   return [...new Set(mergeGroupShas)];
 }
 
-function writeOutputs(plan) {
-  const outputs = {
+function createOutputValues(plan) {
+  return {
     should_release: String(plan.shouldRelease),
     should_bump: String(plan.shouldBump),
     version: plan.version,
@@ -401,14 +401,29 @@ function writeOutputs(plan) {
     merge_group_shas: (plan.mergeGroupShas ?? []).join(','),
     reason: plan.reason,
   };
+}
+
+function formatPlanLog(plan) {
+  const outputs = createOutputValues(plan);
+  return [
+    `Release decision: ${outputs.reason}`,
+    `Release job: ${outputs.should_release === 'true' ? 'run' : 'skip'}`,
+    `Version: ${outputs.version}`,
+    `Target commit: ${outputs.target_sha}`,
+    `Merge-group commits: ${outputs.merge_group_shas || 'none'}`,
+  ].join('\n');
+}
+
+function writeOutputs(plan) {
+  const outputs = createOutputValues(plan);
 
   if (process.env.GITHUB_OUTPUT) {
     for (const [key, value] of Object.entries(outputs)) {
       appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
     }
-  } else {
-    process.stdout.write(`${JSON.stringify(outputs, null, 2)}\n`);
   }
+
+  process.stdout.write(`${formatPlanLog(plan)}\n`);
 }
 
 function writeSummary({ mode, plan, currentVersion, commits = [], releaseState = null }) {
@@ -534,12 +549,15 @@ if (require.main === module) {
 
 module.exports = {
   compareVersions,
+  createOutputValues,
   createAllowedRequestUrl,
   decideAutomaticRelease,
   decideManualRelease,
   findMergeGroupShas,
+  formatPlanLog,
   hasNpmVersion,
   nextPatchVersion,
   parseVersion,
   requestJson,
+  writeOutputs,
 };
