@@ -16,6 +16,7 @@ import type {
   ProviderLimits,
   ReducedMotionPreference,
   ViewMode,
+  UsageSystemOption,
 } from '@/types'
 import { useToast } from '@/lib/toast'
 import {
@@ -58,6 +59,7 @@ type SettingsModalDraftParams = Pick<
   | 'limitProviders'
   | 'filterProviders'
   | 'models'
+  | 'systems'
   | 'limits'
   | 'defaultFilters'
   | 'sectionVisibility'
@@ -79,10 +81,12 @@ export interface SettingsModalDefaultsDraftViewModel {
   defaultFilterDraft: DashboardDefaultFilters
   providerOptions: string[]
   modelOptions: string[]
+  systemOptions: UsageSystemOption[]
   onViewModeChange: (mode: ViewMode) => void
   onDatePresetChange: (preset: DashboardDatePreset) => void
   onToggleProvider: (provider: string) => void
   onToggleModel: (model: string) => void
+  onToggleSystem: (system: string) => void
   onReset: () => void
 }
 
@@ -135,6 +139,7 @@ export function useSettingsModalDraft({
   limitProviders,
   filterProviders,
   models,
+  systems,
   limits,
   defaultFilters,
   sectionVisibility,
@@ -204,6 +209,16 @@ export function useSettingsModalDraft({
     [models, defaultFilterDraft.models],
   )
 
+  const systemOptions = useMemo(
+    () =>
+      systems.map((system) => ({
+        id: system.id,
+        hostname: system.hostname,
+        isLocal: system.isLocal,
+      })),
+    [systems],
+  )
+
   const handleResetDrafts = () => {
     setLanguageDraft(DEFAULT_APP_SETTINGS.language)
     setReducedMotionPreferenceDraft(DEFAULT_APP_SETTINGS.reducedMotionPreference)
@@ -225,6 +240,7 @@ export function useSettingsModalDraft({
           ...defaultFilterDraft,
           providers: normalizeSettingsSelection(defaultFilterDraft.providers),
           models: normalizeSettingsSelection(defaultFilterDraft.models),
+          systems: normalizeSettingsSelection(defaultFilterDraft.systems),
         },
         sectionVisibility: sectionVisibilityDraft,
         sectionOrder: sectionOrderDraft,
@@ -246,6 +262,7 @@ export function useSettingsModalDraft({
       defaultFilterDraft,
       providerOptions,
       modelOptions,
+      systemOptions,
       onViewModeChange: (viewMode) => setDefaultFilterDraft((prev) => ({ ...prev, viewMode })),
       onDatePresetChange: (datePreset) =>
         setDefaultFilterDraft((prev) => ({ ...prev, datePreset })),
@@ -258,6 +275,11 @@ export function useSettingsModalDraft({
         setDefaultFilterDraft((prev) => ({
           ...prev,
           models: toggleSettingsSelection(prev.models, model),
+        })),
+      onToggleSystem: (system) =>
+        setDefaultFilterDraft((prev) => ({
+          ...prev,
+          systems: toggleSettingsSelection(prev.systems, system),
         })),
       onReset: () => setDefaultFilterDraft(cloneSettingsDefaultFilters(DEFAULT_DASHBOARD_FILTERS)),
     },

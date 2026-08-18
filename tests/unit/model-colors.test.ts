@@ -170,6 +170,38 @@ describe('model colors', () => {
     )
   })
 
+  it('assigns stable distinct colors to current GPT variants', () => {
+    const variants = [
+      'GPT-5.6 Sol',
+      'GPT-5.6 Terra',
+      'GPT-5.6 Luna',
+      'GPT-5.5 Pro',
+      'GPT-5.4 Mini',
+      'GPT-5.4 Nano',
+    ]
+    const colors = variants.map((name) => getModelColor(name, 'dark'))
+
+    expect(new Set(colors)).toHaveLength(variants.length)
+    expect(getModelColor('GPT-5.6 Sol', 'dark')).toBe('hsl(34, 92%, 60%)')
+    expect(getModelColor('GPT-5.6 Terra', 'light')).toBe('hsl(171, 68%, 34%)')
+    expect(getModelColor('GPT-5.6 Luna', 'dark')).toBe('hsl(250, 78%, 68%)')
+  })
+
+  it('keeps base, Max, and Mini GPT Codex variants visually distinct', () => {
+    const variants = ['GPT-5.6 Codex', 'GPT-5.6 Codex Max', 'GPT-5.6 Codex Mini']
+    const colors = variants.map((name) => getModelColor(name, 'dark'))
+
+    expect(new Set(colors)).toHaveLength(variants.length)
+  })
+
+  it('uses a dedicated GitHub Copilot provider badge', () => {
+    expect(getProviderBadgeStyle('GitHub Copilot')).toEqual({
+      color: 'rgb(167, 139, 250)',
+      backgroundColor: 'rgba(139, 92, 246, 0.10)',
+      borderColor: 'rgba(139, 92, 246, 0.20)',
+    })
+  })
+
   it('returns deterministic fallback colors for unknown models and tunes them per theme', () => {
     const dark = getModelColor('Mystery Frontier Alpha', 'dark')
     const light = getModelColor('Mystery Frontier Alpha', 'light')

@@ -158,6 +158,7 @@ function createDefaultDashboardFilters() {
     datePreset: 'all',
     providers: [],
     models: [],
+    systems: [],
   }
 }
 
@@ -215,6 +216,9 @@ function normalizeDashboardDefaultFilters(value) {
     datePreset: normalizeDashboardDatePreset(source.datePreset),
     providers: normalizeStringList(source.providers),
     models: normalizeStringList(source.models),
+    systems: normalizeStringList(
+      normalizeStringList(source.systems).map((system) => system.toLowerCase()),
+    ),
   }
 }
 

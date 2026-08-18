@@ -210,13 +210,14 @@ describe('useDashboardControllerWithBootstrap state', () => {
   })
 
   it('builds one shared forecast state from the month-to-date filtered data', async () => {
+    const monthToDateData = [
+      createDailyUsage({ date: '2026-04-01', totalCost: 6, outputTokens: 40 }),
+      createDailyUsage({ date: '2026-04-05', totalCost: 12, outputTokens: 40 }),
+      createDailyUsage({ date: '2026-04-06', totalCost: 18, outputTokens: 40 }),
+    ]
     usageHookMocks.useUsageData.mockReturnValue({
       data: createUsageData({
-        daily: [
-          createDailyUsage({ date: '2026-04-01', totalCost: 6, outputTokens: 40 }),
-          createDailyUsage({ date: '2026-04-05', totalCost: 12, outputTokens: 40 }),
-          createDailyUsage({ date: '2026-04-06', totalCost: 18, outputTokens: 40 }),
-        ],
+        daily: monthToDateData,
       }),
       isLoading: false,
       error: null,
@@ -225,6 +226,7 @@ describe('useDashboardControllerWithBootstrap state', () => {
       createFilterState({
         selectedProviders: [],
         selectedModels: [],
+        systemDailyData: monthToDateData,
       }),
     )
 

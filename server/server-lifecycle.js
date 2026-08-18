@@ -101,6 +101,20 @@ function createServerLifecycle({
       return;
     }
 
+    if (cliOptions.export) {
+      dataRuntime.ensureAppDirs();
+      dataRuntime.migrateLegacyDataFile();
+      if (cliOptions.autoLoad) {
+        await startupRuntime.runStartupAutoLoad({ source: 'cli-auto-load' });
+      }
+      const exportPath = await dataRuntime.systemData.exportLocalData(
+        dataRuntime.readData(),
+        cliOptions.exportPath,
+      );
+      log(`System export written to ${exportPath}`);
+      return;
+    }
+
     await start();
   }
 

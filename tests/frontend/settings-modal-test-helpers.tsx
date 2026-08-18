@@ -19,6 +19,8 @@ export function buildSettingsModalProps(
     limitProviders: [],
     filterProviders: [],
     models: [],
+    systems: [],
+    unreadableSystemFiles: [],
     limits: {},
     defaultFilters: {
       ...DEFAULT_APP_SETTINGS.defaultFilters,
@@ -36,6 +38,17 @@ export function buildSettingsModalProps(
     onImportSettings: vi.fn(),
     onExportData: vi.fn(),
     onImportData: vi.fn(),
+    onExportSystem: vi.fn(),
+    onImportSystems: vi.fn(),
+    onDeleteSystem: vi.fn().mockResolvedValue(undefined),
+    onDeleteAllSystems: vi.fn().mockResolvedValue(undefined),
+    systemImportConflicts: [],
+    systemImportRetries: [],
+    onReplaceSystemConflicts: vi.fn().mockResolvedValue(undefined),
+    onSkipSystemConflicts: vi.fn().mockResolvedValue(undefined),
+    onCancelSystemConflicts: vi.fn(),
+    onRetrySystemImports: vi.fn().mockResolvedValue(undefined),
+    onCancelSystemRetries: vi.fn(),
     ...overrides,
   }
 }
@@ -51,6 +64,12 @@ export function renderSettingsModal(overrides: Partial<ComponentProps<typeof Set
     ...view,
     props,
     onSaveSettings: props.onSaveSettings,
+    rerenderSettingsModal: (nextOverrides: Partial<ComponentProps<typeof SettingsModal>> = {}) =>
+      view.rerender(
+        <ToastProvider>
+          <SettingsModal {...props} {...nextOverrides} />
+        </ToastProvider>,
+      ),
   }
 }
 

@@ -44,6 +44,7 @@ ttdash
 - Daily, monthly, yearly, preset, and custom date filters
 - Forecasts, comparisons, anomalies, cache ROI, limits, and concentration insights
 - `toktrack` and legacy daily JSON imports plus TTDash backup restore
+- Host-based system exports, multi-file imports, and combined cross-system cost views
 - CSV export and localized PDF reports when [Typst](https://typst.app/) is installed
 - Local-first storage, configurable dashboards, themes, keyboard navigation, and Docker support
 

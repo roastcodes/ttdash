@@ -28,6 +28,10 @@ export function FilterBar({
   onStartDateChange,
   onEndDateChange,
   onApplyPreset,
+  availableSystems,
+  selectedSystems,
+  onToggleSystem,
+  onClearSystems,
   onResetAll,
 }: FilterBarProps) {
   const activePreset = useMemo(
@@ -36,6 +40,7 @@ export function FilterBar({
   )
   const hasCustomFilters =
     selectedMonth !== null ||
+    selectedSystems.length > 0 ||
     selectedProviders.length > 0 ||
     selectedModels.length > 0 ||
     Boolean(startDate || endDate) ||
@@ -72,6 +77,10 @@ export function FilterBar({
         </div>
 
         <FilterBarChipFilters
+          availableSystems={availableSystems}
+          selectedSystems={selectedSystems}
+          onToggleSystem={onToggleSystem}
+          onClearSystems={onClearSystems}
           availableProviders={availableProviders}
           selectedProviders={selectedProviders}
           onToggleProvider={onToggleProvider}

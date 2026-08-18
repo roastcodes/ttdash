@@ -91,6 +91,15 @@ export function Dashboard({
         onChange={controller.fileInputs.onDataImportChange}
         data-testid="data-import-input"
       />
+      <input
+        ref={controller.fileInputs.systemImportRef}
+        type="file"
+        accept=".json,application/json"
+        multiple
+        className="hidden"
+        onChange={controller.fileInputs.onSystemImportChange}
+        data-testid="system-import-input"
+      />
     </>
   )
 

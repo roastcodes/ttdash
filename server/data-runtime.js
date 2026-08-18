@@ -8,6 +8,7 @@ const { resolveDataRuntimeAppPaths } = require('./data-runtime/app-paths');
 const { createDataRuntimeFileIo } = require('./data-runtime/file-io');
 const { createDataRuntimeFileLocks } = require('./data-runtime/file-locks');
 const { createDataRuntimeImportMerge } = require('./data-runtime/import-merge');
+const { createSystemDataRuntime, mergeUsageDatasets } = require('./data-runtime/system-data');
 
 /** Creates the persistence, locking, import, and settings runtime facade. */
 function createDataRuntime({
@@ -23,6 +24,8 @@ function createDataRuntime({
   legacyDataFile,
   settingsBackupKind,
   usageBackupKind,
+  systemExportKind = 'ttdash-system-export',
+  appVersion = '0.0.0',
   isDarwin = processObject.platform === 'darwin',
   isWindows,
   secureDirMode,
@@ -45,6 +48,7 @@ function createDataRuntime({
   const dataFile = path.join(appPaths.dataDir, 'data.json');
   const settingsFile = path.join(appPaths.configDir, 'settings.json');
   const npxCacheDir = path.join(appPaths.cacheDir, 'npx-cache');
+  const systemsDir = path.join(appPaths.dataDir, 'systems');
   const fileIo = createDataRuntimeFileIo({
     fs,
     fsPromises,
@@ -92,6 +96,19 @@ function createDataRuntime({
     withSettingsAndDataMutationLock,
     getPendingFileMutationLockCount,
   } = fileLocks;
+  const systemData = createSystemDataRuntime({
+    fs,
+    fsPromises,
+    os,
+    path,
+    processObject,
+    normalizeIncomingData,
+    systemsDir,
+    systemExportKind,
+    appVersion,
+    writeJsonAtomicAsync,
+    withFileMutationLock,
+  });
   const { extractSettingsImportPayload, extractUsageImportPayload, mergeUsageData } = importMerge;
   const normalizeIsoTimestamp = normalizeSharedIsoTimestamp;
   const normalizeProviderLimits = normalizeSharedProviderLimits;
@@ -157,6 +174,40 @@ function createDataRuntime({
     }
   }
 
+  function readUsageResponse(selectedSystemIds) {
+    const localData = readData();
+    const { systems: importedSystems, unreadableFiles } = systemData.readImportedSystems();
+    const systems = [
+      ...(localData
+        ? [
+            {
+              id: systemData.localHostname,
+              hostname: systemData.localHostname,
+              filename: systemData.getSystemFilename(systemData.localHostname),
+              isLocal: true,
+              exportedAt: null,
+              data: localData,
+            },
+          ]
+        : []),
+      ...importedSystems,
+    ];
+    // Empty or omitted selections mean "all systems". A non-empty selection is
+    // explicit, so unknown IDs intentionally produce an empty aggregate.
+    const selection = Array.isArray(selectedSystemIds)
+      ? new Set(selectedSystemIds.map((value) => String(value).toLowerCase()))
+      : null;
+    const selectedSystems = selection?.size
+      ? systems.filter((system) => selection.has(system.id))
+      : systems;
+
+    return {
+      ...mergeUsageDatasets(selectedSystems.map((system) => system.data)),
+      systems,
+      unreadableSystemFiles: unreadableFiles,
+    };
+  }
+
   async function writeData(data) {
     await writeJsonAtomicAsync(dataFile, data);
   }
@@ -214,6 +265,25 @@ function createDataRuntime({
     });
   }
 
+  async function removeDefaultSystemFilters(hostnames = null) {
+    return withFileMutationLock(settingsFile, async () => {
+      const current = readSettingsForWrite();
+      const removed = hostnames ? new Set(hostnames) : null;
+      const next = {
+        ...current,
+        defaultFilters: {
+          ...current.defaultFilters,
+          systems: removed
+            ? current.defaultFilters.systems.filter((hostname) => !removed.has(hostname))
+            : [],
+        },
+      };
+
+      await writeSettings(next);
+      return toSettingsResponse(next);
+    });
+  }
+
   function migrateLegacyDataFile(log = console.log) {
     if (!fs.existsSync(legacyDataFile) || fs.existsSync(dataFile)) {
       return;
@@ -260,9 +330,10 @@ function createDataRuntime({
       dataFile,
       settingsFile,
       npxCacheDir,
+      systemsDir,
     },
     ensureDir,
-    ensureAppDirs,
+    ensureAppDirs: (extraDirs = []) => ensureAppDirs([systemsDir, ...extraDirs]),
     writeJsonAtomic,
     writeJsonAtomicAsync,
     unlinkIfExists,
@@ -282,6 +353,7 @@ function createDataRuntime({
     extractUsageImportPayload,
     mergeUsageData,
     readData,
+    readUsageResponse,
     writeData,
     readSettings,
     readSettingsForWrite,
@@ -289,6 +361,8 @@ function createDataRuntime({
     _updateDataLoadStateUnlocked,
     updateDataLoadState,
     updateSettings,
+    removeDefaultSystemFilters,
+    systemData,
   };
 }
 

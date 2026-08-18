@@ -19,6 +19,8 @@ const { normalizeCliArgs, parseCliArgs, printHelp } = require('../../server/cli.
     autoLoad: boolean
     background: boolean
     docker: boolean
+    export: boolean
+    exportPath: string | null
   } | null
   printHelp: (options: { appVersion: string; log: (message: string) => void }) => void
 }
@@ -52,6 +54,8 @@ describe('server CLI parsing', () => {
       autoLoad: true,
       background: true,
       docker: false,
+      export: false,
+      exportPath: null,
     })
 
     expect(parseCliArgs(['stop'])).toEqual({
@@ -60,6 +64,8 @@ describe('server CLI parsing', () => {
       autoLoad: false,
       background: false,
       docker: false,
+      export: false,
+      exportPath: null,
     })
 
     expect(parseCliArgs(['--docker'])).toEqual({
@@ -68,7 +74,22 @@ describe('server CLI parsing', () => {
       autoLoad: false,
       background: false,
       docker: true,
+      export: false,
+      exportPath: null,
     })
+  })
+
+  it('parses system exports with an optional path and alongside auto-load', () => {
+    expect(parseCliArgs(['-al', '--export', './exports'])).toMatchObject({
+      autoLoad: true,
+      export: true,
+      exportPath: './exports',
+    })
+    expect(parseCliArgs(['--export=./system.json'])).toMatchObject({
+      export: true,
+      exportPath: './system.json',
+    })
+    expect(parseCliArgs(['--export'])).toMatchObject({ export: true, exportPath: null })
   })
 
   it('prints help and exits for help requests', () => {
@@ -112,6 +133,7 @@ describe('server CLI parsing', () => {
 
     expect(lines).toContain('  -no, --no-open      Disable browser auto-open')
     expect(lines).toContain('  -al, --auto-load    Run auto-import immediately on startup')
+    expect(lines).toContain('  --export [path]     Export local system data and exit')
     expect(lines).toContain('  -b, -bg, --background  Start TTDash as a background process')
     expect(lines).toContain('  --docker            Start with secure container defaults')
     expect(lines).toContain(

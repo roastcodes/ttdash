@@ -40,6 +40,52 @@ export interface UsageData {
     totalTokens: number
     requestCount: number
   }
+  systems?: UsageSystem[]
+  unreadableSystemFiles?: UnreadableSystemFile[]
+}
+
+/** Describes one local or imported system dataset returned by the API. */
+export interface UsageSystem {
+  id: string
+  hostname: string
+  filename: string
+  isLocal: boolean
+  exportedAt: string | null
+  data: Omit<UsageData, 'systems' | 'unreadableSystemFiles'>
+}
+
+/** Describes the common identity fields used by system filter controls. */
+export type UsageSystemOption = Pick<UsageSystem, 'id' | 'hostname' | 'isLocal'>
+
+/** Describes an imported system file that could not be parsed safely. */
+export interface UnreadableSystemFile {
+  filename: string
+  message: string
+}
+
+/** Describes imported-system metadata shown in settings. */
+export interface ImportedSystemSummary {
+  id: string
+  hostname: string
+  filename: string
+  isLocal: false
+  exportedAt: string
+  days: number
+  totalCost: number
+}
+
+/** Describes a validated system transfer before it is persisted. */
+export interface SystemImportPreview {
+  hostname: string
+  filename: string
+  exists: boolean
+}
+
+/** Describes the imported-system management API response. */
+export interface ImportedSystemsResponse {
+  localHostname: string
+  systems: ImportedSystemSummary[]
+  unreadableSystemFiles: UnreadableSystemFile[]
 }
 
 /** Summarizes the result of a usage import operation. */
@@ -87,6 +133,7 @@ export interface DashboardDefaultFilters {
   datePreset: DashboardDatePreset
   providers: string[]
   models: string[]
+  systems: string[]
 }
 
 /** Stores per-section visibility state for the dashboard. */

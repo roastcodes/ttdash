@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   deriveDashboardFilterData,
+  mergeSystemUsageByDate,
   sanitizeDashboardDefaultFilters,
   sortDashboardUsageData,
 } from '@/lib/dashboard-filter-data'
@@ -106,6 +107,7 @@ describe('sanitizeDashboardDefaultFilters', () => {
     const defaults: DashboardDefaultFilters = {
       viewMode: 'monthly',
       datePreset: '30d',
+      systems: ['workstation-a'],
       providers: ['OpenAI', 'MissingProvider'],
       models: ['GPT-5.4', 'Missing Model'],
     }
@@ -113,8 +115,51 @@ describe('sanitizeDashboardDefaultFilters', () => {
     expect(sanitizeDashboardDefaultFilters(dashboardFixture, defaults)).toEqual({
       viewMode: 'monthly',
       datePreset: '30d',
+      systems: ['workstation-a'],
       providers: ['OpenAI'],
       models: ['GPT-5.4'],
+    })
+  })
+})
+
+describe('mergeSystemUsageByDate', () => {
+  it('merges overlapping system days without duplicating calendar rows', () => {
+    const first = dashboardFixture[0]!
+    const second = {
+      ...first,
+      totalCost: 2,
+      modelBreakdowns: first.modelBreakdowns.map((breakdown) => ({
+        ...breakdown,
+        cost: 1,
+      })),
+    }
+
+    const merged = mergeSystemUsageByDate([
+      {
+        id: 'workstation-a',
+        hostname: 'workstation-a',
+        filename: 'ttdash-system-workstation-a.json',
+        isLocal: true,
+        exportedAt: null,
+        data: { daily: [first], totals: {} as never },
+      },
+      {
+        id: 'workstation-b',
+        hostname: 'workstation-b',
+        filename: 'ttdash-system-workstation-b.json',
+        isLocal: false,
+        exportedAt: '2026-08-18T08:00:00.000Z',
+        data: { daily: [second], totals: {} as never },
+      },
+    ])
+
+    expect(merged).toHaveLength(1)
+    expect(merged[0]).toMatchObject({
+      date: first.date,
+      inputTokens: first.inputTokens * 2,
+      totalTokens: first.totalTokens * 2,
+      totalCost: first.totalCost + 2,
+      requestCount: first.requestCount * 2,
     })
   })
 })

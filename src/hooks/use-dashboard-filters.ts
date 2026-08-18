@@ -1,21 +1,56 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import type { DailyUsage, DashboardDefaultFilters, DashboardDatePreset, ViewMode } from '@/types'
+import type {
+  DailyUsage,
+  DashboardDefaultFilters,
+  DashboardDatePreset,
+  UsageSystem,
+  ViewMode,
+} from '@/types'
 import { DEFAULT_DASHBOARD_FILTERS, resolveDashboardPresetRange } from '@/lib/dashboard-preferences'
 import {
   deriveDashboardFilterData,
+  mergeSystemUsageByDate,
   sanitizeDashboardDefaultFilters,
   sortDashboardUsageData,
 } from '@/lib/dashboard-filter-data'
 
+const EMPTY_SYSTEMS: UsageSystem[] = []
+
 /** Manages dashboard filters and derives the filtered usage slices. */
 export function useDashboardFilters(
   data: DailyUsage[],
+  systems: UsageSystem[] = EMPTY_SYSTEMS,
   defaultFilters: DashboardDefaultFilters = DEFAULT_DASHBOARD_FILTERS,
 ) {
-  const sortedData = useMemo(() => sortDashboardUsageData(data), [data])
+  const availableSystems = useMemo(
+    () =>
+      systems.map((system) => ({
+        id: system.id,
+        hostname: system.hostname,
+        isLocal: system.isLocal,
+      })),
+    [systems],
+  )
+  const validSystemIds = useMemo(() => new Set(systems.map((system) => system.id)), [systems])
+  const defaultSystems = useMemo(
+    () => defaultFilters.systems.filter((system) => validSystemIds.has(system)),
+    [defaultFilters.systems, validSystemIds],
+  )
+  const [selectedSystemsState, setSelectedSystemsState] = useState<string[]>(defaultSystems)
+  const systemFilteredData = useMemo(() => {
+    if (systems.length === 0) return data
+    const selected = new Set(selectedSystemsState)
+    return mergeSystemUsageByDate(
+      selected.size > 0 ? systems.filter((system) => selected.has(system.id)) : systems,
+    )
+  }, [data, systems, selectedSystemsState])
+  const sortedData = useMemo(() => sortDashboardUsageData(systemFilteredData), [systemFilteredData])
   const resolvedDefaults = useMemo(
-    () => sanitizeDashboardDefaultFilters(sortedData, defaultFilters),
-    [sortedData, defaultFilters],
+    () => ({
+      ...sanitizeDashboardDefaultFilters(sortedData, defaultFilters),
+      systems: defaultSystems,
+    }),
+    [sortedData, defaultFilters, defaultSystems],
   )
   const defaultRange = useMemo(
     () => resolveDashboardPresetRange(resolvedDefaults.datePreset),
@@ -37,17 +72,20 @@ export function useDashboardFilters(
   const applyDefaultFilters = useCallback(
     (nextDefaultFilters: DashboardDefaultFilters = defaultFilters) => {
       const sanitizedDefaults = sanitizeDashboardDefaultFilters(sortedData, nextDefaultFilters)
+      const nextSystems = sanitizedDefaults.systems.filter((system) => validSystemIds.has(system))
+      const appliedDefaults = { ...sanitizedDefaults, systems: nextSystems }
       const nextRange = resolveDashboardPresetRange(sanitizedDefaults.datePreset)
       userModifiedRef.current = false
-      appliedDefaultsKeyRef.current = JSON.stringify(sanitizedDefaults)
+      appliedDefaultsKeyRef.current = JSON.stringify(appliedDefaults)
       setViewModeState(sanitizedDefaults.viewMode)
       setSelectedMonthState(null)
       setSelectedProvidersState(sanitizedDefaults.providers)
       setSelectedModelsState(sanitizedDefaults.models)
+      setSelectedSystemsState(nextSystems)
       setStartDateState(nextRange.startDate)
       setEndDateState(nextRange.endDate)
     },
-    [defaultFilters, sortedData],
+    [defaultFilters, sortedData, validSystemIds],
   )
 
   useEffect(() => {
@@ -60,9 +98,17 @@ export function useDashboardFilters(
     setSelectedMonthState(null)
     setSelectedProvidersState(resolvedDefaults.providers)
     setSelectedModelsState(resolvedDefaults.models)
+    setSelectedSystemsState(resolvedDefaults.systems)
     setStartDateState(defaultRange.startDate)
     setEndDateState(defaultRange.endDate)
   }, [defaultFiltersKey, resolvedDefaults, defaultRange])
+
+  useEffect(() => {
+    setSelectedSystemsState((previous) => {
+      const next = previous.filter((system) => validSystemIds.has(system))
+      return next.length === previous.length ? previous : next
+    })
+  }, [validSystemIds])
 
   const setViewMode = useCallback((mode: ViewMode) => {
     userModifiedRef.current = true
@@ -110,6 +156,20 @@ export function useDashboardFilters(
     setSelectedModelsState([])
   }, [])
 
+  const toggleSystem = useCallback((system: string) => {
+    userModifiedRef.current = true
+    setSelectedSystemsState((previous) =>
+      previous.includes(system)
+        ? previous.filter((value) => value !== system)
+        : [...previous, system],
+    )
+  }, [])
+
+  const clearSystems = useCallback(() => {
+    userModifiedRef.current = true
+    setSelectedSystemsState([])
+  }, [])
+
   const resetAll = useCallback(() => {
     applyDefaultFilters()
   }, [applyDefaultFilters])
@@ -155,6 +215,10 @@ export function useDashboardFilters(
     selectedModels: selectedModelsState,
     toggleModel,
     clearModels,
+    availableSystems,
+    selectedSystems: selectedSystemsState,
+    toggleSystem,
+    clearSystems,
     startDate: startDateState,
     setStartDate,
     endDate: endDateState,
@@ -162,6 +226,7 @@ export function useDashboardFilters(
     resetAll,
     applyDefaultFilters,
     applyPreset,
+    systemDailyData: systemFilteredData,
     filteredDailyData: filterData.filteredDailyData,
     filteredData: filterData.filteredData,
     availableMonths: filterData.availableMonths,

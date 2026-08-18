@@ -23,11 +23,14 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
     isPersistedStateError,
     mergeUsageData,
     readData,
+    readUsageResponse,
+    readSettingsForWrite,
     unlinkIfExists,
     _updateDataLoadStateUnlocked,
     withSettingsAndDataMutationLock,
     writeData,
     paths: { dataFile },
+    systemData,
   } = dataRuntime;
 
   function isPlainObject(value) {
@@ -84,7 +87,7 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
       if (req.method === 'GET') {
         let data;
         try {
-          data = readData();
+          data = readUsageResponse();
         } catch (error) {
           if (isPersistedStateError(error, 'usage')) {
             return writeJsonResponse(res, 500, { message: error.message });
@@ -101,11 +104,19 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
           });
         }
         try {
-          await withSettingsAndDataMutationLock(async () => {
-            await unlinkIfExists(dataFile);
-            await _updateDataLoadStateUnlocked({
-              lastLoadedAt: null,
-              lastLoadSource: null,
+          await systemData.withSystemMutationLock(async () => {
+            await systemData.deleteAllImportedSystems({ mutationLockHeld: true });
+            await withSettingsAndDataMutationLock(async () => {
+              await unlinkIfExists(dataFile);
+              const currentSettings = readSettingsForWrite();
+              await _updateDataLoadStateUnlocked({
+                lastLoadedAt: null,
+                lastLoadSource: null,
+                defaultFilters: {
+                  ...currentSettings.defaultFilters,
+                  systems: [],
+                },
+              });
             });
           });
         } catch (error) {

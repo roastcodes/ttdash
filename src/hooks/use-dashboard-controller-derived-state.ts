@@ -5,7 +5,7 @@ import { computeDashboardForecastState } from '@/lib/calculations'
 import { getCurrentMonthForecastData } from '@/lib/data-transforms'
 import { localToday, toLocalDateStr } from '@/lib/formatters'
 import type { DashboardControllerDerivedState } from '@/types/dashboard-controller'
-import type { AppSettings, DailyUsage } from '@/types'
+import type { AppSettings, DailyUsage, UsageSystem } from '@/types'
 
 /** Declares the raw inputs required to derive the dashboard controller state. */
 interface DashboardControllerDerivedStateParams {
@@ -15,6 +15,7 @@ interface DashboardControllerDerivedStateParams {
   allModelsFromData: string[]
   settings: AppSettings
   locale: string
+  systems: UsageSystem[]
 }
 
 /** Composes the dashboard's heavy derived data from usage, settings, filters, and metrics hooks. */
@@ -25,8 +26,9 @@ export function useDashboardControllerDerivedState({
   allModelsFromData,
   settings,
   locale,
+  systems,
 }: DashboardControllerDerivedStateParams): DashboardControllerDerivedState {
-  const filters = useDashboardFilters(daily, settings.defaultFilters)
+  const filters = useDashboardFilters(daily, systems, settings.defaultFilters)
   const computed = useComputedMetrics(filters.filteredData, locale)
   // Forecast and anomaly detection need the per-day cost series, not aggregate cost metrics.
   const dailyCosts = useMemo(
@@ -60,8 +62,13 @@ export function useDashboardControllerDerivedState({
   )
 
   const forecastData = useMemo(
-    () => getCurrentMonthForecastData(daily, filters.selectedProviders, filters.selectedModels),
-    [daily, filters.selectedProviders, filters.selectedModels],
+    () =>
+      getCurrentMonthForecastData(
+        filters.systemDailyData,
+        filters.selectedProviders,
+        filters.selectedModels,
+      ),
+    [filters.systemDailyData, filters.selectedProviders, filters.selectedModels],
   )
 
   const forecastState = useMemo(() => computeDashboardForecastState(forecastData), [forecastData])

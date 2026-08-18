@@ -76,6 +76,8 @@
     "all": "All",
     "none": "None",
     "reset": "Reset",
+    "cancel": "Cancel",
+    "delete": "Delete",
     "notAvailable": "n/a",
     "noData": "No data",
     "generated": "Generated",
@@ -136,6 +138,7 @@
     "groups": {
       "time": "Time",
       "dateRange": "Date range",
+      "systems": "Systems",
       "providers": "Providers",
       "models": "Models"
     },
@@ -151,7 +154,10 @@
     "resetAll": "Reset all",
     "providers": "Providers",
     "models": "Models",
-    "resetModels": "Reset models"
+    "resetModels": "Reset models",
+    "systems": "Systems",
+    "allSystems": "All systems",
+    "localSystem": "this system"
   },
   "dashboard": {
     "insights": {
@@ -990,6 +996,8 @@
       "defaultDateRange": "Default date range",
       "filterProviders": "Default provider filter",
       "filterModels": "Default model filter",
+      "filterSystems": "Default system filter",
+      "filterSystemsHint": "No selection means all systems are shown by default.",
       "noModels": "No models found in the loaded report.",
       "sectionVisibilityTitle": "Visible dashboard sections",
       "sectionVisibilityDescription": "Control which sections are rendered in the dashboard and adjust their order.",
@@ -1025,6 +1033,28 @@
       "importSettings": "Import settings",
       "exportData": "Export data",
       "importData": "Import data",
+      "systemTransferTitle": "System transfer",
+      "systemTransferDescription": "Exports data from this host only and manages separate datasets from other systems.",
+      "exportSystem": "Export this system",
+      "importSystems": "Import system files",
+      "systemConflictTitle": "Existing systems found",
+      "systemConflictDescription": "Files already exist for {{systems}}. Replace or skip all conflicts?",
+      "replaceAllSystems": "Replace all",
+      "skipAllSystems": "Skip all",
+      "systemRetryTitle": "Retry incomplete imports?",
+      "systemRetryDescription": "These system imports did not finish: {{systems}}. You can retry them without selecting the files again.",
+      "retrySystemImports": "Retry imports",
+      "importedSystemsTitle": "Additional systems",
+      "importedSystemsDescription": "These files stay separate from the local host and are included in the combined overview.",
+      "deleteAllSystems": "Delete all additional systems",
+      "noImportedSystems": "No additional systems have been imported yet.",
+      "unreadableSystemsTitle": "Unreadable system files",
+      "unreadableSystemsDescription": "These files were skipped so the remaining dashboard stays available. Delete all additional systems or run a full reset to remove them.",
+      "systemUsageSummary": "{{days}} days · {{cost}}",
+      "deleteSystemLabel": "Delete system {{hostname}}",
+      "deleteSystemTitle": "Delete additional system data?",
+      "deleteSystemConfirmation": "The separate dataset for {{hostname}} will be permanently removed. Local host data remains intact.",
+      "deleteAllSystemsConfirmation": "All additional system files will be removed. Local host data remains intact.",
       "close": "Close",
       "save": "Save",
       "viewModes": {
@@ -1281,7 +1311,11 @@
     "importUsageFailed": "Data import failed",
     "importSettingsFailed": "Settings import failed",
     "saveSettingsFailed": "Failed to save settings",
-    "pdfFailed": "PDF generation failed"
+    "pdfFailed": "PDF generation failed",
+    "systemExportFailed": "System export failed",
+    "systemImportFailed": "System import failed",
+    "fetchSystemsFailed": "Could not load the system list",
+    "deleteSystemFailed": "Could not delete additional system data"
   },
   "toasts": {
     "fileLoaded": "File {{name}} loaded successfully",
@@ -1296,6 +1330,10 @@
     "settingsReset": "Settings reset",
     "settingsSaved": "Settings saved",
     "dataBackupImported": "Backup imported: added {{added}} new days, skipped {{unchanged}} identical days",
-    "dataBackupImportedWithConflicts": "Backup imported: added {{added}} new days, kept {{conflicts}} conflicting days local"
+    "dataBackupImportedWithConflicts": "Backup imported: added {{added}} new days, kept {{conflicts}} conflicting days local",
+    "systemExported": "Exported system file {{name}}",
+    "systemsImported": "System import complete: {{imported}} imported, {{skipped}} skipped",
+    "systemDeleted": "Deleted additional system {{hostname}}",
+    "systemsDeleted": "Deleted all additional systems"
   }
 }

@@ -37,6 +37,7 @@ const SECURE_DIR_MODE = 0o700;
 const SECURE_FILE_MODE = 0o600;
 const SETTINGS_BACKUP_KIND = 'ttdash-settings-backup';
 const USAGE_BACKUP_KIND = 'ttdash-usage-backup';
+const SYSTEM_EXPORT_KIND = 'ttdash-system-export';
 const BACKGROUND_START_TIMEOUT_MS = 15000;
 const BACKGROUND_INSTANCES_LOCK_TIMEOUT_MS = 5000;
 const BACKGROUND_INSTANCES_LOCK_STALE_MS = 10000;
@@ -111,6 +112,8 @@ function createAppRuntime({
     legacyDataFile,
     settingsBackupKind: SETTINGS_BACKUP_KIND,
     usageBackupKind: USAGE_BACKUP_KIND,
+    systemExportKind: SYSTEM_EXPORT_KIND,
+    appVersion: APP_VERSION,
     isDarwin,
     isWindows,
     secureDirMode: SECURE_DIR_MODE,

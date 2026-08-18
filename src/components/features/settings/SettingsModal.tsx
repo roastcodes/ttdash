@@ -14,6 +14,7 @@ import type { DashboardSettingsModalViewModel } from '@/types/dashboard-view-mod
 import { cn } from '@/lib/cn'
 import {
   SettingsBackupsSection,
+  SettingsSystemTransferSection,
   SettingsDefaultsSection,
   SettingsLanguageSection,
   SettingsMotionSection,
@@ -77,6 +78,19 @@ export function SettingsModal(props: SettingsModalProps) {
     onImportSettings,
     onExportData,
     onImportData,
+    onExportSystem,
+    onImportSystems,
+    onDeleteSystem,
+    onDeleteAllSystems,
+    systems,
+    unreadableSystemFiles,
+    systemImportConflicts,
+    systemImportRetries,
+    onReplaceSystemConflicts,
+    onSkipSystemConflicts,
+    onCancelSystemConflicts,
+    onRetrySystemImports,
+    onCancelSystemRetries,
     settingsBusy = false,
     dataBusy = false,
   } = props
@@ -263,6 +277,22 @@ export function SettingsModal(props: SettingsModalProps) {
                 onImportSettings={onImportSettings}
                 onExportData={onExportData}
                 onImportData={onImportData}
+              />
+              <SettingsSystemTransferSection
+                systems={systems}
+                unreadableSystemFiles={unreadableSystemFiles}
+                dataBusy={dataBusy}
+                onExportSystem={onExportSystem}
+                onImportSystems={onImportSystems}
+                onDeleteSystem={onDeleteSystem}
+                onDeleteAllSystems={onDeleteAllSystems}
+                systemImportConflicts={systemImportConflicts}
+                systemImportRetries={systemImportRetries}
+                onReplaceSystemConflicts={onReplaceSystemConflicts}
+                onSkipSystemConflicts={onSkipSystemConflicts}
+                onCancelSystemConflicts={onCancelSystemConflicts}
+                onRetrySystemImports={onRetrySystemImports}
+                onCancelSystemRetries={onCancelSystemRetries}
               />
               <SettingsToktrackVersionSection versionStatus={versionStatus} />
             </>

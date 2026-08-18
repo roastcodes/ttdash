@@ -14,6 +14,8 @@ import { createApiSharedServer, sampleUsage } from './server-api-test-helpers'
 const sharedServer = createApiSharedServer()
 const emptyUsageResponse = {
   daily: [],
+  systems: [],
+  unreadableSystemFiles: [],
   totals: {
     inputTokens: 0,
     outputTokens: 0,

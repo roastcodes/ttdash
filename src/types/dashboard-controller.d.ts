@@ -12,6 +12,7 @@ import type {
   TokenChartDataPoint,
   ViewMode,
   WeekdayData,
+  UsageSystem,
 } from '@/types'
 import type {
   DashboardAutoImportDialogViewModel,
@@ -56,9 +57,11 @@ export interface DashboardFileInputsViewModel {
   usageUploadRef: DashboardFileInputRef
   settingsImportRef: DashboardFileInputRef
   dataImportRef: DashboardFileInputRef
+  systemImportRef: DashboardFileInputRef
   onUsageUploadChange: (event: DashboardFileInputChangeEvent) => Promise<void> | void
   onSettingsImportChange: (event: DashboardFileInputChangeEvent) => Promise<void> | void
   onDataImportChange: (event: DashboardFileInputChangeEvent) => Promise<void> | void
+  onSystemImportChange: (event: DashboardFileInputChangeEvent) => Promise<void> | void
 }
 
 /** Captures the filter hook surface consumed by the dashboard controller. */
@@ -73,6 +76,10 @@ export interface DashboardControllerFiltersState {
   selectedModels: string[]
   toggleModel: (model: string) => void
   clearModels: () => void
+  availableSystems: Array<Pick<UsageSystem, 'id' | 'hostname' | 'isLocal'>>
+  selectedSystems: string[]
+  toggleSystem: (system: string) => void
+  clearSystems: () => void
   startDate: string | undefined
   setStartDate: (date: string | undefined) => void
   endDate: string | undefined
@@ -80,6 +87,7 @@ export interface DashboardControllerFiltersState {
   resetAll: () => void
   applyDefaultFilters: (nextDefaultFilters?: DashboardDefaultFilters) => void
   applyPreset: (preset: DashboardDatePreset) => void
+  systemDailyData: DailyUsage[]
   filteredDailyData: DailyUsage[]
   filteredData: DailyUsage[]
   availableMonths: string[]

@@ -26,6 +26,24 @@ const MODEL_COLOR_FAMILIES = [
     },
   },
   {
+    id: 'gpt-codex-max',
+    light: { h: 218, s: 76, l: 43 },
+    dark: { h: 218, s: 82, l: 62 },
+    resolve(name) {
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Codex Max$/i)
+      return match ? { bucketKey: 'gpt-codex-max', version: parseNumericVersion(match[1]) } : null
+    },
+  },
+  {
+    id: 'gpt-codex-mini',
+    light: { h: 181, s: 70, l: 36 },
+    dark: { h: 181, s: 76, l: 55 },
+    resolve(name) {
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Codex Mini$/i)
+      return match ? { bucketKey: 'gpt-codex-mini', version: parseNumericVersion(match[1]) } : null
+    },
+  },
+  {
     id: 'gpt-codex',
     light: { h: 194, s: 76, l: 42 },
     dark: { h: 194, s: 82, l: 60 },
@@ -37,6 +55,69 @@ const MODEL_COLOR_FAMILIES = [
         bucketKey: 'gpt-codex',
         version: parseNumericVersion(match[1]),
       }
+    },
+  },
+  {
+    id: 'gpt-sol',
+    light: { h: 30, s: 88, l: 42 },
+    dark: { h: 34, s: 92, l: 60 },
+    resolve(name) {
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Sol$/i)
+      return match ? { bucketKey: 'gpt-sol', version: parseNumericVersion(match[1]) } : null
+    },
+  },
+  {
+    id: 'gpt-terra',
+    light: { h: 171, s: 68, l: 34 },
+    dark: { h: 171, s: 74, l: 52 },
+    resolve(name) {
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Terra$/i)
+      return match ? { bucketKey: 'gpt-terra', version: parseNumericVersion(match[1]) } : null
+    },
+  },
+  {
+    id: 'gpt-luna',
+    light: { h: 250, s: 68, l: 48 },
+    dark: { h: 250, s: 78, l: 68 },
+    resolve(name) {
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Luna$/i)
+      return match ? { bucketKey: 'gpt-luna', version: parseNumericVersion(match[1]) } : null
+    },
+  },
+  {
+    id: 'gpt-pro',
+    light: { h: 134, s: 66, l: 35 },
+    dark: { h: 134, s: 72, l: 52 },
+    resolve(name) {
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Pro$/i)
+      return match ? { bucketKey: 'gpt-pro', version: parseNumericVersion(match[1]) } : null
+    },
+  },
+  {
+    id: 'gpt-mini',
+    light: { h: 158, s: 64, l: 34 },
+    dark: { h: 158, s: 70, l: 51 },
+    resolve(name) {
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Mini$/i)
+      return match ? { bucketKey: 'gpt-mini', version: parseNumericVersion(match[1]) } : null
+    },
+  },
+  {
+    id: 'gpt-nano',
+    light: { h: 181, s: 60, l: 34 },
+    dark: { h: 181, s: 66, l: 51 },
+    resolve(name) {
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Nano$/i)
+      return match ? { bucketKey: 'gpt-nano', version: parseNumericVersion(match[1]) } : null
+    },
+  },
+  {
+    id: 'gpt-chat',
+    light: { h: 118, s: 56, l: 36 },
+    dark: { h: 118, s: 62, l: 54 },
+    resolve(name) {
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Chat(?: Latest)?$/i)
+      return match ? { bucketKey: 'gpt-chat', version: parseNumericVersion(match[1]) } : null
     },
   },
   {

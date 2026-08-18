@@ -12,6 +12,10 @@
     { "pattern": "(^|-)opencode$", "name": "OpenCode" }
   ],
   "providerMatchers": [
+    {
+      "pattern": "(^|[^a-z0-9])(?:github[_ /-]?copilot|copilot)($|[^a-z0-9])",
+      "provider": "GitHub Copilot"
+    },
     { "pattern": "(^|-)opencode($|-)", "provider": "OpenCode" },
     {
       "pattern": "openai-codex|(^|-)codex($|-)|(^|-)gpt($|-)|(^|[^a-z0-9])o\\d(?:$|[^a-z0-9])|openai",

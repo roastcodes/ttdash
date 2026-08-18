@@ -62,6 +62,17 @@ function createLifecycleFixture(overrides: Record<string, unknown> = {}) {
     runStartupAutoLoad: vi.fn(async () => calls.push('runStartupAutoLoad')),
     writeLocalAuthSessionFile: vi.fn((url) => calls.push(`writeLocalAuthSessionFile:${url}`)),
   }
+  const dataRuntime = {
+    ensureAppDirs: vi.fn(() => calls.push('ensureAppDirs')),
+    migrateLegacyDataFile: vi.fn(() => calls.push('migrateLegacyDataFile')),
+    readData: vi.fn(() => ({ daily: [{ date: '2026-08-18' }] })),
+    systemData: {
+      exportLocalData: vi.fn(async () => {
+        calls.push('exportLocalData')
+        return '/exports/ttdash-system-workstation-a.json'
+      }),
+    },
+  }
   const lifecycle = createServerLifecycle({
     http: {},
     processObject,
@@ -74,10 +85,7 @@ function createLifecycleFixture(overrides: Record<string, unknown> = {}) {
     },
     listenOnAvailablePort: vi.fn(async () => 3010),
     ensureBindHostAllowed: vi.fn(() => calls.push('ensureBindHostAllowed')),
-    dataRuntime: {
-      ensureAppDirs: vi.fn(() => calls.push('ensureAppDirs')),
-      migrateLegacyDataFile: vi.fn(() => calls.push('migrateLegacyDataFile')),
-    },
+    dataRuntime,
     backgroundRuntime,
     startupRuntime,
     serverAuth: {
@@ -99,6 +107,7 @@ function createLifecycleFixture(overrides: Record<string, unknown> = {}) {
   return {
     backgroundRuntime,
     calls,
+    dataRuntime,
     errorLog,
     fakeServer,
     lifecycle,
@@ -171,6 +180,34 @@ describe('server lifecycle runtime', () => {
       'ensureConfigured',
       'startInBackground',
     ])
+  })
+
+  it('runs auto-load before a path-only system export and does not start the server', async () => {
+    const { calls, dataRuntime, lifecycle, log } = createLifecycleFixture({
+      cliOptions: {
+        command: null,
+        background: false,
+        autoLoad: true,
+        export: true,
+        exportPath: './exports',
+      },
+    })
+
+    await lifecycle.runCli()
+
+    expect(calls).toEqual([
+      'ensureAppDirs',
+      'migrateLegacyDataFile',
+      'runStartupAutoLoad',
+      'exportLocalData',
+    ])
+    expect(dataRuntime.systemData.exportLocalData).toHaveBeenCalledWith(
+      { daily: [{ date: '2026-08-18' }] },
+      './exports',
+    )
+    expect(log).toHaveBeenCalledWith(
+      'System export written to /exports/ttdash-system-workstation-a.json',
+    )
   })
 
   it('formats malformed request-path client errors consistently', () => {

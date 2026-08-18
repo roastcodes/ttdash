@@ -48,6 +48,12 @@ Unauthorized responses include status `401`, `WWW-Authenticate`, and `X-TTDash-A
 | `DELETE` | `/api/usage`                   | `{ "success": true }`                                 |
 | `POST`   | `/api/upload`                  | Imported day count and total cost                     |
 | `POST`   | `/api/usage/import`            | Added, unchanged, conflict, skipped, and total counts |
+| `GET`    | `/api/systems`                 | Local hostname and imported-system summaries          |
+| `DELETE` | `/api/systems`                 | Delete all additional systems                         |
+| `GET`    | `/api/systems/export`          | Local-host system-transfer JSON download              |
+| `POST`   | `/api/systems/import/preview`  | Validated hostname, filename, and collision state     |
+| `POST`   | `/api/systems/import`          | Imported or replaced system summary                   |
+| `DELETE` | `/api/systems/:hostname`       | Delete one additional system                          |
 | `GET`    | `/api/settings`                | Normalized settings and runtime load status           |
 | `PATCH`  | `/api/settings`                | Updated normalized settings                           |
 | `DELETE` | `/api/settings`                | Success flag and normalized defaults                  |
@@ -61,7 +67,7 @@ Unauthorized responses include status `401`, `WWW-Authenticate`, and `X-TTDash-A
 
 ### `GET /api/usage`
 
-Returns the [normalized usage object](/ttdash/reference/data-formats/#normalized-usage-object). With no stored data, `daily` is empty and every total is zero. Unreadable persisted data returns `500` with a diagnostic message.
+Returns the aggregate [normalized usage object](/ttdash/reference/data-formats/#normalized-usage-object) plus a `systems` array containing the local dataset and every imported host. Daily rows with the same date and model are summed in the aggregate. With no local or imported data, `daily` and `systems` are empty and every total is zero. An unreadable local `data.json` returns `500`; unreadable imported system files are skipped and reported through `unreadableSystemFiles` so readable usage stays available.
 
 ```bash
 curl \
@@ -109,7 +115,55 @@ Conservatively merges a usage backup by valid calendar date. Existing conflictin
 
 ### `DELETE /api/usage`
 
-Deletes `data.json` and clears usage load metadata. This is destructive and cannot be undone without a backup.
+Deletes `data.json`, every imported-system file below `systems/`, persisted system defaults, and usage load metadata. This is destructive and cannot be undone without a backup or the original system-transfer files.
+
+## Systems
+
+System transfers keep usage from other hosts separate from the destination's local dataset. All mutation requests use the same origin, authentication, JSON content-type, and request-size rules as other API imports.
+
+### `GET /api/systems/export`
+
+Downloads a versioned `ttdash-system-export` envelope for local `data.json`. The `Content-Disposition` filename is `ttdash-system-<hostname>.json` and contains no timestamp. Imported systems are never included. A host without local usage receives `400`.
+
+### `POST /api/systems/import/preview`
+
+Validates a system-transfer envelope without writing it:
+
+```json
+{
+  "hostname": "workstation-b",
+  "filename": "ttdash-system-workstation-b.json",
+  "exists": true
+}
+```
+
+The local hostname is rejected with `409`. Unsupported envelopes or invalid hostnames return `400`.
+
+### `POST /api/systems/import`
+
+Stores the validated envelope under the deterministic filename. An existing hostname returns `409` and code `SYSTEM_EXISTS`. Append `?replace=1` only after an explicit replacement decision:
+
+```bash
+curl \
+  --request POST \
+  --header "Authorization: Bearer $TTDASH_REMOTE_TOKEN" \
+  --header "Origin: http://127.0.0.1:3000" \
+  --header "Content-Type: application/json" \
+  --data-binary @ttdash-system-workstation-b.json \
+  'http://127.0.0.1:3000/api/systems/import?replace=1'
+```
+
+### `GET /api/systems`
+
+Returns the destination hostname plus summaries for additional imported systems. The response includes each canonical hostname, deterministic filename, export timestamp, day count, and total cost; it does not repeat the complete daily datasets. Skipped corrupt files are listed separately in `unreadableSystemFiles`.
+
+### `DELETE /api/systems/:hostname`
+
+Deletes one additional system and removes it from persisted default filters. The local hostname is not an imported-system target.
+
+### `DELETE /api/systems`
+
+Deletes all additional system files and clears all persisted system defaults while retaining local `data.json`.
 
 ## Settings
 
@@ -125,7 +179,7 @@ Accepts any subset of these fields:
 - `theme`: `dark` or `light`
 - `reducedMotionPreference`: `system`, `always`, or `never`
 - `providerLimits`: provider-keyed subscription price and monthly limit objects
-- `defaultFilters`: view mode, date preset, providers, and models
+- `defaultFilters`: view mode, date preset, systems, providers, and models
 - `sectionVisibility`: booleans keyed by dashboard section ID
 - `sectionOrder`: ordered dashboard section IDs
 

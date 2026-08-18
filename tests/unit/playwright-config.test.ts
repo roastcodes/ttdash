@@ -98,6 +98,7 @@ describe('playwright config', () => {
       'dashboard-load-upload.spec.ts',
       'dashboard-reporting.spec.ts',
       'dashboard-settings-backups.spec.ts',
+      'dashboard-system-import.spec.ts',
     ])
 
     for (const spec of specs) {

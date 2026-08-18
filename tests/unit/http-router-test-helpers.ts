@@ -117,6 +117,31 @@ export function createRouter({
   securityHeaders?: Record<string, string>
   staticRoot?: string
 } = {}) {
+  const readData =
+    typeof dataRuntimeOverrides.readData === 'function'
+      ? (dataRuntimeOverrides.readData as () => unknown)
+      : vi.fn(() => null)
+  const readUsageResponse =
+    typeof dataRuntimeOverrides.readUsageResponse === 'function'
+      ? (dataRuntimeOverrides.readUsageResponse as (systems?: string[]) => unknown)
+      : vi.fn(() => readData())
+  const systemData = {
+    localHostname: 'localhost',
+    createEnvelope: vi.fn((data) => ({
+      kind: 'ttdash-system-export',
+      version: 1,
+      hostname: 'localhost',
+      data,
+    })),
+    deleteAllImportedSystems: vi.fn(async () => 0),
+    deleteImportedSystem: vi.fn(async () => false),
+    getSystemFilename: vi.fn((hostname: string) => `ttdash-system-${hostname}.json`),
+    importSystem: vi.fn(async () => ({})),
+    previewImport: vi.fn(() => ({})),
+    readImportedSystems: vi.fn(() => ({ systems: [], unreadableFiles: [] })),
+    withSystemMutationLock: vi.fn(async (operation: () => Promise<unknown>) => operation()),
+    ...((dataRuntimeOverrides.systemData as Record<string, unknown> | undefined) ?? {}),
+  }
   const dataRuntime = {
     extractSettingsImportPayload: vi.fn(
       (payload: { settings?: unknown }) => payload.settings ?? payload,
@@ -140,8 +165,10 @@ export function createRouter({
     })),
     normalizeIncomingData: vi.fn((payload) => payload),
     normalizeSettings: vi.fn((payload) => payload),
-    readData: vi.fn(() => null),
+    readData,
+    readUsageResponse,
     readSettings: vi.fn(() => ({ language: 'en' })),
+    readSettingsForWrite: vi.fn(() => ({ defaultFilters: { systems: [] } })),
     unlinkIfExists: vi.fn(),
     _updateDataLoadStateUnlocked: vi.fn(async () => undefined),
     updateDataLoadState: vi.fn(async () => undefined),
@@ -159,6 +186,7 @@ export function createRouter({
       settingsFile: '/data/settings.json',
     },
     ...dataRuntimeOverrides,
+    systemData,
   }
 
   const router = createHttpRouter({

@@ -1,4 +1,4 @@
-import type { DailyUsage, DashboardDefaultFilters, ViewMode } from '@/types'
+import type { DailyUsage, DashboardDefaultFilters, UsageSystem, ViewMode } from '@/types'
 import {
   aggregateToDailyFormat,
   getModelProvider,
@@ -31,6 +31,66 @@ export interface DashboardFilterData {
 export interface DashboardFilterOptions {
   providers: string[]
   models: string[]
+}
+
+/** Merges daily rows from the selected systems without counting calendar days twice. */
+export function mergeSystemUsageByDate(systems: UsageSystem[]): DailyUsage[] {
+  const byDate = new Map<string, DailyUsage>()
+  const breakdownsByDate = new Map<string, Map<string, DailyUsage['modelBreakdowns'][number]>>()
+
+  for (const system of systems) {
+    for (const day of system.data.daily) {
+      let target = byDate.get(day.date)
+      if (!target) {
+        target = {
+          date: day.date,
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          thinkingTokens: 0,
+          totalTokens: 0,
+          totalCost: 0,
+          requestCount: 0,
+          modelsUsed: [],
+          modelBreakdowns: [],
+        }
+        byDate.set(day.date, target)
+        breakdownsByDate.set(day.date, new Map())
+      }
+
+      target.inputTokens += day.inputTokens
+      target.outputTokens += day.outputTokens
+      target.cacheCreationTokens += day.cacheCreationTokens
+      target.cacheReadTokens += day.cacheReadTokens
+      target.thinkingTokens += day.thinkingTokens
+      target.totalTokens += day.totalTokens
+      target.totalCost += day.totalCost
+      target.requestCount += day.requestCount
+
+      const breakdowns = breakdownsByDate.get(day.date)!
+      for (const breakdown of day.modelBreakdowns) {
+        const existing = breakdowns.get(breakdown.modelName)
+        if (existing) {
+          existing.inputTokens += breakdown.inputTokens
+          existing.outputTokens += breakdown.outputTokens
+          existing.cacheCreationTokens += breakdown.cacheCreationTokens
+          existing.cacheReadTokens += breakdown.cacheReadTokens
+          existing.thinkingTokens += breakdown.thinkingTokens
+          existing.cost += breakdown.cost
+          existing.requestCount += breakdown.requestCount
+        } else {
+          breakdowns.set(breakdown.modelName, { ...breakdown })
+        }
+      }
+      target.modelBreakdowns = Array.from(breakdowns.values())
+      target.modelsUsed = Array.from(
+        new Set([...target.modelsUsed, ...day.modelsUsed, ...breakdowns.keys()]),
+      )
+    }
+  }
+
+  return Array.from(byDate.values()).sort((left, right) => left.date.localeCompare(right.date))
 }
 
 function addModelsToSet(modelsUsed: string[], target: Set<string>) {
@@ -147,6 +207,7 @@ export function sanitizeDashboardDefaultFilters(
     datePreset: defaultFilters.datePreset,
     providers: defaultFilters.providers.filter((provider) => providers.has(provider)),
     models: defaultFilters.models.filter((model) => models.has(model)),
+    systems: defaultFilters.systems,
   }
 }
 

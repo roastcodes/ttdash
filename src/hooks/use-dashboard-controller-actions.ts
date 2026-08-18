@@ -3,9 +3,14 @@ import type { QueryClient } from '@tanstack/react-query'
 import type { TFunction, i18n as I18n } from 'i18next'
 import {
   deleteSettings,
+  deleteAllImportedSystems,
+  deleteImportedSystem,
+  exportLocalSystemData,
   generatePdfReport,
   importSettings,
   importUsageData,
+  importSystemData,
+  previewSystemImport,
   type PdfReportRequest,
 } from '@/lib/api'
 import {
@@ -36,6 +41,7 @@ import type {
   ProviderLimits,
   ReducedMotionPreference,
   UsageData,
+  SystemImportPreview,
 } from '@/types'
 
 /** Declares the dependencies that power the dashboard controller action slice. */
@@ -47,6 +53,7 @@ interface DashboardControllerActionsParams {
   selectedMonth: string | null
   selectedProviders: string[]
   selectedModels: string[]
+  selectedSystems: string[]
   startDate?: string
   endDate?: string
   setStartDate: (date: string | undefined) => void
@@ -93,6 +100,17 @@ export interface DashboardControllerActionsResult {
   onImportSettings: () => void
   onExportData: () => void
   onImportData: () => void
+  onExportSystem: () => void
+  onImportSystems: () => void
+  onDeleteSystem: (hostname: string) => Promise<void>
+  onDeleteAllSystems: () => Promise<void>
+  systemImportConflicts: string[]
+  systemImportRetries: string[]
+  onReplaceSystemConflicts: () => Promise<void>
+  onSkipSystemConflicts: () => Promise<void>
+  onCancelSystemConflicts: () => void
+  onRetrySystemImports: () => Promise<void>
+  onCancelSystemRetries: () => void
   onClearDateRange: () => void
   onApplyPreset: (preset: DashboardDatePreset) => void
   onScrollTo: (section: string) => void
@@ -118,6 +136,7 @@ export function useDashboardControllerActions({
   selectedMonth,
   selectedProviders,
   selectedModels,
+  selectedSystems,
   startDate,
   endDate,
   setStartDate,
@@ -139,11 +158,16 @@ export function useDashboardControllerActions({
   const usageUploadRef = useRef<HTMLInputElement>(null)
   const settingsImportRef = useRef<HTMLInputElement>(null)
   const dataImportRef = useRef<HTMLInputElement>(null)
+  const systemImportRef = useRef<HTMLInputElement>(null)
   const [reportGenerating, setReportGenerating] = useState(false)
   const [settingsTransferBusy, setSettingsTransferBusy] = useState(false)
   const [dataTransferBusy, setDataTransferBusy] = useState(false)
   const [dataSource, setDataSource] = useState<DashboardDataSource | null>(null)
   const [animationKey, setAnimationKey] = useState(0)
+  const [pendingSystemImports, setPendingSystemImports] = useState<
+    Array<{ name: string; data: unknown; preview: SystemImportPreview }>
+  >([])
+  const [systemImportRetryMode, setSystemImportRetryMode] = useState<boolean | null>(null)
 
   const handleUpload = useCallback(() => {
     usageUploadRef.current?.click()
@@ -258,6 +282,7 @@ export function useDashboardControllerActions({
         selectedMonth,
         selectedProviders,
         selectedModels,
+        selectedSystems,
         language: requestLanguage,
         ...(startDate ? { startDate } : {}),
         ...(endDate ? { endDate } : {}),
@@ -280,6 +305,7 @@ export function useDashboardControllerActions({
     selectedMonth,
     selectedProviders,
     selectedModels,
+    selectedSystems,
     startDate,
     endDate,
     addToast,
@@ -323,7 +349,10 @@ export function useDashboardControllerActions({
   }, [settings, addToast, t])
 
   const handleExportData = useCallback(() => {
-    if (!usageData || usageData.daily.length === 0) {
+    const localData = usageData?.systems?.length
+      ? usageData.systems.find((system) => system.isLocal)?.data
+      : usageData
+    if (!localData || localData.daily.length === 0) {
       addToast(t('toasts.noDataToExport'), 'info')
       return
     }
@@ -333,7 +362,7 @@ export function useDashboardControllerActions({
       version: 1,
       exportedAt: new Date().toISOString(),
       appVersion: VERSION,
-      data: usageData,
+      data: localData,
     })
     addToast(t('toasts.dataExported'), 'success')
   }, [usageData, addToast, t])
@@ -345,6 +374,140 @@ export function useDashboardControllerActions({
   const handleImportData = useCallback(() => {
     dataImportRef.current?.click()
   }, [])
+
+  const handleExportSystem = useCallback(async () => {
+    setDataTransferBusy(true)
+    try {
+      const { blob, filename } = await exportLocalSystemData()
+      downloadBlobFile(filename, blob)
+      addToast(t('toasts.systemExported', { name: filename }), 'success')
+    } catch (error) {
+      addToast(normalizeErrorMessage(error) ?? t('api.systemExportFailed'), 'error')
+    } finally {
+      setDataTransferBusy(false)
+    }
+  }, [addToast, t])
+
+  const handleImportSystems = useCallback(() => {
+    systemImportRef.current?.click()
+  }, [])
+
+  const applySystemImports = useCallback(
+    async (
+      imports: Array<{ name: string; data: unknown; preview: SystemImportPreview }>,
+      replaceConflicts: boolean,
+    ) => {
+      setDataTransferBusy(true)
+      let imported = 0
+      let skipped = 0
+      let nextImportIndex = 0
+      let completed = false
+      try {
+        for (; nextImportIndex < imports.length; nextImportIndex += 1) {
+          const entry = imports[nextImportIndex]!
+          if (entry.preview.exists && !replaceConflicts) {
+            skipped += 1
+            continue
+          }
+          await importSystemData(entry.data, entry.preview.exists && replaceConflicts)
+          imported += 1
+        }
+        completed = true
+        setAnimationKey((previous) => previous + 1)
+        addToast(t('toasts.systemsImported', { imported, skipped }), 'success')
+      } catch (error) {
+        setPendingSystemImports(imports.slice(nextImportIndex))
+        setSystemImportRetryMode(replaceConflicts)
+        addToast(normalizeErrorMessage(error) ?? t('api.systemImportFailed'), 'error')
+      } finally {
+        try {
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['usage'] }),
+            queryClient.invalidateQueries({ queryKey: ['settings'] }),
+          ])
+        } finally {
+          if (completed) {
+            setPendingSystemImports([])
+            setSystemImportRetryMode(null)
+          }
+          setDataTransferBusy(false)
+        }
+      }
+    },
+    [queryClient, addToast, t],
+  )
+
+  const handleSystemImportChange = useCallback(
+    async (event: DashboardFileInputChangeEvent) => {
+      const files = Array.from(event.target.files ?? [])
+      if (files.length === 0) return
+
+      setDataTransferBusy(true)
+      try {
+        const imports = []
+        const seenHostnames = new Set<string>()
+        for (const file of files) {
+          const data: unknown = JSON.parse(await file.text())
+          const preview = await previewSystemImport(data)
+          const duplicate = seenHostnames.has(preview.hostname)
+          seenHostnames.add(preview.hostname)
+          imports.push({
+            name: file.name,
+            data,
+            preview: duplicate ? { ...preview, exists: true } : preview,
+          })
+        }
+        const conflicts = imports.filter((entry) => entry.preview.exists)
+        if (conflicts.length > 0) {
+          setPendingSystemImports(imports)
+          setSystemImportRetryMode(null)
+          return
+        }
+        await applySystemImports(imports, false)
+      } catch (error) {
+        addToast(normalizeErrorMessage(error) ?? t('toasts.fileReadFailed'), 'error')
+      } finally {
+        setDataTransferBusy(false)
+        event.target.value = ''
+      }
+    },
+    [applySystemImports, addToast, t],
+  )
+
+  const handleDeleteSystem = useCallback(
+    async (hostname: string) => {
+      setDataTransferBusy(true)
+      try {
+        await deleteImportedSystem(hostname)
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['usage'] }),
+          queryClient.invalidateQueries({ queryKey: ['settings'] }),
+        ])
+        addToast(t('toasts.systemDeleted', { hostname }), 'success')
+      } catch (error) {
+        addToast(normalizeErrorMessage(error) ?? t('api.deleteSystemFailed'), 'error')
+      } finally {
+        setDataTransferBusy(false)
+      }
+    },
+    [queryClient, addToast, t],
+  )
+
+  const handleDeleteAllSystems = useCallback(async () => {
+    setDataTransferBusy(true)
+    try {
+      await deleteAllImportedSystems()
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['usage'] }),
+        queryClient.invalidateQueries({ queryKey: ['settings'] }),
+      ])
+      addToast(t('toasts.systemsDeleted'), 'success')
+    } catch (error) {
+      addToast(normalizeErrorMessage(error) ?? t('api.deleteSystemFailed'), 'error')
+    } finally {
+      setDataTransferBusy(false)
+    }
+  }, [queryClient, addToast, t])
 
   const handleSettingsImportChange = useCallback(
     async (event: DashboardFileInputChangeEvent) => {
@@ -430,9 +593,11 @@ export function useDashboardControllerActions({
       usageUploadRef,
       settingsImportRef,
       dataImportRef,
+      systemImportRef,
       onUsageUploadChange: handleUsageUploadChange,
       onSettingsImportChange: handleSettingsImportChange,
       onDataImportChange: handleDataImportChange,
+      onSystemImportChange: handleSystemImportChange,
     },
     report: {
       generating: reportGenerating,
@@ -454,6 +619,32 @@ export function useDashboardControllerActions({
     onImportSettings: handleImportSettings,
     onExportData: handleExportData,
     onImportData: handleImportData,
+    onExportSystem: () => void handleExportSystem(),
+    onImportSystems: handleImportSystems,
+    onDeleteSystem: handleDeleteSystem,
+    onDeleteAllSystems: handleDeleteAllSystems,
+    systemImportConflicts:
+      systemImportRetryMode === null
+        ? pendingSystemImports
+            .filter((entry) => entry.preview.exists)
+            .map((entry) => entry.preview.hostname)
+        : [],
+    systemImportRetries:
+      systemImportRetryMode === null
+        ? []
+        : pendingSystemImports.map((entry) => entry.preview.hostname),
+    onReplaceSystemConflicts: () => applySystemImports(pendingSystemImports, true),
+    onSkipSystemConflicts: () => applySystemImports(pendingSystemImports, false),
+    onCancelSystemConflicts: () => {
+      setPendingSystemImports([])
+      setSystemImportRetryMode(null)
+    },
+    onRetrySystemImports: () =>
+      applySystemImports(pendingSystemImports, systemImportRetryMode ?? false),
+    onCancelSystemRetries: () => {
+      setPendingSystemImports([])
+      setSystemImportRetryMode(null)
+    },
     onClearDateRange: handleClearDateRange,
     onApplyPreset: handleApplyPreset,
     onScrollTo: scrollToSection,

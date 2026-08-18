@@ -47,6 +47,8 @@ export function getProviderBadgeClasses(provider: string): string {
       return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/20'
     case 'OpenCode':
       return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+    case 'GitHub Copilot':
+      return 'bg-violet-500/10 text-violet-400 border-violet-500/20'
     default:
       return 'bg-muted text-muted-foreground border-border'
   }
@@ -105,6 +107,8 @@ export function getProviderBadgeStyle(
       return formatProviderBadgeStyle('rgb(250, 204, 21)', '234, 179, 8', options)
     case 'OpenCode':
       return formatProviderBadgeStyle('rgb(34, 211, 238)', '6, 182, 212', options)
+    case 'GitHub Copilot':
+      return formatProviderBadgeStyle('rgb(167, 139, 250)', '139, 92, 246', options)
     default:
       return formatProviderBadgeStyle('rgb(148, 163, 184)', '100, 116, 139', options)
   }

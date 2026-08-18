@@ -119,4 +119,32 @@ describe('FilterBar preset and chip states', () => {
     )
     expect(screen.getByRole('button', { name: 'GPT-5.4' })).toHaveAttribute('aria-pressed', 'false')
   })
+
+  it('renders system chips only for multiple systems and exposes their selection state', () => {
+    renderFilterBar({
+      availableSystems: [
+        { id: 'workstation-a', hostname: 'workstation-a', isLocal: true },
+        { id: 'workstation-b', hostname: 'workstation-b', isLocal: false },
+      ],
+      selectedSystems: ['workstation-b'],
+    })
+
+    expect(screen.getByRole('region', { name: 'Systems' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /workstation-b/i })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByRole('button', { name: /workstation-a/i })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+  })
+
+  it('hides the system filter when only one system is available', () => {
+    renderFilterBar({
+      availableSystems: [{ id: 'workstation-a', hostname: 'workstation-a', isLocal: true }],
+    })
+
+    expect(screen.queryByRole('region', { name: 'Systems' })).not.toBeInTheDocument()
+  })
 })

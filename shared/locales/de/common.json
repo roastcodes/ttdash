@@ -76,6 +76,8 @@
     "all": "Alle",
     "none": "Keine",
     "reset": "Reset",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
     "notAvailable": "n/v",
     "noData": "Keine Daten",
     "generated": "Generiert",
@@ -136,6 +138,7 @@
     "groups": {
       "time": "Zeit",
       "dateRange": "Zeitraum",
+      "systems": "Systeme",
       "providers": "Anbieter",
       "models": "Modelle"
     },
@@ -151,7 +154,10 @@
     "resetAll": "Alles zurücksetzen",
     "providers": "Anbieter",
     "models": "Modelle",
-    "resetModels": "Modelle zurücksetzen"
+    "resetModels": "Modelle zurücksetzen",
+    "systems": "Systeme",
+    "allSystems": "Alle Systeme",
+    "localSystem": "dieses System"
   },
   "dashboard": {
     "insights": {
@@ -990,6 +996,8 @@
       "defaultDateRange": "Standardzeitraum",
       "filterProviders": "Standard-Anbieterfilter",
       "filterModels": "Standard-Modellfilter",
+      "filterSystems": "Standard-Systemfilter",
+      "filterSystemsHint": "Keine Auswahl bedeutet, dass standardmässig alle Systeme angezeigt werden.",
       "noModels": "Keine Modelle im geladenen Report gefunden.",
       "sectionVisibilityTitle": "Sichtbare Dashboard-Sektionen",
       "sectionVisibilityDescription": "Steuere, welche Sektionen im Dashboard gerendert werden und in welcher Reihenfolge sie erscheinen.",
@@ -1025,6 +1033,28 @@
       "importSettings": "Einstellungen importieren",
       "exportData": "Daten exportieren",
       "importData": "Daten importieren",
+      "systemTransferTitle": "Systemtransfer",
+      "systemTransferDescription": "Exportiert nur die Daten dieses Hosts und verwaltet getrennte Datensätze von anderen Systemen.",
+      "exportSystem": "Dieses System exportieren",
+      "importSystems": "Systemdateien importieren",
+      "systemConflictTitle": "Vorhandene Systeme gefunden",
+      "systemConflictDescription": "Für {{systems}} bestehen bereits Dateien. Sollen alle ersetzt oder übersprungen werden?",
+      "replaceAllSystems": "Alle ersetzen",
+      "skipAllSystems": "Alle überspringen",
+      "systemRetryTitle": "Unvollständige Importe erneut versuchen?",
+      "systemRetryDescription": "Diese Systemimporte wurden nicht abgeschlossen: {{systems}}. Du kannst sie erneut versuchen, ohne die Dateien nochmals auszuwählen.",
+      "retrySystemImports": "Importe erneut versuchen",
+      "importedSystemsTitle": "Zusätzliche Systeme",
+      "importedSystemsDescription": "Diese Dateien werden getrennt vom lokalen Host gespeichert und in die Gesamtübersicht einbezogen.",
+      "deleteAllSystems": "Alle zusätzlichen löschen",
+      "noImportedSystems": "Noch keine zusätzlichen Systeme importiert.",
+      "unreadableSystemsTitle": "Nicht lesbare Systemdateien",
+      "unreadableSystemsDescription": "Diese Dateien wurden übersprungen, damit das restliche Dashboard verfügbar bleibt. Lösche alle zusätzlichen Systeme oder führe einen vollständigen Reset aus, um sie zu entfernen.",
+      "systemUsageSummary": "{{days}} Tage · {{cost}}",
+      "deleteSystemLabel": "System {{hostname}} löschen",
+      "deleteSystemTitle": "Zusätzliche Systemdaten löschen?",
+      "deleteSystemConfirmation": "Der getrennte Datensatz von {{hostname}} wird dauerhaft entfernt. Lokale Host-Daten bleiben erhalten.",
+      "deleteAllSystemsConfirmation": "Alle zusätzlichen Systemdateien werden entfernt. Lokale Host-Daten bleiben erhalten.",
       "close": "Schliessen",
       "save": "Speichern",
       "viewModes": {
@@ -1280,7 +1310,11 @@
     "importUsageFailed": "Datenimport fehlgeschlagen",
     "importSettingsFailed": "Einstellungs-Import fehlgeschlagen",
     "saveSettingsFailed": "Einstellungen konnten nicht gespeichert werden",
-    "pdfFailed": "PDF-Generierung fehlgeschlagen"
+    "pdfFailed": "PDF-Generierung fehlgeschlagen",
+    "systemExportFailed": "Systemexport fehlgeschlagen",
+    "systemImportFailed": "Systemimport fehlgeschlagen",
+    "fetchSystemsFailed": "Systemliste konnte nicht geladen werden",
+    "deleteSystemFailed": "Zusätzliche Systemdaten konnten nicht gelöscht werden"
   },
   "toasts": {
     "fileLoaded": "Datei {{name}} erfolgreich geladen",
@@ -1295,6 +1329,10 @@
     "settingsReset": "Einstellungen zurückgesetzt",
     "settingsSaved": "Einstellungen gespeichert",
     "dataBackupImported": "Backup importiert: {{added}} neue Tage ergänzt, {{unchanged}} identische Tage übersprungen",
-    "dataBackupImportedWithConflicts": "Backup importiert: {{added}} neue Tage ergänzt, {{conflicts}} Konflikttage lokal beibehalten"
+    "dataBackupImportedWithConflicts": "Backup importiert: {{added}} neue Tage ergänzt, {{conflicts}} Konflikttage lokal beibehalten",
+    "systemExported": "Systemdatei {{name}} exportiert",
+    "systemsImported": "Systemimport abgeschlossen: {{imported}} importiert, {{skipped}} übersprungen",
+    "systemDeleted": "Zusätzliches System {{hostname}} gelöscht",
+    "systemsDeleted": "Alle zusätzlichen Systeme gelöscht"
   }
 }
