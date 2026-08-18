@@ -83,6 +83,7 @@ export function SettingsModal(props: SettingsModalProps) {
     onDeleteSystem,
     onDeleteAllSystems,
     systems,
+    unreadableSystemFiles,
     systemImportConflicts,
     onReplaceSystemConflicts,
     onSkipSystemConflicts,
@@ -276,6 +277,7 @@ export function SettingsModal(props: SettingsModalProps) {
               />
               <SettingsSystemTransferSection
                 systems={systems}
+                unreadableSystemFiles={unreadableSystemFiles}
                 dataBusy={dataBusy}
                 onExportSystem={onExportSystem}
                 onImportSystems={onImportSystems}

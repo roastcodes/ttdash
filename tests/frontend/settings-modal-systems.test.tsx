@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { initI18n } from '@/lib/i18n'
 import { dashboardFixture } from '../fixtures/usage-data'
@@ -64,15 +64,24 @@ describe('SettingsModal system transfer actions', () => {
   it('offers one replace-or-skip decision for all import conflicts', () => {
     const onReplaceSystemConflicts = vi.fn()
     const onSkipSystemConflicts = vi.fn()
+    const onCancelSystemConflicts = vi.fn()
     renderSettingsModal({
       systems,
       systemImportConflicts: ['workstation-b', 'workstation-c'],
       onReplaceSystemConflicts,
       onSkipSystemConflicts,
+      onCancelSystemConflicts,
     })
     openSettingsTab('Maintenance')
 
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('workstation-b, workstation-c')
+    const conflictDialog = screen.getByRole('alertdialog')
+    expect(conflictDialog).toHaveTextContent('workstation-b, workstation-c')
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+    expect(cancelButton).toHaveFocus()
+    fireEvent.keyDown(cancelButton, { key: 'Escape' })
+    expect(onCancelSystemConflicts).toHaveBeenCalledTimes(1)
+    expect(onReplaceSystemConflicts).not.toHaveBeenCalled()
+
     fireEvent.click(screen.getByRole('button', { name: 'Replace all' }))
     expect(onReplaceSystemConflicts).toHaveBeenCalledTimes(1)
 
@@ -80,15 +89,39 @@ describe('SettingsModal system transfer actions', () => {
     expect(onSkipSystemConflicts).toHaveBeenCalledTimes(1)
   })
 
-  it('confirms deletion before removing one imported system', async () => {
+  it('confirms deletion before removing one imported system', () => {
     const onDeleteSystem = vi.fn().mockResolvedValue(undefined)
     renderSettingsModal({ systems, onDeleteSystem })
     openSettingsTab('Maintenance')
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete system workstation-b' }))
     const confirmation = screen.getByTestId('delete-system-confirmation')
+    expect(within(confirmation).getByRole('button', { name: 'Cancel' })).toHaveFocus()
     fireEvent.click(within(confirmation).getByRole('button', { name: 'Delete' }))
 
-    await waitFor(() => expect(onDeleteSystem).toHaveBeenCalledWith('workstation-b'))
+    expect(onDeleteSystem).toHaveBeenCalledWith('workstation-b')
+  })
+
+  it('reports unreadable files and allows deleting the complete imported collection', () => {
+    renderSettingsModal({
+      systems: systems.slice(0, 1),
+      unreadableSystemFiles: [{ filename: 'ttdash-system-corrupted.json', message: 'Unreadable' }],
+    })
+    openSettingsTab('Maintenance')
+
+    expect(screen.getByText('Unreadable system files')).toBeInTheDocument()
+    expect(screen.getByText('ttdash-system-corrupted.json')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete all additional systems' })).toBeEnabled()
+  })
+
+  it('disables delete confirmation actions while data mutations are busy', () => {
+    const view = renderSettingsModal({ systems })
+    openSettingsTab('Maintenance')
+    fireEvent.click(screen.getByRole('button', { name: 'Delete system workstation-b' }))
+    view.rerenderSettingsModal({ dataBusy: true })
+
+    const confirmation = screen.getByTestId('delete-system-confirmation')
+    expect(within(confirmation).getByRole('button', { name: 'Delete' })).toBeDisabled()
+    expect(within(confirmation).getByRole('button', { name: 'Cancel' })).toBeDisabled()
   })
 })

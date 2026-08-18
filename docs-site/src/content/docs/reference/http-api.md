@@ -67,7 +67,7 @@ Unauthorized responses include status `401`, `WWW-Authenticate`, and `X-TTDash-A
 
 ### `GET /api/usage`
 
-Returns the aggregate [normalized usage object](/ttdash/reference/data-formats/#normalized-usage-object) plus a `systems` array containing the local dataset and every imported host. Daily rows with the same date and model are summed in the aggregate. With no local or imported data, `daily` and `systems` are empty and every total is zero. Unreadable persisted data returns `500` with a diagnostic message.
+Returns the aggregate [normalized usage object](/ttdash/reference/data-formats/#normalized-usage-object) plus a `systems` array containing the local dataset and every imported host. Daily rows with the same date and model are summed in the aggregate. With no local or imported data, `daily` and `systems` are empty and every total is zero. An unreadable local `data.json` returns `500`; unreadable imported system files are skipped and reported through `unreadableSystemFiles` so readable usage stays available.
 
 ```bash
 curl \
@@ -155,7 +155,7 @@ curl \
 
 ### `GET /api/systems`
 
-Returns the destination hostname plus summaries for additional imported systems. The response includes each canonical hostname, deterministic filename, export timestamp, day count, and total cost; it does not repeat the complete daily datasets.
+Returns the destination hostname plus summaries for additional imported systems. The response includes each canonical hostname, deterministic filename, export timestamp, day count, and total cost; it does not repeat the complete daily datasets. Skipped corrupt files are listed separately in `unreadableSystemFiles`.
 
 ### `DELETE /api/systems/:hostname`
 

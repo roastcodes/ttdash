@@ -281,6 +281,7 @@ export function createDashboardControllerViewModel(
       filterProviders: [],
       models: [],
       systems: [],
+      unreadableSystemFiles: [],
       limits: {},
       defaultFilters: { ...DEFAULT_APP_SETTINGS.defaultFilters },
       sectionVisibility: { ...DEFAULT_APP_SETTINGS.sectionVisibility },

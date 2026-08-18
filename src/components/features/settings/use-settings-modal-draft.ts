@@ -16,6 +16,7 @@ import type {
   ProviderLimits,
   ReducedMotionPreference,
   ViewMode,
+  UsageSystemOption,
 } from '@/types'
 import { useToast } from '@/lib/toast'
 import {
@@ -80,7 +81,7 @@ export interface SettingsModalDefaultsDraftViewModel {
   defaultFilterDraft: DashboardDefaultFilters
   providerOptions: string[]
   modelOptions: string[]
-  systemOptions: Array<{ id: string; hostname: string; isLocal: boolean }>
+  systemOptions: UsageSystemOption[]
   onViewModeChange: (mode: ViewMode) => void
   onDatePresetChange: (preset: DashboardDatePreset) => void
   onToggleProvider: (provider: string) => void

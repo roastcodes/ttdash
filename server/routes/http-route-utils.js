@@ -5,6 +5,18 @@ function getErrorMessage(error, fallback) {
   return formatErrorMessage(error, fallback);
 }
 
+/** Builds a safe Content-Disposition attachment header with UTF-8 filename support. */
+function formatAttachmentDisposition(filename, defaultFilename) {
+  const fallback = String(defaultFilename || 'ttdash-download');
+  const rawFilename = String(filename || fallback);
+  const asciiFallback = rawFilename
+    .replace(/["\\;]/g, '_')
+    .replace(/[^\x20-\x7E]/g, '_')
+    .trim();
+  const safeAsciiFilename = asciiFallback || fallback;
+  return `attachment; filename="${safeAsciiFilename}"; filename*=UTF-8''${encodeURIComponent(rawFilename)}`;
+}
+
 function getSSEErrorLog(logger) {
   return logger && typeof logger.error === 'function' ? logger.error.bind(logger) : console.error;
 }
@@ -71,6 +83,7 @@ function sendSSE(res, event, data, logger = console) {
 }
 
 module.exports = {
+  formatAttachmentDisposition,
   getErrorMessage,
   readMutationBody,
   sendSSE,

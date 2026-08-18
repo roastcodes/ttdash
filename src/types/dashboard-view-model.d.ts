@@ -10,6 +10,8 @@ import type {
   DashboardSectionOrder,
   DashboardSectionVisibility,
   UsageSystem,
+  UsageSystemOption,
+  UnreadableSystemFile,
   DataLoadSource,
   ModelCostChartPoint,
   ProviderLimits,
@@ -89,7 +91,7 @@ export interface DashboardFilterBarViewModel {
   selectedModels: string[]
   onToggleModel: (model: string) => void
   onClearModels: () => void
-  availableSystems: Array<{ id: string; hostname: string; isLocal: boolean }>
+  availableSystems: UsageSystemOption[]
   selectedSystems: string[]
   onToggleSystem: (system: string) => void
   onClearSystems: () => void
@@ -127,6 +129,7 @@ export interface DashboardSettingsModalViewModel extends DashboardDialogViewMode
   filterProviders: string[]
   models: string[]
   systems: Array<Pick<UsageSystem, 'id' | 'hostname' | 'isLocal' | 'exportedAt' | 'data'>>
+  unreadableSystemFiles: UnreadableSystemFile[]
   limits: ProviderLimits
   defaultFilters: DashboardDefaultFilters
   sectionVisibility: DashboardSectionVisibility

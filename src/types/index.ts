@@ -41,6 +41,7 @@ export interface UsageData {
     requestCount: number
   }
   systems?: UsageSystem[]
+  unreadableSystemFiles?: UnreadableSystemFile[]
 }
 
 /** Describes one local or imported system dataset returned by the API. */
@@ -50,7 +51,16 @@ export interface UsageSystem {
   filename: string
   isLocal: boolean
   exportedAt: string | null
-  data: Omit<UsageData, 'systems'>
+  data: Omit<UsageData, 'systems' | 'unreadableSystemFiles'>
+}
+
+/** Describes the common identity fields used by system filter controls. */
+export type UsageSystemOption = Pick<UsageSystem, 'id' | 'hostname' | 'isLocal'>
+
+/** Describes an imported system file that could not be parsed safely. */
+export interface UnreadableSystemFile {
+  filename: string
+  message: string
 }
 
 /** Describes imported-system metadata shown in settings. */
@@ -69,6 +79,13 @@ export interface SystemImportPreview {
   hostname: string
   filename: string
   exists: boolean
+}
+
+/** Describes the imported-system management API response. */
+export interface ImportedSystemsResponse {
+  localHostname: string
+  systems: ImportedSystemSummary[]
+  unreadableSystemFiles: UnreadableSystemFile[]
 }
 
 /** Summarizes the result of a usage import operation. */

@@ -91,4 +91,12 @@ describe('model normalization parity', () => {
       expect(getReportModelProvider(raw)).toBe(provider)
     },
   )
+
+  it.each(['precopilotpost', 'mygithubcopilot-tool'])(
+    'does not infer GitHub Copilot from embedded text in %s',
+    (raw) => {
+      expect(getUiModelProvider(raw)).not.toBe('GitHub Copilot')
+      expect(getReportModelProvider(raw)).not.toBe('GitHub Copilot')
+    },
+  )
 })

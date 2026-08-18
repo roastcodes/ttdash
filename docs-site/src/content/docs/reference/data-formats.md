@@ -152,11 +152,14 @@ All eight numeric total fields also appear below `totals` as sums across `daily`
         }
       }
     }
-  ]
+  ],
+  "unreadableSystemFiles": []
 }
 ```
 
 System IDs are canonical lowercase hostnames. Rows on the same date are combined, and model breakdowns with the same raw `modelName` are summed. The local entry is present only when `data.json` exists.
+
+An unreadable or externally corrupted system file is skipped instead of taking the complete dashboard offline. Its deterministic filename and a safe diagnostic appear in `unreadableSystemFiles`; the Maintenance settings can then delete the complete additional-system collection, and a full reset removes it as well.
 
 ## Normalization behavior
 

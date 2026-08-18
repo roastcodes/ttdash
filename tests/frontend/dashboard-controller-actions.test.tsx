@@ -62,6 +62,7 @@ describe('useDashboardControllerWithBootstrap actions', () => {
 
     usageHookMocks.useUsageData.mockReturnValue({
       data: createUsageData({
+        systems: [],
         daily: [
           {
             date: '2026-04-20',
@@ -298,6 +299,48 @@ describe('useDashboardControllerWithBootstrap actions', () => {
     )
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['usage'] })
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings'] })
+  })
+
+  it('refreshes cached data and keeps unprocessed conflicts after a partial system import', async () => {
+    const client = createTestQueryClient()
+    const invalidateQueries = vi.spyOn(client, 'invalidateQueries')
+    apiMocks.previewSystemImport
+      .mockResolvedValueOnce({
+        hostname: 'workstation-b',
+        filename: 'ttdash-system-workstation-b.json',
+        exists: true,
+      })
+      .mockResolvedValueOnce({
+        hostname: 'workstation-c',
+        filename: 'ttdash-system-workstation-c.json',
+        exists: true,
+      })
+    apiMocks.importSystemData
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('Import interrupted'))
+
+    const { result } = renderHookWithQueryClient(
+      () => useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
+      { client },
+    )
+    const files = [
+      new File([JSON.stringify({ hostname: 'workstation-b' })], 'b.json'),
+      new File([JSON.stringify({ hostname: 'workstation-c' })], 'c.json'),
+    ]
+
+    await act(async () => {
+      await result.current.fileInputs.onSystemImportChange({
+        target: { files, value: 'systems' },
+      } as never)
+    })
+    await act(async () => {
+      await result.current.settingsModal.onReplaceSystemConflicts()
+    })
+
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['usage'] })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings'] })
+    expect(result.current.settingsModal.systemImportConflicts).toEqual(['workstation-c'])
+    expect(toastMocks.addToast).toHaveBeenCalledWith('Import interrupted', 'error')
   })
 
   it('wires composed dashboard callbacks across header, filters, settings, and commands', async () => {

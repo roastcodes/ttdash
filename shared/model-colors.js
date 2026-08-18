@@ -26,15 +26,33 @@ const MODEL_COLOR_FAMILIES = [
     },
   },
   {
+    id: 'gpt-codex-max',
+    light: { h: 218, s: 76, l: 43 },
+    dark: { h: 218, s: 82, l: 62 },
+    resolve(name) {
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Codex Max$/i)
+      return match ? { bucketKey: 'gpt-codex-max', version: parseNumericVersion(match[1]) } : null
+    },
+  },
+  {
+    id: 'gpt-codex-mini',
+    light: { h: 181, s: 70, l: 36 },
+    dark: { h: 181, s: 76, l: 55 },
+    resolve(name) {
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Codex Mini$/i)
+      return match ? { bucketKey: 'gpt-codex-mini', version: parseNumericVersion(match[1]) } : null
+    },
+  },
+  {
     id: 'gpt-codex',
     light: { h: 194, s: 76, l: 42 },
     dark: { h: 194, s: 82, l: 60 },
     resolve(name) {
-      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Codex(?: (Max|Mini))?$/i)
+      const match = name.match(/^GPT-(\d+(?:\.\d+)*) Codex$/i)
       if (!match) return null
 
       return {
-        bucketKey: `gpt-codex:${String(match[2] || 'base').toLowerCase()}`,
+        bucketKey: 'gpt-codex',
         version: parseNumericVersion(match[1]),
       }
     },

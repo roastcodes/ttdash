@@ -17,11 +17,15 @@ const { createSystemDataRuntime, getSystemFilename, mergeUsageDatasets } =
       ) => Promise<{ replaced: boolean }>
       localHostname: string
       previewImport: (payload: SystemEnvelope) => { exists: boolean; filename: string }
-      readImportedSystems: () => Array<{ hostname: string; data: UsageData }>
+      readImportedSystems: () => {
+        systems: Array<{ hostname: string; data: UsageData }>
+        unreadableFiles: Array<{ filename: string; message: string }>
+      }
     }
     getSystemFilename: (hostname: string) => string
     mergeUsageDatasets: (datasets: UsageData[]) => UsageData
   }
+const { version: packageVersion } = require('../../package.json') as { version: string }
 
 interface UsageData {
   daily: Array<{
@@ -113,7 +117,7 @@ async function createRuntime(root: string) {
     normalizeIncomingData: (value: unknown) => value,
     systemsDir,
     systemExportKind: 'ttdash-system-export',
-    appVersion: '6.4.0',
+    appVersion: packageVersion,
     writeJsonAtomicAsync,
     withFileMutationLock: async (_filePath: string, operation: () => Promise<unknown>) =>
       operation(),
@@ -133,7 +137,7 @@ describe('system data persistence', () => {
       expect(envelope).toMatchObject({
         kind: 'ttdash-system-export',
         version: 1,
-        appVersion: '6.4.0',
+        appVersion: packageVersion,
         hostname: 'workstation-a',
       })
       expect(path.basename(filePath)).not.toMatch(/\d{4}-\d{2}-\d{2}/)
@@ -165,9 +169,9 @@ describe('system data persistence', () => {
       await expect(runtime.importSystem(replacement, { replace: true })).resolves.toMatchObject({
         replaced: true,
       })
-      expect(runtime.readImportedSystems()[0]?.data.totals.totalCost).toBe(4)
+      expect(runtime.readImportedSystems().systems[0]?.data.totals.totalCost).toBe(4)
       await expect(runtime.deleteAllImportedSystems()).resolves.toBe(1)
-      expect(runtime.readImportedSystems()).toEqual([])
+      expect(runtime.readImportedSystems()).toEqual({ systems: [], unreadableFiles: [] })
     } finally {
       await fsPromises.rm(root, { recursive: true, force: true })
     }
@@ -182,7 +186,16 @@ describe('system data persistence', () => {
       await fsPromises.mkdir(systemsDir, { recursive: true })
       await fsPromises.writeFile(corruptedFile, '{not-json')
 
-      expect(() => runtime.readImportedSystems()).toThrow(/corrupted/)
+      expect(runtime.readImportedSystems()).toEqual({
+        systems: [],
+        unreadableFiles: [
+          {
+            filename: 'ttdash-system-corrupted.json',
+            message:
+              'Imported system file ttdash-system-corrupted.json is unreadable or corrupted.',
+          },
+        ],
+      })
       await expect(runtime.deleteAllImportedSystems()).resolves.toBe(1)
       await expect(fsPromises.stat(corruptedFile)).rejects.toMatchObject({ code: 'ENOENT' })
     } finally {
@@ -204,5 +217,25 @@ describe('system data persistence', () => {
       expect.objectContaining({ modelName: 'gpt-5.6-sol', cost: 4, requestCount: 4 }),
     ])
     expect(merged.totals).toMatchObject({ totalCost: 4, totalTokens: 42, requestCount: 4 })
+  })
+
+  it('rejects malformed normalized envelopes and tolerates missing breakdown arrays when merging', async () => {
+    const root = await fsPromises.mkdtemp(path.join(tmpdir(), 'ttdash-system-data-'))
+    try {
+      const runtime = await createRuntime(root)
+      expect(() =>
+        runtime.previewImport({
+          ...runtime.createEnvelope(createUsage()),
+          hostname: 'workstation-b',
+          data: null as unknown as UsageData,
+        }),
+      ).toThrow('Invalid system export file')
+
+      const usage = createUsage()
+      delete (usage.daily[0] as Partial<(typeof usage.daily)[number]>).modelBreakdowns
+      expect(mergeUsageDatasets([usage]).daily[0]?.modelBreakdowns).toEqual([])
+    } finally {
+      await fsPromises.rm(root, { recursive: true, force: true })
+    }
   })
 })

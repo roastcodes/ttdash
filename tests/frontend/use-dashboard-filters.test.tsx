@@ -190,4 +190,30 @@ describe('useDashboardFilters', () => {
     act(() => result.current.clearSystems())
     expect(result.current.filteredDailyData[0]?.totalCost).toBe(12)
   })
+
+  it('uses only valid system IDs when applying changed defaults', () => {
+    const day = dashboardFixture[0]!
+    const systems: UsageSystem[] = [
+      {
+        id: 'workstation-a',
+        hostname: 'workstation-a',
+        filename: 'ttdash-system-workstation-a.json',
+        isLocal: true,
+        exportedAt: null,
+        data: { daily: [day] },
+      },
+    ]
+    const defaults: DashboardDefaultFilters = {
+      viewMode: 'daily',
+      datePreset: 'all',
+      systems: ['missing-system'],
+      providers: [],
+      models: [],
+    }
+    const { result } = renderHook(() => useDashboardFilters([], systems, defaults))
+
+    act(() => result.current.applyDefaultFilters(defaults))
+
+    expect(result.current.selectedSystems).toEqual([])
+  })
 })

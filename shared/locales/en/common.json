@@ -1045,6 +1045,8 @@
       "importedSystemsDescription": "These files stay separate from the local host and are included in the combined overview.",
       "deleteAllSystems": "Delete all additional systems",
       "noImportedSystems": "No additional systems have been imported yet.",
+      "unreadableSystemsTitle": "Unreadable system files",
+      "unreadableSystemsDescription": "These files were skipped so the remaining dashboard stays available. Delete all additional systems or run a full reset to remove them.",
       "systemUsageSummary": "{{days}} days · {{cost}}",
       "deleteSystemLabel": "Delete system {{hostname}}",
       "deleteSystemTitle": "Delete additional system data?",

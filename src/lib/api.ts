@@ -11,7 +11,7 @@ import type {
   UsageData,
   UsageImportSummary,
   SystemImportPreview,
-  ImportedSystemSummary,
+  ImportedSystemsResponse,
   ViewMode,
 } from '@/types'
 import i18n from '@/lib/i18n'
@@ -177,18 +177,12 @@ export async function importSystemData(data: unknown, replace = false): Promise<
 }
 
 /** Lists additional imported systems. */
-export async function fetchImportedSystems(): Promise<{
-  localHostname: string
-  systems: ImportedSystemSummary[]
-}> {
+export async function fetchImportedSystems(): Promise<ImportedSystemsResponse> {
   const res = await apiFetch('/api/systems')
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, i18n.t('api.fetchSystemsFailed')))
   }
-  return parseResponseJson<{
-    localHostname: string
-    systems: ImportedSystemSummary[]
-  }>(res)
+  return parseResponseJson<ImportedSystemsResponse>(res)
 }
 
 /** Deletes one additional imported system. */

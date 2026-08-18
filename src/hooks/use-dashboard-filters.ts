@@ -72,16 +72,16 @@ export function useDashboardFilters(
   const applyDefaultFilters = useCallback(
     (nextDefaultFilters: DashboardDefaultFilters = defaultFilters) => {
       const sanitizedDefaults = sanitizeDashboardDefaultFilters(sortedData, nextDefaultFilters)
+      const nextSystems = sanitizedDefaults.systems.filter((system) => validSystemIds.has(system))
+      const appliedDefaults = { ...sanitizedDefaults, systems: nextSystems }
       const nextRange = resolveDashboardPresetRange(sanitizedDefaults.datePreset)
       userModifiedRef.current = false
-      appliedDefaultsKeyRef.current = JSON.stringify(sanitizedDefaults)
+      appliedDefaultsKeyRef.current = JSON.stringify(appliedDefaults)
       setViewModeState(sanitizedDefaults.viewMode)
       setSelectedMonthState(null)
       setSelectedProvidersState(sanitizedDefaults.providers)
       setSelectedModelsState(sanitizedDefaults.models)
-      setSelectedSystemsState(
-        nextDefaultFilters.systems.filter((system) => validSystemIds.has(system)),
-      )
+      setSelectedSystemsState(nextSystems)
       setStartDateState(nextRange.startDate)
       setEndDateState(nextRange.endDate)
     },

@@ -432,10 +432,17 @@ describe('api error handling', () => {
       )
       .mockResolvedValueOnce(new Response('{}', { status: 200 }))
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ localHostname: 'workstation-a', systems: [] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({
+            localHostname: 'workstation-a',
+            systems: [],
+            unreadableSystemFiles: [],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
       )
       .mockResolvedValueOnce(new Response('{}', { status: 200 }))
       .mockResolvedValueOnce(new Response('{}', { status: 200 }))
@@ -453,6 +460,7 @@ describe('api error handling', () => {
     await expect(fetchImportedSystems()).resolves.toEqual({
       localHostname: 'workstation-a',
       systems: [],
+      unreadableSystemFiles: [],
     })
     await deleteImportedSystem('workstation b')
     await deleteAllImportedSystems()

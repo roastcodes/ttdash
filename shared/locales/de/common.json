@@ -1045,6 +1045,8 @@
       "importedSystemsDescription": "Diese Dateien werden getrennt vom lokalen Host gespeichert und in die Gesamtübersicht einbezogen.",
       "deleteAllSystems": "Alle zusätzlichen löschen",
       "noImportedSystems": "Noch keine zusätzlichen Systeme importiert.",
+      "unreadableSystemsTitle": "Nicht lesbare Systemdateien",
+      "unreadableSystemsDescription": "Diese Dateien wurden übersprungen, damit das restliche Dashboard verfügbar bleibt. Lösche alle zusätzlichen Systeme oder führe einen vollständigen Reset aus, um sie zu entfernen.",
       "systemUsageSummary": "{{days}} Tage · {{cost}}",
       "deleteSystemLabel": "System {{hostname}} löschen",
       "deleteSystemTitle": "Zusätzliche Systemdaten löschen?",

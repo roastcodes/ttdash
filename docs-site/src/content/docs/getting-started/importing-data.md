@@ -77,6 +77,8 @@ In the dashboard:
 
 Imported systems remain separate files below TTDash's `systems/` data directory. TTDash combines their normalized daily rows only while producing the dashboard view. When at least two systems are available, the filter bar can show all systems or a selected subset; that selection can also be saved as a default filter.
 
+If an imported file is later corrupted outside TTDash, it is skipped so the remaining dashboard continues to load. Maintenance settings show the unreadable filename and allow the complete additional-system collection to be removed safely.
+
 You cannot import an export whose hostname matches the destination computer, because local usage remains owned by `data.json`. Remove one additional system or all additional systems from the transfer settings. A full usage reset deletes local data and every imported-system file.
 
 The same source export is available from the command line:

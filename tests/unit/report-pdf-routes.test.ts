@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createRouter, createValidUsageData, request, requestRaw } from './http-router-test-helpers'
 
 describe('PDF report routes', () => {
-  it('rejects PDF reports without usage data before reading the request body', async () => {
+  it('reads a valid request once before rejecting PDF reports without usage data', async () => {
     const readBody = vi.fn(async () => ({ title: 'Usage' }))
     const { router } = createRouter({
       dataRuntimeOverrides: {
@@ -15,7 +15,7 @@ describe('PDF report routes', () => {
 
     expect(res.status).toBe(400)
     expect(body).toEqual({ message: 'No data available for the report.' })
-    expect(readBody).not.toHaveBeenCalled()
+    expect(readBody).toHaveBeenCalledOnce()
   })
 
   it('maps invalid PDF request bodies to 400', async () => {
@@ -114,5 +114,20 @@ describe('PDF report routes', () => {
     )
     expect(res.body).toBe('%PDF-1.4')
     expect(generatePdfReport).toHaveBeenCalledWith(usageData.daily, { locale: 'de-CH' })
+  })
+
+  it('reads only the selected systems once for PDF generation', async () => {
+    const usageData = createValidUsageData()
+    const readUsageResponse = vi.fn(() => usageData)
+    const { router } = createRouter({
+      dataRuntimeOverrides: { readUsageResponse },
+      readBody: vi.fn(async () => ({ selectedSystems: ['workstation-b'] })),
+    })
+
+    const { res } = await requestRaw(router, '/api/report/pdf', 'POST')
+
+    expect(res.status).toBe(200)
+    expect(readUsageResponse).toHaveBeenCalledOnce()
+    expect(readUsageResponse).toHaveBeenCalledWith(['workstation-b'])
   })
 })

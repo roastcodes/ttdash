@@ -187,6 +187,13 @@ describe('model colors', () => {
     expect(getModelColor('GPT-5.6 Luna', 'dark')).toBe('hsl(250, 78%, 68%)')
   })
 
+  it('keeps base, Max, and Mini GPT Codex variants visually distinct', () => {
+    const variants = ['GPT-5.6 Codex', 'GPT-5.6 Codex Max', 'GPT-5.6 Codex Mini']
+    const colors = variants.map((name) => getModelColor(name, 'dark'))
+
+    expect(new Set(colors)).toHaveLength(variants.length)
+  })
+
   it('uses a dedicated GitHub Copilot provider badge', () => {
     expect(getProviderBadgeStyle('GitHub Copilot')).toEqual({
       color: 'rgb(167, 139, 250)',

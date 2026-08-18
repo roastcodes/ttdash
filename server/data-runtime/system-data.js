@@ -5,6 +5,27 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+const REQUIRED_USAGE_TOTAL_KEYS = [
+  'inputTokens',
+  'outputTokens',
+  'cacheCreationTokens',
+  'cacheReadTokens',
+  'thinkingTokens',
+  'totalCost',
+  'totalTokens',
+  'requestCount',
+];
+
+function isUsageData(value) {
+  return (
+    isPlainObject(value) &&
+    Array.isArray(value.daily) &&
+    value.daily.every((day) => isPlainObject(day) && typeof day.date === 'string') &&
+    isPlainObject(value.totals) &&
+    REQUIRED_USAGE_TOTAL_KEYS.every((key) => Number.isFinite(value.totals[key]))
+  );
+}
+
 function canonicalizeHostname(value) {
   if (typeof value !== 'string') {
     throw new Error('System export hostname is missing.');
@@ -102,7 +123,9 @@ function mergeUsageDatasets(datasets) {
       targetDay.totalCost += sourceDay.totalCost;
       targetDay.requestCount += sourceDay.requestCount;
 
-      for (const sourceBreakdown of sourceDay.modelBreakdowns) {
+      for (const sourceBreakdown of Array.isArray(sourceDay.modelBreakdowns)
+        ? sourceDay.modelBreakdowns
+        : []) {
         let targetBreakdown = targetDay._breakdowns.get(sourceBreakdown.modelName);
         if (!targetBreakdown) {
           targetBreakdown = {
@@ -173,7 +196,15 @@ function createSystemDataRuntime({
     if (!Object.prototype.hasOwnProperty.call(payload, 'data')) {
       throw new Error('The system export does not contain usage data.');
     }
-    const data = normalizeIncomingData(payload.data);
+    let data;
+    try {
+      data = normalizeIncomingData(payload.data);
+    } catch (error) {
+      throw new Error('Invalid system export file.', { cause: error });
+    }
+    if (!isUsageData(data)) {
+      throw new Error('Invalid system export file.');
+    }
     return {
       kind: systemExportKind,
       version: 1,
@@ -196,42 +227,45 @@ function createSystemDataRuntime({
     try {
       names = fs.readdirSync(systemsDir);
     } catch (error) {
-      if (error?.code === 'ENOENT') return [];
+      if (error?.code === 'ENOENT') return { systems: [], unreadableFiles: [] };
       throw error;
     }
 
-    return names
-      .filter(
-        (name) => name.startsWith(SYSTEM_FILENAME_PREFIX) && name.endsWith(SYSTEM_FILENAME_SUFFIX),
-      )
-      .map((name) => {
-        const filePath = path.join(systemsDir, name);
-        let envelope;
-        try {
-          envelope = parseEnvelope(JSON.parse(fs.readFileSync(filePath, 'utf-8')));
-          if (name !== getSystemFilename(envelope.hostname)) {
-            throw new Error('Imported system filename does not match its hostname.');
-          }
-        } catch (error) {
-          const persistedError = new Error(
-            `Imported system file ${name} is unreadable or corrupted.`,
-          );
-          persistedError.code = 'PERSISTED_STATE_INVALID';
-          persistedError.kind = 'usage';
-          persistedError.filePath = filePath;
-          persistedError.cause = error;
-          throw persistedError;
+    const systems = [];
+    const unreadableFiles = [];
+    for (const name of names.filter(
+      (entry) => entry.startsWith(SYSTEM_FILENAME_PREFIX) && entry.endsWith(SYSTEM_FILENAME_SUFFIX),
+    )) {
+      const filePath = path.join(systemsDir, name);
+      let envelope;
+      try {
+        envelope = parseEnvelope(JSON.parse(fs.readFileSync(filePath, 'utf-8')));
+        if (name !== getSystemFilename(envelope.hostname)) {
+          throw new Error('Imported system filename does not match its hostname.');
         }
-        return {
-          id: envelope.hostname,
-          hostname: envelope.hostname,
-          filename: name,
-          isLocal: false,
-          exportedAt: envelope.exportedAt,
-          data: envelope.data,
-        };
-      })
-      .sort((left, right) => left.hostname.localeCompare(right.hostname));
+      } catch (error) {
+        const persistedError = new Error(
+          `Imported system file ${name} is unreadable or corrupted.`,
+        );
+        persistedError.code = 'PERSISTED_STATE_INVALID';
+        persistedError.kind = 'usage';
+        persistedError.filePath = filePath;
+        persistedError.cause = error;
+        unreadableFiles.push({ filename: name, message: persistedError.message });
+        continue;
+      }
+      systems.push({
+        id: envelope.hostname,
+        hostname: envelope.hostname,
+        filename: name,
+        isLocal: false,
+        exportedAt: envelope.exportedAt,
+        data: envelope.data,
+      });
+    }
+    systems.sort((left, right) => left.hostname.localeCompare(right.hostname));
+    unreadableFiles.sort((left, right) => left.filename.localeCompare(right.filename));
+    return { systems, unreadableFiles };
   }
 
   function previewImport(payload) {
@@ -256,65 +290,77 @@ function createSystemDataRuntime({
       throw error;
     }
     const filePath = resolveSystemFile(envelope.hostname);
-    return withFileMutationLock(filePath, async () => {
-      const exists = fs.existsSync(filePath);
-      if (exists && !replace) {
-        const error = new Error(`System ${envelope.hostname} already exists.`);
-        error.code = 'SYSTEM_EXISTS';
-        throw error;
-      }
-      await writeJsonAtomicAsync(filePath, envelope);
-      return {
-        hostname: envelope.hostname,
-        filename: path.basename(filePath),
-        replaced: exists,
-        days: envelope.data.daily.length,
-        totalCost: envelope.data.totals.totalCost,
-      };
-    });
+    return withSystemMutationLock(() =>
+      withFileMutationLock(filePath, async () => {
+        const exists = fs.existsSync(filePath);
+        if (exists && !replace) {
+          const error = new Error(`System ${envelope.hostname} already exists.`);
+          error.code = 'SYSTEM_EXISTS';
+          throw error;
+        }
+        await writeJsonAtomicAsync(filePath, envelope);
+        return {
+          hostname: envelope.hostname,
+          filename: path.basename(filePath),
+          replaced: exists,
+          days: envelope.data.daily.length,
+          totalCost: envelope.data.totals.totalCost,
+        };
+      }),
+    );
   }
 
   async function deleteImportedSystem(hostname) {
     const normalized = canonicalizeHostname(hostname);
     const filePath = resolveSystemFile(normalized);
-    return withFileMutationLock(filePath, async () => {
-      try {
-        await fsPromises.unlink(filePath);
-        return true;
-      } catch (error) {
-        if (error?.code === 'ENOENT') return false;
-        throw error;
-      }
-    });
-  }
-
-  async function deleteAllImportedSystems() {
-    let names;
-    try {
-      names = (await fsPromises.readdir(systemsDir)).filter(
-        (name) => name.startsWith(SYSTEM_FILENAME_PREFIX) && name.endsWith(SYSTEM_FILENAME_SUFFIX),
-      );
-    } catch (error) {
-      if (error?.code === 'ENOENT') return 0;
-      throw error;
-    }
-
-    for (const name of names) {
-      const filePath = path.join(systemsDir, name);
-      await withFileMutationLock(filePath, async () => {
+    return withSystemMutationLock(() =>
+      withFileMutationLock(filePath, async () => {
         try {
           await fsPromises.unlink(filePath);
+          return true;
         } catch (error) {
-          if (error?.code !== 'ENOENT') throw error;
+          if (error?.code === 'ENOENT') return false;
+          throw error;
         }
-      });
-    }
-    try {
-      await fsPromises.rmdir(systemsDir);
-    } catch (error) {
-      if (!['ENOENT', 'ENOTEMPTY'].includes(error?.code)) throw error;
-    }
-    return names.length;
+      }),
+    );
+  }
+
+  function withSystemMutationLock(operation) {
+    return withFileMutationLock(systemsDir, operation);
+  }
+
+  async function deleteAllImportedSystems({ mutationLockHeld = false } = {}) {
+    const deleteFiles = async () => {
+      let names;
+      try {
+        names = (await fsPromises.readdir(systemsDir)).filter(
+          (name) =>
+            name.startsWith(SYSTEM_FILENAME_PREFIX) && name.endsWith(SYSTEM_FILENAME_SUFFIX),
+        );
+      } catch (error) {
+        if (error?.code === 'ENOENT') return 0;
+        throw error;
+      }
+
+      for (const name of names) {
+        const filePath = path.join(systemsDir, name);
+        await withFileMutationLock(filePath, async () => {
+          try {
+            await fsPromises.unlink(filePath);
+          } catch (error) {
+            if (error?.code !== 'ENOENT') throw error;
+          }
+        });
+      }
+      try {
+        await fsPromises.rmdir(systemsDir);
+      } catch (error) {
+        if (!['ENOENT', 'ENOTEMPTY'].includes(error?.code)) throw error;
+      }
+      return names.length;
+    };
+    return mutationLockHeld ? deleteFiles() : withSystemMutationLock(deleteFiles);
   }
 
   function resolveExportPath(targetPath) {
@@ -358,6 +404,7 @@ function createSystemDataRuntime({
     importSystem,
     deleteImportedSystem,
     deleteAllImportedSystems,
+    withSystemMutationLock,
     readImportedSystems,
     resolveExportPath,
     exportLocalData,

@@ -139,4 +139,12 @@ describe('FilterBar preset and chip states', () => {
       'false',
     )
   })
+
+  it('hides the system filter when only one system is available', () => {
+    renderFilterBar({
+      availableSystems: [{ id: 'workstation-a', hostname: 'workstation-a', isLocal: true }],
+    })
+
+    expect(screen.queryByRole('region', { name: 'Systems' })).not.toBeInTheDocument()
+  })
 })

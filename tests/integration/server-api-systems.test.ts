@@ -1,10 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { fetchTrusted } from './server-test-helpers'
+import { mkdir, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { fetchTrusted, getCliDataDir } from './server-test-helpers'
 import { createApiSharedServer, sampleUsage } from './server-api-test-helpers'
 
 const sharedServer = createApiSharedServer()
 
 describe('local server multi-system API', () => {
+  it('rejects a JSON null import body without leaving the response open', async () => {
+    const response = await fetchTrusted(`${sharedServer.baseUrl}/api/systems/import/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: 'null',
+    })
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ message: expect.any(String) })
+  })
+
   it('exports local data, imports and replaces another host, then aggregates both systems', async () => {
     const upload = await fetchTrusted(`${sharedServer.baseUrl}/api/upload`, {
       method: 'POST',
@@ -131,5 +144,30 @@ describe('local server multi-system API', () => {
     expect(usage.systems).toEqual([])
     settings = await (await fetchTrusted(`${sharedServer.baseUrl}/api/settings`)).json()
     expect(settings.defaultFilters.systems).toEqual([])
+  })
+
+  it('skips and reports corrupted system files while retaining readable usage', async () => {
+    await fetchTrusted(`${sharedServer.baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sampleUsage),
+    })
+    const systemsDir = path.join(getCliDataDir(sharedServer.tempRoot), 'systems')
+    await mkdir(systemsDir, { recursive: true })
+    await writeFile(path.join(systemsDir, 'ttdash-system-corrupted.json'), '{not-json')
+
+    const usageResponse = await fetchTrusted(`${sharedServer.baseUrl}/api/usage`)
+    expect(usageResponse.status).toBe(200)
+    const usage = await usageResponse.json()
+    expect(usage.daily).toHaveLength(sampleUsage.daily.length)
+    expect(usage.unreadableSystemFiles).toEqual([
+      expect.objectContaining({ filename: 'ttdash-system-corrupted.json' }),
+    ])
+
+    const systemsResponse = await fetchTrusted(`${sharedServer.baseUrl}/api/systems`)
+    expect(systemsResponse.status).toBe(200)
+    expect((await systemsResponse.json()).unreadableSystemFiles).toEqual([
+      expect.objectContaining({ filename: 'ttdash-system-corrupted.json' }),
+    ])
   })
 })

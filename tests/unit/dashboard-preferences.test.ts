@@ -194,11 +194,12 @@ describe('dashboard preferences config', () => {
         datePreset: '30d',
         providers: [' OpenAI ', 'OpenAI', '', 42],
         models: [' Sonnet ', null, 'Sonnet'],
+        systems: [' Host-A ', 'host-a', 'HOST-B'],
       }),
     ).toEqual({
       viewMode: 'yearly',
       datePreset: '30d',
-      systems: [],
+      systems: ['host-a', 'host-b'],
       providers: ['OpenAI'],
       models: ['Sonnet'],
     })

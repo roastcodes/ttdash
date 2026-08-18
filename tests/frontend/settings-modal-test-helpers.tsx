@@ -20,6 +20,7 @@ export function buildSettingsModalProps(
     filterProviders: [],
     models: [],
     systems: [],
+    unreadableSystemFiles: [],
     limits: {},
     defaultFilters: {
       ...DEFAULT_APP_SETTINGS.defaultFilters,
@@ -60,6 +61,12 @@ export function renderSettingsModal(overrides: Partial<ComponentProps<typeof Set
     ...view,
     props,
     onSaveSettings: props.onSaveSettings,
+    rerenderSettingsModal: (nextOverrides: Partial<ComponentProps<typeof SettingsModal>> = {}) =>
+      view.rerender(
+        <ToastProvider>
+          <SettingsModal {...props} {...nextOverrides} />
+        </ToastProvider>,
+      ),
   }
 }
 

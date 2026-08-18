@@ -295,6 +295,7 @@ export function useDashboardControllerWithBootstrap(
         exportedAt: system.exportedAt,
         data: system.data,
       })),
+      unreadableSystemFiles: usageData?.unreadableSystemFiles ?? [],
       limits: settings.providerLimits,
       defaultFilters: settings.defaultFilters,
       sectionVisibility: settings.sectionVisibility,

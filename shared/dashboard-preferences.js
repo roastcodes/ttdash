@@ -216,7 +216,9 @@ function normalizeDashboardDefaultFilters(value) {
     datePreset: normalizeDashboardDatePreset(source.datePreset),
     providers: normalizeStringList(source.providers),
     models: normalizeStringList(source.models),
-    systems: normalizeStringList(source.systems).map((system) => system.toLowerCase()),
+    systems: normalizeStringList(
+      normalizeStringList(source.systems).map((system) => system.toLowerCase()),
+    ),
   }
 }
 

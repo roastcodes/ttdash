@@ -345,7 +345,7 @@ export function useDashboardControllerActions({
   }, [settings, addToast, t])
 
   const handleExportData = useCallback(() => {
-    const localData = usageData?.systems
+    const localData = usageData?.systems?.length
       ? usageData.systems.find((system) => system.isLocal)?.data
       : usageData
     if (!localData || localData.daily.length === 0) {
@@ -396,8 +396,11 @@ export function useDashboardControllerActions({
       setDataTransferBusy(true)
       let imported = 0
       let skipped = 0
+      let nextImportIndex = 0
+      let completed = false
       try {
-        for (const entry of imports) {
+        for (; nextImportIndex < imports.length; nextImportIndex += 1) {
+          const entry = imports[nextImportIndex]!
           if (entry.preview.exists && !replaceConflicts) {
             skipped += 1
             continue
@@ -405,17 +408,22 @@ export function useDashboardControllerActions({
           await importSystemData(entry.data, entry.preview.exists && replaceConflicts)
           imported += 1
         }
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['usage'] }),
-          queryClient.invalidateQueries({ queryKey: ['settings'] }),
-        ])
+        completed = true
         setAnimationKey((previous) => previous + 1)
         addToast(t('toasts.systemsImported', { imported, skipped }), 'success')
       } catch (error) {
+        setPendingSystemImports(imports.slice(nextImportIndex))
         addToast(normalizeErrorMessage(error) ?? t('api.systemImportFailed'), 'error')
       } finally {
-        setPendingSystemImports([])
-        setDataTransferBusy(false)
+        try {
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['usage'] }),
+            queryClient.invalidateQueries({ queryKey: ['settings'] }),
+          ])
+        } finally {
+          if (completed) setPendingSystemImports([])
+          setDataTransferBusy(false)
+        }
       }
     },
     [queryClient, addToast, t],

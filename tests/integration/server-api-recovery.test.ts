@@ -38,6 +38,7 @@ describe('local server API recovery', () => {
       expect(await recoveredResponse.json()).toEqual({
         daily: [],
         systems: [],
+        unreadableSystemFiles: [],
         totals: {
           inputTokens: 0,
           outputTokens: 0,

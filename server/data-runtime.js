@@ -176,7 +176,7 @@ function createDataRuntime({
 
   function readUsageResponse(selectedSystemIds) {
     const localData = readData();
-    const importedSystems = systemData.readImportedSystems();
+    const { systems: importedSystems, unreadableFiles } = systemData.readImportedSystems();
     const systems = [
       ...(localData
         ? [
@@ -192,6 +192,8 @@ function createDataRuntime({
         : []),
       ...importedSystems,
     ];
+    // Empty or omitted selections mean "all systems". A non-empty selection is
+    // explicit, so unknown IDs intentionally produce an empty aggregate.
     const selection = Array.isArray(selectedSystemIds)
       ? new Set(selectedSystemIds.map((value) => String(value).toLowerCase()))
       : null;
@@ -202,6 +204,7 @@ function createDataRuntime({
     return {
       ...mergeUsageDatasets(selectedSystems.map((system) => system.data)),
       systems,
+      unreadableSystemFiles: unreadableFiles,
     };
   }
 

@@ -1,16 +1,4 @@
-const { getErrorMessage } = require('./http-route-utils');
-
-function formatReportContentDisposition(filename) {
-  const rawFilename = String(filename || 'ttdash-report.pdf');
-  const asciiFallback = rawFilename
-    .replace(/["\\;]/g, '_')
-    .replace(/[^\x20-\x7E]/g, '_')
-    .trim();
-  const safeAsciiFilename = asciiFallback || 'ttdash-report.pdf';
-  const encodedFilename = encodeURIComponent(rawFilename);
-
-  return `attachment; filename="${safeAsciiFilename}"; filename*=UTF-8''${encodedFilename}`;
-}
+const { formatAttachmentDisposition, getErrorMessage } = require('./http-route-utils');
 
 /** Creates PDF report API route handlers. */
 function createReportRoutes({
@@ -21,13 +9,7 @@ function createReportRoutes({
   generatePdfReport,
   logger = console,
 }) {
-  const { isPersistedStateError, readData, readUsageResponse } = dataRuntime;
-
-  function readReportData(selectedSystems) {
-    return typeof readUsageResponse === 'function'
-      ? readUsageResponse(selectedSystems)
-      : readData();
-  }
+  const { isPersistedStateError, readUsageResponse } = dataRuntime;
 
   async function handleReportRoutes(apiPath, req, res) {
     if (apiPath !== '/report/pdf') {
@@ -36,20 +18,6 @@ function createReportRoutes({
 
     if (req.method !== 'POST') {
       return json(res, 405, { message: 'Method Not Allowed' });
-    }
-
-    let data;
-    try {
-      data = readReportData();
-    } catch (error) {
-      if (isPersistedStateError(error, 'usage')) {
-        return json(res, 500, { message: error.message });
-      }
-      logger.error('Unexpected report route usage read error:', error);
-      throw new Error('report-routes: unexpected error during usage handling', { cause: error });
-    }
-    if (!data || !Array.isArray(data.daily) || data.daily.length === 0) {
-      return json(res, 400, { message: 'No data available for the report.' });
     }
 
     const bodyResult = await readMutationBody(req, res, {
@@ -61,19 +29,26 @@ function createReportRoutes({
       return true;
     }
 
-    if (Array.isArray(bodyResult.body?.selectedSystems) && bodyResult.body.selectedSystems.length) {
-      try {
-        data = readReportData(bodyResult.body.selectedSystems);
-      } catch (error) {
-        if (isPersistedStateError(error, 'usage')) {
-          return json(res, 500, { message: error.message });
-        }
-        logger.error('Unexpected report route usage read error:', error);
-        throw new Error('report-routes: unexpected error during usage handling', { cause: error });
+    const selectedSystems =
+      Array.isArray(bodyResult.body?.selectedSystems) && bodyResult.body.selectedSystems.length > 0
+        ? bodyResult.body.selectedSystems
+        : undefined;
+    let data;
+    try {
+      data = readUsageResponse(selectedSystems);
+    } catch (error) {
+      if (isPersistedStateError(error, 'usage')) {
+        return json(res, 500, { message: error.message });
       }
-      if (!Array.isArray(data?.daily) || data.daily.length === 0) {
-        return json(res, 400, { message: 'No data available for the selected systems.' });
-      }
+      logger.error('Unexpected report route usage read error:', error);
+      throw new Error('report-routes: unexpected error during usage handling', { cause: error });
+    }
+    if (!data || !Array.isArray(data.daily) || data.daily.length === 0) {
+      return json(res, 400, {
+        message: selectedSystems
+          ? 'No data available for the selected systems.'
+          : 'No data available for the report.',
+      });
     }
 
     try {
@@ -83,7 +58,7 @@ function createReportRoutes({
         200,
         {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': formatReportContentDisposition(result.filename),
+          'Content-Disposition': formatAttachmentDisposition(result.filename, 'ttdash-report.pdf'),
         },
         result.buffer,
       );

@@ -104,17 +104,19 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
           });
         }
         try {
-          await withSettingsAndDataMutationLock(async () => {
-            await unlinkIfExists(dataFile);
-            await systemData.deleteAllImportedSystems();
-            const currentSettings = readSettingsForWrite();
-            await _updateDataLoadStateUnlocked({
-              lastLoadedAt: null,
-              lastLoadSource: null,
-              defaultFilters: {
-                ...currentSettings.defaultFilters,
-                systems: [],
-              },
+          await systemData.withSystemMutationLock(async () => {
+            await systemData.deleteAllImportedSystems({ mutationLockHeld: true });
+            await withSettingsAndDataMutationLock(async () => {
+              await unlinkIfExists(dataFile);
+              const currentSettings = readSettingsForWrite();
+              await _updateDataLoadStateUnlocked({
+                lastLoadedAt: null,
+                lastLoadSource: null,
+                defaultFilters: {
+                  ...currentSettings.defaultFilters,
+                  systems: [],
+                },
+              });
             });
           });
         } catch (error) {

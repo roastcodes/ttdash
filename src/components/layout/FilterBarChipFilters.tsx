@@ -2,9 +2,10 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
 import { useModelColorHelpers } from '@/lib/model-color-context'
 import { getProviderBadgeClasses, getProviderBadgeStyle } from '@/lib/model-utils'
+import type { UsageSystemOption } from '@/types'
 
 interface FilterBarChipFiltersProps {
-  availableSystems: Array<{ id: string; hostname: string; isLocal: boolean }>
+  availableSystems: UsageSystemOption[]
   selectedSystems: string[]
   onToggleSystem: (system: string) => void
   onClearSystems: () => void

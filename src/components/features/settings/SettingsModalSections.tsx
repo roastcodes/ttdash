@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
@@ -728,6 +734,7 @@ export function SettingsBackupsSection({
 type SettingsSystemTransferSectionProps = Pick<
   DashboardSettingsModalViewModel,
   | 'systems'
+  | 'unreadableSystemFiles'
   | 'onExportSystem'
   | 'onImportSystems'
   | 'onDeleteSystem'
@@ -741,6 +748,7 @@ type SettingsSystemTransferSectionProps = Pick<
 /** Renders host-only system transfer actions and imported-system management. */
 export function SettingsSystemTransferSection({
   systems,
+  unreadableSystemFiles,
   dataBusy,
   onExportSystem,
   onImportSystems,
@@ -755,8 +763,26 @@ export function SettingsSystemTransferSection({
   const [pendingDelete, setPendingDelete] = useState<
     { kind: 'all' } | { kind: 'system'; hostname: string } | null
   >(null)
+  const conflictCancelRef = useRef<HTMLButtonElement | null>(null)
+  const deleteCancelRef = useRef<HTMLButtonElement | null>(null)
   const importedSystems = systems.filter((system) => !system.isLocal)
   const hasLocalData = systems.some((system) => system.isLocal && system.data.daily.length > 0)
+  const hasImportedFiles = importedSystems.length > 0 || unreadableSystemFiles.length > 0
+
+  useEffect(() => {
+    if (systemImportConflicts.length > 0) conflictCancelRef.current?.focus()
+  }, [systemImportConflicts.length])
+
+  useEffect(() => {
+    if (pendingDelete) deleteCancelRef.current?.focus()
+  }, [pendingDelete])
+
+  const handleAlertEscape = (event: ReactKeyboardEvent<HTMLButtonElement>, dismiss: () => void) => {
+    if (event.key !== 'Escape' || dataBusy) return
+    event.preventDefault()
+    event.stopPropagation()
+    dismiss()
+  }
 
   const confirmDelete = async () => {
     if (!pendingDelete) return
@@ -815,18 +841,31 @@ export function SettingsSystemTransferSection({
             })}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => void onReplaceSystemConflicts()} disabled={dataBusy}>
+            <Button
+              size="sm"
+              onClick={() => void onReplaceSystemConflicts()}
+              onKeyDown={(event) => handleAlertEscape(event, onCancelSystemConflicts)}
+              disabled={dataBusy}
+            >
               {t('settings.modal.replaceAllSystems')}
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => void onSkipSystemConflicts()}
+              onKeyDown={(event) => handleAlertEscape(event, onCancelSystemConflicts)}
               disabled={dataBusy}
             >
               {t('settings.modal.skipAllSystems')}
             </Button>
-            <Button size="sm" variant="ghost" onClick={onCancelSystemConflicts} disabled={dataBusy}>
+            <Button
+              ref={conflictCancelRef}
+              size="sm"
+              variant="ghost"
+              onClick={onCancelSystemConflicts}
+              onKeyDown={(event) => handleAlertEscape(event, onCancelSystemConflicts)}
+              disabled={dataBusy}
+            >
               {t('common.cancel')}
             </Button>
           </div>
@@ -843,7 +882,7 @@ export function SettingsSystemTransferSection({
               {t('settings.modal.importedSystemsDescription')}
             </p>
           </div>
-          {importedSystems.length > 0 && (
+          {hasImportedFiles && (
             <Button
               size="sm"
               variant="destructive"
@@ -856,7 +895,26 @@ export function SettingsSystemTransferSection({
           )}
         </div>
 
-        {importedSystems.length === 0 ? (
+        {unreadableSystemFiles.length > 0 && (
+          <div
+            role="status"
+            className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3"
+          >
+            <div className="text-sm font-medium text-foreground">
+              {t('settings.modal.unreadableSystemsTitle')}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('settings.modal.unreadableSystemsDescription')}
+            </p>
+            <ul className="mt-2 space-y-1 font-mono text-xs text-muted-foreground">
+              {unreadableSystemFiles.map((file) => (
+                <li key={file.filename}>{file.filename}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {!hasImportedFiles ? (
           <p className="mt-3 rounded-xl border border-dashed border-border/60 p-3 text-sm text-muted-foreground">
             {t('settings.modal.noImportedSystems')}
           </p>
@@ -914,10 +972,23 @@ export function SettingsSystemTransferSection({
                 })}
           </p>
           <div className="mt-3 flex gap-2">
-            <Button variant="destructive" size="sm" onClick={() => void confirmDelete()}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => void confirmDelete()}
+              onKeyDown={(event) => handleAlertEscape(event, () => setPendingDelete(null))}
+              disabled={dataBusy}
+            >
               {t('common.delete')}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setPendingDelete(null)}>
+            <Button
+              ref={deleteCancelRef}
+              variant="outline"
+              size="sm"
+              onClick={() => setPendingDelete(null)}
+              onKeyDown={(event) => handleAlertEscape(event, () => setPendingDelete(null))}
+              disabled={dataBusy}
+            >
               {t('common.cancel')}
             </Button>
           </div>

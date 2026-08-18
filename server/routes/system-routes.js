@@ -1,11 +1,8 @@
-const { getErrorMessage, writeMutationServerError } = require('./http-route-utils');
-
-function formatAttachmentDisposition(filename) {
-  const safe = String(filename || 'ttdash-system-export.json')
-    .replace(/["\\;]/g, '_')
-    .replace(/[^\x20-\x7E]/g, '_');
-  return `attachment; filename="${safe}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
-}
+const {
+  formatAttachmentDisposition,
+  getErrorMessage,
+  writeMutationServerError,
+} = require('./http-route-utils');
 
 /** Creates per-system export, import, listing, and deletion API handlers. */
 function createSystemRoutes({
@@ -37,20 +34,20 @@ function createSystemRoutes({
     const validationError = validateMutationRequest(req, { requiresJsonContentType: true });
     if (validationError) {
       json(res, validationError.status, { message: validationError.message });
-      return null;
+      return { ok: false };
     }
     const bodyResult = await readMutationBody(req, res, {
       tooLargeMessage: 'System export file too large',
       invalidMessage: 'Invalid system export file',
     });
-    return bodyResult.ok ? bodyResult.body : null;
+    return bodyResult;
   }
 
   async function handleSystemRoutes(apiPath, req, res) {
     if (apiPath === '/systems') {
       if (req.method === 'GET') {
         try {
-          const imported = systemData.readImportedSystems();
+          const { systems: imported, unreadableFiles } = systemData.readImportedSystems();
           return json(res, 200, {
             localHostname: systemData.localHostname,
             systems: imported.map(({ data, ...metadata }) => ({
@@ -58,6 +55,7 @@ function createSystemRoutes({
               days: data.daily.length,
               totalCost: data.totals.totalCost,
             })),
+            unreadableSystemFiles: unreadableFiles,
           });
         } catch (error) {
           const handled = writeKnownError(res, error);
@@ -98,7 +96,10 @@ function createSystemRoutes({
           200,
           {
             'Content-Type': 'application/json; charset=utf-8',
-            'Content-Disposition': formatAttachmentDisposition(filename),
+            'Content-Disposition': formatAttachmentDisposition(
+              filename,
+              'ttdash-system-export.json',
+            ),
           },
           buffer,
         );
@@ -112,10 +113,10 @@ function createSystemRoutes({
       if (req.method !== 'POST') {
         return json(res, 405, { message: 'Method Not Allowed' });
       }
-      const body = await readImportBody(req, res);
-      if (body === null) return true;
+      const bodyResult = await readImportBody(req, res);
+      if (!bodyResult.ok) return true;
       try {
-        return json(res, 200, systemData.previewImport(body));
+        return json(res, 200, systemData.previewImport(bodyResult.body));
       } catch (error) {
         const handled = writeKnownError(res, error);
         if (handled !== null) return handled;
@@ -127,11 +128,11 @@ function createSystemRoutes({
       if (req.method !== 'POST') {
         return json(res, 405, { message: 'Method Not Allowed' });
       }
-      const body = await readImportBody(req, res);
-      if (body === null) return true;
+      const bodyResult = await readImportBody(req, res);
+      if (!bodyResult.ok) return true;
       try {
         const replace = new URL(req.url, 'http://localhost').searchParams.get('replace') === '1';
-        return json(res, 200, await systemData.importSystem(body, { replace }));
+        return json(res, 200, await systemData.importSystem(bodyResult.body, { replace }));
       } catch (error) {
         const handled = writeKnownError(res, error);
         if (handled !== null) return handled;
