@@ -13,10 +13,11 @@ The filter bar supports:
 - all-time, 7-day, 30-day, current-month, and current-year presets
 - a specific month
 - an inclusive custom start and end date
+- one or more source systems when additional system-transfer files are present
 - one or more providers
 - one or more models
 
-Provider and model filters combine with the selected time range. **Reset all** returns to your saved defaults, not necessarily the factory defaults. Configure those defaults in **Settings**.
+System, provider, and model filters combine with the selected time range. An empty system selection means all available systems. **Reset all** returns to your saved defaults, not necessarily the factory defaults. Configure those defaults in **Settings**.
 
 :::tip
 Use daily aggregation to inspect exact activity and calendar heatmaps. Monthly and yearly views are more useful for long-range cost and provider trends.
@@ -54,7 +55,7 @@ Open **Settings** to:
 - switch between German and English
 - follow the operating-system motion preference, always reduce motion, or never reduce it
 - record provider subscription prices and monthly limits
-- save default date, aggregation, provider, and model filters
+- save default date, aggregation, system, provider, and model filters
 
 Settings are stored locally in `settings.json` and can be exported separately from usage data.
 

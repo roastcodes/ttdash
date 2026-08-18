@@ -14,6 +14,7 @@ import type { DashboardSettingsModalViewModel } from '@/types/dashboard-view-mod
 import { cn } from '@/lib/cn'
 import {
   SettingsBackupsSection,
+  SettingsSystemTransferSection,
   SettingsDefaultsSection,
   SettingsLanguageSection,
   SettingsMotionSection,
@@ -77,6 +78,15 @@ export function SettingsModal(props: SettingsModalProps) {
     onImportSettings,
     onExportData,
     onImportData,
+    onExportSystem,
+    onImportSystems,
+    onDeleteSystem,
+    onDeleteAllSystems,
+    systems,
+    systemImportConflicts,
+    onReplaceSystemConflicts,
+    onSkipSystemConflicts,
+    onCancelSystemConflicts,
     settingsBusy = false,
     dataBusy = false,
   } = props
@@ -263,6 +273,18 @@ export function SettingsModal(props: SettingsModalProps) {
                 onImportSettings={onImportSettings}
                 onExportData={onExportData}
                 onImportData={onImportData}
+              />
+              <SettingsSystemTransferSection
+                systems={systems}
+                dataBusy={dataBusy}
+                onExportSystem={onExportSystem}
+                onImportSystems={onImportSystems}
+                onDeleteSystem={onDeleteSystem}
+                onDeleteAllSystems={onDeleteAllSystems}
+                systemImportConflicts={systemImportConflicts}
+                onReplaceSystemConflicts={onReplaceSystemConflicts}
+                onSkipSystemConflicts={onSkipSystemConflicts}
+                onCancelSystemConflicts={onCancelSystemConflicts}
               />
               <SettingsToktrackVersionSection versionStatus={versionStatus} />
             </>

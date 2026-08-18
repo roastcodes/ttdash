@@ -11,6 +11,8 @@ TTDash supports three input shapes:
 
 Every accepted payload is normalized into TTDash's stored shape. Rows without a date are discarded, valid rows are sorted by date, and top-level totals are recalculated from normalized daily rows.
 
+System-transfer files are a separate, versioned format. Import them through **Settings → Maintenance → Transfer systems**, not through the ordinary upload or backup-import actions.
+
 ## Auto-import
 
 Select **Auto import** in the empty-state onboarding or **Import** in the dashboard header after data has loaded. Both open **Toktrack auto import**. You can also run one import during startup:
@@ -60,6 +62,32 @@ Use **Settings → Maintenance → Back up data → Import data** when you want 
 - invalid or dateless imported entries are counted as skipped
 
 Choose ordinary **Upload** instead when the incoming file should replace the entire dataset.
+
+## Combine usage from several systems
+
+Create a system export on every source computer, then import those files on the computer that should show the combined view. A system export contains only the local computer's `data.json`; previously imported systems are never nested into a new export.
+
+In the dashboard:
+
+1. Open **Settings → Maintenance → Transfer systems** on the source system.
+2. Select **Export this system**. The filename contains the source hostname and no timestamp.
+3. Move the JSON file to the destination system.
+4. Open the same settings section and select **Import system files**. The file picker accepts several files at once.
+5. If one or more hostnames already exist, choose once whether to **Replace all** conflicting files or **Skip all** of them.
+
+Imported systems remain separate files below TTDash's `systems/` data directory. TTDash combines their normalized daily rows only while producing the dashboard view. When at least two systems are available, the filter bar can show all systems or a selected subset; that selection can also be saved as a default filter.
+
+You cannot import an export whose hostname matches the destination computer, because local usage remains owned by `data.json`. Remove one additional system or all additional systems from the transfer settings. A full usage reset deletes local data and every imported-system file.
+
+The same source export is available from the command line:
+
+```bash
+ttdash --export
+ttdash --export /srv/ttdash-transfers
+ttdash --auto-load --export /srv/ttdash-transfers
+```
+
+The last command refreshes local toktrack data before exporting it. See [Configuration and CLI](/ttdash/deploying/configuration/#cli-syntax) for path rules.
 
 ## Verify the result
 

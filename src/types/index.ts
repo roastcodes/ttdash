@@ -40,6 +40,35 @@ export interface UsageData {
     totalTokens: number
     requestCount: number
   }
+  systems?: UsageSystem[]
+}
+
+/** Describes one local or imported system dataset returned by the API. */
+export interface UsageSystem {
+  id: string
+  hostname: string
+  filename: string
+  isLocal: boolean
+  exportedAt: string | null
+  data: Omit<UsageData, 'systems'>
+}
+
+/** Describes imported-system metadata shown in settings. */
+export interface ImportedSystemSummary {
+  id: string
+  hostname: string
+  filename: string
+  isLocal: false
+  exportedAt: string
+  days: number
+  totalCost: number
+}
+
+/** Describes a validated system transfer before it is persisted. */
+export interface SystemImportPreview {
+  hostname: string
+  filename: string
+  exists: boolean
 }
 
 /** Summarizes the result of a usage import operation. */
@@ -87,6 +116,7 @@ export interface DashboardDefaultFilters {
   datePreset: DashboardDatePreset
   providers: string[]
   models: string[]
+  systems: string[]
 }
 
 /** Stores per-section visibility state for the dashboard. */

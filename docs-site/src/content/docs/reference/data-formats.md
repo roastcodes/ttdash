@@ -47,9 +47,13 @@ A `toktrack daily --json` result uses snake-case totals and a model-keyed object
 
 Model object keys become `modelName`; each model's `count` contributes to the day's `requestCount`.
 
+### Model and provider labels
+
+TTDash keeps the raw model identifier in stored breakdowns and derives a normalized display label and provider at read time. It understands toktrack's `::<provider>` suffixes, including `::github-copilot`, and current GPT numeric, Codex, Chat, Pro, Mini, Nano, Sol, Terra, and Luna variants. Recognized families receive stable chart colors; different GPT variants remain visually distinct. Unknown model IDs are still retained and receive a deterministic fallback color.
+
 ## Normalized usage object
 
-The stored object and `GET /api/usage` response have this shape:
+The local `data.json` object has this shape. `GET /api/usage` adds source-system metadata as described below.
 
 ```json
 {
@@ -110,6 +114,50 @@ The stored object and `GET /api/usage` response have this shape:
 
 All eight numeric total fields also appear below `totals` as sums across `daily`.
 
+## Aggregate usage response
+
+`GET /api/usage` returns `daily` and `totals` aggregated across the local host and every imported system. It also includes the normalized source datasets so the browser can apply the system filter without rewriting persistent files:
+
+```json
+{
+  "daily": [],
+  "totals": {
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cacheCreationTokens": 0,
+    "cacheReadTokens": 0,
+    "thinkingTokens": 0,
+    "totalCost": 0,
+    "totalTokens": 0,
+    "requestCount": 0
+  },
+  "systems": [
+    {
+      "id": "workstation-a",
+      "hostname": "workstation-a",
+      "filename": "ttdash-system-workstation-a.json",
+      "isLocal": true,
+      "exportedAt": null,
+      "data": {
+        "daily": [],
+        "totals": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "cacheCreationTokens": 0,
+          "cacheReadTokens": 0,
+          "thinkingTokens": 0,
+          "totalCost": 0,
+          "totalTokens": 0,
+          "requestCount": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+System IDs are canonical lowercase hostnames. Rows on the same date are combined, and model breakdowns with the same raw `modelName` are summed. The local entry is present only when `data.json` exists.
+
 ## Normalization behavior
 
 - numeric values and numeric strings are converted to numbers; missing or unusable values become `0`
@@ -152,6 +200,37 @@ The dashboard exports usage in a versioned envelope:
 
 `POST /api/usage/import` accepts this envelope and also retains compatibility with raw supported usage payloads. It rejects a settings-backup envelope as the wrong file type.
 
+## System-transfer envelope
+
+System transfers use a dedicated envelope and deterministic filename, `ttdash-system-<hostname>.json`:
+
+```json
+{
+  "kind": "ttdash-system-export",
+  "version": 1,
+  "exportedAt": "2026-08-18T08:00:00.000Z",
+  "appVersion": "<current-ttdash-version>",
+  "hostname": "workstation-a",
+  "data": {
+    "daily": [],
+    "totals": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheCreationTokens": 0,
+      "cacheReadTokens": 0,
+      "thinkingTokens": 0,
+      "totalCost": 0,
+      "totalTokens": 0,
+      "requestCount": 0
+    }
+  }
+}
+```
+
+The hostname is canonicalized to lowercase and may contain ASCII letters, digits, dots, underscores, and hyphens. TTDash ignores the uploaded filename and derives the stored filename from the validated envelope hostname. The `data` value is normalized exactly like local usage before it is stored.
+
+This format is accepted only by the system preview/import endpoints. Ordinary replacement upload and conservative usage-backup import reject it, preventing transferred hosts from being folded into local `data.json`.
+
 ## Settings backup envelope
 
 Settings use a separate envelope:
@@ -170,6 +249,7 @@ Settings use a separate envelope:
     "defaultFilters": {
       "viewMode": "daily",
       "datePreset": "all",
+      "systems": [],
       "providers": [],
       "models": []
     },

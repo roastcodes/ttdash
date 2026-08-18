@@ -30,6 +30,9 @@ export default defineConfig({
     command: `npm run docs:preview -- --host ${host} --port ${port}`,
     env: {
       ASTRO_TELEMETRY_DISABLED: '1',
+      // Astro 7 auto-backgrounds preview servers in agent environments, while
+      // Playwright must own the foreground process for lifecycle cleanup.
+      ASTRO_PREVIEW_BACKGROUND: '0',
     },
     url: `${origin}${docsBasePath}`,
     reuseExistingServer: false,

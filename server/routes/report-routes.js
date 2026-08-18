@@ -21,7 +21,13 @@ function createReportRoutes({
   generatePdfReport,
   logger = console,
 }) {
-  const { isPersistedStateError, readData } = dataRuntime;
+  const { isPersistedStateError, readData, readUsageResponse } = dataRuntime;
+
+  function readReportData(selectedSystems) {
+    return typeof readUsageResponse === 'function'
+      ? readUsageResponse(selectedSystems)
+      : readData();
+  }
 
   async function handleReportRoutes(apiPath, req, res) {
     if (apiPath !== '/report/pdf') {
@@ -34,7 +40,7 @@ function createReportRoutes({
 
     let data;
     try {
-      data = readData();
+      data = readReportData();
     } catch (error) {
       if (isPersistedStateError(error, 'usage')) {
         return json(res, 500, { message: error.message });
@@ -53,6 +59,21 @@ function createReportRoutes({
     });
     if (!bodyResult.ok) {
       return true;
+    }
+
+    if (Array.isArray(bodyResult.body?.selectedSystems) && bodyResult.body.selectedSystems.length) {
+      try {
+        data = readReportData(bodyResult.body.selectedSystems);
+      } catch (error) {
+        if (isPersistedStateError(error, 'usage')) {
+          return json(res, 500, { message: error.message });
+        }
+        logger.error('Unexpected report route usage read error:', error);
+        throw new Error('report-routes: unexpected error during usage handling', { cause: error });
+      }
+      if (!Array.isArray(data?.daily) || data.daily.length === 0) {
+        return json(res, 400, { message: 'No data available for the selected systems.' });
+      }
     }
 
     try {

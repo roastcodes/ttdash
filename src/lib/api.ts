@@ -10,6 +10,8 @@ import type {
   ToktrackVersionStatus,
   UsageData,
   UsageImportSummary,
+  SystemImportPreview,
+  ImportedSystemSummary,
   ViewMode,
 } from '@/types'
 import i18n from '@/lib/i18n'
@@ -134,6 +136,77 @@ export async function importUsageData(data: unknown): Promise<UsageImportSummary
   return parseResponseJson<UsageImportSummary>(res)
 }
 
+/** Downloads the local host dataset as a system-transfer envelope. */
+export async function exportLocalSystemData(): Promise<{ blob: Blob; filename: string }> {
+  const res = await apiFetch('/api/systems/export')
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, i18n.t('api.systemExportFailed')))
+  }
+  const disposition = res.headers.get('Content-Disposition') ?? ''
+  const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
+  const fallback = disposition.match(/filename="([^"]+)"/i)?.[1]
+  return {
+    blob: await res.blob(),
+    filename: encoded ? decodeURIComponent(encoded) : (fallback ?? 'ttdash-system-export.json'),
+  }
+}
+
+/** Validates a system-transfer envelope and reports whether it already exists. */
+export async function previewSystemImport(data: unknown): Promise<SystemImportPreview> {
+  const res = await apiFetch('/api/systems/import/preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, i18n.t('api.systemImportFailed')))
+  }
+  return parseResponseJson<SystemImportPreview>(res)
+}
+
+/** Persists one validated system-transfer envelope. */
+export async function importSystemData(data: unknown, replace = false): Promise<void> {
+  const res = await apiFetch(`/api/systems/import${replace ? '?replace=1' : ''}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, i18n.t('api.systemImportFailed')))
+  }
+}
+
+/** Lists additional imported systems. */
+export async function fetchImportedSystems(): Promise<{
+  localHostname: string
+  systems: ImportedSystemSummary[]
+}> {
+  const res = await apiFetch('/api/systems')
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, i18n.t('api.fetchSystemsFailed')))
+  }
+  return parseResponseJson<{
+    localHostname: string
+    systems: ImportedSystemSummary[]
+  }>(res)
+}
+
+/** Deletes one additional imported system. */
+export async function deleteImportedSystem(hostname: string): Promise<void> {
+  const res = await apiFetch(`/api/systems/${encodeURIComponent(hostname)}`, { method: 'DELETE' })
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, i18n.t('api.deleteSystemFailed')))
+  }
+}
+
+/** Deletes every additional imported system while retaining local data. */
+export async function deleteAllImportedSystems(): Promise<void> {
+  const res = await apiFetch('/api/systems', { method: 'DELETE' })
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, i18n.t('api.deleteSystemFailed')))
+  }
+}
+
 /** Describes a partial settings update sent to the local API. */
 export interface UpdateSettingsRequest {
   language?: AppLanguage
@@ -250,6 +323,7 @@ export interface PdfReportRequest {
   selectedMonth: string | null
   selectedProviders: string[]
   selectedModels: string[]
+  selectedSystems: string[]
   startDate?: string
   endDate?: string
   language?: 'de' | 'en'

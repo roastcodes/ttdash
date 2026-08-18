@@ -273,6 +273,7 @@ test('manages settings and backup imports through the settings dialog using isol
     datePreset: '30d',
     providers: ['OpenAI'],
     models: ['GPT-5.4'],
+    systems: [],
   })
   expect(importedSettings.sectionVisibility.tokenAnalysis).toBe(false)
   expect(importedSettings.sectionVisibility.comparisons).toBe(false)

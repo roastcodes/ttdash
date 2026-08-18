@@ -198,6 +198,7 @@ describe('dashboard preferences config', () => {
     ).toEqual({
       viewMode: 'yearly',
       datePreset: '30d',
+      systems: [],
       providers: ['OpenAI'],
       models: ['Sonnet'],
     })

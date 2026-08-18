@@ -9,6 +9,7 @@ import type {
   DashboardMetrics,
   DashboardSectionOrder,
   DashboardSectionVisibility,
+  UsageSystem,
   DataLoadSource,
   ModelCostChartPoint,
   ProviderLimits,
@@ -88,6 +89,10 @@ export interface DashboardFilterBarViewModel {
   selectedModels: string[]
   onToggleModel: (model: string) => void
   onClearModels: () => void
+  availableSystems: Array<{ id: string; hostname: string; isLocal: boolean }>
+  selectedSystems: string[]
+  onToggleSystem: (system: string) => void
+  onClearSystems: () => void
   startDate?: string
   endDate?: string
   onStartDateChange: (date: string | undefined) => void
@@ -121,6 +126,7 @@ export interface DashboardSettingsModalViewModel extends DashboardDialogViewMode
   limitProviders: string[]
   filterProviders: string[]
   models: string[]
+  systems: Array<Pick<UsageSystem, 'id' | 'hostname' | 'isLocal' | 'exportedAt' | 'data'>>
   limits: ProviderLimits
   defaultFilters: DashboardDefaultFilters
   sectionVisibility: DashboardSectionVisibility
@@ -141,6 +147,14 @@ export interface DashboardSettingsModalViewModel extends DashboardDialogViewMode
   onImportSettings: () => void
   onExportData: () => void
   onImportData: () => void
+  onExportSystem: () => void
+  onImportSystems: () => void
+  onDeleteSystem: (hostname: string) => Promise<void> | void
+  onDeleteAllSystems: () => Promise<void> | void
+  systemImportConflicts: string[]
+  onReplaceSystemConflicts: () => Promise<void> | void
+  onSkipSystemConflicts: () => Promise<void> | void
+  onCancelSystemConflicts: () => void
   settingsBusy?: boolean
   dataBusy?: boolean
 }

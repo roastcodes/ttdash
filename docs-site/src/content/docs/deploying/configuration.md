@@ -12,16 +12,27 @@ ttdash [options]
 ttdash stop
 ```
 
-| Option          | Aliases     | Default | Description                                                                              |
-| --------------- | ----------- | ------- | ---------------------------------------------------------------------------------------- |
-| `--port <port>` | `-p`        | `3000`  | Set the first port to try; valid values are integers from 1 through 65535                |
-| `--help`        | `-h`        | —       | Print version, usage, options, and examples, then exit                                   |
-| `--no-open`     | `-no`       | off     | Do not open a browser automatically                                                      |
-| `--auto-load`   | `-al`       | off     | Run one auto-import during startup; failure does not prevent startup                     |
-| `--background`  | `-b`, `-bg` | off     | Start a detached managed instance                                                        |
-| `--docker`      | —           | off     | Bind with container defaults, disable browser opening, and require remote authentication |
+| Option            | Aliases     | Default   | Description                                                                              |
+| ----------------- | ----------- | --------- | ---------------------------------------------------------------------------------------- |
+| `--port <port>`   | `-p`        | `3000`    | Set the first port to try; valid values are integers from 1 through 65535                |
+| `--help`          | `-h`        | —         | Print version, usage, options, and examples, then exit                                   |
+| `--no-open`       | `-no`       | off       | Do not open a browser automatically                                                      |
+| `--auto-load`     | `-al`       | off       | Run one auto-import during startup; failure does not prevent startup                     |
+| `--export [path]` | —           | Downloads | Export local system data to a file and exit without starting the server                  |
+| `--background`    | `-b`, `-bg` | off       | Start a detached managed instance                                                        |
+| `--docker`        | —           | off       | Bind with container defaults, disable browser opening, and require remote authentication |
 
 When the requested port is occupied, TTDash tries the requested port and up to 100 following ports without exceeding `65535`. The startup summary prints the selected URL, API URL, bind host, storage files, authentication mode, and data status.
+
+`--export` accepts either a destination directory or an exact `.json` file path. With no path it writes `ttdash-system-<hostname>.json` to the user's Downloads directory. The filename has no timestamp and an existing target is replaced atomically. Combine it with `-al` or `--auto-load` to refresh toktrack data before writing the file:
+
+```bash
+ttdash -al --export
+ttdash --auto-load --export /srv/ttdash-transfers
+ttdash --export /srv/ttdash-transfers/workstation.json
+```
+
+Export mode is a short-lived CLI operation: it does not open a browser or listen on a port. It cannot be combined with `--background` or `ttdash stop`.
 
 ### Background instances
 
@@ -80,6 +91,7 @@ Variables used internally for subprocess coordination, tests, and package verifi
 The runtime uses:
 
 - `data.json` for normalized usage
+- `systems/ttdash-system-<hostname>.json` for separately imported system-transfer snapshots
 - `settings.json` for persisted preferences and data-load metadata
 - `session-auth.json` for current local bootstrap authentication state
 - `background-instances.json` for the managed-instance registry
@@ -87,6 +99,8 @@ The runtime uses:
 - `npx-cache/` for the isolated npx fallback cache
 
 At startup, a legacy repository-local `data.json` is migrated when the destination file does not yet exist.
+
+Deleting all usage from the dashboard removes both `data.json` and the complete `systems/` collection. Deleting one additional system removes only its deterministic transfer file.
 
 ## Examples
 

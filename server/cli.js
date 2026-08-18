@@ -27,6 +27,7 @@ function printHelp({ appVersion, log = console.log } = {}) {
   log('  -h, --help          Show this help');
   log('  -no, --no-open      Disable browser auto-open');
   log('  -al, --auto-load    Run auto-import immediately on startup');
+  log('  --export [path]     Export local system data and exit');
   log('  -b, -bg, --background  Start TTDash as a background process');
   log('  --docker            Start with secure container defaults');
   log('');
@@ -34,6 +35,8 @@ function printHelp({ appVersion, log = console.log } = {}) {
   log('  ttdash --port 3010');
   log('  ttdash -p 3010 -no');
   log('  ttdash --auto-load');
+  log('  ttdash --export');
+  log('  ttdash --auto-load --export ./backups');
   log('  ttdash --background');
   log('  ttdash --docker');
   log('  ttdash stop');
@@ -65,7 +68,29 @@ function parseCliArgs(
     exit = process.exit,
   } = {},
 ) {
-  const args = normalizeCliArgs(rawArgs);
+  const normalizedArgs = normalizeCliArgs(rawArgs);
+  let exportRequested = false;
+  let exportPath = null;
+  const args = [];
+
+  for (let index = 0; index < normalizedArgs.length; index += 1) {
+    const arg = normalizedArgs[index];
+    if (arg.startsWith('--export=')) {
+      exportRequested = true;
+      exportPath = arg.slice('--export='.length) || null;
+      continue;
+    }
+    if (arg === '--export') {
+      exportRequested = true;
+      const candidate = normalizedArgs[index + 1];
+      if (candidate && !candidate.startsWith('-') && candidate !== 'stop') {
+        exportPath = candidate;
+        index += 1;
+      }
+      continue;
+    }
+    args.push(arg);
+  }
 
   let parsed;
   try {
@@ -144,6 +169,18 @@ function parseCliArgs(
     command = 'stop';
   }
 
+  if (exportRequested && (command === 'stop' || parsed.values.background)) {
+    exitWithHelp({
+      code: 1,
+      message: '--export cannot be combined with stop or --background.',
+      appVersion,
+      log,
+      errorLog,
+      exit,
+    });
+    return null;
+  }
+
   let port;
   if (parsed.values.port !== undefined) {
     const portValue = String(parsed.values.port);
@@ -169,6 +206,8 @@ function parseCliArgs(
     autoLoad: Boolean(parsed.values['auto-load']),
     background: Boolean(parsed.values.background),
     docker: Boolean(parsed.values.docker),
+    export: exportRequested,
+    exportPath,
   };
 }
 

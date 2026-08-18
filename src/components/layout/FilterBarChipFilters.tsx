@@ -4,6 +4,10 @@ import { useModelColorHelpers } from '@/lib/model-color-context'
 import { getProviderBadgeClasses, getProviderBadgeStyle } from '@/lib/model-utils'
 
 interface FilterBarChipFiltersProps {
+  availableSystems: Array<{ id: string; hostname: string; isLocal: boolean }>
+  selectedSystems: string[]
+  onToggleSystem: (system: string) => void
+  onClearSystems: () => void
   availableProviders: string[]
   selectedProviders: string[]
   onToggleProvider: (provider: string) => void
@@ -24,6 +28,10 @@ function getFilterVisualState(isSelected: boolean, hasSelection: boolean): Filte
 
 /** Renders provider and model chip filters as independent filter groups. */
 export function FilterBarChipFilters({
+  availableSystems,
+  selectedSystems,
+  onToggleSystem,
+  onClearSystems,
   availableProviders,
   selectedProviders,
   onToggleProvider,
@@ -38,6 +46,54 @@ export function FilterBarChipFilters({
 
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      {availableSystems.length > 1 && (
+        <section
+          aria-label={t('filterBar.groups.systems')}
+          className="rounded-2xl border border-border/50 bg-muted/15 p-3 lg:col-span-2"
+          data-testid="system-filter"
+        >
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+              {t('filterBar.systems')}
+            </span>
+            {selectedSystems.length > 0 && (
+              <button
+                type="button"
+                onClick={onClearSystems}
+                className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:bg-accent"
+              >
+                {t('filterBar.allSystems')}
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {availableSystems.map((system) => {
+              const isSelected = selectedSystems.includes(system.id)
+              const visualState = getFilterVisualState(isSelected, selectedSystems.length > 0)
+              return (
+                <button
+                  key={system.id}
+                  type="button"
+                  aria-pressed={isSelected}
+                  data-filter-state={visualState}
+                  onClick={() => onToggleSystem(system.id)}
+                  className={cn(
+                    'inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition-all duration-200',
+                    visualState === 'selected'
+                      ? 'border-primary/50 bg-primary/15 text-primary'
+                      : visualState === 'included'
+                        ? 'border-border text-foreground hover:bg-accent'
+                        : 'border-border text-muted-foreground opacity-45 hover:bg-accent hover:opacity-75',
+                  )}
+                >
+                  {system.hostname}
+                  {system.isLocal ? ` · ${t('filterBar.localSystem')}` : ''}
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
       <section
         aria-label={t('filterBar.groups.providers')}
         className="rounded-2xl border border-border/50 bg-muted/15 p-3"

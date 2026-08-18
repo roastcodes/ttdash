@@ -36,10 +36,15 @@ const toastMocks = vi.hoisted(() => ({
 }))
 
 const apiMocks = vi.hoisted(() => ({
+  deleteAllImportedSystems: vi.fn(),
+  deleteImportedSystem: vi.fn(),
   deleteSettings: vi.fn(),
+  exportLocalSystemData: vi.fn(),
   generatePdfReport: vi.fn(),
   importSettings: vi.fn(),
+  importSystemData: vi.fn(),
   importUsageData: vi.fn(),
+  previewSystemImport: vi.fn(),
 }))
 
 vi.mock('@/hooks/use-usage-data', () => usageHookMocks)
@@ -101,9 +106,14 @@ describe('useDashboardControllerWithBootstrap actions', () => {
     )
     computedHookMocks.useComputedMetrics.mockReturnValue(createComputedState())
     apiMocks.deleteSettings.mockReset()
+    apiMocks.deleteAllImportedSystems.mockReset()
+    apiMocks.deleteImportedSystem.mockReset()
+    apiMocks.exportLocalSystemData.mockReset()
     apiMocks.generatePdfReport.mockReset()
     apiMocks.importSettings.mockReset()
+    apiMocks.importSystemData.mockReset()
     apiMocks.importUsageData.mockReset()
+    apiMocks.previewSystemImport.mockReset()
     toastMocks.addToast.mockReset()
     delete (window as Window & { __TTDASH_TEST_HOOKS__?: object }).__TTDASH_TEST_HOOKS__
   })
@@ -137,6 +147,7 @@ describe('useDashboardControllerWithBootstrap actions', () => {
       selectedMonth: '2026-04',
       selectedProviders: ['OpenAI'],
       selectedModels: ['GPT-4o'],
+      selectedSystems: [],
       startDate: '2026-04-01',
       endDate: '2026-04-20',
       language: 'en',
@@ -233,6 +244,60 @@ describe('useDashboardControllerWithBootstrap actions', () => {
     expect(uploadUsageData).toHaveBeenCalledTimes(1)
     expect(target.value).toBe('')
     expect(toastMocks.addToast).toHaveBeenCalledWith('Upload rejected', 'error')
+  })
+
+  it('previews multiple system files and applies one replace-all conflict decision', async () => {
+    const client = createTestQueryClient()
+    const invalidateQueries = vi.spyOn(client, 'invalidateQueries')
+    apiMocks.previewSystemImport
+      .mockResolvedValueOnce({
+        hostname: 'workstation-b',
+        filename: 'ttdash-system-workstation-b.json',
+        exists: true,
+      })
+      .mockResolvedValueOnce({
+        hostname: 'workstation-c',
+        filename: 'ttdash-system-workstation-c.json',
+        exists: false,
+      })
+    apiMocks.importSystemData.mockResolvedValue(undefined)
+
+    const { result } = renderHookWithQueryClient(
+      () => useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
+      { client },
+    )
+    const first = new File([JSON.stringify({ hostname: 'workstation-b' })], 'b.json', {
+      type: 'application/json',
+    })
+    const second = new File([JSON.stringify({ hostname: 'workstation-c' })], 'c.json', {
+      type: 'application/json',
+    })
+
+    await act(async () => {
+      await result.current.fileInputs.onSystemImportChange({
+        target: { files: [first, second], value: 'systems' },
+      } as never)
+    })
+
+    expect(result.current.settingsModal.systemImportConflicts).toEqual(['workstation-b'])
+    expect(apiMocks.importSystemData).not.toHaveBeenCalled()
+
+    await act(async () => {
+      await result.current.settingsModal.onReplaceSystemConflicts()
+    })
+
+    expect(apiMocks.importSystemData).toHaveBeenNthCalledWith(
+      1,
+      { hostname: 'workstation-b' },
+      true,
+    )
+    expect(apiMocks.importSystemData).toHaveBeenNthCalledWith(
+      2,
+      { hostname: 'workstation-c' },
+      false,
+    )
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['usage'] })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings'] })
   })
 
   it('wires composed dashboard callbacks across header, filters, settings, and commands', async () => {

@@ -19,6 +19,7 @@ export function buildSettingsModalProps(
     limitProviders: [],
     filterProviders: [],
     models: [],
+    systems: [],
     limits: {},
     defaultFilters: {
       ...DEFAULT_APP_SETTINGS.defaultFilters,
@@ -36,6 +37,14 @@ export function buildSettingsModalProps(
     onImportSettings: vi.fn(),
     onExportData: vi.fn(),
     onImportData: vi.fn(),
+    onExportSystem: vi.fn(),
+    onImportSystems: vi.fn(),
+    onDeleteSystem: vi.fn().mockResolvedValue(undefined),
+    onDeleteAllSystems: vi.fn().mockResolvedValue(undefined),
+    systemImportConflicts: [],
+    onReplaceSystemConflicts: vi.fn().mockResolvedValue(undefined),
+    onSkipSystemConflicts: vi.fn().mockResolvedValue(undefined),
+    onCancelSystemConflicts: vi.fn(),
     ...overrides,
   }
 }

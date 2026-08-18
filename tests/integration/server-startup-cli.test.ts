@@ -1,9 +1,19 @@
 import { createServer } from 'node:net'
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { hostname, tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { createBearerAuthHeader, createRemoteAuthTestToken } from '../auth-test-helpers'
+import { sampleUsage } from './server-api-test-helpers'
 import {
   createCliEnv,
   getCliConfigDir,
@@ -50,6 +60,37 @@ describe('local server startup CLI integration', () => {
         },
       })
       expect(result.code).toBe(1)
+    } finally {
+      rmSync(runtimeRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('exports local system data to a deterministic file and exits without a server', async () => {
+    const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'ttdash-system-export-cli-test-'))
+    const dataDir = getCliDataDir(runtimeRoot)
+    const exportDir = path.join(runtimeRoot, 'exports')
+    try {
+      mkdirSync(dataDir, { recursive: true })
+      writeFileSync(path.join(dataDir, 'data.json'), JSON.stringify(sampleUsage))
+
+      const first = await runCli(['--export', exportDir], { env: createCliEnv(runtimeRoot) })
+      expect(first.code).toBe(0)
+      const expectedFilename = `ttdash-system-${hostname().toLowerCase()}.json`
+      expect(readdirSync(exportDir)).toEqual([expectedFilename])
+      expect(first.output).toContain(path.join(exportDir, expectedFilename))
+
+      const envelope = JSON.parse(
+        readFileSync(path.join(exportDir, expectedFilename), 'utf8'),
+      ) as Record<string, unknown>
+      expect(envelope).toMatchObject({
+        kind: 'ttdash-system-export',
+        version: 1,
+        hostname: hostname().toLowerCase(),
+      })
+
+      const second = await runCli(['--export', exportDir], { env: createCliEnv(runtimeRoot) })
+      expect(second.code).toBe(0)
+      expect(readdirSync(exportDir)).toEqual([expectedFilename])
     } finally {
       rmSync(runtimeRoot, { recursive: true, force: true })
     }

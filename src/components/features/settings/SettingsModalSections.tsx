@@ -7,7 +7,7 @@ import {
   DASHBOARD_SECTION_DEFINITION_MAP,
   DASHBOARD_VIEW_MODES,
 } from '@/lib/dashboard-preferences'
-import { formatDateTimeFull } from '@/lib/formatters'
+import { formatCurrencyExact, formatDateTimeFull } from '@/lib/formatters'
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n'
 import { getProviderBadgeClasses } from '@/lib/model-utils'
 import { DEFAULT_PROVIDER_LIMIT_CONFIG } from '@/lib/provider-limits'
@@ -30,9 +30,12 @@ import {
   Languages,
   LayoutPanelTop,
   Settings2,
+  Server,
+  Trash2,
   Upload,
 } from 'lucide-react'
 import type { DashboardSectionOrder, DataLoadSource } from '@/types'
+import type { DashboardSettingsModalViewModel } from '@/types/dashboard-view-model'
 
 interface SettingsStatusSectionProps {
   lastLoadedAt?: string | null
@@ -180,6 +183,38 @@ export function SettingsDefaultsSection({ viewModel, settingsBusy }: SettingsDef
       </div>
 
       <div className="mt-4 space-y-4">
+        {viewModel.systemOptions.length > 1 && (
+          <div className="space-y-2">
+            <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+              {t('settings.modal.filterSystems')}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {viewModel.systemOptions.map((system) => {
+                const selected = viewModel.defaultFilterDraft.systems.includes(system.id)
+                return (
+                  <button
+                    key={system.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => viewModel.onToggleSystem(system.id)}
+                    disabled={settingsBusy}
+                    className={cn(
+                      'inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                      selected
+                        ? 'border-primary/30 bg-primary text-primary-foreground'
+                        : 'border-border bg-muted/20 text-muted-foreground hover:bg-accent hover:text-foreground',
+                      settingsBusy && 'cursor-not-allowed opacity-50',
+                    )}
+                  >
+                    {system.hostname}
+                    {system.isLocal ? ` · ${t('filterBar.localSystem')}` : ''}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">{t('settings.modal.filterSystemsHint')}</p>
+          </div>
+        )}
         <div className="space-y-2">
           <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
             {t('settings.modal.defaultViewMode')}
@@ -686,6 +721,208 @@ export function SettingsBackupsSection({
           </Button>
         </div>
       </div>
+    </div>
+  )
+}
+
+type SettingsSystemTransferSectionProps = Pick<
+  DashboardSettingsModalViewModel,
+  | 'systems'
+  | 'onExportSystem'
+  | 'onImportSystems'
+  | 'onDeleteSystem'
+  | 'onDeleteAllSystems'
+  | 'systemImportConflicts'
+  | 'onReplaceSystemConflicts'
+  | 'onSkipSystemConflicts'
+  | 'onCancelSystemConflicts'
+> & { dataBusy: boolean }
+
+/** Renders host-only system transfer actions and imported-system management. */
+export function SettingsSystemTransferSection({
+  systems,
+  dataBusy,
+  onExportSystem,
+  onImportSystems,
+  onDeleteSystem,
+  onDeleteAllSystems,
+  systemImportConflicts,
+  onReplaceSystemConflicts,
+  onSkipSystemConflicts,
+  onCancelSystemConflicts,
+}: SettingsSystemTransferSectionProps) {
+  const { t } = useTranslation()
+  const [pendingDelete, setPendingDelete] = useState<
+    { kind: 'all' } | { kind: 'system'; hostname: string } | null
+  >(null)
+  const importedSystems = systems.filter((system) => !system.isLocal)
+  const hasLocalData = systems.some((system) => system.isLocal && system.data.daily.length > 0)
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    if (pendingDelete.kind === 'all') {
+      await onDeleteAllSystems()
+    } else {
+      await onDeleteSystem(pendingDelete.hostname)
+    }
+    setPendingDelete(null)
+  }
+
+  return (
+    <div
+      className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-xl"
+      data-testid="settings-system-transfer-section"
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-muted/20 text-muted-foreground">
+          <Server className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 space-y-1">
+          <div className="text-sm font-medium text-foreground">
+            {t('settings.modal.systemTransferTitle')}
+          </div>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {t('settings.modal.systemTransferDescription')}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button variant="outline" onClick={onExportSystem} disabled={!hasLocalData || dataBusy}>
+          <Download className="mr-2 h-4 w-4" />
+          {t('settings.modal.exportSystem')}
+        </Button>
+        <Button variant="outline" onClick={onImportSystems} disabled={dataBusy}>
+          <Upload className="mr-2 h-4 w-4" />
+          {t('settings.modal.importSystems')}
+        </Button>
+      </div>
+
+      {systemImportConflicts.length > 0 && (
+        <div
+          role="alertdialog"
+          aria-labelledby="system-import-conflict-title"
+          aria-describedby="system-import-conflict-description"
+          className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3"
+          data-testid="system-import-conflict-dialog"
+        >
+          <div id="system-import-conflict-title" className="text-sm font-semibold text-foreground">
+            {t('settings.modal.systemConflictTitle')}
+          </div>
+          <p id="system-import-conflict-description" className="mt-1 text-xs text-muted-foreground">
+            {t('settings.modal.systemConflictDescription', {
+              systems: systemImportConflicts.join(', '),
+            })}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => void onReplaceSystemConflicts()} disabled={dataBusy}>
+              {t('settings.modal.replaceAllSystems')}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void onSkipSystemConflicts()}
+              disabled={dataBusy}
+            >
+              {t('settings.modal.skipAllSystems')}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onCancelSystemConflicts} disabled={dataBusy}>
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-5 border-t border-border/50 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-sm font-medium text-foreground">
+              {t('settings.modal.importedSystemsTitle')}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t('settings.modal.importedSystemsDescription')}
+            </p>
+          </div>
+          {importedSystems.length > 0 && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => setPendingDelete({ kind: 'all' })}
+              disabled={dataBusy}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t('settings.modal.deleteAllSystems')}
+            </Button>
+          )}
+        </div>
+
+        {importedSystems.length === 0 ? (
+          <p className="mt-3 rounded-xl border border-dashed border-border/60 p-3 text-sm text-muted-foreground">
+            {t('settings.modal.noImportedSystems')}
+          </p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {importedSystems.map((system) => (
+              <div
+                key={system.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 px-3 py-2"
+              >
+                <div>
+                  <div className="font-mono text-sm font-medium text-foreground">
+                    {system.hostname}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {t('settings.modal.systemUsageSummary', {
+                      days: system.data.daily.length,
+                      cost: formatCurrencyExact(system.data.totals?.totalCost ?? 0),
+                    })}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setPendingDelete({ kind: 'system', hostname: system.hostname })}
+                  disabled={dataBusy}
+                  aria-label={t('settings.modal.deleteSystemLabel', {
+                    hostname: system.hostname,
+                  })}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {pendingDelete && (
+        <div
+          role="alertdialog"
+          aria-labelledby="delete-system-title"
+          aria-describedby="delete-system-description"
+          className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3"
+          data-testid="delete-system-confirmation"
+        >
+          <div id="delete-system-title" className="text-sm font-semibold text-foreground">
+            {t('settings.modal.deleteSystemTitle')}
+          </div>
+          <p id="delete-system-description" className="mt-1 text-xs text-muted-foreground">
+            {pendingDelete.kind === 'all'
+              ? t('settings.modal.deleteAllSystemsConfirmation')
+              : t('settings.modal.deleteSystemConfirmation', {
+                  hostname: pendingDelete.hostname,
+                })}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Button variant="destructive" size="sm" onClick={() => void confirmDelete()}>
+              {t('common.delete')}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setPendingDelete(null)}>
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

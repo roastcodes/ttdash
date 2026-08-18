@@ -3,7 +3,7 @@ title: Exports and backups
 description: Export filtered CSV and PDF reports, and back up or restore usage and settings safely.
 ---
 
-TTDash separates presentation exports from recoverable backups. CSV and PDF reflect a dashboard selection; backups preserve the underlying usage or settings state.
+TTDash separates presentation exports, recoverable backups, and system-transfer files. CSV and PDF reflect a dashboard selection; backups preserve local usage or settings state; system transfers add another computer to a combined dashboard without merging its stored dates into `data.json`.
 
 ## CSV export
 
@@ -27,7 +27,7 @@ Install Typst in the same environment that runs TTDash:
 typst --version
 ```
 
-The report request includes aggregation, selected month, provider and model filters, optional start/end dates, and language. The server returns an error when no usage data is available or Typst cannot be found.
+The report request includes aggregation, selected systems, selected month, provider and model filters, optional start/end dates, and language. The server returns an error when no usage data is available or Typst cannot be found.
 
 :::caution
 The standard TTDash Docker image does not include Typst. Add it in a derived image if PDF export is required in a container.
@@ -44,6 +44,24 @@ Importing a usage backup is conservative:
 - conflicting dates are preserved from the current dataset and reported
 
 To intentionally replace every existing date, use the normal JSON upload instead.
+
+Usage backups always contain the destination computer's local dataset. They do not include imported systems. This keeps restore semantics stable and prevents a combined dataset from being imported back into one host accidentally.
+
+## System-transfer exports
+
+A system-transfer export is a snapshot of the local host in a `ttdash-system-export` envelope. Its deterministic filename is `ttdash-system-<hostname>.json`; there is no timestamp, so a scheduled export can overwrite the previous snapshot safely.
+
+Use **Settings → Maintenance → Transfer systems → Export this system**, or run:
+
+```bash
+ttdash --export [path]
+```
+
+With no path, TTDash writes to the user's Downloads directory. A directory path receives the deterministic filename. A path ending in `.json` is used as the exact file path. Existing files are atomically replaced.
+
+`ttdash --auto-load --export [path]` runs the toktrack auto-import first, writes the export, and exits without starting the HTTP server. `--export` cannot be combined with background mode or `stop`.
+
+On the destination, select several transfer files in one import operation. Existing hostnames produce one replace/skip decision. Imported files are normalized, stored independently, and included in system filtering, aggregate totals, CSV, and PDF views. See [Import usage data](/ttdash/getting-started/importing-data/#combine-usage-from-several-systems).
 
 ## Settings backups
 

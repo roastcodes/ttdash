@@ -37,6 +37,7 @@ describe('local server API recovery', () => {
       expect(recoveredResponse.status).toBe(200)
       expect(await recoveredResponse.json()).toEqual({
         daily: [],
+        systems: [],
         totals: {
           inputTokens: 0,
           outputTokens: 0,

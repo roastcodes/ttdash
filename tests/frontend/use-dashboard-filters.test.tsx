@@ -4,7 +4,7 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
 import { resolveDashboardPresetRange } from '@/lib/dashboard-preferences'
-import type { DashboardDefaultFilters } from '@/types'
+import type { DashboardDefaultFilters, UsageSystem } from '@/types'
 import { dashboardFixture } from '../fixtures/usage-data'
 
 describe('useDashboardFilters', () => {
@@ -76,13 +76,15 @@ describe('useDashboardFilters', () => {
     const defaults: DashboardDefaultFilters = {
       viewMode: 'monthly',
       datePreset: '30d',
+      systems: [],
       providers: ['OpenAI'],
       models: ['GPT-5.4'],
     }
 
-    const { result } = renderHook(({ filters }) => useDashboardFilters(dashboardFixture, filters), {
-      initialProps: { filters: defaults },
-    })
+    const { result } = renderHook(
+      ({ filters }) => useDashboardFilters(dashboardFixture, [], filters),
+      { initialProps: { filters: defaults } },
+    )
 
     expect(result.current.viewMode).toBe('monthly')
     expect(result.current.selectedProviders).toEqual(['OpenAI'])
@@ -117,12 +119,13 @@ describe('useDashboardFilters', () => {
     const defaults: DashboardDefaultFilters = {
       viewMode: 'daily',
       datePreset: 'all',
+      systems: [],
       providers: ['OpenAI'],
       models: ['GPT-5.4'],
     }
 
     const { result, rerender } = renderHook(
-      ({ data, filters }) => useDashboardFilters(data, filters),
+      ({ data, filters }) => useDashboardFilters(data, [], filters),
       {
         initialProps: {
           data: [],
@@ -141,5 +144,50 @@ describe('useDashboardFilters', () => {
 
     expect(result.current.selectedProviders).toEqual(['OpenAI'])
     expect(result.current.selectedModels).toEqual(['GPT-5.4'])
+  })
+
+  it('switches between one system and the combined multi-system view', () => {
+    const localDay = dashboardFixture[0]!
+    const remoteDay = {
+      ...localDay,
+      totalCost: 2,
+      modelBreakdowns: localDay.modelBreakdowns.map((model) => ({ ...model, cost: 1 })),
+    }
+    const totalsFor = (day: typeof localDay) => ({
+      inputTokens: day.inputTokens,
+      outputTokens: day.outputTokens,
+      cacheCreationTokens: day.cacheCreationTokens,
+      cacheReadTokens: day.cacheReadTokens,
+      thinkingTokens: day.thinkingTokens,
+      totalTokens: day.totalTokens,
+      totalCost: day.totalCost,
+      requestCount: day.requestCount,
+    })
+    const systems: UsageSystem[] = [
+      {
+        id: 'workstation-a',
+        hostname: 'workstation-a',
+        filename: 'ttdash-system-workstation-a.json',
+        isLocal: true,
+        exportedAt: null,
+        data: { daily: [localDay], totals: totalsFor(localDay) },
+      },
+      {
+        id: 'workstation-b',
+        hostname: 'workstation-b',
+        filename: 'ttdash-system-workstation-b.json',
+        isLocal: false,
+        exportedAt: '2026-08-18T08:00:00.000Z',
+        data: { daily: [remoteDay], totals: totalsFor(remoteDay) },
+      },
+    ]
+    const { result } = renderHook(() => useDashboardFilters([], systems))
+
+    expect(result.current.filteredDailyData[0]?.totalCost).toBe(12)
+    act(() => result.current.toggleSystem('workstation-b'))
+    expect(result.current.selectedSystems).toEqual(['workstation-b'])
+    expect(result.current.filteredDailyData[0]?.totalCost).toBe(2)
+    act(() => result.current.clearSystems())
+    expect(result.current.filteredDailyData[0]?.totalCost).toBe(12)
   })
 })

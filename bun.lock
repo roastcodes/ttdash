@@ -7,7 +7,7 @@
       "dependencies": {
         "cross-spawn": "^7.0.6",
         "semver": "^7.8.1",
-        "toktrack": "2.16.0",
+        "toktrack": "2.16.1",
       },
       "devDependencies": {
         "@axe-core/playwright": "^4.12.1",
@@ -1310,7 +1310,7 @@
 
     "to-valid-identifier": ["to-valid-identifier@1.0.0", "", { "dependencies": { "@sindresorhus/base62": "^1.0.0", "reserved-identifiers": "^1.0.0" } }, "sha512-41wJyvKep3yT2tyPqX/4blcfybknGB4D+oETKLs7Q76UiPqRpUJK3hr1nxelyYO0PHKVzJwlu0aCeEAsGI6rpw=="],
 
-    "toktrack": ["toktrack@2.16.0", "", { "os": [ "linux", "win32", "darwin", ], "cpu": [ "x64", "arm64", ], "bin": { "toktrack": "bin/run.js" } }, "sha512-ucSCPMX6k6zWuZigxqqmZS7ryBIROnliXyDar8/zxl+8WzJWl7Bykvof2dcHZWqY+NExEoxCWKwLI3x3+HD5aQ=="],
+    "toktrack": ["toktrack@2.16.1", "", { "os": [ "linux", "win32", "darwin", ], "cpu": [ "x64", "arm64", ], "bin": { "toktrack": "bin/run.js" } }, "sha512-3yvWX6Y6U4IRie0qD03okD4FJ/scBREe1UFiPSVl3CBKzkDnZ+giqIHLh0EhDopHW4MIePuywauw/T4Wa6J5aQ=="],
 
     "tough-cookie": ["tough-cookie@6.0.2", "", { "dependencies": { "tldts": "^7.0.5" } }, "sha512-exgYmnmL/sJpR3upZfXG5PoatXQii55xAiXGXzY+sROLZ/Y+SLcp9PgJNI9Vz37HpQ74WvDcLT8eqm+kV3FzrA=="],
 

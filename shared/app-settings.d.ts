@@ -38,6 +38,7 @@ export type ProviderLimits = Record<string, ProviderLimitConfig>
 export interface DashboardDefaultFilters {
   viewMode: ViewMode
   datePreset: DashboardDatePreset
+  systems: string[]
   providers: string[]
   models: string[]
 }

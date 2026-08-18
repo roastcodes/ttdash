@@ -36,7 +36,8 @@ The enforced responsibilities are:
 
 The server is split into focused facades and services so `server.js` never becomes a catch-all:
 
-- `data-runtime.js` composes app paths, secure/atomic file I/O, mutation locks, and conservative backup merge logic
+- `data-runtime.js` composes app paths, secure/atomic file I/O, mutation locks, conservative backup merge logic, and aggregate usage reads
+- `data-runtime/system-data.js` owns hostname-safe system envelopes, deterministic filenames, imported-system persistence, and cross-system daily aggregation
 - `auto-import-runtime.js` composes toktrack runner discovery, commands, timeouts, progress events, version lookup, and import execution
 - `http-router.js` authenticates and dispatches API/static requests through injected runtime dependencies
 - `http-request-guards.js` owns Host, Origin, Fetch Metadata, and JSON content-type policy
@@ -61,6 +62,8 @@ When a persisted setting changes:
 3. update backup/import behavior where relevant
 4. extend contract and migration tests
 5. update the public configuration or API reference
+
+Local usage remains in `data.json`; imported hosts remain as independent versioned envelopes in `systems/`. API reads expose both the aggregate and the source systems, while ordinary backup export and backup merge operate only on local usage. Preserve that boundary when extending transfer behavior.
 
 ## Frontend layers
 

@@ -3,14 +3,20 @@ import {
   authenticateRemoteSession,
   apiFetch,
   deleteSettings,
+  deleteAllImportedSystems,
+  deleteImportedSystem,
   deleteUsage,
+  exportLocalSystemData,
+  fetchImportedSystems,
   fetchSettings,
   fetchToktrackVersionStatus,
   generatePdfReport,
   importSettings,
+  importSystemData,
   importUsageData,
   loadBootstrapSettings,
   onRemoteAuthenticationRequired,
+  previewSystemImport,
   uploadData,
   updateSettings,
 } from '@/lib/api'
@@ -401,6 +407,67 @@ describe('api error handling', () => {
     await expect(deleteUsage()).rejects.toThrow('Delete failed')
   })
 
+  it('uses the system-transfer endpoints and preserves the attachment filename', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ kind: 'ttdash-system-export' }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Disposition':
+              'attachment; filename="fallback.json"; filename*=UTF-8\'\'ttdash-system-workstation-a.json',
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            hostname: 'workstation-b',
+            filename: 'ttdash-system-workstation-b.json',
+            exists: false,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(new Response('{}', { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ localHostname: 'workstation-a', systems: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(new Response('{}', { status: 200 }))
+      .mockResolvedValueOnce(new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(exportLocalSystemData()).resolves.toMatchObject({
+      filename: 'ttdash-system-workstation-a.json',
+    })
+    await expect(previewSystemImport({ kind: 'ttdash-system-export' })).resolves.toEqual({
+      hostname: 'workstation-b',
+      filename: 'ttdash-system-workstation-b.json',
+      exists: false,
+    })
+    await importSystemData({ hostname: 'workstation-b' }, true)
+    await expect(fetchImportedSystems()).resolves.toEqual({
+      localHostname: 'workstation-a',
+      systems: [],
+    })
+    await deleteImportedSystem('workstation b')
+    await deleteAllImportedSystems()
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/systems/import?replace=1',
+      expect.objectContaining({ method: 'POST' }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/systems/workstation%20b', {
+      method: 'DELETE',
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(6, '/api/systems', { method: 'DELETE' })
+  })
+
   it('returns the PDF blob when report generation succeeds', async () => {
     const blob = new Blob(['pdf-data'], { type: 'application/pdf' })
     vi.stubGlobal(
@@ -419,6 +486,7 @@ describe('api error handling', () => {
         selectedMonth: null,
         selectedProviders: [],
         selectedModels: [],
+        selectedSystems: [],
         language: 'en',
       }),
     ).resolves.toEqual(blob)
@@ -441,6 +509,7 @@ describe('api error handling', () => {
         selectedMonth: null,
         selectedProviders: [],
         selectedModels: [],
+        selectedSystems: [],
         language: 'en',
       }),
     ).rejects.toThrow('Typst unavailable')

@@ -16,6 +16,8 @@ const TOKTRACK_PROVIDER_SUFFIXES = new Map([
   ['cohere', 'Cohere'],
   ['deepseek', 'DeepSeek'],
   ['google', 'Google'],
+  ['github-copilot', 'GitHub Copilot'],
+  ['copilot', 'GitHub Copilot'],
   ['mistral', 'Mistral'],
   ['opencode', 'OpenCode'],
   ['openai', 'OpenAI'],
@@ -60,7 +62,7 @@ function canonicalizeModelName(raw) {
   const normalized = model
     .toLowerCase()
     .replace(/^model[:/ -]*/i, '')
-    .replace(/^(anthropic|openai|google|vertex|models)[/-]/i, '')
+    .replace(/^(anthropic|openai|google|vertex|models|github[_-]copilot)[/-]/i, '')
     .replace(/\./g, '-')
     .replace(/[_/]+/g, '-')
     .replace(/\s+/g, '-')
@@ -222,6 +224,11 @@ function normalizeModelName(raw) {
 function getModelProvider(raw) {
   const suffixProvider = splitToktrackProviderSuffix(raw).provider
   if (suffixProvider) return suffixProvider
+
+  const sourceValue = String(raw || '')
+  for (const matcher of PROVIDER_MATCHERS) {
+    if (matcher.matcher.test(sourceValue)) return matcher.provider
+  }
 
   const canonical = canonicalizeModelName(raw)
   for (const matcher of PROVIDER_MATCHERS) {

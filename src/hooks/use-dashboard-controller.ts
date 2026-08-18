@@ -53,6 +53,7 @@ export function useDashboardControllerWithBootstrap(
   const [bootstrapSettingsError, setBootstrapSettingsError] = useState(initialSettingsError)
 
   const daily = useMemo(() => usageData?.daily ?? [], [usageData])
+  const systems = useMemo(() => usageData?.systems ?? [], [usageData])
   const hasData = daily.length > 0
   const allProviders = useMemo(
     () => getUniqueProviders(daily.map((entry) => entry.modelsUsed)),
@@ -101,6 +102,7 @@ export function useDashboardControllerWithBootstrap(
     allModelsFromData,
     settings,
     locale: i18n.resolvedLanguage ?? i18n.language,
+    systems,
   })
 
   const actions = useDashboardControllerActions({
@@ -111,6 +113,7 @@ export function useDashboardControllerWithBootstrap(
     selectedMonth: derived.filters.selectedMonth,
     selectedProviders: derived.filters.selectedProviders,
     selectedModels: derived.filters.selectedModels,
+    selectedSystems: derived.filters.selectedSystems,
     ...(derived.filters.startDate ? { startDate: derived.filters.startDate } : {}),
     ...(derived.filters.endDate ? { endDate: derived.filters.endDate } : {}),
     setStartDate: derived.filters.setStartDate,
@@ -196,6 +199,10 @@ export function useDashboardControllerWithBootstrap(
       selectedModels: derived.filters.selectedModels,
       onToggleModel: derived.filters.toggleModel,
       onClearModels: derived.filters.clearModels,
+      availableSystems: derived.filters.availableSystems,
+      selectedSystems: derived.filters.selectedSystems,
+      onToggleSystem: derived.filters.toggleSystem,
+      onClearSystems: derived.filters.clearSystems,
       ...(derived.filters.startDate ? { startDate: derived.filters.startDate } : {}),
       ...(derived.filters.endDate ? { endDate: derived.filters.endDate } : {}),
       onStartDateChange: derived.filters.setStartDate,
@@ -281,6 +288,13 @@ export function useDashboardControllerWithBootstrap(
       limitProviders: allProviders,
       filterProviders: derived.settingsProviderOptions,
       models: derived.settingsModelOptions,
+      systems: systems.map((system) => ({
+        id: system.id,
+        hostname: system.hostname,
+        isLocal: system.isLocal,
+        exportedAt: system.exportedAt,
+        data: system.data,
+      })),
       limits: settings.providerLimits,
       defaultFilters: settings.defaultFilters,
       sectionVisibility: settings.sectionVisibility,
@@ -288,12 +302,23 @@ export function useDashboardControllerWithBootstrap(
       lastLoadedAt: settings.lastLoadedAt,
       lastLoadSource: settings.lastLoadSource,
       cliAutoLoadActive: settings.cliAutoLoadActive,
-      hasData: derived.hasData,
+      hasData:
+        systems.length > 0
+          ? systems.some((system) => system.isLocal && system.data.daily.length > 0)
+          : derived.hasData,
       onSaveSettings: actions.onSaveSettings,
       onExportSettings: actions.onExportSettings,
       onImportSettings: actions.onImportSettings,
       onExportData: actions.onExportData,
       onImportData: actions.onImportData,
+      onExportSystem: actions.onExportSystem,
+      onImportSystems: actions.onImportSystems,
+      onDeleteSystem: actions.onDeleteSystem,
+      onDeleteAllSystems: actions.onDeleteAllSystems,
+      systemImportConflicts: actions.systemImportConflicts,
+      onReplaceSystemConflicts: actions.onReplaceSystemConflicts,
+      onSkipSystemConflicts: actions.onSkipSystemConflicts,
+      onCancelSystemConflicts: actions.onCancelSystemConflicts,
       settingsBusy: actions.settingsBusy,
       dataBusy: actions.dataBusy,
     },

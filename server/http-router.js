@@ -4,6 +4,7 @@ const { createRuntimeRoutes } = require('./routes/runtime-routes');
 const { createSettingsRoutes } = require('./routes/settings-routes');
 const { createStaticRouteHandler } = require('./routes/static-routes');
 const { createUsageRoutes } = require('./routes/usage-routes');
+const { createSystemRoutes } = require('./routes/system-routes');
 const { createAuthRoutes } = require('./routes/auth-routes');
 const { readMutationBody, sendSSE } = require('./routes/http-route-utils');
 
@@ -49,6 +50,13 @@ function createHttpRouter({
     readMutationBody: routeReadMutationBody,
     dataRuntime,
   });
+  const systemRoutes = createSystemRoutes({
+    json,
+    sendBuffer,
+    validateMutationRequest,
+    readMutationBody: routeReadMutationBody,
+    dataRuntime,
+  });
   const autoImportRoutes = createAutoImportRoutes({
     json,
     validateMutationRequest,
@@ -86,6 +94,7 @@ function createHttpRouter({
   });
   const apiRouteHandlers = [
     usageRoutes.handleUsageRoutes,
+    systemRoutes.handleSystemRoutes,
     settingsRoutes.handleSettingsRoutes,
     autoImportRoutes.handleAutoImportRoutes,
     runtimeRoutes.handleRuntimeRoutes,
