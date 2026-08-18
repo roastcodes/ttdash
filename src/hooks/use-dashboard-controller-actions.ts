@@ -105,9 +105,12 @@ export interface DashboardControllerActionsResult {
   onDeleteSystem: (hostname: string) => Promise<void>
   onDeleteAllSystems: () => Promise<void>
   systemImportConflicts: string[]
+  systemImportRetries: string[]
   onReplaceSystemConflicts: () => Promise<void>
   onSkipSystemConflicts: () => Promise<void>
   onCancelSystemConflicts: () => void
+  onRetrySystemImports: () => Promise<void>
+  onCancelSystemRetries: () => void
   onClearDateRange: () => void
   onApplyPreset: (preset: DashboardDatePreset) => void
   onScrollTo: (section: string) => void
@@ -164,6 +167,7 @@ export function useDashboardControllerActions({
   const [pendingSystemImports, setPendingSystemImports] = useState<
     Array<{ name: string; data: unknown; preview: SystemImportPreview }>
   >([])
+  const [systemImportRetryMode, setSystemImportRetryMode] = useState<boolean | null>(null)
 
   const handleUpload = useCallback(() => {
     usageUploadRef.current?.click()
@@ -413,6 +417,7 @@ export function useDashboardControllerActions({
         addToast(t('toasts.systemsImported', { imported, skipped }), 'success')
       } catch (error) {
         setPendingSystemImports(imports.slice(nextImportIndex))
+        setSystemImportRetryMode(replaceConflicts)
         addToast(normalizeErrorMessage(error) ?? t('api.systemImportFailed'), 'error')
       } finally {
         try {
@@ -421,7 +426,10 @@ export function useDashboardControllerActions({
             queryClient.invalidateQueries({ queryKey: ['settings'] }),
           ])
         } finally {
-          if (completed) setPendingSystemImports([])
+          if (completed) {
+            setPendingSystemImports([])
+            setSystemImportRetryMode(null)
+          }
           setDataTransferBusy(false)
         }
       }
@@ -452,6 +460,7 @@ export function useDashboardControllerActions({
         const conflicts = imports.filter((entry) => entry.preview.exists)
         if (conflicts.length > 0) {
           setPendingSystemImports(imports)
+          setSystemImportRetryMode(null)
           return
         }
         await applySystemImports(imports, false)
@@ -614,12 +623,28 @@ export function useDashboardControllerActions({
     onImportSystems: handleImportSystems,
     onDeleteSystem: handleDeleteSystem,
     onDeleteAllSystems: handleDeleteAllSystems,
-    systemImportConflicts: pendingSystemImports
-      .filter((entry) => entry.preview.exists)
-      .map((entry) => entry.preview.hostname),
+    systemImportConflicts:
+      systemImportRetryMode === null
+        ? pendingSystemImports
+            .filter((entry) => entry.preview.exists)
+            .map((entry) => entry.preview.hostname)
+        : [],
+    systemImportRetries:
+      systemImportRetryMode === null
+        ? []
+        : pendingSystemImports.map((entry) => entry.preview.hostname),
     onReplaceSystemConflicts: () => applySystemImports(pendingSystemImports, true),
     onSkipSystemConflicts: () => applySystemImports(pendingSystemImports, false),
-    onCancelSystemConflicts: () => setPendingSystemImports([]),
+    onCancelSystemConflicts: () => {
+      setPendingSystemImports([])
+      setSystemImportRetryMode(null)
+    },
+    onRetrySystemImports: () =>
+      applySystemImports(pendingSystemImports, systemImportRetryMode ?? false),
+    onCancelSystemRetries: () => {
+      setPendingSystemImports([])
+      setSystemImportRetryMode(null)
+    },
     onClearDateRange: handleClearDateRange,
     onApplyPreset: handleApplyPreset,
     onScrollTo: scrollToSection,

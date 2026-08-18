@@ -740,9 +740,12 @@ type SettingsSystemTransferSectionProps = Pick<
   | 'onDeleteSystem'
   | 'onDeleteAllSystems'
   | 'systemImportConflicts'
+  | 'systemImportRetries'
   | 'onReplaceSystemConflicts'
   | 'onSkipSystemConflicts'
   | 'onCancelSystemConflicts'
+  | 'onRetrySystemImports'
+  | 'onCancelSystemRetries'
 > & { dataBusy: boolean }
 
 /** Renders host-only system transfer actions and imported-system management. */
@@ -755,15 +758,19 @@ export function SettingsSystemTransferSection({
   onDeleteSystem,
   onDeleteAllSystems,
   systemImportConflicts,
+  systemImportRetries,
   onReplaceSystemConflicts,
   onSkipSystemConflicts,
   onCancelSystemConflicts,
+  onRetrySystemImports,
+  onCancelSystemRetries,
 }: SettingsSystemTransferSectionProps) {
   const { t } = useTranslation()
   const [pendingDelete, setPendingDelete] = useState<
     { kind: 'all' } | { kind: 'system'; hostname: string } | null
   >(null)
   const conflictCancelRef = useRef<HTMLButtonElement | null>(null)
+  const retryCancelRef = useRef<HTMLButtonElement | null>(null)
   const deleteCancelRef = useRef<HTMLButtonElement | null>(null)
   const importedSystems = systems.filter((system) => !system.isLocal)
   const hasLocalData = systems.some((system) => system.isLocal && system.data.daily.length > 0)
@@ -772,6 +779,10 @@ export function SettingsSystemTransferSection({
   useEffect(() => {
     if (systemImportConflicts.length > 0) conflictCancelRef.current?.focus()
   }, [systemImportConflicts.length])
+
+  useEffect(() => {
+    if (systemImportRetries.length > 0) retryCancelRef.current?.focus()
+  }, [systemImportRetries.length])
 
   useEffect(() => {
     if (pendingDelete) deleteCancelRef.current?.focus()
@@ -864,6 +875,45 @@ export function SettingsSystemTransferSection({
               variant="ghost"
               onClick={onCancelSystemConflicts}
               onKeyDown={(event) => handleAlertEscape(event, onCancelSystemConflicts)}
+              disabled={dataBusy}
+            >
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {systemImportRetries.length > 0 && (
+        <div
+          role="alertdialog"
+          aria-labelledby="system-import-retry-title"
+          aria-describedby="system-import-retry-description"
+          className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3"
+          data-testid="system-import-retry-dialog"
+        >
+          <div id="system-import-retry-title" className="text-sm font-semibold text-foreground">
+            {t('settings.modal.systemRetryTitle')}
+          </div>
+          <p id="system-import-retry-description" className="mt-1 text-xs text-muted-foreground">
+            {t('settings.modal.systemRetryDescription', {
+              systems: systemImportRetries.join(', '),
+            })}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              onClick={() => void onRetrySystemImports()}
+              onKeyDown={(event) => handleAlertEscape(event, onCancelSystemRetries)}
+              disabled={dataBusy}
+            >
+              {t('settings.modal.retrySystemImports')}
+            </Button>
+            <Button
+              ref={retryCancelRef}
+              size="sm"
+              variant="ghost"
+              onClick={onCancelSystemRetries}
+              onKeyDown={(event) => handleAlertEscape(event, onCancelSystemRetries)}
               disabled={dataBusy}
             >
               {t('common.cancel')}

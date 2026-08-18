@@ -89,6 +89,25 @@ describe('SettingsModal system transfer actions', () => {
     expect(onSkipSystemConflicts).toHaveBeenCalledTimes(1)
   })
 
+  it('offers a retry action when a new-system import was interrupted', () => {
+    const onRetrySystemImports = vi.fn()
+    const onCancelSystemRetries = vi.fn()
+    renderSettingsModal({
+      systems,
+      systemImportRetries: ['workstation-c'],
+      onRetrySystemImports,
+      onCancelSystemRetries,
+    })
+    openSettingsTab('Maintenance')
+
+    const retryDialog = screen.getByTestId('system-import-retry-dialog')
+    expect(retryDialog).toHaveTextContent('workstation-c')
+    expect(within(retryDialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    fireEvent.click(within(retryDialog).getByRole('button', { name: 'Retry imports' }))
+
+    expect(onRetrySystemImports).toHaveBeenCalledTimes(1)
+  })
+
   it('confirms deletion before removing one imported system', () => {
     const onDeleteSystem = vi.fn().mockResolvedValue(undefined)
     renderSettingsModal({ systems, onDeleteSystem })

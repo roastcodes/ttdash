@@ -43,9 +43,12 @@ export function buildSettingsModalProps(
     onDeleteSystem: vi.fn().mockResolvedValue(undefined),
     onDeleteAllSystems: vi.fn().mockResolvedValue(undefined),
     systemImportConflicts: [],
+    systemImportRetries: [],
     onReplaceSystemConflicts: vi.fn().mockResolvedValue(undefined),
     onSkipSystemConflicts: vi.fn().mockResolvedValue(undefined),
     onCancelSystemConflicts: vi.fn(),
+    onRetrySystemImports: vi.fn().mockResolvedValue(undefined),
+    onCancelSystemRetries: vi.fn(),
     ...overrides,
   }
 }

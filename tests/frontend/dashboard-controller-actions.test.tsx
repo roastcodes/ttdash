@@ -301,7 +301,7 @@ describe('useDashboardControllerWithBootstrap actions', () => {
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings'] })
   })
 
-  it('refreshes cached data and keeps unprocessed conflicts after a partial system import', async () => {
+  it('refreshes cached data and retries an unprocessed new system after a partial import', async () => {
     const client = createTestQueryClient()
     const invalidateQueries = vi.spyOn(client, 'invalidateQueries')
     apiMocks.previewSystemImport
@@ -313,7 +313,7 @@ describe('useDashboardControllerWithBootstrap actions', () => {
       .mockResolvedValueOnce({
         hostname: 'workstation-c',
         filename: 'ttdash-system-workstation-c.json',
-        exists: true,
+        exists: false,
       })
     apiMocks.importSystemData
       .mockResolvedValueOnce(undefined)
@@ -339,8 +339,20 @@ describe('useDashboardControllerWithBootstrap actions', () => {
 
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['usage'] })
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings'] })
-    expect(result.current.settingsModal.systemImportConflicts).toEqual(['workstation-c'])
+    expect(result.current.settingsModal.systemImportConflicts).toEqual([])
+    expect(result.current.settingsModal.systemImportRetries).toEqual(['workstation-c'])
     expect(toastMocks.addToast).toHaveBeenCalledWith('Import interrupted', 'error')
+
+    await act(async () => {
+      await result.current.settingsModal.onRetrySystemImports()
+    })
+
+    expect(apiMocks.importSystemData).toHaveBeenNthCalledWith(
+      3,
+      { hostname: 'workstation-c' },
+      false,
+    )
+    expect(result.current.settingsModal.systemImportRetries).toEqual([])
   })
 
   it('wires composed dashboard callbacks across header, filters, settings, and commands', async () => {

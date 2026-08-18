@@ -22,6 +22,9 @@ describe('HTTP route utilities', () => {
     expect(formatAttachmentDisposition('Bericht 2026.pdf', 'fallback.pdf')).toContain(
       "filename*=UTF-8''Bericht%202026.pdf",
     )
+    expect(formatAttachmentDisposition("report (draft)*'.pdf", 'fallback.pdf')).toContain(
+      "filename*=UTF-8''report%20%28draft%29%2A%27.pdf",
+    )
   })
 
   it('normalizes route error messages through the shared server formatter', () => {

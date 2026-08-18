@@ -155,9 +155,12 @@ export interface DashboardSettingsModalViewModel extends DashboardDialogViewMode
   onDeleteSystem: (hostname: string) => Promise<void> | void
   onDeleteAllSystems: () => Promise<void> | void
   systemImportConflicts: string[]
+  systemImportRetries: string[]
   onReplaceSystemConflicts: () => Promise<void> | void
   onSkipSystemConflicts: () => Promise<void> | void
   onCancelSystemConflicts: () => void
+  onRetrySystemImports: () => Promise<void> | void
+  onCancelSystemRetries: () => void
   settingsBusy?: boolean
   dataBusy?: boolean
 }

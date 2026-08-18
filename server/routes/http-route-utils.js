@@ -14,7 +14,11 @@ function formatAttachmentDisposition(filename, defaultFilename) {
     .replace(/[^\x20-\x7E]/g, '_')
     .trim();
   const safeAsciiFilename = asciiFallback || fallback;
-  return `attachment; filename="${safeAsciiFilename}"; filename*=UTF-8''${encodeURIComponent(rawFilename)}`;
+  const encodedFilename = encodeURIComponent(rawFilename).replace(
+    /[!'()*]/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+  return `attachment; filename="${safeAsciiFilename}"; filename*=UTF-8''${encodedFilename}`;
 }
 
 function getSSEErrorLog(logger) {
