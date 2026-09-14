@@ -23,5 +23,10 @@
     "@astrojs/check": "0.9.10",
     "markdownlint-cli2": "0.23.2",
     "typescript": "~6.0.3"
+  },
+  "overrides": {
+    "markdownlint-cli2": {
+      "smol-toml": "^1.8.0"
+    }
   }
 }

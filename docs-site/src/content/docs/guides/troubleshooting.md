@@ -29,6 +29,12 @@ TTDash tries the requested port and up to 100 following ports without exceeding 
 ttdash --port 3010
 ```
 
+## The terminal reports `read ECONNRESET`
+
+This means the other end of a TCP connection closed it abruptly. Browsers can do this when cancelling requests or speculative connections, including during startup. It does not by itself mean stored data is damaged.
+
+TTDash quietly releases reset incoming client connections. Unexpected protocol and server errors remain visible. If an import or export was interrupted, check its result in the dashboard and retry the operation if needed.
+
 ## The `ttdash` command is not found
 
 Use npx without a global install:
