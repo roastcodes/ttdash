@@ -215,6 +215,51 @@ describe('server lifecycle runtime', () => {
     expect(createClientErrorResponse()).toContain('{"message":"Invalid request path"}')
   })
 
+  it.each([true, false])('silently closes reset client sockets (writable: %s)', (writable) => {
+    const { errorLog, fakeServer } = createLifecycleFixture()
+    const socket = { writable, destroy: vi.fn(), end: vi.fn() }
+
+    fakeServer.emit(
+      'clientError',
+      Object.assign(new Error('read ECONNRESET'), {
+        code: 'ECONNRESET',
+      }),
+      socket,
+    )
+
+    expect(socket.destroy).toHaveBeenCalledOnce()
+    expect(socket.end).not.toHaveBeenCalled()
+    expect(errorLog).not.toHaveBeenCalled()
+  })
+
+  it('keeps unexpected client errors visible and responds to writable sockets', () => {
+    const { errorLog, fakeServer } = createLifecycleFixture()
+    const error = Object.assign(new Error('Parse Error'), { code: 'HPE_INVALID_METHOD' })
+    const socket = { writable: true, destroy: vi.fn(), end: vi.fn() }
+
+    fakeServer.emit('clientError', error, socket)
+
+    expect(errorLog).toHaveBeenCalledWith(error)
+    expect(socket.end).toHaveBeenCalledWith(createClientErrorResponse())
+    expect(socket.destroy).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { writable: false },
+    { writable: true, destroyed: true },
+    { writable: true, writableEnded: true },
+  ])('cleans up unusable client sockets without writing (%j)', (state) => {
+    const { errorLog, fakeServer } = createLifecycleFixture()
+    const error = new Error('Parse Error')
+    const socket = { ...state, destroy: vi.fn(), end: vi.fn() }
+
+    fakeServer.emit('clientError', error, socket)
+
+    expect(errorLog).toHaveBeenCalledWith(error)
+    expect(socket.destroy).toHaveBeenCalledOnce()
+    expect(socket.end).not.toHaveBeenCalled()
+  })
+
   it('logs background unregister failures and still exits during graceful shutdown', async () => {
     const unregisterError = new Error('cannot unregister')
     const { backgroundRuntime, errorLog, lifecycle, log, processObject } = createLifecycleFixture({

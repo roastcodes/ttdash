@@ -42,8 +42,15 @@ function createServerLifecycle({
   });
 
   server.on('clientError', (error, socket) => {
+    // A browser can reset a speculative or in-flight connection at any time.
+    // The peer is gone: release the socket without logging or replying to it.
+    if (error.code === 'ECONNRESET') {
+      socket.destroy();
+      return;
+    }
     errorLog(error);
-    if (!socket.writable) {
+    if (socket.destroyed || !socket.writable || socket.writableEnded) {
+      socket.destroy();
       return;
     }
     socket.end(createClientErrorResponse());
