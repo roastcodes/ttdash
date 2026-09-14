@@ -59,6 +59,10 @@ Public documentation is treated as a tested product surface:
 
 These checks prevent private local files from entering the artifact and catch documentation drift during ordinary pull requests.
 
+Use Starlight's built-in mobile menu and sidebar together. The mobile navigation test checks visible links, Escape/focus behavior, navigation, and desktop resizing rather than framework-specific state attributes.
+
+The documentation package overrides `markdownlint-cli2`'s pinned `smol-toml` dependency with `^1.8.0` to address [GHSA-7w5x-hrqm-74c2](https://github.com/advisories/GHSA-7w5x-hrqm-74c2). Remove this override when the linter itself depends on a patched version; keep both `npm audit --prefix docs-site` and the documentation checks clean.
+
 ## Local commands
 
 For documentation-only work:
