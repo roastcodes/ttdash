@@ -32,9 +32,6 @@ export default defineConfig({
       expressiveCode: {
         plugins: [focusableExpressiveCode],
       },
-      components: {
-        MobileMenuToggle: './src/components/MobileMenuToggle.astro',
-      },
       plugins: [starlightLinksValidator()],
       social: [
         {
