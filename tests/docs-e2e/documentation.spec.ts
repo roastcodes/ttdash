@@ -82,14 +82,27 @@ test('exposes usable mobile navigation', async ({ page }) => {
   await gotoDocsPage(page, docsRoutes.gettingStarted)
 
   const menuButton = await firstVisible(page.getByRole('button', { name: /menu/i }))
-  await expect(menuButton).toHaveAttribute('aria-expanded', 'false')
-  await menuButton.click()
-  await expect(menuButton).toHaveAttribute('aria-expanded', 'true')
+  const sidebar = page.getByRole('navigation', { name: 'Main' })
+  const apiLink = sidebar.getByRole('link', { name: 'HTTP API', exact: true })
 
-  const apiLink = await firstVisible(page.getByRole('link', { name: /HTTP API/i }))
+  await expect(apiLink).toBeHidden()
+  await menuButton.click()
+  await expect(apiLink).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(apiLink).toBeHidden()
+  await expect(menuButton).toBeFocused()
+
+  await menuButton.click()
   await expect(apiLink).toBeVisible()
   await apiLink.click()
   await expect(page).toHaveURL(new RegExp(`${docsRoutes.api}$`))
+  await expect(page.getByRole('heading', { level: 1, name: 'HTTP API' })).toBeVisible()
+  await expect(apiLink).toBeHidden()
+
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await expect(apiLink).toBeVisible()
+  await expect(menuButton).toBeHidden()
 })
 
 test('serves a useful 404 page beneath the project base path', async ({ page }) => {
