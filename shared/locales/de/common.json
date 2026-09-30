@@ -371,11 +371,11 @@
   },
   "charts": {
     "costOverTime": {
-      "title": "Kosten im Zeitverlauf + 7-Tage Ø",
-      "subtitle": "Tageskosten mit 7-Tage gleitendem Durchschnitt",
+      "title": "Kosten im Zeitverlauf + gleitender Durchschnitt",
+      "subtitle": "Periodenkosten mit gleitendem Durchschnitt über 7 Perioden",
       "summary": "Letzter Wert {{latest}} · Peak {{peak}} am {{date}}",
       "cost": "Kosten",
-      "movingAverage": "7-Tage Ø"
+      "movingAverage": "7-Perioden Ø"
     },
     "costByModel": {
       "title": "Kosten nach Modell",
@@ -387,7 +387,7 @@
       "title": "Kosten nach Modell im Zeitverlauf",
       "subtitle": "Pro Modell über die Zeit",
       "topDriver": "Top Treiber: {{model}} · {{total}} kumuliert",
-      "movingAverageHeading": "7-Tage Durchschnitt pro Modell",
+      "movingAverageHeading": "Durchschnitt über 7 Perioden pro Modell",
       "movingAverageSuffix": "Ø"
     },
     "cumulativeCost": {
@@ -403,10 +403,10 @@
     },
     "tokensOverTime": {
       "title": "Tokens im Zeitverlauf",
-      "subtitle": "Alle Token-Typen mit 7-Tage Ø",
+      "subtitle": "Alle Token-Typen mit Durchschnitt über 7 Perioden",
       "allTypes": "Gesamt-Tokens (alle Typen)",
       "totalTokens": "Gesamt-Tokens",
-      "movingAverage": "7-Tage Ø",
+      "movingAverage": "7-Perioden Ø",
       "cacheTokens": "Cache Tokens",
       "inputOutputTokens": "Input / Output Tokens",
       "thinkingTokens": "Thinking Tokens",
@@ -414,7 +414,7 @@
     },
     "requestsOverTime": {
       "title": "Anfragen im Zeitverlauf",
-      "subtitle": "Anfragen gesamt, nach Modell und mit 7-Tage-Ø",
+      "subtitle": "Anfragen gesamt, nach Modell und mit gleitenden Durchschnitten",
       "summary": "Gesamt {{total}} · Peak {{peak}} am {{date}}",
       "averagePerUnit": "Ø / {{unit}}",
       "trend": "Trend Ø",
@@ -431,7 +431,7 @@
     },
     "requestCacheHitRate": {
       "title": "Cache-Anteil aller Tokens nach Modell",
-      "subtitle": "Gesamt {{total}} · 7-Tage-Ø {{trailing}}",
+      "subtitle": "Gesamt {{total}} · Trend-Durchschnitt {{trailing}}",
       "totalRate": "Gesamt",
       "trailing7Rate": "7-Tage-Ø",
       "trendRate": "Trend-Ø",
@@ -501,7 +501,7 @@
       "title": "Token-Effizienz ($/1M)",
       "subtitle": "Ø {{value}}/1M Tokens",
       "series": "$/1M Tokens",
-      "movingAverage": "7T-Ø"
+      "movingAverage": "7-Perioden Ø"
     }
   },
   "risk": {

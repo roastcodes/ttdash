@@ -180,7 +180,6 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                     dot={false}
                     strokeWidth={2.5}
                     strokeDasharray="6 4"
-                    connectNulls
                     {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
                   {visibleModels.map((model, index) => (
@@ -193,7 +192,6 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                       dot={false}
                       strokeWidth={2}
                       strokeDasharray="5 4"
-                      connectNulls
                       {...getLineAnimationProps(animate, { order: index % 6, role: 'secondary' })}
                     />
                   ))}
@@ -384,7 +382,6 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                             dot={false}
                             strokeWidth={2.2}
                             strokeDasharray="5 5"
-                            connectNulls
                             {...getLineAnimationProps(animate, { role: 'secondary' })}
                           />
                           {visibleModels.map((model, index) => (

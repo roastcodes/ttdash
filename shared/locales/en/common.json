@@ -371,11 +371,11 @@
   },
   "charts": {
     "costOverTime": {
-      "title": "Cost over time + 7-day avg",
-      "subtitle": "Daily cost with 7-day moving average",
+      "title": "Cost over time + moving average",
+      "subtitle": "Period cost with a 7-period moving average",
       "summary": "Latest {{latest}} · Peak {{peak}} on {{date}}",
       "cost": "Cost",
-      "movingAverage": "7-day avg"
+      "movingAverage": "7-period avg"
     },
     "costByModel": {
       "title": "Cost by model",
@@ -387,7 +387,7 @@
       "title": "Cost by model over time",
       "subtitle": "Per model over time",
       "topDriver": "Top driver: {{model}} · {{total}} cumulative",
-      "movingAverageHeading": "7-day average by model",
+      "movingAverageHeading": "7-period average by model",
       "movingAverageSuffix": "avg"
     },
     "cumulativeCost": {
@@ -403,10 +403,10 @@
     },
     "tokensOverTime": {
       "title": "Tokens over time",
-      "subtitle": "All token types with 7-day avg",
+      "subtitle": "All token types with a 7-period average",
       "allTypes": "Total tokens (all types)",
       "totalTokens": "Total tokens",
-      "movingAverage": "7-day avg",
+      "movingAverage": "7-period avg",
       "cacheTokens": "Cache tokens",
       "inputOutputTokens": "Input / Output tokens",
       "thinkingTokens": "Thinking tokens",
@@ -414,7 +414,7 @@
     },
     "requestsOverTime": {
       "title": "Requests over time",
-      "subtitle": "Requests overall, by model, and with 7-day avg",
+      "subtitle": "Requests overall, by model, and with moving averages",
       "summary": "Total {{total}} · Peak {{peak}} on {{date}}",
       "averagePerUnit": "Avg / {{unit}}",
       "trend": "Trend avg",
@@ -431,7 +431,7 @@
     },
     "requestCacheHitRate": {
       "title": "Cache share of all tokens by model",
-      "subtitle": "Total {{total}} · 7-day avg {{trailing}}",
+      "subtitle": "Total {{total}} · Trend average {{trailing}}",
       "totalRate": "Total",
       "trailing7Rate": "7-day avg",
       "trendRate": "Trend avg",
@@ -501,7 +501,7 @@
       "title": "Token efficiency ($/1M)",
       "subtitle": "Avg {{value}}/1M tokens",
       "series": "$/1M tokens",
-      "movingAverage": "7D avg"
+      "movingAverage": "7-period avg"
     }
   },
   "risk": {

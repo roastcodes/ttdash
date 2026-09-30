@@ -82,7 +82,7 @@ describe('TokenEfficiency', () => {
     expect(area).toHaveAttribute('data-fill', expect.stringMatching(/^url\(#grad-/))
 
     const line = screen.getByTestId('token-efficiency-line')
-    expect(line).toHaveAttribute('data-name', '7D avg')
+    expect(line).toHaveAttribute('data-name', '7-period avg')
     expect(line).toHaveAttribute('data-dash', '5 5')
   })
 })

@@ -138,7 +138,6 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={false}
-                  connectNulls
                   name={t('charts.tokenEfficiency.movingAverage')}
                   {...getLineAnimationProps(animate, { role: 'secondary' })}
                 />
