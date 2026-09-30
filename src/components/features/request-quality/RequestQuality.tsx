@@ -23,28 +23,28 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
         return {
           ...item,
           label: t('requestQuality.tokensPerRequest'),
-          value: metrics.hasRequestData ? formatTokens(item.value) : t('common.notAvailable'),
+          value: metrics.knownRequests > 0 ? formatTokens(item.value) : t('common.notAvailable'),
           hint: t('requestQuality.tokensHint'),
         }
       case 'costPerRequest':
         return {
           ...item,
           label: t('requestQuality.costPerRequest'),
-          value: metrics.hasRequestData ? formatCurrency(item.value) : t('common.notAvailable'),
+          value: metrics.knownRequests > 0 ? formatCurrency(item.value) : t('common.notAvailable'),
           hint: t('requestQuality.costHint'),
         }
       case 'cachePerRequest':
         return {
           ...item,
           label: t('requestQuality.cachePerRequest'),
-          value: metrics.hasRequestData ? formatTokens(item.value) : t('common.notAvailable'),
+          value: metrics.knownRequests > 0 ? formatTokens(item.value) : t('common.notAvailable'),
           hint: t('requestQuality.cacheHint'),
         }
       case 'thinkingPerRequest':
         return {
           ...item,
           label: t('requestQuality.thinkingPerRequest'),
-          value: metrics.hasRequestData ? formatTokens(item.value) : t('common.notAvailable'),
+          value: metrics.knownRequests > 0 ? formatTokens(item.value) : t('common.notAvailable'),
           hint: t('requestQuality.thinkingHint'),
         }
       default:
@@ -67,6 +67,9 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
         </InfoHeading>
       </CardHeader>
       <CardContent className="space-y-4">
+        <p className="text-xs text-muted-foreground">
+          {t('requestQuality.coverage', { value: formatPercent(metrics.requestCoverage) })}
+        </p>
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {qualityMetrics.map((item, index) => (
             <div key={item.label} className="rounded-xl border border-border/50 bg-muted/15 p-3">
@@ -101,7 +104,9 @@ export function RequestQuality({ metrics, viewMode }: RequestQualityProps) {
               {t('requestQuality.requestDensity')}
             </div>
             <div className="mt-1 text-xl font-semibold tabular-nums">
-              {formatNumber(Math.round(requestQualityData.requestDensity))}
+              {metrics.requestCoverage === 100
+                ? formatNumber(Math.round(requestQualityData.requestDensity))
+                : t('common.notAvailable')}
             </div>
             <div className="text-xs text-muted-foreground">
               {t('requestQuality.averagePerActiveUnit', {

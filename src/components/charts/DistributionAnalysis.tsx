@@ -1,3 +1,4 @@
+import { getRequestCountStatus } from '../../../shared/usage-quality.js'
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -102,10 +103,11 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
     if (data.length < 2) return []
 
     const costs = data.map((entry) => entry.totalCost)
-    const requests = data.map((entry) => entry.requestCount)
-    const tokensPerRequest = data.map((entry) =>
-      entry.requestCount > 0 ? entry.totalTokens / entry.requestCount : 0,
-    )
+    const knownRows = data.filter((entry) => getRequestCountStatus(entry) === 'known')
+    const requests = knownRows.map((entry) => entry.requestCount)
+    const tokensPerRequest = knownRows
+      .filter((entry) => entry.requestCount > 0)
+      .map((entry) => (entry.requestCount > 0 ? entry.totalTokens / entry.requestCount : 0))
 
     return [
       {
@@ -117,7 +119,7 @@ export function DistributionAnalysis({ data, viewMode = 'daily' }: DistributionA
         data: toBins(requests, formatNumber),
       },
       {
-        title: t('charts.distribution.tokensPerRequest'),
+        title: t('charts.distribution.tokensPerRequest', { period: periodLabel(viewMode) }),
         data: toBins(tokensPerRequest, formatTokens),
       },
     ]
@@ -167,9 +169,14 @@ function DistributionCharts({
               {distribution.title}
             </div>
             <div className="text-[10px] text-muted-foreground">
-              {distribution.data.length} {t('charts.distribution.buckets')}
+              {distribution.data.reduce((sum, bin) => sum + bin.count, 0)}{' '}
+              {t('charts.distribution.dataPoints')} · {distribution.data.length}{' '}
+              {t('charts.distribution.buckets')}
             </div>
           </div>
+          {distribution.data.length === 0 && (
+            <p className="text-xs text-muted-foreground">{t('common.notAvailable')}</p>
+          )}
           <ChartAnimationAware>
             {(animate) => (
               <ChartReveal variant="bar">

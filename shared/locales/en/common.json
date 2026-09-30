@@ -125,7 +125,8 @@
     "requestsShort": "Req",
     "request": "Request",
     "share": "Share",
-    "top": "Top"
+    "top": "Top",
+    "activeDay": "active day"
   },
   "filterBar": {
     "status": "Filter status",
@@ -221,7 +222,7 @@
       "min": "Min",
       "max": "Max",
       "avg": "Avg",
-      "cacheHitRate": "Cache hit rate",
+      "cacheHitRate": "Cache share of all tokens",
       "totalTokens": "Total tokens",
       "cacheRead": "Cache read",
       "dataPoints": "Data points",
@@ -236,7 +237,7 @@
       "totalTokens": "Total tokens",
       "activeDays": "Active days",
       "topModel": "Top model",
-      "cacheHitRate": "Cache hit rate",
+      "cacheHitRate": "Cache share of all tokens",
       "costPerMillion": "$/1M tokens",
       "requests": "Requests",
       "thinking": "Thinking",
@@ -253,7 +254,8 @@
       "totalTokensSubtitle": "{{tokensPerRequest}} per request",
       "totalTokensSubtitleWithRatio": "Input/Output {{ratio}}:1 · {{tokensPerRequest}} per request",
       "requestsSubtitle": "Avg {{requests}} / {{unit}} · {{cost}} / req · σ {{volatility}}",
-      "thinkingSubtitle": "{{share}} share · {{tokens}} / request"
+      "thinkingSubtitle": "{{share}} share · {{tokens}} / request",
+      "inputTokensViaCacheRead": "{{value}} of input tokens from cache"
     },
     "secondary": {
       "mostExpensiveDay": "Most expensive day",
@@ -278,7 +280,7 @@
       "tokensToday": "Tokens today",
       "models": "Models",
       "costPerMillion": "$/1M tokens",
-      "cacheHitRate": "Cache hit rate",
+      "cacheHitRate": "Cache share of all tokens",
       "requests": "Requests",
       "thinking": "Thinking",
       "vsAverageShort": "vs avg",
@@ -303,13 +305,13 @@
       "activeDays": "Active days",
       "models": "Models",
       "costPerMillion": "$/1M tokens",
-      "cacheHitRate": "Cache hit rate",
+      "cacheHitRate": "Cache share of all tokens",
       "requests": "Requests",
       "thinking": "Thinking",
-      "vsPreviousMonth": "vs previous month",
+      "vsPreviousMonth": "vs. matched period last month",
       "coverage": "{{value}} coverage",
       "requestsInMonth": "Requests this month",
-      "avgPerDay": "Avg {{value}}/day",
+      "avgPerDay": "Avg. {{value}} / active day",
       "ioRatio": "I/O ratio: {{value}}:1",
       "topModel": "Top: {{value}}",
       "cacheMix": "In: {{input}} / Out: {{output}}",
@@ -428,7 +430,7 @@
       "totalRequestsSeries": "Total requests"
     },
     "requestCacheHitRate": {
-      "title": "Cache hit rate by model",
+      "title": "Cache share of all tokens by model",
       "subtitle": "Total {{total}} · 7-day avg {{trailing}}",
       "totalRate": "Total",
       "trailing7Rate": "7-day avg",
@@ -436,7 +438,7 @@
       "topModel": "Top model",
       "models": "Models",
       "total": "Total",
-      "timelineHeading": "Cache hit rate over time / {{unit}}",
+      "timelineHeading": "Cache share of all tokens over time / {{unit}}",
       "modelBreakdownHeading": "Current model snapshot"
     },
     "heatmap": {
@@ -465,7 +467,7 @@
       "requiresData": "At least 2 data points are required in the current filter for distributions.",
       "costPerPeriod": "Cost per {{period}}",
       "requestsPerPeriod": "Requests per {{period}}",
-      "tokensPerRequest": "Tokens per request",
+      "tokensPerRequest": "Distribution of {{period}} averages per request",
       "interval": "Interval",
       "dataPoints": "Data points",
       "buckets": "Buckets"
@@ -524,12 +526,13 @@
     "thinkingHint": "Thinking tokens per request",
     "requestDensity": "Request density",
     "averagePerActiveUnit": "Avg per active {{unit}}",
-    "cacheHitRate": "Cache hit rate",
+    "cacheHitRate": "Cache share of all tokens",
     "cacheHitHint": "Direct cache-read relative to all tokens",
     "inputOutput": "Input / Output",
     "inputOutputHint": "Drift between incoming and generated tokens",
     "topRequestModel": "Top request model",
-    "noRequestLeader": "No request leader"
+    "noRequestLeader": "No request leader",
+    "coverage": "Request counters cover {{value}} of token volume; ratios use this portion only."
   },
   "forecast": {
     "noData": "No data available",
@@ -557,21 +560,28 @@
     "lowerBound": "Lower bound",
     "uncertaintyBand": "Uncertainty band",
     "actualCost": "Actual cost",
-    "projection": "Forecast"
+    "projection": "Forecast",
+    "dataThrough": "Data through {{date}}.",
+    "partialToday": "The current partial day is excluded from the trend model.",
+    "missingDays": "{{count}} missing daily reports are assumed to have zero cost; low confidence.",
+    "staleData": "The data is not up to date; low confidence."
   },
   "cacheRoi": {
     "title": "Cache savings (ROI)",
     "noData": "No data available",
-    "heuristicFallback": "For {{count}} {{modelsLabel}} without a configured price table, the ROI estimate uses a heuristic fallback.",
     "model": "model",
     "models": "models",
-    "withoutCache": "Without cache",
+    "withoutCache": "Without cache (estimate)",
     "withCache": "With cache",
-    "withCacheActual": "With cache (actual)",
-    "savings": "Savings",
-    "avgCostPerUnit": "Avg cost/{{unit}}",
+    "withCacheActual": "Recorded cost (priced portion)",
+    "savings": "Net savings (estimate)",
+    "avgCostPerUnit": "Overall avg. / {{unit}}",
     "paid": "Paid",
-    "saved": "Saved"
+    "saved": "Saved",
+    "coverage": "Pricing coverage: {{cost}} of costs, {{tokens}} of tokens. Prices checked {{date}}.",
+    "standardPriceAssumption": "Model estimate using direct text API standard prices. Batch, subscriptions, regional premiums, long GPT-5.4 contexts, and historical price changes are excluded.",
+    "ttlRange": "Range for 5-minute to 1-hour caching: read benefit minus write premium; cache duration is unknown.",
+    "unsupported": "No reliable cache tariff; excluded from estimate: {{models}}."
   },
   "comparison": {
     "title": "Period comparison",
@@ -589,7 +599,9 @@
     "tokens": "Tokens",
     "avgPerDay": "Avg/day",
     "cacheRate": "Cache rate",
-    "days": "Days"
+    "days": "Days",
+    "matchedDays": "{{count}} matched calendar days",
+    "missingDays": "Missing daily reports: totals may be incomplete; gaps are assumed to be zero for calendar averages."
   },
   "anomaly": {
     "title": "Unusual {{period}}",
@@ -677,7 +689,7 @@
       "totalTokens": "Total tokens",
       "activeDays": "Active days",
       "topModel": "Top model",
-      "cacheHitRate": "Cache hit rate",
+      "cacheHitRate": "Cache share of all tokens",
       "costPerMillion": "Cost / 1M tokens",
       "mostExpensiveDay": "Most expensive day",
       "cheapestDay": "Cheapest day",
@@ -693,7 +705,7 @@
       "costByWeekday": "Cost by weekday",
       "tokensOverTime": "Tokens over time",
       "requestsOverTime": "Requests over time",
-      "requestCacheHitRate": "Cache hit rate by model",
+      "requestCacheHitRate": "Cache share of all tokens by model",
       "tokenTypes": "Token types",
       "tokenEfficiency": "Token efficiency",
       "modelMix": "Model mix",
@@ -1149,9 +1161,9 @@
   },
   "limits": {
     "sectionTitle": "Limits & Subscriptions",
-    "sectionDescription": "Budget risk separated from subscription impact in the current filter context",
+    "sectionDescription": "Budget risk and subscription value for the full month",
     "providersBadge": "{{count}} providers",
-    "warningBanner": "{{count}} providers have reached or exceeded their monthly limit in the current slice.",
+    "warningBanner": "{{count}} providers have reached or exceeded their limit for the full month.",
     "cards": {
       "atLimit": "Providers at limit",
       "nearLimit": "Near limit",
@@ -1225,7 +1237,8 @@
         "cli-auto-load": "CLI auto-load",
         "unknown": "Unknown"
       }
-    }
+    },
+    "globalScope": "Budgets use the full month across all systems and models, independently of analysis filters."
   },
   "report": {
     "title": "TTDash Report",
@@ -1335,5 +1348,11 @@
     "systemsImported": "System import complete: {{imported}} imported, {{skipped}} skipped",
     "systemDeleted": "Deleted additional system {{hostname}}",
     "systemsDeleted": "Deleted all additional systems"
+  },
+  "dataQuality": {
+    "dataThrough": "Recorded data through {{date}}",
+    "excludedRows": "{{count}} validation findings: affected legacy rows are excluded from calculations",
+    "persistedFileUnchanged": "Reading did not modify the source file. Details are limited to 50 findings.",
+    "unreadableFiles": "{{count}} system files are unreadable; totals and budgets may be incomplete."
   }
 }

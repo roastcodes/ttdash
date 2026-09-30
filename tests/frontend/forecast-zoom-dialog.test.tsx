@@ -114,7 +114,7 @@ describe('ForecastZoomDialog', () => {
           open={true}
           onOpenChange={vi.fn()}
           data={data}
-          forecastState={computeDashboardForecastState(data)}
+          forecastState={computeDashboardForecastState(data, '2026-04-08')}
           viewMode="daily"
         />
       </TooltipProvider>,

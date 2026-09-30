@@ -1,3 +1,4 @@
+import { computeMetrics } from '@/lib/calculations'
 // @vitest-environment jsdom
 
 import { act, screen, waitFor } from '@testing-library/react'
@@ -58,6 +59,13 @@ class MockIntersectionObserver {
 }
 
 const baseMetrics: DashboardMetrics = {
+  ...computeMetrics([]),
+  avgCostPerPeriod: 0,
+  avgRequestsPerPeriod: 0,
+  knownRequests: 0,
+  knownRequestCacheRead: 0,
+  knownRequestThinking: 0,
+  requestCoverage: 100,
   totalCost: 0,
   totalTokens: 0,
   totalInput: 0,
@@ -115,6 +123,9 @@ describe('RequestQuality', () => {
           ...baseMetrics,
           hasRequestData: true,
           totalRequests: 4,
+          knownRequests: 4,
+          avgRequestsPerDay: 2,
+          avgRequestsPerPeriod: 2,
           activeDays: 2,
         }}
         viewMode="daily"
@@ -154,11 +165,16 @@ describe('RequestQuality', () => {
           ...baseMetrics,
           hasRequestData: true,
           totalRequests: 4,
+          knownRequests: 4,
+          avgRequestsPerDay: 2,
+          avgRequestsPerPeriod: 2,
           activeDays: 2,
           avgTokensPerRequest: 100_000,
           avgCostPerRequest: 0.125,
           totalCacheRead: 200_000,
+          knownRequestCacheRead: 200_000,
           totalThinking: 20_000,
+          knownRequestThinking: 20_000,
         }}
         viewMode="daily"
       />,

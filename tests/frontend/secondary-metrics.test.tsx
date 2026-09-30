@@ -1,3 +1,4 @@
+import { computeMetrics } from '@/lib/calculations'
 // @vitest-environment jsdom
 
 import { render, screen } from '@testing-library/react'
@@ -12,6 +13,13 @@ vi.mock('@/components/ui/InfoButton', () => ({
 }))
 
 const metrics: DashboardMetrics = {
+  ...computeMetrics([]),
+  avgCostPerPeriod: 42,
+  avgRequestsPerPeriod: 0,
+  knownRequests: 0,
+  knownRequestCacheRead: 0,
+  knownRequestThinking: 0,
+  requestCoverage: 100,
   totalCost: 0,
   totalTokens: 0,
   activeDays: 0,

@@ -1,3 +1,4 @@
+import { getRequestCountStatus, combineRequestCountStatus } from '../../shared/usage-quality.js'
 import type { DailyUsage, DashboardDefaultFilters, UsageSystem, ViewMode } from '@/types'
 import {
   aggregateToDailyFormat,
@@ -52,6 +53,7 @@ export function mergeSystemUsageByDate(systems: UsageSystem[]): DailyUsage[] {
           totalTokens: 0,
           totalCost: 0,
           requestCount: 0,
+          requestCountStatus: getRequestCountStatus(day),
           modelsUsed: [],
           modelBreakdowns: [],
         }
@@ -67,10 +69,15 @@ export function mergeSystemUsageByDate(systems: UsageSystem[]): DailyUsage[] {
       target.totalTokens += day.totalTokens
       target.totalCost += day.totalCost
       target.requestCount += day.requestCount
+      target.requestCountStatus = combineRequestCountStatus(
+        getRequestCountStatus(target),
+        getRequestCountStatus(day),
+      )
 
       const breakdowns = breakdownsByDate.get(day.date)!
       for (const breakdown of day.modelBreakdowns) {
-        const existing = breakdowns.get(breakdown.modelName)
+        const key = `${breakdown.modelName}:${getRequestCountStatus(breakdown)}`
+        const existing = breakdowns.get(key)
         if (existing) {
           existing.inputTokens += breakdown.inputTokens
           existing.outputTokens += breakdown.outputTokens
@@ -79,13 +86,21 @@ export function mergeSystemUsageByDate(systems: UsageSystem[]): DailyUsage[] {
           existing.thinkingTokens += breakdown.thinkingTokens
           existing.cost += breakdown.cost
           existing.requestCount += breakdown.requestCount
+          existing.requestCountStatus = combineRequestCountStatus(
+            getRequestCountStatus(existing),
+            getRequestCountStatus(breakdown),
+          )
         } else {
-          breakdowns.set(breakdown.modelName, { ...breakdown })
+          breakdowns.set(key, { ...breakdown })
         }
       }
       target.modelBreakdowns = Array.from(breakdowns.values())
       target.modelsUsed = Array.from(
-        new Set([...target.modelsUsed, ...day.modelsUsed, ...breakdowns.keys()]),
+        new Set([
+          ...target.modelsUsed,
+          ...day.modelsUsed,
+          ...target.modelBreakdowns.map((breakdown) => breakdown.modelName),
+        ]),
       )
     }
   }
@@ -138,6 +153,13 @@ function recalculateUsageEntry(
     cacheReadTokens,
     thinkingTokens,
     requestCount,
+    requestCountStatus: filteredBreakdowns.length
+      ? filteredBreakdowns.reduce(
+          (status, breakdown) =>
+            combineRequestCountStatus(status, getRequestCountStatus(breakdown)),
+          getRequestCountStatus(filteredBreakdowns[0]!),
+        )
+      : 'unknown',
     modelBreakdowns: filteredBreakdowns,
     modelsUsed: [
       ...new Set(filteredBreakdowns.map((breakdown) => normalizeModelName(breakdown.modelName))),

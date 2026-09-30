@@ -1,3 +1,5 @@
+const { getRequestCountStatus, combineRequestCountStatus } = require('../../shared/usage-quality');
+
 const SYSTEM_FILENAME_PREFIX = 'ttdash-system-';
 const SYSTEM_FILENAME_SUFFIX = '.json';
 
@@ -85,6 +87,10 @@ function mergeBreakdown(target, source) {
   target.thinkingTokens += source.thinkingTokens;
   target.cost += source.cost;
   target.requestCount += source.requestCount;
+  target.requestCountStatus = combineRequestCountStatus(
+    getRequestCountStatus(target),
+    getRequestCountStatus(source),
+  );
 }
 
 function mergeUsageDatasets(datasets) {
@@ -104,6 +110,7 @@ function mergeUsageDatasets(datasets) {
           totalTokens: 0,
           totalCost: 0,
           requestCount: 0,
+          requestCountStatus: getRequestCountStatus(sourceDay),
           modelsUsed: [],
           modelBreakdowns: [],
         };
@@ -122,11 +129,16 @@ function mergeUsageDatasets(datasets) {
       targetDay.totalTokens += sourceDay.totalTokens;
       targetDay.totalCost += sourceDay.totalCost;
       targetDay.requestCount += sourceDay.requestCount;
+      targetDay.requestCountStatus = combineRequestCountStatus(
+        getRequestCountStatus(targetDay),
+        getRequestCountStatus(sourceDay),
+      );
 
       for (const sourceBreakdown of Array.isArray(sourceDay.modelBreakdowns)
         ? sourceDay.modelBreakdowns
         : []) {
-        let targetBreakdown = targetDay._breakdowns.get(sourceBreakdown.modelName);
+        const key = `${sourceBreakdown.modelName}:${getRequestCountStatus(sourceBreakdown)}`;
+        let targetBreakdown = targetDay._breakdowns.get(key);
         if (!targetBreakdown) {
           targetBreakdown = {
             modelName: sourceBreakdown.modelName,
@@ -137,8 +149,9 @@ function mergeUsageDatasets(datasets) {
             thinkingTokens: 0,
             cost: 0,
             requestCount: 0,
+            requestCountStatus: getRequestCountStatus(sourceBreakdown),
           };
-          targetDay._breakdowns.set(sourceBreakdown.modelName, targetBreakdown);
+          targetDay._breakdowns.set(key, targetBreakdown);
           targetDay.modelBreakdowns.push(targetBreakdown);
         }
         mergeBreakdown(targetBreakdown, sourceBreakdown);
@@ -147,7 +160,7 @@ function mergeUsageDatasets(datasets) {
         new Set([
           ...targetDay.modelsUsed,
           ...(Array.isArray(sourceDay.modelsUsed) ? sourceDay.modelsUsed : []),
-          ...targetDay._breakdowns.keys(),
+          ...targetDay.modelBreakdowns.map((breakdown) => breakdown.modelName),
         ]),
       );
     }
@@ -188,7 +201,7 @@ function createSystemDataRuntime({
     };
   }
 
-  function parseEnvelope(payload) {
+  function parseEnvelope(payload, { persisted = false } = {}) {
     if (!isPlainObject(payload) || payload.kind !== systemExportKind || payload.version !== 1) {
       throw new Error('Uploaded JSON is not a TTDash system export.');
     }
@@ -196,12 +209,7 @@ function createSystemDataRuntime({
     if (!Object.prototype.hasOwnProperty.call(payload, 'data')) {
       throw new Error('The system export does not contain usage data.');
     }
-    let data;
-    try {
-      data = normalizeIncomingData(payload.data);
-    } catch (error) {
-      throw new Error('Invalid system export file.', { cause: error });
-    }
+    const data = normalizeIncomingData(payload.data, { persisted });
     if (!isUsageData(data)) {
       throw new Error('Invalid system export file.');
     }
@@ -239,7 +247,9 @@ function createSystemDataRuntime({
       const filePath = path.join(systemsDir, name);
       let envelope;
       try {
-        envelope = parseEnvelope(JSON.parse(fs.readFileSync(filePath, 'utf-8')));
+        envelope = parseEnvelope(JSON.parse(fs.readFileSync(filePath, 'utf-8')), {
+          persisted: true,
+        });
         if (name !== getSystemFilename(envelope.hostname)) {
           throw new Error('Imported system filename does not match its hostname.');
         }

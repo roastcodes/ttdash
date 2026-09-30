@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { initI18n } from '@/lib/i18n'
 import { useDashboardControllerWithBootstrap } from '@/hooks/use-dashboard-controller'
@@ -50,6 +50,8 @@ vi.mock('@/lib/toast', () => ({
   useToast: () => ({ addToast: toastMocks.addToast }),
 }))
 vi.mock('@/lib/api', () => apiMocks)
+
+afterEach(() => vi.useRealTimers())
 
 describe('useDashboardControllerWithBootstrap state', () => {
   beforeEach(async () => {
@@ -210,6 +212,8 @@ describe('useDashboardControllerWithBootstrap state', () => {
   })
 
   it('builds one shared forecast state from the month-to-date filtered data', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-04-07T12:00:00Z'))
     const monthToDateData = [
       createDailyUsage({ date: '2026-04-01', totalCost: 6, outputTokens: 40 }),
       createDailyUsage({ date: '2026-04-05', totalCost: 12, outputTokens: 40 }),
@@ -248,5 +252,61 @@ describe('useDashboardControllerWithBootstrap state', () => {
     expect(
       result.current.sections.forecast.forecastState.providerForecast?.providers[0]?.provider,
     ).toBe('OpenAI')
+  })
+  it('uses global monthly budget data despite source, model, and date analysis filters', async () => {
+    const globalRows = [
+      createDailyUsage({ date: '2026-04-01', totalCost: 10 }),
+      createDailyUsage({ date: '2026-04-20', totalCost: 20 }),
+    ]
+    usageHookMocks.useUsageData.mockReturnValue({
+      data: createUsageData({
+        daily: globalRows.map((day) =>
+          createDailyUsage({ date: day.date, totalCost: day.totalCost + 5 }),
+        ),
+        systems: [
+          {
+            id: 'selected',
+            hostname: 'selected',
+            filename: '',
+            isLocal: true,
+            exportedAt: null,
+            data: createUsageData({ daily: globalRows }),
+          },
+          {
+            id: 'additional',
+            hostname: 'additional',
+            filename: '',
+            isLocal: false,
+            exportedAt: null,
+            data: createUsageData({
+              daily: globalRows.map((day) => createDailyUsage({ date: day.date, totalCost: 5 })),
+            }),
+          },
+        ],
+      }),
+      isLoading: false,
+      error: null,
+    })
+    filterHookMocks.useDashboardFilters.mockReturnValue(
+      createFilterState({
+        systemDailyData: globalRows,
+        filteredDailyData: [globalRows[1]!],
+        filteredData: [globalRows[1]!],
+        selectedModels: ['GPT-5.4'],
+        selectedSystems: ['selected'],
+        selectedMonth: '2026-04',
+        startDate: '2026-04-20',
+      }),
+    )
+    const { result } = renderHookWithQueryClient(() =>
+      useDashboardControllerWithBootstrap(createSettings(), true, Date.now(), null),
+    )
+    expect(result.current.sections.limits.filteredDailyData.map((day) => day.totalCost)).toEqual([
+      15, 25,
+    ])
+    expect(result.current.sections.limits.selectedMonth).toBe('2026-04')
+    expect(result.current.sections.comparisons.comparisonData.map((day) => day.totalCost)).toEqual([
+      10, 20,
+    ])
   })
 })

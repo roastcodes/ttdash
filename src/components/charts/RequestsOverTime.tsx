@@ -117,8 +117,8 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
         return a[0].localeCompare(b[0])
       })
 
-    const totalRequests = data.reduce((sum, point) => sum + point.totalRequests, 0)
-    const peak = [...data].sort((a, b) => b.totalRequests - a.totalRequests)[0]
+    const totalRequests = data.reduce((sum, point) => sum + (point.totalRequests ?? 0), 0)
+    const peak = [...data].sort((a, b) => (b.totalRequests ?? 0) - (a.totalRequests ?? 0))[0]
     if (!peak) return null
 
     return {
@@ -245,7 +245,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
         summary
           ? t('charts.requestsOverTime.summary', {
               total: formatRequests(summary.totalRequests),
-              peak: formatRequests(summary.peak.totalRequests),
+              peak: formatRequests(summary.peak.totalRequests ?? 0),
               date: formatDateAxis(summary.peak.date),
             })
           : t('charts.requestsOverTime.subtitle')

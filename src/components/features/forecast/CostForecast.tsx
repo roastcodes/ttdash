@@ -127,7 +127,7 @@ export function CostForecast({
     }[] = []
 
     for (const point of elapsedCalendarSeries) {
-      points.push({ date: point.date, cost: point.cost })
+      points.push({ date: point.date, ...(point.reported !== false ? { cost: point.cost } : {}) })
     }
 
     const lastActualCost = elapsedCalendarSeries[elapsedCalendarSeries.length - 1]?.cost ?? 0
@@ -233,6 +233,13 @@ export function CostForecast({
             : null
         }
       />
+      <p className="text-xs text-muted-foreground">
+        {t('forecast.dataThrough', { date: forecast?.dataThrough ?? '' })}{' '}
+        {forecast?.partialToday && t('forecast.partialToday')}{' '}
+        {(forecast?.missingDays ?? 0) > 0 &&
+          t('forecast.missingDays', { count: forecast?.missingDays })}{' '}
+        {(forecast?.staleDays ?? 0) > 1 && t('forecast.staleData')}
+      </p>
       <ChartCard
         title={t('forecast.chartTitle')}
         subtitle={t('forecast.chartSubtitle')}

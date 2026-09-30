@@ -24,7 +24,7 @@ export function generateCSV(data: DailyUsage[]): string {
       .join('; ')
     return buildCsvLine([
       d.date,
-      d.totalCost.toFixed(2),
+      d.totalCost,
       d.totalTokens,
       d.inputTokens,
       d.outputTokens,

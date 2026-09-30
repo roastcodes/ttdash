@@ -1,3 +1,4 @@
+import { computeMetrics } from '@/lib/calculations'
 // @vitest-environment jsdom
 
 import { screen } from '@testing-library/react'
@@ -8,6 +9,13 @@ import type { DailyUsage, DashboardMetrics } from '@/types'
 import { renderWithAppProviders } from '../test-utils'
 
 const emptyMetrics: DashboardMetrics = {
+  ...computeMetrics([]),
+  avgCostPerPeriod: 0,
+  avgRequestsPerPeriod: 0,
+  knownRequests: 0,
+  knownRequestCacheRead: 0,
+  knownRequestThinking: 0,
+  requestCoverage: 100,
   totalCost: 0,
   totalTokens: 0,
   activeDays: 0,

@@ -19,6 +19,7 @@ import { DEFAULT_APP_SETTINGS, normalizeAppSettings } from '@/lib/app-settings'
 
 interface ApiErrorPayload {
   message?: string
+  issues?: Array<{ date: string; field: string; code: string }>
 }
 
 const authenticationRequiredEvent = 'ttdash:authentication-required'
@@ -43,9 +44,24 @@ async function parseResponseJson<T>(response: Response): Promise<T> {
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {
   try {
     const payload = await parseResponseJson<ApiErrorPayload>(response)
-    return typeof payload.message === 'string' && payload.message.trim()
-      ? payload.message
-      : fallback
+    const message =
+      typeof payload.message === 'string' && payload.message.trim() ? payload.message : fallback
+    const details = Array.isArray(payload.issues)
+      ? payload.issues
+          .slice(0, 5)
+          .filter(
+            (issue) =>
+              issue &&
+              ['date', 'field', 'code'].every(
+                (key) => typeof issue[key as keyof typeof issue] === 'string',
+              ),
+          )
+          .map(
+            (issue) =>
+              `${issue.date.slice(0, 32)} / ${issue.field.slice(0, 160)} (${issue.code.slice(0, 80)})`,
+          )
+      : []
+    return details.length > 0 ? `${message} ${details.join('; ')}` : message
   } catch {
     return fallback
   }

@@ -147,7 +147,9 @@ describe('CostForecast', () => {
       },
     ]
 
-    renderWithTooltip(<CostForecast data={data} forecast={computeCurrentMonthForecast(data)} />)
+    renderWithTooltip(
+      <CostForecast data={data} forecast={computeCurrentMonthForecast(data, '2026-04-08')} />,
+    )
 
     expect(screen.getByText('Actual cost:')).toBeInTheDocument()
     expect(screen.getByText('Forecast:')).toBeInTheDocument()
@@ -235,7 +237,7 @@ describe('CostForecast', () => {
     renderWithTooltip(
       <CostForecast
         data={fullMonthData.slice(1)}
-        forecast={computeCurrentMonthForecast(fullMonthData)}
+        forecast={computeCurrentMonthForecast(fullMonthData, '2026-04-08')}
       />,
     )
 
@@ -295,7 +297,9 @@ describe('CostForecast', () => {
       },
     ]
 
-    renderWithTooltip(<CostForecast data={data} forecast={computeCurrentMonthForecast(data)} />)
+    renderWithTooltip(
+      <CostForecast data={data} forecast={computeCurrentMonthForecast(data, '2026-04-08')} />,
+    )
 
     expect(
       screen.getByRole('button', { name: 'Current month cost forecast expand' }),
@@ -354,7 +358,9 @@ describe('CostForecast', () => {
       },
     ]
 
-    renderWithTooltip(<CostForecast data={data} forecast={computeCurrentMonthForecast(data)} />)
+    renderWithTooltip(
+      <CostForecast data={data} forecast={computeCurrentMonthForecast(data, '2026-04-08')} />,
+    )
 
     const lowerArea = screen
       .getAllByTestId('forecast-area')

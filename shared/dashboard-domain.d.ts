@@ -12,6 +12,7 @@ export function computeMetrics(data: DailyUsage[]): DashboardMetrics
 export function computeMovingAverage(
   values: Array<number | undefined>,
   window?: number,
+  dates?: string[],
 ): Array<number | undefined>
 /** Computes the relative week-over-week cost change. */
 export function computeWeekOverWeekChange(data: DailyUsage[]): number | null

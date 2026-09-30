@@ -3,7 +3,7 @@ title: Dashboard and filters
 description: Navigate metrics, analysis sections, filters, drilldowns, and keyboard controls.
 ---
 
-The dashboard applies one shared selection to headline metrics, charts, tables, CSV export, and PDF report requests. Start with the filter bar, then move from overview cards into the analyses that explain the result.
+The dashboard applies one shared analysis selection to headline metrics, charts, tables, CSV export, and PDF report requests. Provider budgets always use the complete selected month (or the current local month) across all systems and models. Provider selection controls which budget rows are visible. Start with the filter bar, then move from overview cards into the analyses that explain the result.
 
 ## Filter the dataset
 
@@ -37,7 +37,19 @@ TTDash groups analysis into configurable sections:
 - period comparisons and anomaly detection
 - provider, model, and recent-period tables
 
-Each metric is derived from the currently selected normalized daily rows. Forecasts are estimates, not billing statements; compare important totals with your provider's official billing data.
+General metrics use the selected normalized daily rows. Today, current-month, and forecast views retain the source-system/provider/model selection but use their calendar context independently of the analysis date filter. Comparisons retain prior-period data outside that filter. Forecasts are estimates, not billing statements; compare important totals with your provider's official billing data.
+
+## Understand denominators and estimates
+
+- Daily cost averages divide by **active days**, which contain positive cost, tokens, or requests. Monthly and yearly averages divide by the number of displayed periods. Calendar averages include every day of the comparison window.
+- Week comparisons match Monday through the selected weekday. Month comparisons match the same elapsed days and clamp both windows to the shorter month. Exact dates and missing daily reports are shown. Seven-day moving averages require seven reported calendar days; they remain unavailable across gaps.
+- **Cache share of all tokens** divides cache-read tokens by input, output, cache-write, cache-read, and thinking tokens. The separate input cache share excludes output and thinking.
+- Per-request ratios use only usage with known request counters. The coverage percentage describes that portion of token volume. Missing counters are excluded from request distributions and correlations, rather than treated as measured zeros. Token-per-request histograms represent averages of periods, not individual requests.
+- Forecasts use the actual current local month. The current partial day contributes recorded cost but is excluded from the trend model. Missing reports are assumed to have zero cost for estimation and cap confidence at low. Total and provider projections add up.
+- Cache ROI is a standard-price model estimate for supported direct API models, with explicit cost/token coverage and dated provider sources. Read discounts are reduced by cache-write premiums. Unknown Anthropic cache duration produces a 5-minute/1-hour range; net savings can be negative. Models without reliable prices are excluded. Recorded costs are never repriced.
+- CSV cost values preserve their numeric precision instead of rounding every row to cents.
+
+The data-quality notice shows the most recent reported date, partial request coverage, unreadable sources, and excluded legacy rows. Source files are not changed while reading them.
 
 ## Drill into a period
 

@@ -1,3 +1,4 @@
+import { getRequestCountStatus } from '../../../shared/usage-quality.js'
 import { useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -222,21 +223,28 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   const animatePoints = !chartMotion.shouldReduceMotion && chartMotion.active
   const requestVsCost = useMemo<ScatterPoint[]>(
     () =>
-      data.map((entry) => ({
-        x: entry.requestCount,
-        y: entry.totalCost,
-        z: Math.max(5, Math.sqrt(entry.totalTokens / 1000)),
-        label: entry.date,
-        tokens: entry.totalTokens,
-        requests: entry.requestCount,
-      })),
+      data
+        .filter((entry) => getRequestCountStatus(entry) === 'known')
+        .map((entry) => ({
+          x: entry.requestCount,
+          y: entry.totalCost,
+          z: Math.max(5, Math.sqrt(entry.totalTokens / 1000)),
+          label: entry.date,
+          tokens: entry.totalTokens,
+          requests: entry.requestCount,
+        })),
     [data],
   )
 
   const cacheVsCostPerRequest = useMemo<ScatterPoint[]>(
     () =>
       data
-        .filter((entry) => entry.requestCount > 0 && entry.totalTokens > 0)
+        .filter(
+          (entry) =>
+            getRequestCountStatus(entry) === 'known' &&
+            entry.requestCount > 0 &&
+            entry.totalTokens > 0,
+        )
         .map((entry) => {
           const cacheShare = (entry.cacheReadTokens / entry.totalTokens) * 100
           return {

@@ -1,3 +1,4 @@
+import { computeMetrics } from '@/lib/calculations'
 import { vi } from 'vitest'
 import type { DashboardControllerViewModel } from '@/hooks/use-dashboard-controller'
 import { DEFAULT_APP_SETTINGS } from '@/lib/app-settings'
@@ -66,6 +67,7 @@ export function createFilterState(overrides: Record<string, unknown> = {}) {
 export function createComputedState(overrides: Record<string, unknown> = {}) {
   return {
     metrics: {
+      ...computeMetrics([]),
       totalCost: 0,
       totalTokens: 0,
       activeDays: 0,

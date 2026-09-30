@@ -98,7 +98,7 @@ describe('CumulativeCostPerProvider', () => {
       ]),
     ]
 
-    const forecast = computeCurrentMonthProviderForecasts(forecastSource)
+    const forecast = computeCurrentMonthProviderForecasts(forecastSource, '2026-04-08')
     expect(forecast).not.toBeNull()
 
     renderWithTooltip(<CumulativeCostPerProvider data={visibleData} forecast={forecast} />)

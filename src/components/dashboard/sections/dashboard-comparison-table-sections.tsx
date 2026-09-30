@@ -39,11 +39,16 @@ export const comparisonTableSectionRenderers = {
                       label: t('dashboard.stats.avgCostPerUnit', {
                         unit: periodUnit(comparisons.viewMode),
                       }),
-                      value: formatCurrency(comparisons.metrics.avgDailyCost),
+                      value: formatCurrency(comparisons.metrics.avgCostPerPeriod),
                     },
                   ]}
                 >
-                  <PeriodComparison data={comparisons.comparisonData} />
+                  <PeriodComparison
+                    data={comparisons.comparisonData}
+                    {...(comparisons.comparisonEndDate
+                      ? { endDate: comparisons.comparisonEndDate }
+                      : {})}
+                  />
                 </ExpandableCard>,
                 'h-[360px]',
               )}
@@ -59,7 +64,7 @@ export const comparisonTableSectionRenderers = {
                       label: t('dashboard.stats.avgPerUnit', {
                         unit: periodUnit(comparisons.viewMode),
                       }),
-                      value: formatCurrency(comparisons.metrics.avgDailyCost),
+                      value: formatCurrency(comparisons.metrics.avgCostPerPeriod),
                     },
                   ]}
                 >

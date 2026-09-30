@@ -1,3 +1,4 @@
+import { getRequestCountStatus } from '../../shared/usage-quality.js'
 import type {
   DailyUsage,
   ChartDataPoint,
@@ -49,13 +50,16 @@ export function getCurrentMonthForecastData(
   data: DailyUsage[],
   selectedProviders: string[] = [],
   selectedModels: string[] = [],
+  asOfDate?: string,
 ): DailyUsage[] {
   const sorted = sortByDate(data)
   const lastEntry = sorted[sorted.length - 1]
   if (!lastEntry) return []
 
-  const currentMonth = lastEntry.date.slice(0, 7)
-  let result = sorted.filter((entry) => entry.date.startsWith(currentMonth))
+  const currentMonth = (asOfDate ?? lastEntry.date).slice(0, 7)
+  let result = sorted.filter(
+    (entry) => entry.date.startsWith(currentMonth) && (!asOfDate || entry.date <= asOfDate),
+  )
   result = filterByProviders(result, selectedProviders)
   result = filterByModels(result, selectedModels)
   return result
@@ -158,7 +162,7 @@ export function buildDashboardChartTransforms(
   const cacheWrites: number[] = []
   const cacheReads: number[] = []
   const thinking: number[] = []
-  const totalRequests: number[] = []
+  const totalRequests: Array<number | undefined> = []
   const modelNameSet = new Set<string>()
 
   for (const entry of sorted) {
@@ -169,26 +173,27 @@ export function buildDashboardChartTransforms(
     cacheWrites.push(entry.cacheCreationTokens)
     cacheReads.push(entry.cacheReadTokens)
     thinking.push(entry.thinkingTokens)
-    totalRequests.push(entry.requestCount)
+    totalRequests.push(getRequestCountStatus(entry) === 'known' ? entry.requestCount : undefined)
 
     for (const mb of entry.modelBreakdowns) {
       modelNameSet.add(normalizeModelName(mb.modelName))
     }
   }
 
-  const costMA7 = computeMovingAverage(costs)
-  const tokenMA7 = computeMovingAverage(totals)
-  const inputMA7 = computeMovingAverage(inputs)
-  const outputMA7 = computeMovingAverage(outputs)
-  const cacheWriteMA7 = computeMovingAverage(cacheWrites)
-  const cacheReadMA7 = computeMovingAverage(cacheReads)
-  const thinkingMA7 = computeMovingAverage(thinking)
-  const totalRequestMA7 = computeMovingAverage(totalRequests)
+  const dates = sorted.map((entry) => entry.date)
+  const costMA7 = computeMovingAverage(costs, 7, dates)
+  const tokenMA7 = computeMovingAverage(totals, 7, dates)
+  const inputMA7 = computeMovingAverage(inputs, 7, dates)
+  const outputMA7 = computeMovingAverage(outputs, 7, dates)
+  const cacheWriteMA7 = computeMovingAverage(cacheWrites, 7, dates)
+  const cacheReadMA7 = computeMovingAverage(cacheReads, 7, dates)
+  const thinkingMA7 = computeMovingAverage(thinking, 7, dates)
+  const totalRequestMA7 = computeMovingAverage(totalRequests, 7, dates)
 
   const modelNames = Array.from(modelNameSet).sort()
 
   const modelCostArrays: Record<string, number[]> = {}
-  const modelRequestArrays: Record<string, number[]> = {}
+  const modelRequestArrays: Record<string, Array<number | undefined>> = {}
   for (const name of modelNames) {
     modelCostArrays[name] = []
     modelRequestArrays[name] = []
@@ -204,12 +209,15 @@ export function buildDashboardChartTransforms(
     for (const mb of entry.modelBreakdowns) {
       const name = normalizeModelName(mb.modelName)
       costsByModel[name] = (costsByModel[name] ?? 0) + mb.cost
-      requestsByModel[name] = (requestsByModel[name] ?? 0) + mb.requestCount
+      if (getRequestCountStatus(mb) === 'known')
+        requestsByModel[name] = (requestsByModel[name] ?? 0) + mb.requestCount
     }
 
     for (const name of modelNames) {
       modelCostArrays[name]?.push(costsByModel[name] ?? 0)
-      modelRequestArrays[name]?.push(requestsByModel[name] ?? 0)
+      modelRequestArrays[name]?.push(
+        getRequestCountStatus(entry) === 'known' ? (requestsByModel[name] ?? 0) : undefined,
+      )
     }
 
     if (entry.date.length === 10) {
@@ -224,8 +232,8 @@ export function buildDashboardChartTransforms(
   const modelCostMA7: Record<string, (number | undefined)[]> = {}
   const modelRequestMA7: Record<string, (number | undefined)[]> = {}
   for (const name of modelNames) {
-    modelCostMA7[name] = computeMovingAverage(modelCostArrays[name] ?? [])
-    modelRequestMA7[name] = computeMovingAverage(modelRequestArrays[name] ?? [])
+    modelCostMA7[name] = computeMovingAverage(modelCostArrays[name] ?? [], 7, dates)
+    modelRequestMA7[name] = computeMovingAverage(modelRequestArrays[name] ?? [], 7, dates)
   }
 
   let cumulative = 0
@@ -255,9 +263,9 @@ export function buildDashboardChartTransforms(
     const modelCostPoint: ModelCostChartPoint = { date: entry.date, cost: entry.totalCost }
     const requestPoint: RequestChartDataPoint = {
       date: entry.date,
-      totalRequests: entry.requestCount,
+      ...(getRequestCountStatus(entry) === 'known' ? { totalRequests: entry.requestCount } : {}),
     }
-    if (previousEntry) {
+    if (previousEntry && getRequestCountStatus(previousEntry) === 'known') {
       requestPoint.totalRequestsPrev = previousEntry.requestCount
     }
     if (totalRequestMA7[index] !== undefined) {
@@ -267,7 +275,10 @@ export function buildDashboardChartTransforms(
     for (const name of modelNames) {
       modelCostPoint[name] = currentModelBreakdown?.costsByModel[name] ?? 0
       modelCostPoint[`${name}_ma7`] = modelCostMA7[name]?.[index]
-      requestPoint[name] = currentModelBreakdown?.requestsByModel[name] ?? 0
+      requestPoint[name] =
+        getRequestCountStatus(entry) === 'known'
+          ? (currentModelBreakdown?.requestsByModel[name] ?? 0)
+          : undefined
       requestPoint[`${name}_ma7`] = modelRequestMA7[name]?.[index]
     }
 

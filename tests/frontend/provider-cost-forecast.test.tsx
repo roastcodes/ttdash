@@ -183,7 +183,7 @@ describe('ProviderCostForecast', () => {
     ]
 
     renderWithTooltip(
-      <ProviderCostForecast forecast={computeCurrentMonthProviderForecasts(data)} />,
+      <ProviderCostForecast forecast={computeCurrentMonthProviderForecasts(data, '2026-04-08')} />,
     )
 
     expect(screen.getByText('Current month forecast by provider')).toBeInTheDocument()
@@ -251,7 +251,9 @@ describe('ProviderCostForecast', () => {
     ]
 
     renderWithTooltip(
-      <ProviderCostForecast forecast={computeCurrentMonthProviderForecasts(openAiOnlyData)} />,
+      <ProviderCostForecast
+        forecast={computeCurrentMonthProviderForecasts(openAiOnlyData, '2026-04-08')}
+      />,
     )
 
     const chips = screen.getAllByTestId('provider-forecast-chip')
@@ -291,7 +293,7 @@ describe('ProviderCostForecast', () => {
     ]
 
     renderWithTooltip(
-      <ProviderCostForecast forecast={computeCurrentMonthProviderForecasts(data)} />,
+      <ProviderCostForecast forecast={computeCurrentMonthProviderForecasts(data, '2026-04-08')} />,
     )
 
     expect(

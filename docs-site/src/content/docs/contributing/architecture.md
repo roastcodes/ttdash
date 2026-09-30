@@ -86,6 +86,8 @@ Hooks must not import components. `lib-core` must remain free of React, Recharts
 
 Complex non-presentational derivations—drilldowns, heatmap data, request quality, sortable tables, and date-picker data—belong in focused `src/lib` modules rather than render components.
 
+`shared/usage-quality.js` defines calendar ordinals, request-counter provenance, active-day semantics, and the reserved unassigned model for the normalizer, server, and frontend. Shared dashboard metrics keep daily, calendar, and display-period denominators distinct. `src/lib/period-comparison-data.ts` builds matched comparison ranges; `src/lib/model-pricing.ts` and `cache-roi-data.ts` keep versioned pricing estimates separate from recorded costs. `use-local-day.ts` refreshes calendar-dependent state at midnight and when focus returns. Model-name/provider caches are bounded to 2,048 identifiers.
+
 ## Architecture gates
 
 Three tools cover different concerns:

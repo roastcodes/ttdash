@@ -1,3 +1,4 @@
+import { computeMetrics } from '@/lib/calculations'
 import {
   TrendingDown,
   DollarSign,
@@ -25,6 +26,7 @@ interface TodayMetricsProps {
 /** Renders KPI cards for the latest day in the dataset. */
 export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
   const { t } = useTranslation()
+  const todayMetrics = computeMetrics([{ ...today, modelsUsed: today.modelsUsed ?? [] }])
   const modelsCount = today.modelsUsed?.length ?? 0
   const cacheHitRate =
     today.cacheReadTokens + today.cacheCreationTokens > 0
@@ -63,10 +65,16 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
       ? t('metricCards.today.overallAverage', { value: formatCurrency(metrics.costPerMillion) })
       : null
   const requestsSubtitle =
-    today.requestCount > 0 && modelsCount > 0
+    todayMetrics.hasRequestData && modelsCount > 0
       ? t('metricCards.today.requestsSubtitle', {
-          value: (today.requestCount / modelsCount).toFixed(1),
-          cost: formatCurrency(today.totalCost / today.requestCount),
+          value:
+            todayMetrics.requestCoverage === 100
+              ? (today.requestCount / modelsCount).toFixed(1)
+              : t('common.notAvailable'),
+          cost:
+            todayMetrics.knownRequests > 0
+              ? formatCurrency(todayMetrics.avgCostPerRequest)
+              : t('common.notAvailable'),
         })
       : t('metricCards.today.requestCountersMissing')
   const thinkingSubtitle =
@@ -106,9 +114,10 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
                 type="tokens"
                 label={t('metricCards.today.tokensToday')}
                 insight={t('metricCards.today.tokensInsight', {
-                  value: formatTokens(
-                    today.requestCount > 0 ? today.totalTokens / today.requestCount : 0,
-                  ),
+                  value:
+                    todayMetrics.knownRequests > 0
+                      ? formatTokens(todayMetrics.avgTokensPerRequest)
+                      : t('common.notAvailable'),
                 })}
               />
             }
@@ -153,13 +162,16 @@ export function TodayMetrics({ today, metrics }: TodayMetricsProps) {
           <MetricCard
             label={t('metricCards.today.requests')}
             value={
-              today.requestCount > 0 ? (
+              todayMetrics.hasRequestData ? (
                 <FormattedValue
                   value={today.requestCount}
                   type="number"
                   label={t('metricCards.today.requestsToday')}
                   insight={t('metricCards.today.requestsInsight', {
-                    value: formatCurrency(today.totalCost / today.requestCount),
+                    value:
+                      todayMetrics.knownRequests > 0
+                        ? formatCurrency(todayMetrics.avgCostPerRequest)
+                        : t('common.notAvailable'),
                   })}
                 />
               ) : (

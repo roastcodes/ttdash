@@ -5,6 +5,14 @@ function getErrorMessage(error, fallback) {
   return formatErrorMessage(error, fallback);
 }
 
+/** Returns bounded validation details produced by the usage normalizer. */
+function getUsageValidationError(error, fallback) {
+  return {
+    message: getErrorMessage(error, fallback),
+    ...(Array.isArray(error?.issues) ? { issues: error.issues.slice(0, 50) } : {}),
+  };
+}
+
 /** Builds a safe Content-Disposition attachment header with UTF-8 filename support. */
 function formatAttachmentDisposition(filename, defaultFilename) {
   const fallback = String(defaultFilename || 'ttdash-download');
@@ -89,6 +97,7 @@ function sendSSE(res, event, data, logger = console) {
 module.exports = {
   formatAttachmentDisposition,
   getErrorMessage,
+  getUsageValidationError,
   readMutationBody,
   sendSSE,
   writeMutationServerError,

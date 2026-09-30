@@ -108,7 +108,11 @@ export function RequestCacheHitRateByModel({
         point.thinkingTokens,
       ),
     )
-    const totalTrend = computeMovingAverage(totalRates, Math.min(7, sorted.length))
+    const totalTrend = computeMovingAverage(
+      totalRates,
+      7,
+      sorted.map((entry) => entry.date),
+    )
 
     const modelSeries: Record<string, number[]> = {}
     for (const model of topModels) modelSeries[model] = []

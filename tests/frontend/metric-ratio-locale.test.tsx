@@ -1,3 +1,4 @@
+import { computeMetrics } from '@/lib/calculations'
 // @vitest-environment jsdom
 
 import { render } from '@testing-library/react'
@@ -9,6 +10,13 @@ import { getCurrentLocale, initI18n } from '@/lib/i18n'
 import type { DailyUsage, DashboardMetrics } from '@/types'
 
 const metrics: DashboardMetrics = {
+  ...computeMetrics([]),
+  avgCostPerPeriod: 5,
+  avgRequestsPerPeriod: 2,
+  knownRequests: 4,
+  knownRequestCacheRead: 0,
+  knownRequestThinking: 0,
+  requestCoverage: 100,
   totalCost: 10,
   totalTokens: 25,
   activeDays: 2,

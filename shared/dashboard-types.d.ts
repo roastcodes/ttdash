@@ -8,6 +8,7 @@ export interface ModelBreakdown {
   thinkingTokens: number
   cost: number
   requestCount: number
+  requestCountStatus?: 'known' | 'partial' | 'unknown'
 }
 
 /** Describes aggregated usage for one daily, monthly, or yearly period. */
@@ -21,9 +22,13 @@ export interface DailyUsage {
   totalTokens: number
   totalCost: number
   requestCount: number
+  requestCountStatus?: 'known' | 'partial' | 'unknown'
   modelsUsed: string[]
   modelBreakdowns: ModelBreakdown[]
   _aggregatedDays?: number
+  _activeDays?: number
+  _calendarStart?: string
+  _calendarEnd?: string
 }
 
 /** Lists the supported dashboard aggregation modes. */
@@ -34,6 +39,17 @@ export interface DashboardMetrics {
   totalCost: number
   totalTokens: number
   activeDays: number
+  calendarDays: number
+  avgCalendarDailyCost: number
+  avgCostPerPeriod: number
+  avgRequestsPerPeriod: number
+  inputCacheHitRate: number
+  requestCoverage: number
+  knownRequestCost: number
+  knownRequestTokens: number
+  knownRequests: number
+  knownRequestCacheRead: number
+  knownRequestThinking: number
   topModel: { name: string; cost: number } | null
   topRequestModel: { name: string; requests: number } | null
   topTokenModel: { name: string; tokens: number } | null

@@ -53,19 +53,19 @@ describe('CacheROI', () => {
         date: '2026-04-07',
         inputTokens: 100,
         outputTokens: 0,
-        cacheCreationTokens: 0,
+        cacheCreationTokens: 1_000_000,
         cacheReadTokens: 0,
         thinkingTokens: 0,
-        totalTokens: 100,
-        totalCost: 20,
+        totalTokens: 1_000_100,
+        totalCost: 10,
         requestCount: 2,
-        modelsUsed: ['gpt-5.4'],
+        modelsUsed: ['claude-sonnet-4-6'],
         modelBreakdowns: [
           {
-            modelName: 'gpt-5.4',
+            modelName: 'claude-sonnet-4-6',
             inputTokens: 100,
             outputTokens: 0,
-            cacheCreationTokens: 0,
+            cacheCreationTokens: 1_000_000,
             cacheReadTokens: 0,
             thinkingTokens: 0,
             cost: 10,
@@ -77,7 +77,8 @@ describe('CacheROI', () => {
 
     const { container } = renderWithTooltip(<CacheROI data={data} />)
 
-    const savingsValue = screen.getByText('Savings').nextElementSibling as HTMLElement
+    const savingsValue = screen.getByText('Net savings (estimate)')
+      .nextElementSibling as HTMLElement
     expect(savingsValue).toHaveClass('text-rose-700')
 
     const withCacheRow = screen.getByText('With cache').parentElement
@@ -99,10 +100,10 @@ describe('CacheROI', () => {
         totalTokens: 1_000_100,
         totalCost: 2,
         requestCount: 2,
-        modelsUsed: ['mystery-model'],
+        modelsUsed: ['gpt-5'],
         modelBreakdowns: [
           {
-            modelName: 'mystery-model',
+            modelName: 'gpt-5',
             inputTokens: 100,
             outputTokens: 0,
             cacheCreationTokens: 0,
@@ -130,7 +131,7 @@ describe('CacheROI', () => {
     expect(paidWidth + savedWidth).toBeCloseTo(100, 5)
   })
 
-  it('renders the heuristic fallback notice with stronger contrast classes', () => {
+  it('excludes unknown prices and renders a coverage notice', () => {
     const data: DailyUsage[] = [
       {
         date: '2026-04-07',
@@ -161,10 +162,10 @@ describe('CacheROI', () => {
     renderWithTooltip(<CacheROI data={data} />)
 
     const notice = screen.getByText(
-      'For 1 model without a configured price table, the ROI estimate uses a heuristic fallback.',
+      'No reliable cache tariff; excluded from estimate: Mystery Model.',
     )
-    expect(notice).toHaveClass('font-medium')
-    expect(notice).toHaveClass('text-amber-800')
-    expect(notice).toHaveClass('dark:text-amber-50')
+    expect(notice).toBeInTheDocument()
+    expect(screen.getAllByText('n/a')).toHaveLength(2)
+    expect(screen.queryByTestId('animated-bar-fill')).not.toBeInTheDocument()
   })
 })

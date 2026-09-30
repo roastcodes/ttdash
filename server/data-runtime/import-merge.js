@@ -1,3 +1,5 @@
+const { getRequestCountStatus } = require('../../shared/usage-quality');
+
 const COST_COMPARISON_TOLERANCE = 1e-6;
 const USAGE_DAY_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -39,6 +41,7 @@ function canonicalizeModelBreakdown(entry) {
     thinkingTokens: Number(entry?.thinkingTokens) || 0,
     cost: Number(entry?.cost) || 0,
     requestCount: Number(entry?.requestCount) || 0,
+    requestCountStatus: getRequestCountStatus(entry || {}),
   };
 }
 
@@ -53,10 +56,15 @@ function canonicalizeUsageDay(day) {
     totalTokens: Number(day?.totalTokens) || 0,
     totalCost: Number(day?.totalCost) || 0,
     requestCount: Number(day?.requestCount) || 0,
+    requestCountStatus: getRequestCountStatus(day || {}),
     modelsUsed: sortStrings(day?.modelsUsed),
     modelBreakdowns: (Array.isArray(day?.modelBreakdowns) ? day.modelBreakdowns : [])
       .map(canonicalizeModelBreakdown)
-      .sort((left, right) => left.modelName.localeCompare(right.modelName)),
+      .sort((left, right) =>
+        `${left.modelName}:${left.requestCountStatus}`.localeCompare(
+          `${right.modelName}:${right.requestCountStatus}`,
+        ),
+      ),
   };
 }
 
@@ -73,6 +81,7 @@ function areUsageDaysEquivalent(left, right) {
     'totalTokens',
     'totalCost',
     'requestCount',
+    'requestCountStatus',
   ];
 
   for (const field of scalarFields) {
@@ -110,6 +119,7 @@ function areUsageDaysEquivalent(left, right) {
     'thinkingTokens',
     'cost',
     'requestCount',
+    'requestCountStatus',
   ];
   for (let index = 0; index < leftDay.modelBreakdowns.length; index += 1) {
     const leftBreakdown = leftDay.modelBreakdowns[index];
@@ -221,9 +231,18 @@ function createDataRuntimeImportMerge({
       .map(canonicalizeUsageDay);
     const skippedDays = importedData.daily.length - validImportedDaily.length;
     const current =
-      currentData && Array.isArray(currentData.daily) && currentData.daily.length > 0
-        ? normalizeIncomingData(currentData)
+      currentData && Array.isArray(currentData.daily)
+        ? normalizeIncomingData(currentData, { persisted: true })
         : null;
+
+    if (current?.qualityIssues?.length) {
+      const error = new Error(
+        'Existing usage data contains invalid rows. Correct or explicitly replace the file before merging a backup.',
+      );
+      error.code = 'LEGACY_DATA_INVALID';
+      error.issues = current.qualityIssues;
+      throw error;
+    }
 
     if (!current) {
       return {
