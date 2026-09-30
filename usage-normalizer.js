@@ -28,7 +28,9 @@ function isObject(value) {
 }
 
 function isMissing(value) {
-  return value === undefined || value === null || value === '';
+  return (
+    value === undefined || value === null || (typeof value === 'string' && value.trim() === '')
+  );
 }
 
 function addIssue(issues, date, field, code) {
@@ -39,7 +41,13 @@ function addIssue(issues, date, field, code) {
 
 function numeric(value, date, field, issues, integer = true) {
   if (isMissing(value)) return 0;
-  const number = typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN;
+  const number =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' &&
+          /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value.trim())
+        ? Number(value)
+        : NaN;
   if (!Number.isFinite(number) || number < 0 || (integer && !Number.isSafeInteger(number))) {
     addIssue(issues, date, field, 'invalid_number');
     return 0;

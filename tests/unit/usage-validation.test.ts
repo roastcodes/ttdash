@@ -14,16 +14,24 @@ describe('usage validation and provenance', () => {
     },
   )
 
-  it.each([-1, Infinity, NaN, true, 'abc', 1.5, Number.MAX_SAFE_INTEGER + 1])(
-    'rejects invalid token values %s atomically',
-    (inputTokens) => {
-      expect(() =>
-        normalizeIncomingData({
-          daily: [createDailyUsage(), { ...createDailyUsage({ date: '2026-04-02' }), inputTokens }],
-        }),
-      ).toThrow('invalid_number')
-    },
-  )
+  it.each([
+    -1,
+    Infinity,
+    NaN,
+    true,
+    'abc',
+    '0x10',
+    '0b10',
+    '0o10',
+    1.5,
+    Number.MAX_SAFE_INTEGER + 1,
+  ])('rejects invalid token values %s atomically', (inputTokens) => {
+    expect(() =>
+      normalizeIncomingData({
+        daily: [createDailyUsage(), { ...createDailyUsage({ date: '2026-04-02' }), inputTokens }],
+      }),
+    ).toThrow('invalid_number')
+  })
 
   it('rejects inconsistent totals and conflicting dates, but deduplicates identical days', () => {
     const day = createDailyUsage({ totalCost: 2 })
@@ -117,5 +125,23 @@ describe('usage validation and provenance', () => {
       payload.qualityIssues,
     )
     expect(normalizeIncomingData(payload).qualityIssues).toBeUndefined()
+  })
+
+  it('treats whitespace-only counters as missing and supports decimal and exponent strings', () => {
+    const missing = normalizeIncomingData({
+      daily: [{ date: '2026-04-01', totalCost: 1, requestCount: ' \t ' }],
+    })
+    expect(missing.daily[0].requestCountStatus).toBe('unknown')
+    const measured = normalizeIncomingData({
+      daily: [
+        { date: '2026-04-01', totalCost: ' +.5 ', inputTokens: ' 1e3 ', requestCount: ' 1 ' },
+      ],
+    })
+    expect(measured.daily[0]).toMatchObject({
+      totalCost: 0.5,
+      inputTokens: 1000,
+      requestCount: 1,
+      requestCountStatus: 'known',
+    })
   })
 })

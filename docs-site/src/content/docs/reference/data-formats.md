@@ -163,7 +163,7 @@ An unreadable or externally corrupted system file is skipped instead of taking t
 
 ## Normalization behavior
 
-- numeric values and numeric strings must be finite and nonnegative; token and request counts must be safe integers
+- numbers and decimal/exponent numeric strings must be finite and nonnegative; token and request counts must be safe integers, and whitespace-only strings count as missing values
 - dates must be real `YYYY-MM-DD` calendar dates
 - daily totals cannot be smaller than the sum of model breakdowns (USD tolerance: `0.000001`); a supplied `totalTokens` must match the sum of token categories
 - missing daily totals are derived from breakdowns; legitimate daily amounts without model allocation use the reserved `__ttdash_unassigned__` model
