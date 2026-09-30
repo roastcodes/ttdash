@@ -46,7 +46,7 @@ describe('CumulativeCost', () => {
       { date: '2026-04-07', cost: 14, cumulative: 44 },
     ]
 
-    const forecast = computeCurrentMonthForecast(forecastSource)
+    const forecast = computeCurrentMonthForecast(forecastSource, '2026-04-08')
     expect(forecast).not.toBeNull()
 
     renderWithTooltip(<CumulativeCost data={visibleChartData} forecast={forecast} />)
@@ -85,7 +85,7 @@ describe('CumulativeCost', () => {
       { date: '2026-04-07', cost: 14, cumulative: 94 },
     ]
 
-    const forecast = computeCurrentMonthForecast(forecastSource)
+    const forecast = computeCurrentMonthForecast(forecastSource, '2026-04-08')
     expect(forecast).not.toBeNull()
 
     renderWithTooltip(<CumulativeCost data={visibleChartData} forecast={forecast} />)
@@ -120,7 +120,7 @@ describe('CumulativeCost', () => {
       { date: '2026-03-03', cost: 20, cumulative: 45 },
     ]
 
-    const forecast = computeCurrentMonthForecast(forecastSource)
+    const forecast = computeCurrentMonthForecast(forecastSource, '2026-04-08')
     expect(forecast).not.toBeNull()
 
     renderWithTooltip(<CumulativeCost data={visibleChartData} forecast={forecast} />)

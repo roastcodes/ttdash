@@ -63,12 +63,12 @@ export function SecondaryMetrics({
         ? t('metricCards.secondary.spread', { value: formatCurrency(costSpread) })
         : null
   const medianSubtitle =
-    median !== null && metrics.avgDailyCost > 0
+    median !== null && metrics.avgCostPerPeriod > 0
       ? t('metricCards.secondary.vsAverageWithVolatility', {
-          direction: median < metrics.avgDailyCost ? '↓' : '↑',
-          value: Math.abs(((median - metrics.avgDailyCost) / metrics.avgDailyCost) * 100).toFixed(
-            0,
-          ),
+          direction: median < metrics.avgCostPerPeriod ? '↓' : '↑',
+          value: Math.abs(
+            ((median - metrics.avgCostPerPeriod) / metrics.avgCostPerPeriod) * 100,
+          ).toFixed(0),
           volatility: Math.round(metrics.requestVolatility),
         })
       : null
@@ -125,7 +125,7 @@ export function SecondaryMetrics({
             viewMode === 'daily' && metrics.busiestWeek ? (
               <FormattedValue value={metrics.busiestWeek.cost} type="currency" />
             ) : (
-              <FormattedValue value={metrics.avgDailyCost} type="currency" />
+              <FormattedValue value={metrics.avgCostPerPeriod} type="currency" />
             )
           }
           icon={<ChartBar className="h-4 w-4" />}

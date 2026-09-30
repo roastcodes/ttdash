@@ -15,8 +15,11 @@ import { DashboardMotionItem } from '@/components/dashboard/DashboardMotion'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { SectionHeader } from '@/components/ui/section-header'
 import { SECTION_HELP } from '@/lib/help-content'
-import { formatCurrency, formatMonthYear, localMonth } from '@/lib/formatters'
+import { formatCurrency, formatMonthYear } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
+import { useLocalDay } from '@/hooks/use-local-day'
+import { computeMetrics } from '@/lib/calculations'
+import { buildPeriodComparison } from '@/lib/period-comparison-data'
 import { normalizeModelName } from '@/lib/model-utils'
 import type { DailyUsage, DashboardMetrics } from '@/types'
 
@@ -29,7 +32,8 @@ interface MonthMetricsProps {
 export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
   const { t } = useTranslation()
   const locale = getCurrentLocale()
-  const currentMonth = localMonth()
+  const todayStr = useLocalDay()
+  const currentMonth = todayStr.slice(0, 7)
   const oneDecimalFormatter = new Intl.NumberFormat(locale, {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
@@ -46,18 +50,17 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
   })
 
   const monthData = useMemo(
-    () => daily.filter((d) => d.date.startsWith(currentMonth)),
-    [daily, currentMonth],
+    () => daily.filter((d) => d.date.startsWith(currentMonth) && d.date <= todayStr),
+    [daily, currentMonth, todayStr],
   )
 
-  const prevMonth = useMemo(() => {
-    const [y = 0, m = 1] = currentMonth.split('-').map(Number)
-    const pm = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`
-    return daily.filter((d) => d.date.startsWith(pm))
-  }, [daily, currentMonth])
-
+  const comparison = useMemo(
+    () => buildPeriodComparison(daily, 'month', todayStr),
+    [daily, todayStr],
+  )
   const agg = useMemo(() => {
     if (monthData.length === 0) return null
+    const monthMetrics = computeMetrics(monthData)
 
     const totalCost = monthData.reduce((s, d) => s + d.totalCost, 0)
     const totalTokens = monthData.reduce((s, d) => s + d.totalTokens, 0)
@@ -87,8 +90,7 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
     }
 
     // Days elapsed in the current local month so far.
-    const today = new Date()
-    const dayOfMonth = today.getDate()
+    const dayOfMonth = Number(todayStr.slice(8, 10))
 
     return {
       totalCost,
@@ -101,19 +103,25 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
       requestCount,
       cacheHitRate,
       costPerMillion,
-      activeDays: monthData.length,
+      activeDays: monthMetrics.activeDays,
+      avgCostPerRequest: monthMetrics.avgCostPerRequest,
+      avgRequestsPerDay: monthMetrics.avgRequestsPerDay,
+      hasRequestData: monthMetrics.hasRequestData,
+      knownRequests: monthMetrics.knownRequests,
+      requestCoverage: monthMetrics.requestCoverage,
       dayOfMonth,
       modelCount: models.size,
       topModel,
     }
-  }, [monthData])
+  }, [monthData, todayStr])
 
-  const prevMonthCost = useMemo(() => prevMonth.reduce((s, d) => s + d.totalCost, 0), [prevMonth])
+  const prevMonthCost = comparison.periodB.reduce((sum, day) => sum + day.totalCost, 0)
+  const comparableCost = comparison.periodA.reduce((sum, day) => sum + day.totalCost, 0)
 
   if (!agg) return null
 
   const diffToPrev =
-    prevMonthCost > 0 ? ((agg.totalCost - prevMonthCost) / prevMonthCost) * 100 : null
+    prevMonthCost > 0 ? ((comparableCost - prevMonthCost) / prevMonthCost) * 100 : null
 
   const ioTotal = agg.inputTokens + agg.outputTokens
   const tokensSubtitle =
@@ -150,7 +158,7 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
             label={t('metricCards.month.costMonth')}
             value={<FormattedValue value={agg.totalCost} type="currency" />}
             subtitle={t('metricCards.month.avgPerDay', {
-              value: formatCurrency(agg.totalCost / agg.activeDays),
+              value: formatCurrency(agg.totalCost / Math.max(1, agg.activeDays)),
             })}
             icon={<DollarSign className="h-4 w-4" />}
             trend={
@@ -209,13 +217,16 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
           <MetricCard
             label={t('metricCards.month.requests')}
             value={
-              agg.requestCount > 0 ? (
+              agg.hasRequestData ? (
                 <FormattedValue
                   value={agg.requestCount}
                   type="number"
                   label={t('metricCards.month.requestsInMonth')}
                   insight={t('metricCards.month.costPerRequest', {
-                    value: formatCurrency(agg.totalCost / agg.requestCount),
+                    value:
+                      agg.knownRequests > 0
+                        ? formatCurrency(agg.avgCostPerRequest)
+                        : t('common.notAvailable'),
                   })}
                 />
               ) : (
@@ -223,10 +234,16 @@ export function MonthMetrics({ daily, metrics }: MonthMetricsProps) {
               )
             }
             subtitle={
-              agg.requestCount > 0
+              agg.hasRequestData
                 ? t('metricCards.month.requestsSubtitle', {
-                    value: (agg.requestCount / agg.activeDays).toFixed(1),
-                    cost: formatCurrency(agg.totalCost / agg.requestCount),
+                    value:
+                      agg.requestCoverage === 100
+                        ? agg.avgRequestsPerDay.toFixed(1)
+                        : t('common.notAvailable'),
+                    cost:
+                      agg.knownRequests > 0
+                        ? formatCurrency(agg.avgCostPerRequest)
+                        : t('common.notAvailable'),
                   })
                 : t('metricCards.month.requestCountersMissing')
             }

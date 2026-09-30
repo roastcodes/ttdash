@@ -93,7 +93,6 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                     dot={false}
                     strokeWidth={2}
                     strokeDasharray="5 4"
-                    connectNulls
                     {...getLineAnimationProps(animate, { order: index % 5, role: 'secondary' })}
                   />
                 ))}

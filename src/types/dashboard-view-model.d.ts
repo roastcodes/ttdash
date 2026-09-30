@@ -285,6 +285,7 @@ export interface DashboardComparisonSectionsViewModel {
   metrics: DashboardMetrics
   filteredData: DailyUsage[]
   comparisonData: DailyUsage[]
+  comparisonEndDate?: string
   viewMode: ViewMode
 }
 

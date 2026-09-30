@@ -144,7 +144,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
             title={t('insights.requestEconomy.title')}
             icon={<Activity className="h-5 w-5" />}
             value={
-              metrics.hasRequestData ? (
+              metrics.knownRequests > 0 ? (
                 <FormattedValue
                   value={metrics.avgCostPerRequest}
                   type="currency"
@@ -158,7 +158,7 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
               )
             }
             summary={
-              metrics.hasRequestData
+              metrics.knownRequests > 0
                 ? t('insights.requestEconomy.summary', {
                     cost: formatCurrency(metrics.avgCostPerRequest),
                     tokens: formatTokens(metrics.avgTokensPerRequest),
@@ -171,15 +171,20 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
             details={[
               {
                 label: t('insights.requestEconomy.avgRequests', { unit: periodUnit(viewMode) }),
-                value: metrics.hasRequestData
-                  ? metrics.avgRequestsPerDay.toFixed(1)
-                  : t('common.notAvailable'),
+                value:
+                  metrics.hasRequestData && metrics.requestCoverage === 100
+                    ? (viewMode === 'daily'
+                        ? metrics.avgRequestsPerDay
+                        : metrics.avgRequestsPerPeriod
+                      ).toFixed(1)
+                    : t('common.notAvailable'),
               },
               {
                 label: t('insights.requestEconomy.avgTokensPerRequest'),
-                value: metrics.hasRequestData
-                  ? formatTokens(metrics.avgTokensPerRequest)
-                  : t('common.notAvailable'),
+                value:
+                  metrics.knownRequests > 0
+                    ? formatTokens(metrics.avgTokensPerRequest)
+                    : t('common.notAvailable'),
               },
               {
                 label: t('insights.requestEconomy.costPerMillion'),
@@ -271,7 +276,9 @@ export function UsageInsights({ metrics, viewMode, totalCalendarDays }: UsageIns
               },
               {
                 label: t('insights.peakWindow.avgPerUnit', { unit: periodUnit(viewMode) }),
-                value: formatCurrency(metrics.avgDailyCost),
+                value: formatCurrency(
+                  viewMode === 'daily' ? metrics.avgDailyCost : metrics.avgCostPerPeriod,
+                ),
               },
               {
                 label: t('insights.peakWindow.peak7DayAverage'),

@@ -108,7 +108,11 @@ export function RequestCacheHitRateByModel({
         point.thinkingTokens,
       ),
     )
-    const totalTrend = computeMovingAverage(totalRates, Math.min(7, sorted.length))
+    const totalTrend = computeMovingAverage(
+      totalRates,
+      7,
+      sorted.map((entry) => entry.date),
+    )
 
     const modelSeries: Record<string, number[]> = {}
     for (const model of topModels) modelSeries[model] = []
@@ -324,7 +328,6 @@ export function RequestCacheHitRateByModel({
                         dot={false}
                         strokeWidth={2}
                         strokeDasharray="5 5"
-                        connectNulls
                         {...getLineAnimationProps(animate, { role: 'secondary' })}
                       />
                       {lineSeries.map((series, index) => (
@@ -336,7 +339,6 @@ export function RequestCacheHitRateByModel({
                           name={series}
                           dot={false}
                           strokeWidth={1.8}
-                          connectNulls
                           {...getLineAnimationProps(animate, {
                             order: index + 2,
                             role: 'secondary',

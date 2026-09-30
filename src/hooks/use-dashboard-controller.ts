@@ -162,6 +162,12 @@ export function useDashboardControllerWithBootstrap(
       isDark,
       animationKey: actions.animationKey,
       modelPaletteModelNames: allModelsFromData,
+      qualityIssues: usageData?.qualityIssues ?? [],
+      ...(derived.entityDailyData[derived.entityDailyData.length - 1]?.date
+        ? { dataThrough: derived.entityDailyData[derived.entityDailyData.length - 1]!.date }
+        : {}),
+      requestCoverage: derived.computed.metrics.requestCoverage,
+      unreadableFiles: usageData?.unreadableSystemFiles?.length ?? 0,
     },
     loadError: shellState.loadError,
     emptyState: {
@@ -221,7 +227,7 @@ export function useDashboardControllerWithBootstrap(
         totalCalendarDays: derived.totalCalendarDays,
         filteredData: derived.filters.filteredData,
         dailyCosts: derived.dailyCosts,
-        filteredDailyData: derived.filters.filteredDailyData,
+        filteredDailyData: derived.entityDailyData,
         todayData: derived.todayData,
         hasCurrentMonthData: derived.hasCurrentMonthData,
         isDark,
@@ -233,10 +239,10 @@ export function useDashboardControllerWithBootstrap(
         viewMode: derived.filters.viewMode,
       },
       limits: {
-        filteredDailyData: derived.filters.filteredDailyData,
+        filteredDailyData: daily,
         visibleLimitProviders: derived.visibleLimitProviders,
         providerLimits,
-        selectedMonth: derived.filters.selectedMonth,
+        selectedMonth: derived.filters.selectedMonth ?? derived.todayStr.slice(0, 7),
       },
       costAnalysis: {
         filteredData: derived.filters.filteredData,
@@ -266,7 +272,8 @@ export function useDashboardControllerWithBootstrap(
       comparisons: {
         metrics: derived.computed.metrics,
         filteredData: derived.filters.filteredData,
-        comparisonData: derived.filters.filteredDailyData,
+        comparisonData: derived.entityDailyData,
+        comparisonEndDate: derived.comparisonEndDate,
         viewMode: derived.filters.viewMode,
       },
       tables: {

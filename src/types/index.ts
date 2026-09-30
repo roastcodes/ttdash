@@ -8,6 +8,7 @@ export interface ModelBreakdown {
   thinkingTokens: number
   cost: number
   requestCount: number
+  requestCountStatus?: 'known' | 'partial' | 'unknown'
 }
 
 /** Describes aggregated usage for one daily, monthly, or yearly period. */
@@ -21,10 +22,14 @@ export interface DailyUsage {
   totalTokens: number
   totalCost: number
   requestCount: number
+  requestCountStatus?: 'known' | 'partial' | 'unknown'
   modelsUsed: string[]
   modelBreakdowns: ModelBreakdown[]
   /** Number of original days merged into this entry (1 for daily, N for monthly/yearly). */
   _aggregatedDays?: number
+  _activeDays?: number
+  _calendarStart?: string
+  _calendarEnd?: string
 }
 
 /** Describes the persisted usage payload returned by the API. */
@@ -40,8 +45,17 @@ export interface UsageData {
     totalTokens: number
     requestCount: number
   }
+  qualityIssues?: UsageQualityIssue[]
   systems?: UsageSystem[]
   unreadableSystemFiles?: UnreadableSystemFile[]
+}
+
+/** Describes a bounded validation diagnostic for a persisted usage row. */
+export interface UsageQualityIssue {
+  date: string
+  field: string
+  code: string
+  system?: string
 }
 
 /** Describes one local or imported system dataset returned by the API. */
@@ -152,6 +166,17 @@ export interface DashboardMetrics {
   totalCost: number
   totalTokens: number
   activeDays: number
+  calendarDays: number
+  avgCalendarDailyCost: number
+  avgCostPerPeriod: number
+  avgRequestsPerPeriod: number
+  inputCacheHitRate: number
+  requestCoverage: number
+  knownRequestCost: number
+  knownRequestTokens: number
+  knownRequests: number
+  knownRequestCacheRead: number
+  knownRequestThinking: number
   topModel: { name: string; cost: number } | null
   topRequestModel: { name: string; requests: number } | null
   topTokenModel: { name: string; tokens: number } | null
@@ -242,7 +267,7 @@ export interface TokenChartDataPoint {
 /** Describes one point in the request volume chart series. */
 export interface RequestChartDataPoint {
   date: string
-  totalRequests: number
+  totalRequests?: number
   totalRequestsPrev?: number
   totalRequestsMA7?: number
   [key: string]: unknown
@@ -274,12 +299,17 @@ export type ForecastConfidence = 'low' | 'medium' | 'high'
 
 /** Captures one elapsed-calendar forecast point. */
 export interface CurrentMonthForecastPoint {
+  reported?: boolean
   date: string
   cost: number
 }
 
 /** Captures the shared current-month forecast used by dashboard forecast views. */
 export interface CurrentMonthForecast {
+  missingDays?: number
+  staleDays?: number
+  partialToday?: boolean
+  dataThrough?: string
   currentMonth: string
   monthData: DailyUsage[]
   currentMonthTotal: number

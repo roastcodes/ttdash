@@ -168,7 +168,7 @@ function createDataRuntime({
     }
 
     try {
-      return normalizeIncomingData(file.value);
+      return normalizeIncomingData(file.value, { persisted: true });
     } catch (error) {
       throw createPersistedStateError('usage', dataFile, error);
     }
@@ -201,9 +201,15 @@ function createDataRuntime({
       ? systems.filter((system) => selection.has(system.id))
       : systems;
 
+    const qualityIssues = selectedSystems
+      .flatMap((system) =>
+        (system.data.qualityIssues || []).map((issue) => ({ ...issue, system: system.id })),
+      )
+      .slice(0, 50);
     return {
       ...mergeUsageDatasets(selectedSystems.map((system) => system.data)),
       systems,
+      ...(qualityIssues.length ? { qualityIssues } : {}),
       unreadableSystemFiles: unreadableFiles,
     };
   }

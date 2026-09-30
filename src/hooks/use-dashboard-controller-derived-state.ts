@@ -2,8 +2,14 @@ import { useMemo } from 'react'
 import { useComputedMetrics } from '@/hooks/use-computed-metrics'
 import { useDashboardFilters } from '@/hooks/use-dashboard-filters'
 import { computeDashboardForecastState } from '@/lib/calculations'
-import { getCurrentMonthForecastData } from '@/lib/data-transforms'
-import { localToday, toLocalDateStr } from '@/lib/formatters'
+import {
+  filterByModels,
+  filterByProviders,
+  getCurrentMonthForecastData,
+} from '@/lib/data-transforms'
+import { useLocalDay } from '@/hooks/use-local-day'
+import { calendarDay, hasUsageActivity } from '../../shared/usage-quality.js'
+import { toLocalDateStr } from '@/lib/formatters'
 import type { DashboardControllerDerivedState } from '@/types/dashboard-controller'
 import type { AppSettings, DailyUsage, UsageSystem } from '@/types'
 
@@ -39,21 +45,34 @@ export function useDashboardControllerDerivedState({
   const totalCalendarDays = useMemo(() => {
     if (!filters.dateRange || filters.viewMode !== 'daily') return 0
 
-    const start = new Date(filters.dateRange.start + 'T00:00:00')
-    const end = new Date(filters.dateRange.end + 'T00:00:00')
-    return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    return calendarDay(filters.dateRange.end)! - calendarDay(filters.dateRange.start)! + 1
   }, [filters.dateRange, filters.viewMode])
 
-  const todayStr = localToday()
+  const todayStr = useLocalDay()
+  const entityDailyData = useMemo(
+    () =>
+      filterByModels(
+        filterByProviders(filters.systemDailyData, filters.selectedProviders),
+        filters.selectedModels,
+      ),
+    [filters.systemDailyData, filters.selectedProviders, filters.selectedModels],
+  )
+  const comparisonEndDate =
+    filters.endDate ??
+    (filters.selectedMonth
+      ? filters.selectedMonth === todayStr.slice(0, 7)
+        ? todayStr
+        : `${filters.selectedMonth}-${new Date(Number(filters.selectedMonth.slice(0, 4)), Number(filters.selectedMonth.slice(5, 7)), 0).getDate()}`
+      : (filters.dateRange?.end ?? todayStr))
 
   const todayData = useMemo(
-    () => filters.filteredDailyData.find((entry) => entry.date === todayStr) ?? null,
-    [filters.filteredDailyData, todayStr],
+    () => entityDailyData.find((entry) => entry.date === todayStr) ?? null,
+    [entityDailyData, todayStr],
   )
 
   const hasCurrentMonthData = useMemo(
-    () => filters.filteredDailyData.some((entry) => entry.date.startsWith(todayStr.slice(0, 7))),
-    [filters.filteredDailyData, todayStr],
+    () => entityDailyData.some((entry) => entry.date.startsWith(todayStr.slice(0, 7))),
+    [entityDailyData, todayStr],
   )
 
   const visibleLimitProviders = useMemo(
@@ -67,11 +86,15 @@ export function useDashboardControllerDerivedState({
         filters.systemDailyData,
         filters.selectedProviders,
         filters.selectedModels,
+        todayStr,
       ),
-    [filters.systemDailyData, filters.selectedProviders, filters.selectedModels],
+    [filters.systemDailyData, filters.selectedProviders, filters.selectedModels, todayStr],
   )
 
-  const forecastState = useMemo(() => computeDashboardForecastState(forecastData), [forecastData])
+  const forecastState = useMemo(
+    () => computeDashboardForecastState(forecastData, todayStr),
+    [forecastData, todayStr],
+  )
 
   const settingsProviderOptions = useMemo(
     () =>
@@ -90,7 +113,7 @@ export function useDashboardControllerDerivedState({
   )
 
   const streak = useMemo(() => {
-    const dates = new Set(filters.filteredDailyData.map((entry) => entry.date))
+    const dates = new Set(entityDailyData.filter(hasUsageActivity).map((entry) => entry.date))
     let count = 0
     const date = new Date(todayStr + 'T00:00:00')
 
@@ -100,7 +123,7 @@ export function useDashboardControllerDerivedState({
     }
 
     return count
-  }, [filters.filteredDailyData, todayStr])
+  }, [entityDailyData, todayStr])
 
   const filterBarModels = useMemo(
     () => Array.from(new Set([...filters.availableModels, ...filters.selectedModels])),
@@ -111,6 +134,9 @@ export function useDashboardControllerDerivedState({
     hasData,
     filters,
     computed,
+    entityDailyData,
+    comparisonEndDate,
+    todayStr,
     dailyCosts,
     totalCalendarDays,
     todayData,

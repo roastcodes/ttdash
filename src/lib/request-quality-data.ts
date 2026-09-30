@@ -46,11 +46,12 @@ export function deriveRequestQualityData(
   viewMode: ViewMode,
 ): RequestQualityData {
   const cachePerRequest =
-    metrics.totalRequests > 0 ? metrics.totalCacheRead / metrics.totalRequests : 0
+    metrics.knownRequests > 0 ? metrics.knownRequestCacheRead / metrics.knownRequests : 0
   const thinkingPerRequest =
-    metrics.totalRequests > 0 ? metrics.totalThinking / metrics.totalRequests : 0
+    metrics.knownRequests > 0 ? metrics.knownRequestThinking / metrics.knownRequests : 0
   const inputOutputRatio = metrics.totalOutput > 0 ? metrics.totalInput / metrics.totalOutput : 0
-  const requestDensity = metrics.activeDays > 0 ? metrics.totalRequests / metrics.activeDays : 0
+  const requestDensity =
+    viewMode === 'daily' ? metrics.avgRequestsPerDay : metrics.avgRequestsPerPeriod
 
   return {
     cachePerRequest,

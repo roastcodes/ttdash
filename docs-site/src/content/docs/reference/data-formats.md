@@ -157,23 +157,25 @@ All eight numeric total fields also appear below `totals` as sums across `daily`
 }
 ```
 
-System IDs are canonical lowercase hostnames. Rows on the same date are combined, and model breakdowns with the same raw `modelName` are summed. The local entry is present only when `data.json` exists.
+System IDs are canonical lowercase hostnames. Rows on the same date are combined, and model breakdowns with the same raw `modelName` and request-counter status are summed. The local entry is present only when `data.json` exists.
 
 An unreadable or externally corrupted system file is skipped instead of taking the complete dashboard offline. Its deterministic filename and a safe diagnostic appear in `unreadableSystemFiles`; the Maintenance settings can then delete the complete additional-system collection, and a full reset removes it as well.
 
 ## Normalization behavior
 
-- numeric values and numeric strings are converted to numbers; missing or unusable values become `0`
-- a missing `totalTokens` value is calculated from input, output, cache-creation, cache-read, and thinking tokens
-- dates that normalize to an empty string are discarded
-- accepted rows are sorted lexicographically by date
-- `modelsUsed` keeps string entries only
-- a legacy row can derive `modelsUsed` from `modelBreakdowns`
-- top-level totals are always recalculated
+- numbers and decimal/exponent numeric strings must be finite and nonnegative; token and request counts must be safe integers, and whitespace-only strings count as missing values
+- dates must be real `YYYY-MM-DD` calendar dates
+- daily totals cannot be smaller than the sum of model breakdowns (USD tolerance: `0.000001`); a supplied `totalTokens` must match the sum of token categories
+- missing daily totals are derived from breakdowns; legitimate daily amounts without model allocation use the reserved `__ttdash_unassigned__` model
+- identical duplicate dates are counted once; conflicting duplicates reject the entire new import
+- malformed replacement uploads, backup imports, system imports, and auto-import results reject atomically before persistence, with at most 50 date/field/code diagnostics
+- persisted legacy files are read without modification; invalid rows and conflicting dates are excluded, and optional `qualityIssues` describe the findings
+- backup merges return a conflict with those diagnostics when the existing file contains invalid rows; correct or explicitly replace the file first so a merge cannot discard the original rows
+- optional `requestCountStatus` on days and breakdowns is `known`, `partial`, or `unknown`; a missing counter is unknown, while an explicitly reported zero is known
+- request-counter metadata survives exports and reimports without changing the version-1 backup envelope; new imports receive fresh diagnostics instead of trusting supplied `qualityIssues`
+- top-level totals are always recalculated and checked for overflow
 
-:::caution
-Replacement upload does not merge duplicate dates. Produce one row per calendar date. Backup import validates real `YYYY-MM-DD` dates and merges conservatively by date.
-:::
+Legacy normalized files lacking counter metadata infer positive counters as known. Data-quality diagnostics do not recover discarded measurements: correct the source or reload it before interpreting incomplete totals as a full budget.
 
 ## Usage backup envelope
 

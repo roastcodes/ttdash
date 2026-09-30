@@ -1,4 +1,34 @@
 const modelNormalizationSpec = require('./model-normalization.json')
+const {
+  UNASSIGNED_MODEL,
+  calendarDay,
+  getRequestCountStatus,
+  combineRequestCountStatus,
+  hasUsageActivity,
+} = require('./usage-quality')
+
+const modelNameCache = new Map()
+const providerCache = new Map()
+function cachedModelValue(cache, raw, compute) {
+  const key = String(raw || '')
+  if (cache.has(key)) return cache.get(key)
+  const value = compute(key)
+  if (cache.size >= 2048) cache.delete(cache.keys().next().value)
+  cache.set(key, value)
+  return value
+}
+
+/** Normalizes model identifiers with a bounded cache shared by aggregate passes. */
+function normalizeModelName(raw) {
+  if (raw === UNASSIGNED_MODEL) return 'Unassigned'
+  return cachedModelValue(modelNameCache, raw, normalizeModelNameUncached)
+}
+
+/** Resolves providers with a bounded cache shared by aggregate passes. */
+function getModelProvider(raw) {
+  if (raw === UNASSIGNED_MODEL) return 'Unassigned'
+  return cachedModelValue(providerCache, raw, getModelProviderUncached)
+}
 
 const DISPLAY_ALIASES = modelNormalizationSpec.displayAliases.map((alias) => ({
   ...alias,
@@ -169,7 +199,7 @@ function parseOSeries(name) {
  * @param raw - The raw model identifier.
  * @returns The normalized display name.
  */
-function normalizeModelName(raw) {
+function normalizeModelNameUncached(raw) {
   const canonical = canonicalizeModelName(raw)
 
   if (canonical.startsWith('claude-')) {
@@ -221,7 +251,7 @@ function normalizeModelName(raw) {
  * @param raw - The raw model identifier.
  * @returns The normalized provider name.
  */
-function getModelProvider(raw) {
+function getModelProviderUncached(raw) {
   const suffixProvider = splitToktrackProviderSuffix(raw).provider
   if (suffixProvider) return suffixProvider
 
@@ -267,6 +297,9 @@ function recalculateDayFromBreakdowns(day, filteredBreakdowns) {
     cacheReadTokens,
     thinkingTokens,
     requestCount,
+    requestCountStatus: filteredBreakdowns.length
+      ? filteredBreakdowns.map(getRequestCountStatus).reduce(combineRequestCountStatus)
+      : 'unknown',
     modelBreakdowns: filteredBreakdowns,
     modelsUsed: [
       ...new Set(filteredBreakdowns.map((breakdown) => normalizeModelName(breakdown.modelName))),
@@ -382,6 +415,10 @@ function aggregateToDailyFormat(data, viewMode) {
         ...day,
         date: key,
         _aggregatedDays: aggregatedDays,
+        _activeDays: day._activeDays ?? (hasUsageActivity(day) ? aggregatedDays : 0),
+        _calendarStart: day._calendarStart ?? day.date,
+        _calendarEnd: day._calendarEnd ?? day.date,
+        requestCountStatus: getRequestCountStatus(day),
       })
       continue
     }
@@ -395,6 +432,15 @@ function aggregateToDailyFormat(data, viewMode) {
     existing.thinkingTokens += day.thinkingTokens
     existing.requestCount += day.requestCount
     existing._aggregatedDays += aggregatedDays
+    existing._activeDays += day._activeDays ?? (hasUsageActivity(day) ? aggregatedDays : 0)
+    const sourceStart = day._calendarStart ?? day.date
+    const sourceEnd = day._calendarEnd ?? day.date
+    if (sourceStart < existing._calendarStart) existing._calendarStart = sourceStart
+    if (sourceEnd > existing._calendarEnd) existing._calendarEnd = sourceEnd
+    existing.requestCountStatus = combineRequestCountStatus(
+      existing.requestCountStatus,
+      getRequestCountStatus(day),
+    )
     existing.modelBreakdowns = existing.modelBreakdowns.concat(day.modelBreakdowns)
     existing.modelsUsed = Array.from(new Set(existing.modelsUsed.concat(day.modelsUsed)))
   }
@@ -409,7 +455,25 @@ function aggregateToDailyFormat(data, viewMode) {
  * @param window - The moving average window size.
  * @returns The moving-average series.
  */
-function computeMovingAverage(values, window = 7) {
+function computeMovingAverage(values, window = 7, dates) {
+  if (dates?.length && dates.every((date) => calendarDay(date) !== null)) {
+    const ordinals = dates.map(calendarDay)
+    let start = 0
+    let sum = 0
+    let unknown = 0
+    return values.map((value, index) => {
+      if (value === undefined) unknown += 1
+      else sum += value
+      while (start < index && ordinals[start] < ordinals[index] - window + 1) {
+        if (values[start] === undefined) unknown -= 1
+        else sum -= values[start]
+        start += 1
+      }
+      return ordinals[index] - ordinals[0] < window - 1 || index - start + 1 < window || unknown > 0
+        ? undefined
+        : sum / window
+    })
+  }
   const result = Array(values.length)
   let sum = 0
   let definedCount = 0
@@ -496,15 +560,17 @@ function computeBusiestWeek(data) {
  * @returns The relative week-over-week delta.
  */
 function computeWeekOverWeekChange(data) {
-  if (data.some((entry) => !/^\d{4}-\d{2}-\d{2}$/.test(entry.date))) return null
-  if (data.length < 14) return null
-  const sorted = sortByDate(data)
-  const last7 = sorted.slice(-7)
-  const prev7 = sorted.slice(-14, -7)
-  const lastSum = last7.reduce((sum, day) => sum + day.totalCost, 0)
-  const prevSum = prev7.reduce((sum, day) => sum + day.totalCost, 0)
-  if (prevSum === 0) return null
-  return ((lastSum - prevSum) / prevSum) * 100
+  if (data.length < 2 || data.some((entry) => calendarDay(entry.date) === null)) return null
+  let lastDay = -Infinity
+  for (const entry of data) lastDay = Math.max(lastDay, calendarDay(entry.date))
+  let current = 0
+  let previous = 0
+  for (const entry of data) {
+    const ordinal = calendarDay(entry.date)
+    if (ordinal > lastDay - 7) current += entry.totalCost
+    else if (ordinal > lastDay - 14) previous += entry.totalCost
+  }
+  return previous > 0 ? ((current - previous) / previous) * 100 : null
 }
 
 /**
@@ -519,6 +585,17 @@ function computeMetrics(data) {
       totalCost: 0,
       totalTokens: 0,
       activeDays: 0,
+      calendarDays: 0,
+      avgCalendarDailyCost: 0,
+      avgCostPerPeriod: 0,
+      avgRequestsPerPeriod: 0,
+      inputCacheHitRate: 0,
+      requestCoverage: 0,
+      knownRequestCost: 0,
+      knownRequestTokens: 0,
+      knownRequests: 0,
+      knownRequestCacheRead: 0,
+      knownRequestThinking: 0,
       topModel: null,
       topRequestModel: null,
       topTokenModel: null,
@@ -564,6 +641,15 @@ function computeMetrics(data) {
   let totalRequests = 0
   let activeDays = 0
   let hasRequestData = false
+  let coveredRequestCost = 0
+  let coveredRequestTokens = 0
+  let knownRequestCost = 0
+  let knownRequestTokens = 0
+  let knownRequests = 0
+  let knownRequestCacheRead = 0
+  let knownRequestThinking = 0
+  let rangeStart = Infinity
+  let rangeEnd = -Infinity
   let totalModelsUsed = 0
   let weekendCost = 0
   let weekendEligible = 0
@@ -582,12 +668,55 @@ function computeMetrics(data) {
     totalThinking += day.thinkingTokens
     totalRequests += day.requestCount
     if (
+      getRequestCountStatus(day) === 'known' ||
       day.requestCount > 0 ||
       day.modelBreakdowns.some((breakdown) => breakdown.requestCount > 0)
     ) {
       hasRequestData = true
     }
-    activeDays += day._aggregatedDays || 1
+    activeDays += day._activeDays ?? (hasUsageActivity(day) ? day._aggregatedDays || 1 : 0)
+    const start = calendarDay(day._calendarStart ?? day.date)
+    const end = calendarDay(day._calendarEnd ?? day.date)
+    if (start !== null && end !== null) {
+      rangeStart = Math.min(rangeStart, start)
+      rangeEnd = Math.max(rangeEnd, end)
+    }
+    if (getRequestCountStatus(day) === 'known') {
+      coveredRequestCost += day.totalCost
+      coveredRequestTokens += day.totalTokens
+    } else {
+      for (const breakdown of day.modelBreakdowns) {
+        if (getRequestCountStatus(breakdown) !== 'known') continue
+        coveredRequestCost += breakdown.cost
+        coveredRequestTokens +=
+          breakdown.inputTokens +
+          breakdown.outputTokens +
+          breakdown.cacheCreationTokens +
+          breakdown.cacheReadTokens +
+          breakdown.thinkingTokens
+      }
+    }
+    if (getRequestCountStatus(day) === 'known' && day.requestCount > 0) {
+      knownRequestCost += day.totalCost
+      knownRequestTokens += day.totalTokens
+      knownRequests += day.requestCount
+      knownRequestCacheRead += day.cacheReadTokens
+      knownRequestThinking += day.thinkingTokens
+    } else {
+      for (const breakdown of day.modelBreakdowns) {
+        if (getRequestCountStatus(breakdown) !== 'known' || breakdown.requestCount <= 0) continue
+        knownRequestCost += breakdown.cost
+        knownRequestTokens +=
+          breakdown.inputTokens +
+          breakdown.outputTokens +
+          breakdown.cacheCreationTokens +
+          breakdown.cacheReadTokens +
+          breakdown.thinkingTokens
+        knownRequests += breakdown.requestCount
+        knownRequestCacheRead += breakdown.cacheReadTokens
+        knownRequestThinking += breakdown.thinkingTokens
+      }
+    }
     totalModelsUsed += day.modelsUsed.length
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(day.date)) {
@@ -620,11 +749,33 @@ function computeMetrics(data) {
     }
   }
 
-  const avgDailyCost = totalCost / activeDays
-  const avgRequestsPerDay = hasRequestData && activeDays > 0 ? totalRequests / activeDays : 0
+  const calendarDays = Number.isFinite(rangeStart) ? rangeEnd - rangeStart + 1 : 0
+  const avgCalendarDailyCost = calendarDays > 0 ? totalCost / calendarDays : 0
+  const avgCostPerPeriod = totalCost / data.length
+  const knownAverageRows = data.filter((day) => getRequestCountStatus(day) === 'known')
+  const knownAverageRequests = knownAverageRows.reduce((sum, day) => sum + day.requestCount, 0)
+  const knownAverageActiveDays = knownAverageRows.reduce(
+    (sum, day) => sum + (day._activeDays ?? (hasUsageActivity(day) ? day._aggregatedDays || 1 : 0)),
+    0,
+  )
+  const avgRequestsPerPeriod =
+    knownAverageRows.length > 0 ? knownAverageRequests / knownAverageRows.length : 0
+  const avgDailyCost = activeDays > 0 ? totalCost / activeDays : 0
+  const inputBase = totalInput + totalCacheCreate + totalCacheRead
+  const inputCacheHitRate = inputBase > 0 ? (totalCacheRead / inputBase) * 100 : 0
+  const requestCoverage = Math.min(
+    100,
+    totalTokens > 0
+      ? (coveredRequestTokens / totalTokens) * 100
+      : totalCost > 0
+        ? (coveredRequestCost / totalCost) * 100
+        : (knownAverageRows.length / data.length) * 100,
+  )
+  const avgRequestsPerDay =
+    knownAverageActiveDays > 0 ? knownAverageRequests / knownAverageActiveDays : 0
   const costPerMillion = totalTokens > 0 ? totalCost / (totalTokens / 1_000_000) : 0
-  const avgTokensPerRequest = hasRequestData && totalRequests > 0 ? totalTokens / totalRequests : 0
-  const avgCostPerRequest = hasRequestData && totalRequests > 0 ? totalCost / totalRequests : 0
+  const avgTokensPerRequest = knownRequests > 0 ? knownRequestTokens / knownRequests : 0
+  const avgCostPerRequest = knownRequests > 0 ? knownRequestCost / knownRequests : 0
   const avgModelsPerEntry = data.length > 0 ? totalModelsUsed / data.length : 0
   const cacheBase = totalCacheRead + totalCacheCreate + totalInput + totalOutput + totalThinking
   const cacheHitRate = cacheBase > 0 ? (totalCacheRead / cacheBase) * 100 : 0
@@ -664,7 +815,9 @@ function computeMetrics(data) {
     }
   }
 
-  const requestValues = data.map((entry) => entry.requestCount)
+  const requestValues = data
+    .filter((entry) => getRequestCountStatus(entry) === 'known')
+    .map((entry) => entry.requestCount)
   const requestVolatility = stdDev(requestValues)
   const modelConcentrationIndex =
     totalCost > 0
@@ -685,6 +838,17 @@ function computeMetrics(data) {
     totalCost,
     totalTokens,
     activeDays,
+    calendarDays,
+    avgCalendarDailyCost,
+    avgCostPerPeriod,
+    avgRequestsPerPeriod,
+    inputCacheHitRate,
+    requestCoverage,
+    knownRequestCost,
+    knownRequestTokens,
+    knownRequests,
+    knownRequestCacheRead,
+    knownRequestThinking,
     topModel,
     topRequestModel,
     topTokenModel,

@@ -141,7 +141,6 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
                   dot={false}
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  connectNulls
                   {...getLineAnimationProps(animate, { role: 'secondary' })}
                 />
               </ComposedChart>

@@ -41,7 +41,11 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
     const effValues = sorted.map((d) =>
       d.totalTokens > 0 ? d.totalCost / (d.totalTokens / 1_000_000) : 0,
     )
-    const ma7 = computeMovingAverage(effValues)
+    const ma7 = computeMovingAverage(
+      effValues,
+      7,
+      sorted.map((entry) => entry.date),
+    )
     const avg = effValues.length > 0 ? effValues.reduce((s, v) => s + v, 0) / effValues.length : 0
 
     return {
@@ -134,7 +138,6 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={false}
-                  connectNulls
                   name={t('charts.tokenEfficiency.movingAverage')}
                   {...getLineAnimationProps(animate, { role: 'secondary' })}
                 />

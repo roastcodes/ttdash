@@ -49,8 +49,8 @@ export function PrimaryMetrics({
     : null
   const cacheHitRateSubtitle =
     metrics.totalTokens > 0
-      ? t('metricCards.primary.allTokensViaCacheRead', {
-          value: formatPercent((metrics.totalCacheRead / metrics.totalTokens) * 100),
+      ? t('metricCards.primary.inputTokensViaCacheRead', {
+          value: formatPercent(metrics.inputCacheHitRate),
         })
       : null
   const thinkingInsight =
@@ -63,7 +63,10 @@ export function PrimaryMetrics({
     metrics.totalTokens > 0
       ? t('metricCards.primary.thinkingSubtitle', {
           share: formatPercent((metrics.totalThinking / metrics.totalTokens) * 100),
-          tokens: formatTokens(metrics.totalThinking / Math.max(metrics.totalRequests, 1)),
+          tokens:
+            metrics.knownRequests > 0
+              ? formatTokens(metrics.knownRequestThinking / metrics.knownRequests)
+              : t('common.notAvailable'),
         })
       : null
 
@@ -78,15 +81,22 @@ export function PrimaryMetrics({
               type="currency"
               label={t('metricCards.primary.totalCost')}
               insight={t('metricCards.primary.avgPerPeriod', {
-                value: formatCurrency(metrics.avgDailyCost),
-                unit: periodUnit(viewMode),
+                value: formatCurrency(
+                  viewMode === 'daily' ? metrics.avgDailyCost : metrics.avgCostPerPeriod,
+                ),
+                unit: viewMode === 'daily' ? t('common.activeDay') : periodUnit(viewMode),
               })}
             />
           }
           subtitle={t('metricCards.primary.totalCostSubtitle', {
-            average: formatCurrency(metrics.avgDailyCost),
-            unit: periodUnit(viewMode),
-            costPerRequest: formatCurrency(metrics.avgCostPerRequest),
+            average: formatCurrency(
+              viewMode === 'daily' ? metrics.avgDailyCost : metrics.avgCostPerPeriod,
+            ),
+            unit: viewMode === 'daily' ? t('common.activeDay') : periodUnit(viewMode),
+            costPerRequest:
+              metrics.knownRequests > 0
+                ? formatCurrency(metrics.avgCostPerRequest)
+                : t('common.notAvailable'),
           })}
           icon={<DollarSign className="h-4 w-4" />}
           trend={metrics.weekOverWeekChange !== null ? { value: metrics.weekOverWeekChange } : null}
@@ -102,7 +112,10 @@ export function PrimaryMetrics({
               type="tokens"
               label={t('metricCards.primary.totalTokens')}
               insight={t('metricCards.primary.tokensPerRequestAvg', {
-                value: formatTokens(metrics.avgTokensPerRequest),
+                value:
+                  metrics.knownRequests > 0
+                    ? formatTokens(metrics.avgTokensPerRequest)
+                    : t('common.notAvailable'),
               })}
             />
           }
@@ -110,10 +123,16 @@ export function PrimaryMetrics({
             ioRatio
               ? t('metricCards.primary.totalTokensSubtitleWithRatio', {
                   ratio: ioRatio,
-                  tokensPerRequest: formatTokens(metrics.avgTokensPerRequest),
+                  tokensPerRequest:
+                    metrics.knownRequests > 0
+                      ? formatTokens(metrics.avgTokensPerRequest)
+                      : t('common.notAvailable'),
                 })
               : t('metricCards.primary.totalTokensSubtitle', {
-                  tokensPerRequest: formatTokens(metrics.avgTokensPerRequest),
+                  tokensPerRequest:
+                    metrics.knownRequests > 0
+                      ? formatTokens(metrics.avgTokensPerRequest)
+                      : t('common.notAvailable'),
                 })
           }
           icon={<Coins className="h-4 w-4" />}
@@ -172,8 +191,14 @@ export function PrimaryMetrics({
                 type="number"
                 label={t('metricCards.primary.requests')}
                 insight={t('insights.requestEconomy.summary', {
-                  cost: formatCurrency(metrics.avgCostPerRequest),
-                  tokens: formatTokens(metrics.avgTokensPerRequest),
+                  cost:
+                    metrics.knownRequests > 0
+                      ? formatCurrency(metrics.avgCostPerRequest)
+                      : t('common.notAvailable'),
+                  tokens:
+                    metrics.knownRequests > 0
+                      ? formatTokens(metrics.avgTokensPerRequest)
+                      : t('common.notAvailable'),
                   leader: '',
                 }).trim()}
               />
@@ -184,9 +209,18 @@ export function PrimaryMetrics({
           subtitle={
             metrics.hasRequestData
               ? t('metricCards.primary.requestsSubtitle', {
-                  requests: metrics.avgRequestsPerDay.toFixed(1),
-                  unit: periodUnit(viewMode),
-                  cost: formatCurrency(metrics.avgCostPerRequest),
+                  requests:
+                    metrics.requestCoverage === 100
+                      ? (viewMode === 'daily'
+                          ? metrics.avgRequestsPerDay
+                          : metrics.avgRequestsPerPeriod
+                        ).toFixed(1)
+                      : t('common.notAvailable'),
+                  unit: viewMode === 'daily' ? t('common.activeDay') : periodUnit(viewMode),
+                  cost:
+                    metrics.knownRequests > 0
+                      ? formatCurrency(metrics.avgCostPerRequest)
+                      : t('common.notAvailable'),
                   volatility: Math.round(metrics.requestVolatility),
                 })
               : t('metricCards.primary.requestCountersMissing')

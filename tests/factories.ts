@@ -1,7 +1,8 @@
 import type { DailyUsage, ModelBreakdown } from '@/types'
 
 interface CreateDailyUsageOptions {
-  date: string
+  date?: string
+  modelName?: string
   totalCost?: number
   inputTokens?: number
   outputTokens?: number
@@ -13,11 +14,12 @@ interface CreateDailyUsageOptions {
   modelsUsed?: string[]
 }
 
-export function createDailyUsage(options: CreateDailyUsageOptions): DailyUsage {
-  const { date, modelBreakdowns, modelsUsed } = options
+export function createDailyUsage(options: CreateDailyUsageOptions = {}): DailyUsage {
+  const { modelBreakdowns, modelsUsed } = options
+  const date = options.date ?? '2026-04-01'
   const defaultBreakdowns: ModelBreakdown[] = [
     {
-      modelName: 'gpt-5.4',
+      modelName: options.modelName ?? 'gpt-5.4',
       inputTokens: options.inputTokens ?? 100,
       outputTokens: options.outputTokens ?? 50,
       cacheCreationTokens: options.cacheCreationTokens ?? 0,

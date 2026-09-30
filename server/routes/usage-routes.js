@@ -1,4 +1,4 @@
-const { getErrorMessage, writeMutationServerError } = require('./http-route-utils');
+const { getUsageValidationError, writeMutationServerError } = require('./http-route-utils');
 
 const EMPTY_USAGE_RESPONSE = {
   daily: [],
@@ -152,7 +152,7 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
         try {
           nextData = normalizeIncomingUsagePayload(bodyResult.body, 'Invalid JSON');
         } catch (error) {
-          return writeJsonResponse(res, 400, { message: getErrorMessage(error, 'Invalid JSON') });
+          return writeJsonResponse(res, 400, getUsageValidationError(error, 'Invalid JSON'));
         }
 
         try {
@@ -203,9 +203,11 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
         const usagePayload = extractUsageImportPayload(bodyResult.body);
         importedData = normalizeIncomingUsagePayload(usagePayload, 'Invalid usage backup file');
       } catch (error) {
-        return writeJsonResponse(res, 400, {
-          message: getErrorMessage(error, 'Invalid usage backup file'),
-        });
+        return writeJsonResponse(
+          res,
+          400,
+          getUsageValidationError(error, 'Invalid usage backup file'),
+        );
       }
 
       try {
@@ -221,6 +223,9 @@ function createUsageRoutes({ json, validateMutationRequest, readMutationBody, da
         });
         return writeJsonResponse(res, 200, result.summary);
       } catch (error) {
+        if (error.code === 'LEGACY_DATA_INVALID') {
+          return writeJsonResponse(res, 409, getUsageValidationError(error));
+        }
         if (isPersistedStateError(error, 'usage') || isPersistedStateError(error, 'settings')) {
           return writeJsonResponse(res, 500, { message: error.message });
         }

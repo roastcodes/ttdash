@@ -137,7 +137,6 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={false}
-                  connectNulls
                   name={t('charts.tokensOverTime.movingAverage')}
                   {...getLineAnimationProps(animate, { role: 'secondary' })}
                 />
@@ -256,7 +255,6 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     dot={false}
-                    connectNulls
                     name={`Cache Read ${t('charts.tokensOverTime.averageSuffix')}`}
                     {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
@@ -267,7 +265,6 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     dot={false}
-                    connectNulls
                     name={`Cache Write ${t('charts.tokensOverTime.averageSuffix')}`}
                     {...getLineAnimationProps(animate, { order: 1, role: 'secondary' })}
                   />
@@ -343,7 +340,6 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     dot={false}
-                    connectNulls
                     name={`Output ${t('charts.tokensOverTime.averageSuffix')}`}
                     {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
@@ -354,7 +350,6 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     dot={false}
-                    connectNulls
                     name={`Input ${t('charts.tokensOverTime.averageSuffix')}`}
                     {...getLineAnimationProps(animate, { order: 1, role: 'secondary' })}
                   />
@@ -417,7 +412,6 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     dot={false}
-                    connectNulls
                     name={`Thinking ${t('charts.tokensOverTime.averageSuffix')}`}
                     {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />

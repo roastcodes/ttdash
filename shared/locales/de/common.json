@@ -125,7 +125,8 @@
     "requestsShort": "Anf.",
     "request": "Anfrage",
     "share": "Anteil",
-    "top": "Top"
+    "top": "Top",
+    "activeDay": "aktiver Tag"
   },
   "filterBar": {
     "status": "Filterstatus",
@@ -221,7 +222,7 @@
       "min": "Min",
       "max": "Max",
       "avg": "Ø",
-      "cacheHitRate": "Cache-Hit-Rate",
+      "cacheHitRate": "Cache-Anteil aller Tokens",
       "totalTokens": "Gesamt-Tokens",
       "cacheRead": "Cache Read",
       "dataPoints": "Datenpunkte",
@@ -236,7 +237,7 @@
       "totalTokens": "Gesamt-Tokens",
       "activeDays": "Aktive Tage",
       "topModel": "Top Modell",
-      "cacheHitRate": "Cache-Hit-Rate",
+      "cacheHitRate": "Cache-Anteil aller Tokens",
       "costPerMillion": "$/1M Tokens",
       "requests": "Anfragen",
       "thinking": "Thinking",
@@ -253,7 +254,8 @@
       "totalTokensSubtitle": "{{tokensPerRequest}} pro Anfrage",
       "totalTokensSubtitleWithRatio": "Input/Output-Verhältnis {{ratio}}:1 · {{tokensPerRequest}} pro Anfrage",
       "requestsSubtitle": "Ø {{requests}} / {{unit}} · {{cost}} pro Anfrage · σ {{volatility}}",
-      "thinkingSubtitle": "{{share}} Anteil · {{tokens}} pro Anfrage"
+      "thinkingSubtitle": "{{share}} Anteil · {{tokens}} pro Anfrage",
+      "inputTokensViaCacheRead": "{{value}} der Eingabe-Tokens aus dem Cache"
     },
     "secondary": {
       "mostExpensiveDay": "Teuerster Tag",
@@ -278,7 +280,7 @@
       "tokensToday": "Tokens heute",
       "models": "Modelle",
       "costPerMillion": "$/1M Tokens",
-      "cacheHitRate": "Cache-Hit-Rate",
+      "cacheHitRate": "Cache-Anteil aller Tokens",
       "requests": "Anfragen",
       "thinking": "Thinking",
       "vsAverageShort": "vs. Ø",
@@ -303,13 +305,13 @@
       "activeDays": "Aktive Tage",
       "models": "Modelle",
       "costPerMillion": "$/1M Tokens",
-      "cacheHitRate": "Cache-Hit-Rate",
+      "cacheHitRate": "Cache-Anteil aller Tokens",
       "requests": "Anfragen",
       "thinking": "Thinking",
-      "vsPreviousMonth": "vs. Vormonat",
+      "vsPreviousMonth": "vs. gleich langen Zeitraum im Vormonat",
       "coverage": "{{value}} Abdeckung",
       "requestsInMonth": "Anfragen im Monat",
-      "avgPerDay": "Ø {{value}}/Tag",
+      "avgPerDay": "Ø {{value}} / aktiven Tag",
       "ioRatio": "Input/Output-Verhältnis: {{value}}:1",
       "topModel": "Top: {{value}}",
       "cacheMix": "In: {{input}} / Out: {{output}}",
@@ -369,11 +371,11 @@
   },
   "charts": {
     "costOverTime": {
-      "title": "Kosten im Zeitverlauf + 7-Tage Ø",
-      "subtitle": "Tageskosten mit 7-Tage gleitendem Durchschnitt",
+      "title": "Kosten im Zeitverlauf + gleitender Durchschnitt",
+      "subtitle": "Periodenkosten mit gleitendem Durchschnitt über 7 Perioden",
       "summary": "Letzter Wert {{latest}} · Peak {{peak}} am {{date}}",
       "cost": "Kosten",
-      "movingAverage": "7-Tage Ø"
+      "movingAverage": "7-Perioden Ø"
     },
     "costByModel": {
       "title": "Kosten nach Modell",
@@ -385,7 +387,7 @@
       "title": "Kosten nach Modell im Zeitverlauf",
       "subtitle": "Pro Modell über die Zeit",
       "topDriver": "Top Treiber: {{model}} · {{total}} kumuliert",
-      "movingAverageHeading": "7-Tage Durchschnitt pro Modell",
+      "movingAverageHeading": "Durchschnitt über 7 Perioden pro Modell",
       "movingAverageSuffix": "Ø"
     },
     "cumulativeCost": {
@@ -401,10 +403,10 @@
     },
     "tokensOverTime": {
       "title": "Tokens im Zeitverlauf",
-      "subtitle": "Alle Token-Typen mit 7-Tage Ø",
+      "subtitle": "Alle Token-Typen mit Durchschnitt über 7 Perioden",
       "allTypes": "Gesamt-Tokens (alle Typen)",
       "totalTokens": "Gesamt-Tokens",
-      "movingAverage": "7-Tage Ø",
+      "movingAverage": "7-Perioden Ø",
       "cacheTokens": "Cache Tokens",
       "inputOutputTokens": "Input / Output Tokens",
       "thinkingTokens": "Thinking Tokens",
@@ -412,7 +414,7 @@
     },
     "requestsOverTime": {
       "title": "Anfragen im Zeitverlauf",
-      "subtitle": "Anfragen gesamt, nach Modell und mit 7-Tage-Ø",
+      "subtitle": "Anfragen gesamt, nach Modell und mit gleitenden Durchschnitten",
       "summary": "Gesamt {{total}} · Peak {{peak}} am {{date}}",
       "averagePerUnit": "Ø / {{unit}}",
       "trend": "Trend Ø",
@@ -428,15 +430,15 @@
       "totalRequestsSeries": "Gesamt-Anfragen"
     },
     "requestCacheHitRate": {
-      "title": "Cache-Hit-Rate nach Modell",
-      "subtitle": "Gesamt {{total}} · 7-Tage-Ø {{trailing}}",
+      "title": "Cache-Anteil aller Tokens nach Modell",
+      "subtitle": "Gesamt {{total}} · Trend-Durchschnitt {{trailing}}",
       "totalRate": "Gesamt",
       "trailing7Rate": "7-Tage-Ø",
       "trendRate": "Trend-Ø",
       "topModel": "Top Modell",
       "models": "Modelle",
       "total": "Gesamt",
-      "timelineHeading": "Cache-Hit-Rate im Zeitverlauf / {{unit}}",
+      "timelineHeading": "Cache-Anteil aller Tokens im Zeitverlauf / {{unit}}",
       "modelBreakdownHeading": "Aktueller Modell-Snapshot"
     },
     "heatmap": {
@@ -465,7 +467,7 @@
       "requiresData": "Für Verteilungen werden mindestens 2 Datenpunkte im aktuellen Filter benötigt.",
       "costPerPeriod": "Kosten je {{period}}",
       "requestsPerPeriod": "Anfragen je {{period}}",
-      "tokensPerRequest": "Tokens pro Anfrage",
+      "tokensPerRequest": "Verteilung der {{period}}-Durchschnitte je Anfrage",
       "interval": "Intervall",
       "dataPoints": "Datenpunkte",
       "buckets": "Buckets"
@@ -475,20 +477,20 @@
       "requiresData": "Für Korrelationen werden mindestens 2 Datenpunkte im aktuellen Filter benötigt.",
       "points": "{{count}} Punkte",
       "requestsVsCost": "Anfragen vs. Kosten",
-      "cacheVsCostPerRequest": "Cache-Rate vs. Kosten / Anfrage",
+      "cacheVsCostPerRequest": "Cache-Anteil aller Tokens vs. Kosten / Anfrage",
       "requestsAxis": "Anfragen",
       "requestsLabel": "Anfragen",
       "tokensLabel": "Tokens",
       "costPerRequestAxis": "Kosten / Anfrage",
       "cost": "Kosten",
       "costPerRequest": "Kosten / Anfrage",
-      "cacheRate": "Cache-Rate",
+      "cacheRate": "Cache-Anteil aller Tokens",
       "strongRequestCost": "Starker Zusammenhang: Mehr Anfragen treiben die Kosten sichtbar.",
       "mediumRequestCost": "Moderater Zusammenhang zwischen Last und Kosten.",
       "weakRequestCost": "Schwacher Zusammenhang: Kosten werden stärker von Modellmix und Tokenlast geprägt.",
-      "negativeCache": "Negativer Zusammenhang: Höhere Cache-Rate senkt tendenziell die Kosten pro Anfrage.",
+      "negativeCache": "Negativer Zusammenhang: Höhere Cache-Anteile senken tendenziell die Kosten pro Anfrage.",
       "neutralCache": "Kaum linearer Effekt: Cache wirkt, aber nicht allein entscheidend.",
-      "positiveCache": "Positiver Zusammenhang: Hohe Cache-Raten fallen hier nicht automatisch mit niedrigen Kosten pro Anfrage zusammen."
+      "positiveCache": "Positiver Zusammenhang: Hohe Cache-Anteile fallen hier nicht automatisch mit niedrigen Kosten pro Anfrage zusammen."
     },
     "costByWeekday": {
       "title": "Kosten nach Wochentag",
@@ -499,7 +501,7 @@
       "title": "Token-Effizienz ($/1M)",
       "subtitle": "Ø {{value}}/1M Tokens",
       "series": "$/1M Tokens",
-      "movingAverage": "7T-Ø"
+      "movingAverage": "7-Perioden Ø"
     }
   },
   "risk": {
@@ -524,12 +526,13 @@
     "thinkingHint": "Thinking-Tokens pro Anfrage",
     "requestDensity": "Anfragedichte",
     "averagePerActiveUnit": "Ø pro aktivem {{unit}}",
-    "cacheHitRate": "Cache-Hit-Rate",
+    "cacheHitRate": "Cache-Anteil aller Tokens",
     "cacheHitHint": "Direkt aus Cache-Read relativ zu allen Tokens",
     "inputOutput": "Input / Output",
     "inputOutputHint": "Drift zwischen eingehenden und erzeugten Tokens",
     "topRequestModel": "Top-Anfragemodell",
-    "noRequestLeader": "Kein führendes Anfragemodell"
+    "noRequestLeader": "Kein führendes Anfragemodell",
+    "coverage": "Anfragezähler decken {{value}} des Tokenvolumens ab; Quotienten verwenden nur diesen Anteil."
   },
   "forecast": {
     "noData": "Keine Daten verfügbar",
@@ -557,21 +560,28 @@
     "lowerBound": "Untere Spanne",
     "uncertaintyBand": "Unsicherheitsband",
     "actualCost": "Ist-Kosten",
-    "projection": "Prognose"
+    "projection": "Prognose",
+    "dataThrough": "Daten bis {{date}}.",
+    "partialToday": "Der laufende Tag wird im Trendmodell ausgelassen.",
+    "missingDays": "{{count}} fehlende Tagesmeldungen werden als Nullverbrauch angenommen; geringe Zuverlässigkeit.",
+    "staleData": "Die Daten sind nicht tagesaktuell; geringe Zuverlässigkeit."
   },
   "cacheRoi": {
     "title": "Cache-Ersparnis (ROI)",
     "noData": "Keine Daten verfügbar",
-    "heuristicFallback": "Für {{count}} {{modelsLabel}} ohne hinterlegte Preistabelle nutzt die ROI-Schätzung einen Heuristik-Fallback.",
     "model": "Modell",
     "models": "Modelle",
-    "withoutCache": "Ohne Cache",
+    "withoutCache": "Ohne Cache (Schätzung)",
     "withCache": "Mit Cache",
-    "withCacheActual": "Mit Cache (tatsächlich)",
-    "savings": "Ersparnis",
-    "avgCostPerUnit": "Ø Kosten/{{unit}}",
+    "withCacheActual": "Erfasste Kosten (Tarifanteil)",
+    "savings": "Nettoersparnis (Schätzung)",
+    "avgCostPerUnit": "Gesamt-Ø / {{unit}}",
     "paid": "Bezahlt",
-    "saved": "Gespart"
+    "saved": "Gespart",
+    "coverage": "Tarifabdeckung: {{cost}} der Kosten, {{tokens}} der Tokens. Tarifstand {{date}}.",
+    "standardPriceAssumption": "Modellschätzung mit Standardpreisen der direkten Text-API. Batch, Abos, regionale Zuschläge, lange GPT-5.4-Kontexte und historische Preisänderungen sind nicht berücksichtigt.",
+    "ttlRange": "Spanne für 5-Minuten- bis 1-Stunden-Cache: Lesevorteil abzüglich Schreibaufschlag; die Speicherdauer ist unbekannt.",
+    "unsupported": "Ohne belastbaren Cache-Tarif, nicht in der Schätzung: {{models}}."
   },
   "comparison": {
     "title": "Perioden-Vergleich",
@@ -588,8 +598,10 @@
     "cost": "Kosten",
     "tokens": "Tokens",
     "avgPerDay": "Ø/Tag",
-    "cacheRate": "Cache-Rate",
-    "days": "Tage"
+    "cacheRate": "Cache-Anteil aller Tokens",
+    "days": "Tage",
+    "matchedDays": "{{count}} gleich lange Kalendertage",
+    "missingDays": "Fehlende Tagesmeldungen: Summen können unvollständig sein; Lücken werden für den Kalenderdurchschnitt als Null angenommen."
   },
   "anomaly": {
     "title": "Auffällige {{period}}",
@@ -677,7 +689,7 @@
       "totalTokens": "Tokens gesamt",
       "activeDays": "Aktive Tage",
       "topModel": "Top-Modell",
-      "cacheHitRate": "Cache-Hit-Rate",
+      "cacheHitRate": "Cache-Anteil aller Tokens",
       "costPerMillion": "Kosten / 1M Tokens",
       "mostExpensiveDay": "Teuerster Tag",
       "cheapestDay": "Günstigster Tag",
@@ -693,7 +705,7 @@
       "costByWeekday": "Kosten nach Wochentag",
       "tokensOverTime": "Tokens über Zeit",
       "requestsOverTime": "Anfragen im Zeitverlauf",
-      "requestCacheHitRate": "Cache-Hit-Rate nach Modell",
+      "requestCacheHitRate": "Cache-Anteil aller Tokens nach Modell",
       "tokenTypes": "Token-Typen",
       "tokenEfficiency": "Token-Effizienz",
       "modelMix": "Modell-Mix",
@@ -1079,7 +1091,7 @@
   },
   "drillDown": {
     "description": "Detaillierte {{periodType}}-Ansicht mit Benchmarks, Modellaufschlüsselung, Anbieter-Zusammenfassung und Token-Verteilung.",
-    "cacheRate": "Cache-Rate",
+    "cacheRate": "Cache-Anteil aller Tokens",
     "tokensPerRequest": "Tokens / Anfrage",
     "costPerRequest": "Kosten / Anfrage",
     "costRank": "Kosten-Rang",
@@ -1148,9 +1160,9 @@
   },
   "limits": {
     "sectionTitle": "Limits & Abonnements",
-    "sectionDescription": "Budget-Risiko getrennt von Abo-Wirkung im aktuellen Filterkontext",
+    "sectionDescription": "Budget-Risiko und Abo-Wert für den vollständigen Monat",
     "providersBadge": "{{count}} Anbieter",
-    "warningBanner": "{{count}} Anbieter haben ihr Monatslimit im aktuellen Ausschnitt erreicht oder überschritten.",
+    "warningBanner": "{{count}} Anbieter haben ihr Limit für den vollständigen Monat erreicht oder überschritten.",
     "cards": {
       "atLimit": "Anbieter am Limit",
       "nearLimit": "Nahe am Limit",
@@ -1224,7 +1236,8 @@
         "cli-auto-load": "CLI Auto-Load",
         "unknown": "Unbekannt"
       }
-    }
+    },
+    "globalScope": "Budgets verwenden den vollständigen Monat über alle Systeme und Modelle, unabhängig von den Analysefiltern."
   },
   "report": {
     "title": "TTDash Report",
@@ -1334,5 +1347,11 @@
     "systemsImported": "Systemimport abgeschlossen: {{imported}} importiert, {{skipped}} übersprungen",
     "systemDeleted": "Zusätzliches System {{hostname}} gelöscht",
     "systemsDeleted": "Alle zusätzlichen Systeme gelöscht"
+  },
+  "dataQuality": {
+    "dataThrough": "Erfasste Daten bis {{date}}",
+    "excludedRows": "{{count}} Datenprüfungsbefunde: betroffene Altdaten sind von Berechnungen ausgeschlossen",
+    "persistedFileUnchanged": "Die Quelldatei wurde beim Lesen nicht verändert. Details sind auf 50 Befunde begrenzt.",
+    "unreadableFiles": "{{count}} Systemdateien sind unlesbar; Summen und Budgets können unvollständig sein."
   }
 }

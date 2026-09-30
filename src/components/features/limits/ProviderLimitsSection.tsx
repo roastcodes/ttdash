@@ -26,7 +26,7 @@ import {
   getAreaAnimationProps,
   getLineAnimationProps,
 } from '@/components/charts/chart-theme'
-import { buildProviderMonthlyCosts, getLatestMonth } from '@/lib/provider-limits'
+import { buildProviderMonthlyCosts } from '@/lib/provider-limits'
 import i18n from '@/lib/i18n'
 import { CHART_HELP, SECTION_HELP } from '@/lib/help-content'
 import {
@@ -34,6 +34,7 @@ import {
   formatCurrency,
   formatCurrencyExact,
   formatMonthYear,
+  localMonth,
 } from '@/lib/formatters'
 import { getProviderBadgeStyle } from '@/lib/model-utils'
 import type { DailyUsage, ProviderLimits } from '@/types'
@@ -113,8 +114,7 @@ export function ProviderLimitsSection({
     subscriptionGainTotal,
   } = useMemo(() => {
     const { months, monthMap, providerTotals } = buildProviderMonthlyCosts(data)
-    const latestMonth = getLatestMonth(data)
-    const resolvedFocusMonth = selectedMonth ?? latestMonth
+    const resolvedFocusMonth = selectedMonth ?? localMonth()
 
     const nextRows: ProviderLimitRow[] = providers
       .map((provider) => {
@@ -231,6 +231,7 @@ export function ProviderLimitsSection({
         description={t('limits.sectionDescription')}
         info={SECTION_HELP.limits}
       />
+      <p className="mb-4 text-xs text-muted-foreground">{t('limits.globalScope')}</p>
 
       {atLimitCount > 0 && (
         <DashboardMotionItem className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">

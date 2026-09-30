@@ -1,3 +1,4 @@
+import { computeMetrics } from '@/lib/calculations'
 // @vitest-environment jsdom
 
 import { render, screen } from '@testing-library/react'
@@ -14,6 +15,13 @@ vi.mock('@/components/ui/AnimatedBarFill', () => ({
 }))
 
 const metrics: DashboardMetrics = {
+  ...computeMetrics([]),
+  avgCostPerPeriod: 0,
+  avgRequestsPerPeriod: 0,
+  knownRequests: 4,
+  knownRequestCacheRead: 0,
+  knownRequestThinking: 0,
+  requestCoverage: 100,
   totalCost: 0,
   totalTokens: 0,
   totalInput: 0,

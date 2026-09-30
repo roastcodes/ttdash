@@ -1,3 +1,4 @@
+import { computeMetrics } from '@/lib/calculations'
 import { describe, expect, it } from 'vitest'
 import {
   deriveRequestQualityData,
@@ -6,6 +7,13 @@ import {
 import type { DashboardMetrics } from '@/types'
 
 const baseMetrics: DashboardMetrics = {
+  ...computeMetrics([]),
+  avgCostPerPeriod: 0,
+  avgRequestsPerPeriod: 0,
+  knownRequests: 0,
+  knownRequestCacheRead: 0,
+  knownRequestThinking: 0,
+  requestCoverage: 100,
   totalCost: 0,
   totalTokens: 0,
   totalInput: 0,
@@ -41,6 +49,10 @@ describe('request quality data', () => {
         totalCacheRead: 300_000,
         totalThinking: 30_000,
         totalRequests: 3,
+        knownRequests: 3,
+        knownRequestCacheRead: 300_000,
+        knownRequestThinking: 30_000,
+        avgRequestsPerDay: 1.5,
         activeDays: 2,
         avgTokensPerRequest: 250_000,
         avgCostPerRequest: 0.5,

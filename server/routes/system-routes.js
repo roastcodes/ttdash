@@ -1,6 +1,7 @@
 const {
   formatAttachmentDisposition,
   getErrorMessage,
+  getUsageValidationError,
   writeMutationServerError,
 } = require('./http-route-utils');
 
@@ -120,7 +121,7 @@ function createSystemRoutes({
       } catch (error) {
         const handled = writeKnownError(res, error);
         if (handled !== null) return handled;
-        return json(res, 400, { message: getErrorMessage(error, 'Invalid system export file') });
+        return json(res, 400, getUsageValidationError(error, 'Invalid system export file'));
       }
     }
 
@@ -136,7 +137,7 @@ function createSystemRoutes({
       } catch (error) {
         const handled = writeKnownError(res, error);
         if (handled !== null) return handled;
-        return json(res, 400, { message: getErrorMessage(error, 'Invalid system export file') });
+        return json(res, 400, getUsageValidationError(error, 'Invalid system export file'));
       }
     }
 

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SlidersHorizontal } from 'lucide-react'
+import { DataQualityNotice } from './features/data-quality/DataQualityNotice'
 import { Header } from './layout/Header'
 import { FilterBar } from './layout/FilterBar'
 import { EmptyState } from './EmptyState'
@@ -138,6 +139,12 @@ export function Dashboard({
   if (!controller.shell.hasData) {
     return (
       <>
+        <div className="mx-auto max-w-7xl px-4">
+          <DataQualityNotice
+            {...controller.shell}
+            {...(controller.shell.qualityIssues ? { issues: controller.shell.qualityIssues } : {})}
+          />
+        </div>
         <EmptyState {...controller.emptyState} />
         {fileInputs}
         {autoImportDialog}
@@ -179,6 +186,10 @@ export function Dashboard({
 
         <div id="filters">
           <FilterBar {...controller.filterBar} />
+          <DataQualityNotice
+            {...controller.shell}
+            {...(controller.shell.qualityIssues ? { issues: controller.shell.qualityIssues } : {})}
+          />
         </div>
 
         <div key={controller.shell.animationKey} className="mt-4 space-y-4">

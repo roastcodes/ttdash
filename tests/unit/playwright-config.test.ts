@@ -94,6 +94,7 @@ describe('playwright config', () => {
 
     expect(specs.map((spec) => spec.filename)).toEqual([
       'command-palette.spec.ts',
+      'dashboard-correctness.spec.ts',
       'dashboard-forecast-filters.spec.ts',
       'dashboard-load-upload.spec.ts',
       'dashboard-reporting.spec.ts',

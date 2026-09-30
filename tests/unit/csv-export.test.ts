@@ -80,6 +80,21 @@ describe('csv export helpers', () => {
     expect(csv).toContain('"GPT-4; Claude Sonnet 4.5"')
   })
 
+  it('preserves sub-cent costs so exported sums match the source', () => {
+    const rows = [0.00001234, 0.00005678].map((totalCost) => ({
+      ...createDay('gpt-5.4'),
+      totalCost,
+    }))
+    const exported = generateCSV(rows)
+      .split('\n')
+      .slice(1)
+      .map((row) => Number(row.split(',')[1]!.replaceAll('"', '')))
+    expect(exported).toEqual([0.00001234, 0.00005678])
+    expect(exported.reduce((sum, value) => sum + value, 0)).toBe(
+      rows.reduce((sum, row) => sum + row.totalCost, 0),
+    )
+  })
+
   it('downloads the generated CSV with a local-date filename and revokes the object URL', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-13T10:30:00Z'))

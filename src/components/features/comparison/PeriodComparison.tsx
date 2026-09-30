@@ -5,15 +5,18 @@ import { Button } from '@/components/ui/button'
 import { InfoHeading } from '@/components/ui/info-heading'
 import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatTokens, formatPercent } from '@/lib/formatters'
+import { buildPeriodComparison } from '@/lib/period-comparison-data'
+import { calendarDay } from '../../../../shared/usage-quality.js'
 import { computeMetrics } from '@/lib/calculations'
 import { ArrowRight } from 'lucide-react'
 import type { DailyUsage } from '@/types'
 
 interface PeriodComparisonProps {
   data: DailyUsage[]
+  endDate?: string
 }
 
-type Preset = 'week' | 'month' | 'custom'
+type Preset = 'week' | 'month'
 
 function getDelta(
   a: number,
@@ -37,72 +40,26 @@ function getDelta(
 }
 
 /** Renders KPI deltas between the current and previous period. */
-export function PeriodComparison({ data }: PeriodComparisonProps) {
+export function PeriodComparison({ data, endDate }: PeriodComparisonProps) {
   const { t } = useTranslation()
   const [preset, setPreset] = useState<Preset>('week')
 
-  const { periodA, periodB, labelA, labelB } = useMemo(() => {
-    const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
-    if (sorted.length === 0) return { periodA: [], periodB: [], labelA: '', labelB: '' }
-
-    // Use the date string directly to avoid timezone issues with toISOString()
-    const lastEntry = sorted[sorted.length - 1]
-    if (!lastEntry) return { periodA: [], periodB: [], labelA: '', labelB: '' }
-    const lastStr = lastEntry.date
-    const lastDate = new Date(lastStr + 'T00:00:00')
-
-    // Helper: format local date as YYYY-MM-DD without timezone shift
-    const fmtLocal = (d: Date) => {
-      const y = d.getFullYear()
-      const m = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      return `${y}-${m}-${day}`
-    }
-
-    if (preset === 'week') {
-      // Week starts on Monday (Swiss/European standard)
-      const dayOfWeek = lastDate.getDay() // 0=Sun, 1=Mon, ...
-      const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-
-      const thisMonday = new Date(lastDate)
-      thisMonday.setDate(thisMonday.getDate() - daysSinceMonday)
-
-      const lastMonday = new Date(thisMonday)
-      lastMonday.setDate(lastMonday.getDate() - 7)
-
-      const lastSunday = new Date(thisMonday)
-      lastSunday.setDate(lastSunday.getDate() - 1)
-
-      const weekAgoStr = fmtLocal(thisMonday)
-      const twoWeeksAgoStr = fmtLocal(lastMonday)
-
-      return {
-        periodA: sorted.filter((d) => d.date >= weekAgoStr && d.date <= lastStr),
-        periodB: sorted.filter((d) => d.date >= twoWeeksAgoStr && d.date < weekAgoStr),
-        labelA: t('comparison.thisWeek'),
-        labelB: t('comparison.lastWeek'),
-      }
-    }
-
-    // month - use string-based month extraction (no timezone issue)
-    const currentMonth = lastStr.slice(0, 7)
-    const prevDate = new Date(lastDate)
-    prevDate.setDate(1) // avoid overflow when prev month has fewer days (e.g. Mar 31 → Feb 31 → Mar 3)
-    prevDate.setMonth(prevDate.getMonth() - 1)
-    const prevMonth = fmtLocal(prevDate).slice(0, 7)
-
-    return {
-      periodA: sorted.filter((d) => d.date.startsWith(currentMonth)),
-      periodB: sorted.filter((d) => d.date.startsWith(prevMonth)),
-      labelA: t('comparison.thisMonth'),
-      labelB: t('comparison.lastMonth'),
-    }
-  }, [data, preset, t])
+  const { periodA, periodB, startA, endA, startB, endB, days } = useMemo(
+    () => buildPeriodComparison(data, preset, endDate),
+    [data, preset, endDate],
+  )
+  const labelA = t(preset === 'week' ? 'comparison.thisWeek' : 'comparison.thisMonth')
+  const labelB = t(preset === 'week' ? 'comparison.lastWeek' : 'comparison.lastMonth')
 
   const metricsA = useMemo(() => computeMetrics(periodA), [periodA])
   const metricsB = useMemo(() => computeMetrics(periodB), [periodB])
 
-  if (data.length < 7) {
+  if (
+    data.length === 0 ||
+    Math.max(...data.map((d) => calendarDay(d.date) ?? 0)) -
+      Math.min(...data.map((d) => calendarDay(d.date) ?? 0)) <
+      6
+  ) {
     return (
       <Card>
         <CardHeader className="pb-2">
@@ -148,9 +105,12 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
     },
     {
       label: t('comparison.avgPerDay'),
-      a: formatCurrency(metricsA.avgDailyCost),
-      b: fmtB(formatCurrency(metricsB.avgDailyCost)),
-      delta: getDelta(metricsA.avgDailyCost, metricsB.avgDailyCost),
+      a: formatCurrency(days > 0 ? metricsA.totalCost / days : 0),
+      b: fmtB(formatCurrency(days > 0 ? metricsB.totalCost / days : 0)),
+      delta: getDelta(
+        days > 0 ? metricsA.totalCost / days : 0,
+        days > 0 ? metricsB.totalCost / days : 0,
+      ),
     },
     {
       label: t('comparison.cacheRate'),
@@ -196,6 +156,12 @@ export function PeriodComparison({ data }: PeriodComparisonProps) {
         </div>
       </CardHeader>
       <CardContent>
+        <p className="mb-3 text-xs text-muted-foreground">
+          {startB} – {endB} / {startA} – {endA} · {t('comparison.matchedDays', { count: days })}
+        </p>
+        {(periodA.length < days || periodB.length < days) && (
+          <p className="mb-3 text-xs text-muted-foreground">{t('comparison.missingDays')}</p>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

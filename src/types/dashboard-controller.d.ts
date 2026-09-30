@@ -13,6 +13,7 @@ import type {
   ViewMode,
   WeekdayData,
   UsageSystem,
+  UsageQualityIssue,
 } from '@/types'
 import type {
   DashboardAutoImportDialogViewModel,
@@ -116,6 +117,9 @@ export interface DashboardControllerDerivedState {
   hasData: boolean
   filters: DashboardControllerFiltersState
   computed: DashboardControllerComputedState
+  entityDailyData: DailyUsage[]
+  comparisonEndDate: string
+  todayStr: string
   dailyCosts: number[]
   totalCalendarDays: number
   todayData: DailyUsage | null
@@ -130,6 +134,10 @@ export interface DashboardControllerDerivedState {
 
 /** Describes the shell state that wraps the dashboard composition. */
 export interface DashboardShellViewModel {
+  qualityIssues?: UsageQualityIssue[]
+  dataThrough?: string
+  requestCoverage?: number
+  unreadableFiles?: number
   isLoading: boolean
   settingsLoading: boolean
   hasData: boolean

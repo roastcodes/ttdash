@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { ReactNode } from 'react'
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RequestsOverTime } from '@/components/charts/RequestsOverTime'
 import { initI18n } from '@/lib/i18n'
@@ -64,6 +64,27 @@ describe('RequestsOverTime', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('averages measured periods only, including known zero counts', () => {
+    renderWithTooltip(
+      <RequestsOverTime
+        data={[
+          { date: '2026-04-01', totalRequests: 10 },
+          { date: '2026-04-02' },
+          { date: '2026-04-03', totalRequests: 0 },
+        ]}
+      />,
+    )
+    const tile = screen.getByText('Avg / day').parentElement!
+    expect(within(tile).getByText('5')).toBeInTheDocument()
+  })
+
+  it('leaves request totals and averages unavailable when all periods are unknown', () => {
+    renderWithTooltip(<RequestsOverTime data={[{ date: '2026-04-01' }]} />)
+    const tile = screen.getByText('Avg / day').parentElement!
+    expect(within(tile).getByText('n/a')).toBeInTheDocument()
+    expect(screen.queryByText(/Peak 0/)).not.toBeInTheDocument()
   })
 
   it('renders all model lines instead of truncating the chart to the top five models', () => {

@@ -25,7 +25,11 @@ function getModelColor(name, palette = null) {
 
 function toCostChartData(data) {
   const sorted = sortByDate(data);
-  const ma7 = computeMovingAverage(sorted.map((day) => day.totalCost));
+  const ma7 = computeMovingAverage(
+    sorted.map((day) => day.totalCost),
+    7,
+    sorted.map((day) => day.date),
+  );
   let cumulative = 0;
   return sorted.map((day, index) => {
     cumulative += day.totalCost;

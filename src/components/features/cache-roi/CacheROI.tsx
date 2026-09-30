@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { formatPercent, periodUnit } from '@/lib/formatters'
-import { normalizeModelName } from '@/lib/model-utils'
-import { MODEL_PRICES } from '@/lib/constants'
+import { formatCurrency, formatPercent, periodUnit } from '@/lib/formatters'
+import { computeCacheROI } from '@/lib/cache-roi-data'
+import { PRICING_CHECKED_AT } from '@/lib/model-pricing'
 import { Zap } from 'lucide-react'
 import { FormattedValue } from '@/components/ui/formatted-value'
 import { AnimatedBarFill } from '@/components/ui/AnimatedBarFill'
@@ -19,45 +19,14 @@ interface CacheROIProps {
 /** Renders the cache savings versus no-cache cost comparison. */
 export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
   const { t } = useTranslation()
-  const { actualCost, hypotheticalCost, savings, savingsPercent, dailyAvg, heuristicModels } =
-    useMemo(() => {
-      let actual = 0
-      let hypothetical = 0
-      const heuristicModels = new Set<string>()
-
-      for (const d of data) {
-        actual += d.totalCost
-
-        for (const mb of d.modelBreakdowns) {
-          const name = normalizeModelName(mb.modelName)
-          const prices = MODEL_PRICES[name]
-          if (!prices) {
-            // If no pricing info, assume cache read saves ~90% vs input
-            heuristicModels.add(name)
-            hypothetical += mb.cost + (mb.cacheReadTokens / 1_000_000) * 10
-            continue
-          }
-          // What it would have cost if cache reads were regular input tokens
-          const cacheReadAsInput = (mb.cacheReadTokens / 1_000_000) * prices.input
-          const actualCacheReadCost = (mb.cacheReadTokens / 1_000_000) * prices.cacheRead
-          hypothetical += mb.cost - actualCacheReadCost + cacheReadAsInput
-        }
-      }
-
-      const saved = hypothetical - actual
-      const pct = hypothetical > 0 ? (saved / hypothetical) * 100 : 0
-      const totalPeriods = data.reduce((s, d) => s + (d._aggregatedDays ?? 1), 0)
-      const dailyAvg = totalPeriods > 0 ? actual / totalPeriods : 0
-
-      return {
-        actualCost: actual,
-        hypotheticalCost: hypothetical,
-        savings: saved,
-        savingsPercent: pct,
-        dailyAvg,
-        heuristicModels: Array.from(heuristicModels).sort(),
-      }
-    }, [data])
+  const estimate = useMemo(() => computeCacheROI(data), [data])
+  const {
+    actualCost,
+    hypotheticalMin: hypotheticalCost,
+    savingsMin: savings,
+    averagePerPeriod: dailyAvg,
+  } = estimate
+  const savingsPercent = hypotheticalCost > 0 ? (savings / hypotheticalCost) * 100 : 0
 
   if (data.length === 0) {
     return (
@@ -104,20 +73,35 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
         </InfoHeading>
       </CardHeader>
       <CardContent className="space-y-4">
-        {heuristicModels.length > 0 && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/12 px-3 py-2 text-xs font-medium text-amber-800 dark:text-amber-50">
-            {t('cacheRoi.heuristicFallback', {
-              count: heuristicModels.length,
-              modelsLabel:
-                heuristicModels.length === 1 ? t('cacheRoi.model') : t('cacheRoi.models'),
-            })}
-          </div>
+        <p className="text-xs text-muted-foreground">
+          {t('cacheRoi.coverage', {
+            cost: formatPercent(estimate.costCoverage),
+            tokens: formatPercent(estimate.tokenCoverage),
+            date: PRICING_CHECKED_AT,
+          })}
+        </p>
+        <p className="text-xs text-muted-foreground">{t('cacheRoi.standardPriceAssumption')}</p>
+        {estimate.hasRange && (
+          <p className="text-xs text-muted-foreground">{t('cacheRoi.ttlRange')}</p>
+        )}
+        {estimate.unsupportedModels.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {t('cacheRoi.unsupported', { models: estimate.unsupportedModels.join(', ') })}
+          </p>
         )}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
             <div className="text-xs text-muted-foreground">{t('cacheRoi.withoutCache')}</div>
             <div className={`text-lg font-bold ${withoutCacheTextClass}`}>
-              <FormattedValue value={hypotheticalCost} type="currency" />
+              {estimate.hasEstimate ? (
+                estimate.hasRange ? (
+                  `${formatCurrency(hypotheticalCost)} – ${formatCurrency(estimate.hypotheticalMax)}`
+                ) : (
+                  <FormattedValue value={hypotheticalCost} type="currency" />
+                )
+              ) : (
+                t('common.notAvailable')
+              )}
             </div>
           </div>
           <div>
@@ -129,9 +113,19 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
           <div>
             <div className="text-xs text-muted-foreground">{t('cacheRoi.savings')}</div>
             <div className={`text-lg font-bold ${withCacheTextClass}`}>
-              <FormattedValue value={savings} type="currency" />
+              {estimate.hasEstimate ? (
+                estimate.hasRange ? (
+                  `${formatCurrency(savings)} – ${formatCurrency(estimate.savingsMax)}`
+                ) : (
+                  <FormattedValue value={savings} type="currency" />
+                )
+              ) : (
+                t('common.notAvailable')
+              )}
               <span className={`ml-1 text-xs ${withCacheTextClass}`}>
-                ({formatPercent(savingsPercent)})
+                {estimate.hasEstimate && !estimate.hasRange
+                  ? `(${formatPercent(savingsPercent)})`
+                  : ''}
               </span>
             </div>
           </div>
@@ -146,45 +140,56 @@ export function CacheROI({ data, viewMode = 'daily' }: CacheROIProps) {
         </div>
 
         {/* Visual bar comparison */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="w-24 text-muted-foreground">{t('cacheRoi.withoutCache')}</span>
-            <div className={`h-6 flex-1 overflow-hidden rounded-md ${barTrackDangerClass}`}>
-              <AnimatedBarFill
-                className={`h-full rounded-md ${barFillDangerClass}`}
-                width="100%"
-                order={0}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="w-24 text-muted-foreground">{t('cacheRoi.withCache')}</span>
-            <div className="relative h-6 flex-1 overflow-hidden rounded-md bg-muted/20">
-              <AnimatedBarFill
-                className={`absolute inset-y-0 left-0 rounded-l-md ${hasPositiveSavings ? barFillSuccessClass : barFillDangerClass}`}
-                width={`${barWidth}%`}
-                order={0}
-              />
-              {hasPositiveSavings && savedWidth > 0 ? (
+        {estimate.hasEstimate && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="w-24 text-muted-foreground">{t('cacheRoi.withoutCache')}</span>
+              <div className={`h-6 flex-1 overflow-hidden rounded-md ${barTrackDangerClass}`}>
                 <AnimatedBarFill
-                  className={`absolute inset-y-0 rounded-r-md ${barSavedSegmentClass}`}
-                  style={{ left: `${barWidth}%` }}
-                  width={`${savedWidth}%`}
-                  order={1}
+                  className={`h-full rounded-md ${barFillDangerClass}`}
+                  width="100%"
+                  order={0}
                 />
-              ) : (
-                <div className="absolute inset-y-0 right-0 left-0 bg-muted/10" />
-              )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="w-24 text-muted-foreground">{t('cacheRoi.withCache')}</span>
+              <div className="relative h-6 flex-1 overflow-hidden rounded-md bg-muted/20">
+                <AnimatedBarFill
+                  className={`absolute inset-y-0 left-0 rounded-l-md ${hasPositiveSavings ? barFillSuccessClass : barFillDangerClass}`}
+                  width={`${barWidth}%`}
+                  order={0}
+                />
+                {hasPositiveSavings && savedWidth > 0 ? (
+                  <AnimatedBarFill
+                    className={`absolute inset-y-0 rounded-r-md ${barSavedSegmentClass}`}
+                    style={{ left: `${barWidth}%` }}
+                    width={`${savedWidth}%`}
+                    order={1}
+                  />
+                ) : (
+                  <div className="absolute inset-y-0 right-0 left-0 bg-muted/10" />
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <span className={`h-2 w-2 rounded-sm ${barFillSuccessClass}`} />{' '}
+                {t('cacheRoi.paid')}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className={`h-2 w-2 rounded-sm ${barSavedSwatchClass}`} />{' '}
+                {t('cacheRoi.saved')}
+              </span>
             </div>
           </div>
-          <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <span className={`h-2 w-2 rounded-sm ${barFillSuccessClass}`} /> {t('cacheRoi.paid')}
-            </span>
-            <span className="flex items-center gap-1">
-              <span className={`h-2 w-2 rounded-sm ${barSavedSwatchClass}`} /> {t('cacheRoi.saved')}
-            </span>
-          </div>
+        )}
+        <div className="flex flex-wrap gap-3 text-xs">
+          {estimate.sources.map(([provider, source]) => (
+            <a key={provider} href={source} target="_blank" rel="noreferrer" className="underline">
+              {provider}
+            </a>
+          ))}
         </div>
       </CardContent>
     </Card>

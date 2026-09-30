@@ -14,6 +14,7 @@ test('opens one shared forecast zoom dialog from both forecast cards', async ({
   page,
   baseURL,
 }) => {
+  await page.clock.setFixedTime(new Date('2026-04-06T12:00:00Z'))
   await resetAppState(page, baseURL)
 
   await gotoDashboard(page)

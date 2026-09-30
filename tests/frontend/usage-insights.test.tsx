@@ -1,3 +1,4 @@
+import { computeMetrics } from '@/lib/calculations'
 // @vitest-environment jsdom
 
 import { render, screen, within } from '@testing-library/react'
@@ -8,6 +9,13 @@ import { initI18n } from '@/lib/i18n'
 import type { DashboardMetrics } from '@/types'
 
 const metrics: DashboardMetrics = {
+  ...computeMetrics([]),
+  avgCostPerPeriod: 80.1,
+  avgRequestsPerPeriod: 1270.3,
+  knownRequests: 80_029,
+  knownRequestCacheRead: 100,
+  knownRequestThinking: 1200,
+  requestCoverage: 100,
   totalCost: 5046.25,
   totalTokens: 7_742_241_363,
   activeDays: 63,

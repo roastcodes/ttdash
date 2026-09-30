@@ -12,6 +12,8 @@ interface SharedContractModule {
 }
 
 const sharedContractModules: SharedContractModule[] = [
+  { modulePath: 'shared/usage-quality.js', declarationPath: 'shared/usage-quality.d.ts' },
+  { modulePath: 'shared/dashboard-domain.js', declarationPath: 'shared/dashboard-domain.d.ts' },
   {
     modulePath: 'shared/app-settings.js',
     declarationPath: 'shared/app-settings.d.ts',

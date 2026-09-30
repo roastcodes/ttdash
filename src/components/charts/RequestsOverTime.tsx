@@ -117,12 +117,13 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
         return a[0].localeCompare(b[0])
       })
 
-    const totalRequests = data.reduce((sum, point) => sum + point.totalRequests, 0)
-    const peak = [...data].sort((a, b) => b.totalRequests - a.totalRequests)[0]
-    if (!peak) return null
+    const totalRequests = data.reduce((sum, point) => sum + (point.totalRequests ?? 0), 0)
+    const knownPoints = data.filter((point) => point.totalRequests !== undefined)
+    const peak = [...knownPoints].sort((a, b) => b.totalRequests! - a.totalRequests!)[0]
 
     return {
       totalRequests,
+      knownPoints: knownPoints.length,
       peak,
       topModels,
     }
@@ -180,7 +181,6 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                     dot={false}
                     strokeWidth={2.5}
                     strokeDasharray="6 4"
-                    connectNulls
                     {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
                   {visibleModels.map((model, index) => (
@@ -193,7 +193,6 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                       dot={false}
                       strokeWidth={2}
                       strokeDasharray="5 4"
-                      connectNulls
                       {...getLineAnimationProps(animate, { order: index % 6, role: 'secondary' })}
                     />
                   ))}
@@ -242,10 +241,10 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
     <ChartCard
       title={t('charts.requestsOverTime.title')}
       subtitle={
-        summary
+        summary?.peak
           ? t('charts.requestsOverTime.summary', {
               total: formatRequests(summary.totalRequests),
-              peak: formatRequests(summary.peak.totalRequests),
+              peak: formatRequests(summary.peak.totalRequests ?? 0),
               date: formatDateAxis(summary.peak.date),
             })
           : t('charts.requestsOverTime.subtitle')
@@ -272,7 +271,9 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                   {t('charts.requestsOverTime.total')}
                 </div>
                 <div className="text-sm font-semibold tabular-nums">
-                  {summary ? formatRequests(summary.totalRequests) : '0'}
+                  {summary && summary.knownPoints > 0
+                    ? formatRequests(summary.totalRequests)
+                    : t('common.notAvailable')}
                 </div>
               </div>
               <div className="rounded-lg bg-muted/20 p-2">
@@ -280,9 +281,9 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                   {averageLabel}
                 </div>
                 <div className="text-sm font-semibold tabular-nums">
-                  {summary && data.length > 0
-                    ? formatRequests(summary.totalRequests / data.length)
-                    : '0'}
+                  {summary && summary.knownPoints > 0
+                    ? formatRequests(summary.totalRequests / summary.knownPoints)
+                    : t('common.notAvailable')}
                 </div>
               </div>
               <div className="rounded-lg bg-muted/20 p-2">
@@ -298,7 +299,10 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                   {t('charts.requestsOverTime.topShare')}
                 </div>
                 <div className="text-sm font-semibold tabular-nums">
-                  {summary && summary.totalRequests > 0 && summary.topModels[0]
+                  {summary &&
+                  summary.knownPoints === data.length &&
+                  summary.totalRequests > 0 &&
+                  summary.topModels[0]
                     ? `${((summary.topModels[0][1] / summary.totalRequests) * 100).toFixed(1)}%`
                     : '–'}
                 </div>
@@ -384,7 +388,6 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                             dot={false}
                             strokeWidth={2.2}
                             strokeDasharray="5 5"
-                            connectNulls
                             {...getLineAnimationProps(animate, { role: 'secondary' })}
                           />
                           {visibleModels.map((model, index) => (

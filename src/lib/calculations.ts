@@ -1,3 +1,5 @@
+import { localToday } from './formatters'
+import { calendarDay } from '../../shared/usage-quality.js'
 import type {
   AggregateMetrics,
   CacheHitRateByModelChartDataPoint,
@@ -30,8 +32,9 @@ export function computeWeekOverWeekChange(data: DailyUsage[]): number | null {
 export function computeMovingAverage(
   values: Array<number | undefined>,
   window = 7,
+  dates?: string[],
 ): (number | undefined)[] {
-  return computeSharedMovingAverage(values, window)
+  return computeSharedMovingAverage(values, window, dates)
 }
 
 /** Aggregates per-model cost and token metrics across the dataset. */
@@ -67,7 +70,8 @@ export function computeCacheHitRateByModel(
 
   if (sorted.length === 0) return []
 
-  const trailingWindow = sorted.slice(-Math.min(7, sorted.length))
+  const lastDay = calendarDay(sorted[sorted.length - 1]!.date)!
+  const trailingWindow = sorted.filter((entry) => calendarDay(entry.date)! > lastDay - 7)
   const totals = new Map<
     string,
     { cacheRead: number; cacheCreate: number; input: number; output: number; thinking: number }
@@ -295,16 +299,23 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /** Forecasts the current month total from elapsed daily costs. */
-export function computeCurrentMonthForecast(data: DailyUsage[]): CurrentMonthForecast | null {
+function computeMonthSeriesForecast(
+  data: DailyUsage[],
+  asOfDate: string,
+): CurrentMonthForecast | null {
   if (data.length < 2) return null
 
-  const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
-  const lastEntry = sorted[sorted.length - 1]
+  if (calendarDay(asOfDate) === null) return null
+  const currentMonth = asOfDate.slice(0, 7)
+  const monthData = [...data]
+    .filter((day) => day.date.startsWith(currentMonth) && day.date <= asOfDate)
+    .sort((a, b) => a.date.localeCompare(b.date))
+  const lastEntry = monthData[monthData.length - 1]
   if (!lastEntry) return null
-
   const lastDate = new Date(lastEntry.date + 'T00:00:00')
-  const currentMonth = lastEntry.date.slice(0, 7)
-  const monthData = sorted.filter((d) => d.date.startsWith(currentMonth))
+  const completedData = monthData.filter((day) => day.date < asOfDate)
+  if (completedData.length < 2) return null
+  const partialToday = lastEntry.date === asOfDate
 
   if (monthData.length < 2) return null
 
@@ -320,11 +331,16 @@ export function computeCurrentMonthForecast(data: DailyUsage[]): CurrentMonthFor
     return {
       date,
       cost: monthCostMap.get(date) ?? 0,
+      reported: monthCostMap.has(date),
     }
   })
 
-  const elapsedCosts = elapsedCalendarSeries.map((point) => point.cost)
-  const monthToDateAvg = monthTotal / elapsedDays
+  const trainingDays = elapsedDays - (partialToday ? 1 : 0)
+  const elapsedCosts = elapsedCalendarSeries.slice(0, trainingDays).map((point) => point.cost)
+  const completedTotal = completedData.reduce((sum, day) => sum + day.totalCost, 0)
+  const monthToDateAvg = trainingDays > 0 ? completedTotal / trainingDays : 0
+  const missingDays = trainingDays - completedData.length
+  const staleDays = calendarDay(asOfDate)! - calendarDay(lastEntry.date)!
   const recentWindow = elapsedCosts.slice(-Math.min(7, elapsedCosts.length))
   const previousWindow = elapsedCosts.slice(
     -Math.min(14, elapsedCosts.length),
@@ -351,9 +367,14 @@ export function computeCurrentMonthForecast(data: DailyUsage[]): CurrentMonthFor
   let confidence: ForecastConfidence = 'low'
   if (elapsedDays >= 14 && volatility <= projectedDailyBurn * 0.75) confidence = 'high'
   else if (elapsedDays >= 7 && volatility <= projectedDailyBurn * 1.25) confidence = 'medium'
+  if (missingDays > 0 || staleDays > 1) confidence = 'low'
 
   return {
     currentMonth,
+    missingDays,
+    staleDays,
+    partialToday,
+    dataThrough: lastEntry.date,
     monthData,
     currentMonthTotal: monthTotal,
     elapsedDays,
@@ -389,31 +410,35 @@ function createForecastDay(date: string, totalCost: number): DailyUsage {
 /** Forecasts current-month totals separately for each visible provider. */
 export function computeCurrentMonthProviderForecasts(
   data: DailyUsage[],
+  asOfDate = localToday(),
 ): CurrentMonthProviderForecasts | null {
   if (data.length < 2) return null
 
-  const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
-  const lastEntry = sorted[sorted.length - 1]
-  if (!lastEntry) return null
-
-  const currentMonth = lastEntry.date.slice(0, 7)
-  const monthData = sorted.filter((entry) => entry.date.startsWith(currentMonth))
-  if (monthData.length < 2) return null
-
-  const elapsedDays = Number(lastEntry.date.slice(8, 10))
-  if (!Number.isFinite(elapsedDays) || elapsedDays < 2) return null
+  if (calendarDay(asOfDate) === null) return null
+  const currentMonth = asOfDate.slice(0, 7)
+  const monthData = [...data]
+    .filter((day) => day.date.startsWith(currentMonth) && day.date <= asOfDate)
+    .sort((a, b) => a.date.localeCompare(b.date))
+  if (monthData.filter((day) => day.date < asOfDate).length < 2) return null
+  const elapsedDays = Number(monthData[monthData.length - 1]!.date.slice(8, 10))
 
   const providerCostMaps = new Map<string, Map<string, number>>()
   const providerTotals = new Map<string, number>()
 
+  const addCost = (provider: string, date: string, cost: number) => {
+    const dateCosts = providerCostMaps.get(provider) ?? new Map<string, number>()
+    dateCosts.set(date, (dateCosts.get(date) ?? 0) + cost)
+    providerCostMaps.set(provider, dateCosts)
+    providerTotals.set(provider, (providerTotals.get(provider) ?? 0) + cost)
+  }
   for (const day of monthData) {
+    let assigned = 0
     for (const breakdown of day.modelBreakdowns) {
-      const provider = getModelProvider(breakdown.modelName)
-      const dateCosts = providerCostMaps.get(provider) ?? new Map<string, number>()
-      dateCosts.set(day.date, (dateCosts.get(day.date) ?? 0) + breakdown.cost)
-      providerCostMaps.set(provider, dateCosts)
-      providerTotals.set(provider, (providerTotals.get(provider) ?? 0) + breakdown.cost)
+      addCost(getModelProvider(breakdown.modelName), day.date, breakdown.cost)
+      assigned += breakdown.cost
     }
+    if (day.totalCost - assigned > 0.000001)
+      addCost('Unassigned', day.date, day.totalCost - assigned)
   }
 
   const providers = Array.from(providerCostMaps.keys())
@@ -428,13 +453,11 @@ export function computeCurrentMonthProviderForecasts(
   const providerForecasts = providers
     .map((provider) => {
       const providerCostMap = providerCostMaps.get(provider) ?? new Map<string, number>()
-      const providerData = Array.from({ length: elapsedDays }, (_, index) => {
-        const day = index + 1
-        const date = `${currentMonth}-${String(day).padStart(2, '0')}`
-        return createForecastDay(date, providerCostMap.get(date) ?? 0)
-      })
-
-      const forecast = computeCurrentMonthForecast(providerData)
+      // Zero provider spend is observed only on dates reported by the source dataset.
+      const providerData = monthData.map((day) =>
+        createForecastDay(day.date, providerCostMap.get(day.date) ?? 0),
+      )
+      const forecast = computeMonthSeriesForecast(providerData, asOfDate)
       if (!forecast) return null
 
       return {
@@ -457,10 +480,43 @@ export function computeCurrentMonthProviderForecasts(
   }
 }
 
-/** Builds the shared dashboard forecast state from the month-to-date filtered dataset. */
-export function computeDashboardForecastState(data: DailyUsage[]): DashboardForecastState {
+/** Forecasts the actual current month; callers can supply a clock for deterministic analysis. */
+export function computeCurrentMonthForecast(
+  data: DailyUsage[],
+  asOfDate = localToday(),
+): CurrentMonthForecast | null {
+  const base = computeMonthSeriesForecast(data, asOfDate)
+  if (!base) return null
+  const providers = computeCurrentMonthProviderForecasts(data, asOfDate)
+  return combineProviderForecasts(base, providers)
+}
+
+function combineProviderForecasts(
+  base: CurrentMonthForecast,
+  providers: CurrentMonthProviderForecasts | null,
+): CurrentMonthForecast {
+  if (!providers) return base
+  const sum = (key: 'projectedDailyBurn' | 'lowerDaily' | 'upperDaily' | 'volatility') =>
+    providers.providers.reduce((total, provider) => total + provider[key], 0)
   return {
-    costForecast: computeCurrentMonthForecast(data),
-    providerForecast: computeCurrentMonthProviderForecasts(data),
+    ...base,
+    forecastTotal: providers.forecastTotal,
+    projectedDailyBurn: sum('projectedDailyBurn'),
+    lowerDaily: sum('lowerDaily'),
+    upperDaily: sum('upperDaily'),
+    volatility: sum('volatility'),
+  }
+}
+
+/** Builds additive total/provider forecasts from the same calendar and source coverage. */
+export function computeDashboardForecastState(
+  data: DailyUsage[],
+  asOfDate = localToday(),
+): DashboardForecastState {
+  const base = computeMonthSeriesForecast(data, asOfDate)
+  const providerForecast = computeCurrentMonthProviderForecasts(data, asOfDate)
+  return {
+    costForecast: base ? combineProviderForecasts(base, providerForecast) : null,
+    providerForecast,
   }
 }
