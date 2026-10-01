@@ -1,6 +1,8 @@
+import { MotionArea as Area, TimeSeriesReveal } from './chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from './chart-axis'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { AreaChart, CartesianGrid, Tooltip } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { CHART_COLORS, CHART_MARGIN, getAreaAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
@@ -80,7 +82,7 @@ export function ModelMix({ data }: ModelMixProps) {
       subtitle={t('charts.modelMix.subtitle')}
       info={CHART_HELP.modelMix}
     >
-      <ChartAnimationAware>
+      <ChartAnimationAware data={chartData}>
         {(animate) => (
           <ChartReveal variant="line">
             <ChartResponsiveContainer width="100%" height={250}>
@@ -90,6 +92,7 @@ export function ModelMix({ data }: ModelMixProps) {
                 stackOffset="none"
                 data-testid="area-chart"
               >
+                <TimeSeriesReveal />
                 <defs>
                   {models.map((model) => {
                     const color = getModelColor(model)

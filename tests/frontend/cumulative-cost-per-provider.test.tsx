@@ -1,17 +1,19 @@
+import type * as Recharts from 'recharts'
 // @vitest-environment jsdom
 
 import { type ReactNode } from 'react'
 import { screen } from '@testing-library/react'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CumulativeCostPerProvider } from '@/components/charts/CumulativeCostPerProvider'
 import { computeCurrentMonthProviderForecasts } from '@/lib/calculations'
 import { initI18n } from '@/lib/i18n'
 import { getProviderBadgeStyle } from '@/lib/model-utils'
 import type { DailyUsage } from '@/types'
-import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
+import { MockSvgContainer, MockSvgGroup, VisibleIntersectionObserver } from '../recharts-test-utils'
 import { renderWithTooltip } from '../test-utils'
 
-vi.mock('recharts', () => ({
+vi.mock('recharts', async (importOriginal) => ({
+  ...(await importOriginal<typeof Recharts>()),
   AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer>{children}</MockSvgContainer>
@@ -56,6 +58,7 @@ vi.mock('recharts', () => ({
 }))
 
 describe('CumulativeCostPerProvider', () => {
+  beforeEach(() => vi.stubGlobal('IntersectionObserver', VisibleIntersectionObserver))
   beforeAll(async () => {
     await initI18n('en')
   })

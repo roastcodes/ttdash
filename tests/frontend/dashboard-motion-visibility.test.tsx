@@ -25,7 +25,15 @@ function Probe({ parent = false }: { parent?: boolean }) {
 
 function intersect(visible: boolean) {
   act(() =>
-    notify([{ isIntersecting: visible } as IntersectionObserverEntry], {} as IntersectionObserver),
+    notify(
+      [
+        {
+          isIntersecting: visible,
+          intersectionRatio: visible ? 1 : 0,
+        } as IntersectionObserverEntry,
+      ],
+      {} as IntersectionObserver,
+    ),
   )
 }
 
@@ -66,6 +74,19 @@ describe('live dashboard motion visibility', () => {
     expect(state()).toMatchObject({ canAnimate: true, hasRevealed: true, runKey: 1 })
     unmount()
     expect(disconnect).toHaveBeenCalledOnce()
+  })
+
+  it('requires the configured visible fraction before starting an entrance', () => {
+    renderWithAppProviders(<Probe />, { motionPreference: 'never' })
+    act(() =>
+      notify(
+        [{ isIntersecting: true, intersectionRatio: 0.01 } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      ),
+    )
+    expect(state()).toMatchObject({ canAnimate: false, hasRevealed: false })
+    intersect(true)
+    expect(state()).toMatchObject({ canAnimate: true, hasRevealed: true })
   })
 
   it('pauses visible motion while the browser document is hidden', () => {

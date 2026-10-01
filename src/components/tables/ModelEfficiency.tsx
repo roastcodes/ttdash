@@ -168,23 +168,28 @@ export function ModelEfficiency({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-2 md:hidden">
+        <div className="grid min-w-0 gap-2 md:hidden">
           {sorted.map((model) => (
-            <div key={model.name} className="rounded-xl border border-border/50 bg-muted/10 p-3">
+            <div
+              key={model.name}
+              className="min-w-0 rounded-xl border border-border/50 bg-muted/10 p-3"
+            >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: getModelColor(model.name) }}
                     />
-                    <span className="truncate font-medium">{model.name}</span>
+                    <span className="min-w-0 font-medium [overflow-wrap:anywhere]">
+                      {model.name}
+                    </span>
                   </div>
                   <div className="mt-1 inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] leading-none font-medium text-muted-foreground">
                     {getModelProvider(model.name)}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   <div className="font-mono font-semibold">
                     <FormattedValue value={model.cost} type="currency" />
                   </div>

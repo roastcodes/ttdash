@@ -318,6 +318,14 @@ async function captureScreenshots() {
 
       await page.goto(authSession?.bootstrapUrl || baseUrl);
       await switchToEnglish(page);
+      await expect(
+        page
+          .locator('#charts')
+          .getByTestId('chart-card')
+          .nth(1)
+          .locator('svg')
+          .getByText('Total', { exact: true }),
+      ).toBeVisible();
 
       await page.evaluate(() => globalThis.scrollTo(0, 0));
       await page.screenshot({
@@ -329,7 +337,9 @@ async function captureScreenshots() {
       const costCards = page.locator('#charts').getByTestId('chart-card');
       await expect(costCards).toHaveCount(8);
       for (const card of await costCards.all()) {
+        await card.scrollIntoViewIfNeeded();
         await expect.poll(() => countRenderedChartDataShapes(card)).toBeGreaterThan(0);
+        await card.locator('.recharts-responsive-container').first().dispatchEvent('pointerdown');
       }
       await waitForRenderedChartData(page, { sectionSelector: '#charts' });
       await page.locator('#charts').screenshot({

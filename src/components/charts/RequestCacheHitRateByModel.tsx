@@ -1,17 +1,19 @@
+import {
+  MotionArea as Area,
+  MotionLine as Line,
+  MotionBar as Bar,
+  TimeSeriesReveal,
+} from './chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from './chart-axis'
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   ResponsiveContainer,
   ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   BarChart,
-  Bar,
   Cell,
 } from 'recharts'
 import { ChartAnimationAware, ChartCard, ChartReveal } from './ChartCard'
@@ -257,7 +259,7 @@ export function RequestCacheHitRateByModel({
             <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
               {t('charts.requestCacheHitRate.timelineHeading', { unit: periodUnit(viewMode) })}
             </div>
-            <ChartAnimationAware>
+            <ChartAnimationAware data={lineData} partitionKey={viewMode}>
               {(animate) => (
                 <ChartReveal variant="line">
                   <ResponsiveContainer
@@ -265,6 +267,7 @@ export function RequestCacheHitRateByModel({
                     height={expanded ? expandedLineHeight : lineHeight}
                   >
                     <ComposedChart data={lineData} margin={CHART_MARGIN}>
+                      <TimeSeriesReveal />
                       <defs>
                         <linearGradient id={`${uid}-total-rate`} x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.24} />
@@ -356,7 +359,7 @@ export function RequestCacheHitRateByModel({
             <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
               {t('charts.requestCacheHitRate.modelBreakdownHeading')}
             </div>
-            <ChartAnimationAware>
+            <ChartAnimationAware data={barData} partitionKey={viewMode}>
               {(animate) => (
                 <ChartReveal variant="line">
                   <ResponsiveContainer

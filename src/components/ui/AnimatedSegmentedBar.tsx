@@ -26,7 +26,6 @@ export function AnimatedSegmentedBar({
   className,
   segmentClassName,
   durationMs = APP_MOTION.meterDurationMs,
-  staggerMs = APP_MOTION.staggerMs,
   'data-testid': dataTestId,
 }: AnimatedSegmentedBarProps) {
   const shouldReduceMotion = useShouldReduceMotion()
@@ -42,58 +41,43 @@ export function AnimatedSegmentedBar({
   return (
     <motion.div
       ref={barRef}
-      className={cn('flex overflow-hidden rounded-full', className)}
+      className={cn('overflow-hidden rounded-full', className)}
       data-testid={dataTestId}
       initial={false}
       animate={{ opacity: isUpdate && visibility.canAnimate ? [0.7, 1] : 1 }}
       transition={{ duration: visibility.canAnimate ? APP_MOTION.updateDurationMs / 1000 : 0 }}
     >
-      {segments.map((segment, index) => {
-        const clampedWidth = Math.max(0, Math.min(100, segment.width))
-        const width = `${clampedWidth}%`
-        const segmentTestId = dataTestId ? `${dataTestId}-${segment.id}` : undefined
+      <motion.div
+        className="flex h-full w-full"
+        style={{ transformOrigin: 'left' }}
+        initial={false}
+        animate={{ scaleX: visibility.hasRevealed || shouldReduceMotion ? 1 : 0 }}
+        transition={{
+          duration: visibility.canAnimate ? durationMs / 1000 : 0,
+          ease: APP_MOTION.ease,
+        }}
+      >
+        {segments.map((segment) => {
+          const clampedWidth = Math.max(0, Math.min(100, segment.width))
+          const width = `${clampedWidth}%`
+          const segmentTestId = dataTestId ? `${dataTestId}-${segment.id}` : undefined
 
-        if (shouldReduceMotion) {
           return (
             <div
               key={segment.id}
               className={cn('h-full flex-shrink-0', segmentClassName)}
-              style={{ width, backgroundColor: segment.color }}
+              style={{ width, backgroundColor: segment.color, transformOrigin: 'left' }}
               title={segment.label}
               aria-label={segment.label}
               data-testid={segmentTestId}
-              data-animate="false"
+              data-animate={String(visibility.canAnimate)}
               data-target-width={width}
               data-delay-ms="0"
-              data-duration-ms="0"
+              data-duration-ms={String(shouldReduceMotion ? 0 : durationMs)}
             />
           )
-        }
-
-        return (
-          <motion.div
-            key={segment.id}
-            className={cn('h-full flex-shrink-0', segmentClassName)}
-            style={{ width, backgroundColor: segment.color, transformOrigin: 'left' }}
-            initial={false}
-            animate={{ scaleX: visibility.hasRevealed ? 1 : 0 }}
-            transition={{
-              duration: visibility.canAnimate ? durationMs / 1000 : 0,
-              delay: visibility.canAnimate
-                ? Math.min(index * staggerMs, APP_MOTION.maxStaggerMs) / 1000
-                : 0,
-              ease: APP_MOTION.ease,
-            }}
-            title={segment.label}
-            aria-label={segment.label}
-            data-testid={segmentTestId}
-            data-animate={String(visibility.canAnimate)}
-            data-target-width={width}
-            data-delay-ms={String(Math.min(index * staggerMs, APP_MOTION.maxStaggerMs))}
-            data-duration-ms={String(durationMs)}
-          />
-        )
-      })}
+        })}
+      </motion.div>
     </motion.div>
   )
 }

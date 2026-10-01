@@ -40,6 +40,35 @@ function start(controller: AnimationController, clock: ReturnType<typeof createC
 }
 
 describe('chart visibility animation lifecycle', () => {
+  it('finishes current and new hidden updates without scheduling another frame', () => {
+    let visible = true
+    const controller = createChartAnimationController({ canAnimate: () => visible })
+    const clock = createClock()
+    const first = start(controller, clock, 'first')
+    clock.advance(0)
+    clock.advance(45)
+    visible = false
+    controller.finish()
+    expect(first.update).toHaveBeenLastCalledWith(1)
+    expect(first.onEnd).toHaveBeenCalledOnce()
+    expect(clock.pending).toBe(0)
+    const hidden = start(controller, clock, 'hidden')
+    expect(hidden.update).toHaveBeenCalledExactlyOnceWith(1)
+    expect(clock.pending).toBe(0)
+  })
+
+  it('computes entrance geometry once for a shared mask, then interpolates new data', () => {
+    const controller = createChartAnimationController({ instantEntrance: true })
+    const clock = createClock()
+    expect(start(controller, clock, 'first').update).toHaveBeenCalledExactlyOnceWith(1)
+    expect(clock.pending).toBe(0)
+    const update = start(controller, clock, 'changed')
+    clock.advance(0)
+    clock.advance(20)
+    clock.advance(70)
+    expect(update.update).toHaveBeenLastCalledWith(0.5)
+  })
+
   it('animates new plot data and displays a completed plot immediately on returning to view', () => {
     const controller = createChartAnimationController()
     const clock = createClock()

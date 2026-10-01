@@ -1,9 +1,22 @@
 import type { AnimationController } from 'recharts'
 
-/** Runs each plot-data animation once, so visibility changes never restart its entrance. */
-export function createChartAnimationController(): AnimationController {
+interface ChartAnimationControllerOptions {
+  canAnimate?: () => boolean
+  instantEntrance?: boolean
+}
+
+/** Adds an explicit interruption endpoint to Recharts' animation contract. */
+export type ChartAnimationController = AnimationController & { finish: () => void }
+
+/** Finishes hidden plots immediately and preserves each series through interrupted updates. */
+export function createChartAnimationController({
+  canAnimate = () => true,
+  instantEntrance = false,
+}: ChartAnimationControllerOptions = {}): ChartAnimationController {
   const introduced = new Set<string>()
-  return (clock, animation, update) => {
+  const running = new Set<() => void>()
+  let hasEntered = false
+  const controller: AnimationController = (clock, animation, update) => {
     const complete = () => {
       if (animation.getState() === 'init') animation.tick(0)
       if (animation.getState() === 'pending') {
@@ -12,23 +25,43 @@ export function createChartAnimationController(): AnimationController {
       animation.complete()
     }
     const id = animation.getAnimationId()
-    if (introduced.has(id)) {
+    const remember = () => {
+      introduced.add(id)
+      if (introduced.size > 128) introduced.delete(introduced.values().next().value!)
+    }
+    const skipEntrance = instantEntrance && !hasEntered
+    hasEntered = true
+    if (introduced.has(id) || skipEntrance || !canAnimate()) {
       // Enter the active state before completing so Recharts also clears its label suppression.
       complete()
+      remember()
       update(animation.getTo())
       return () => {}
     }
 
     let cancel: (() => void) | undefined
+    const finish = () => {
+      cancel?.()
+      cancel = undefined
+      remember()
+      complete()
+      update(animation.getTo())
+      running.delete(finish)
+    }
+    running.add(finish)
     const advance = (now: number) => {
+      if (!canAnimate()) {
+        finish()
+        return
+      }
       const remaining = animation.tick(now)
       if (animation.getState() === 'active') {
-        introduced.add(id)
-        if (introduced.size > 128) introduced.delete(introduced.values().next().value!)
+        remember()
         update(animation.getInterpolated())
         if (animation.getProgress() === 1) {
           animation.complete()
           cancel = undefined
+          running.delete(finish)
           return
         }
       }
@@ -37,7 +70,10 @@ export function createChartAnimationController(): AnimationController {
     cancel = clock.setTimeout(advance, 0)
     return () => {
       cancel?.()
+      remember()
       complete()
+      running.delete(finish)
     }
   }
+  return Object.assign(controller, { finish: () => [...running].forEach((finish) => finish()) })
 }

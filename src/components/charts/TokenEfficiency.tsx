@@ -1,15 +1,8 @@
+import { MotionArea as Area, MotionLine as Line, TimeSeriesReveal } from './chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from './chart-axis'
 import { useMemo, useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ReferenceLine,
-} from 'recharts'
+import { ComposedChart, CartesianGrid, Tooltip, ReferenceLine } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import {
@@ -68,11 +61,12 @@ export function TokenEfficiency({ data }: TokenEfficiencyProps) {
       valueKey="efficiency"
       valueFormatter={formatCurrency}
     >
-      <ChartAnimationAware>
+      <ChartAnimationAware data={chartData}>
         {(animate) => (
           <ChartReveal variant="line">
             <ChartResponsiveContainer width="100%" height={250}>
               <ComposedChart data={chartData} margin={CHART_MARGIN}>
+                <TimeSeriesReveal />
                 <defs>
                   <linearGradient id={efficiencyGradientId} x1="0" y1="0" x2="0" y2="1">
                     <stop

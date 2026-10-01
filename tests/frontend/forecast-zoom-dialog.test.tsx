@@ -1,3 +1,4 @@
+import type * as Recharts from 'recharts'
 // @vitest-environment jsdom
 
 import { cloneElement, type ReactElement, type ReactNode } from 'react'
@@ -10,7 +11,8 @@ import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
 import { MockSvgContainer } from '../recharts-test-utils'
 
-vi.mock('recharts', () => ({
+vi.mock('recharts', async (importOriginal) => ({
+  ...(await importOriginal<typeof Recharts>()),
   AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer>{children}</MockSvgContainer>

@@ -1,3 +1,4 @@
+import type * as Recharts from 'recharts'
 // @vitest-environment jsdom
 
 import { render, screen } from '@testing-library/react'
@@ -16,7 +17,8 @@ vi.mock('@/lib/motion', async (importOriginal) => {
   }
 })
 
-vi.mock('recharts', () => ({
+vi.mock('recharts', async (importOriginal) => ({
+  ...(await importOriginal<typeof Recharts>()),
   AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <div data-testid="responsive-container">{children}</div>

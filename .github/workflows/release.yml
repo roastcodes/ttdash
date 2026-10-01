@@ -386,8 +386,8 @@ jobs:
 
       - name: Wait for npm registry propagation
         run: |
-          for attempt in 1 2 3 4 5 6; do
-            echo "Checking npm registry propagation (${attempt}/6)."
+          for attempt in $(seq 1 30); do
+            echo "Checking npm registry propagation (${attempt}/30)."
             if npm view "@roastcodes/ttdash@${RELEASE_VERSION}" version >/dev/null 2>&1; then
               exit 0
             fi

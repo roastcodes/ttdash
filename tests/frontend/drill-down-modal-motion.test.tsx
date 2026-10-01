@@ -1,3 +1,4 @@
+import type * as Recharts from 'recharts'
 // @vitest-environment jsdom
 
 import type { ReactNode } from 'react'
@@ -10,7 +11,8 @@ import { APP_MOTION } from '@/lib/motion'
 import type { DailyUsage } from '@/types'
 import { renderWithAppProviders, withAppProviders } from '../test-utils'
 
-vi.mock('recharts', () => ({
+vi.mock('recharts', async (importOriginal) => ({
+  ...(await importOriginal<typeof Recharts>()),
   AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   PieChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -48,11 +50,11 @@ function renderWithMotionPreference(
   return renderWithAppProviders(<>{ui}</>, { motionPreference: preference })
 }
 
-const RADIAL_ANIMATION_BEGIN_MS = CHART_ANIMATION.chartStartDelay + 20
-const RADIAL_ANIMATION_DURATION_MS = CHART_ANIMATION.radialDuration
+const RADIAL_ANIMATION_BEGIN_MS = 0
+const RADIAL_ANIMATION_DURATION_MS = CHART_ANIMATION.updateDuration
 const RADIAL_ANIMATION_EASING = CHART_ANIMATION.easing
-const TOKEN_INPUT_DELAY_MS = APP_MOTION.staggerMs * 2
-const TOKEN_THINKING_DELAY_MS = APP_MOTION.staggerMs * 4
+const TOKEN_INPUT_DELAY_MS = 0
+const TOKEN_THINKING_DELAY_MS = 0
 const TOKEN_SEGMENT_DURATION_MS = APP_MOTION.meterDurationMs
 
 function buildDay(): DailyUsage {
@@ -101,7 +103,7 @@ describe('DrillDownModal motion and positioning', () => {
         constructor(private callback: IntersectionObserverCallback) {}
         observe(target: Element) {
           this.callback(
-            [{ isIntersecting: true, target } as IntersectionObserverEntry],
+            [{ isIntersecting: true, intersectionRatio: 1, target } as IntersectionObserverEntry],
             this as unknown as IntersectionObserver,
           )
         }

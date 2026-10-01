@@ -1,6 +1,8 @@
+import { MotionArea as Area, MotionLine as Line, TimeSeriesReveal } from '../../charts/chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from '../../charts/chart-axis'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { ComposedChart, CartesianGrid, Tooltip, Legend } from 'recharts'
 import {
   ChartCard,
   ChartAnimationAware,
@@ -246,11 +248,12 @@ export function CostForecast({
         valueFormatter={formatCurrency}
         {...(onExpand ? { onExpand } : {})}
       >
-        <ChartAnimationAware>
+        <ChartAnimationAware data={chartData}>
           {(animate) => (
             <ChartReveal variant="line">
               <ChartResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData} margin={CHART_MARGIN}>
+                  <TimeSeriesReveal />
                   <defs>
                     <linearGradient id="forecast-cost-grad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.3} />

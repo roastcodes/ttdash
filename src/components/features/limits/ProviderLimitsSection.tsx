@@ -1,17 +1,15 @@
+import { MotionArea as Area, MotionLine as Line, TimeSeriesReveal } from '../../charts/chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from '../../charts/chart-axis'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Area,
   CartesianGrid,
   ComposedChart,
   Legend,
-  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   type TooltipValueType,
-  XAxis,
-  YAxis,
 } from 'recharts'
 import { AlertTriangle, CreditCard, ShieldCheck, TrendingUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -786,11 +784,12 @@ export function ProviderLimitsSection({
           valueKey="totalCost"
           valueFormatter={formatCurrency}
         >
-          <ChartAnimationAware>
+          <ChartAnimationAware data={timelineData}>
             {(animate) => (
               <ChartReveal variant="line">
                 <ResponsiveContainer width="100%" height={320}>
                   <ComposedChart data={timelineData} margin={CHART_MARGIN}>
+                    <TimeSeriesReveal />
                     <defs>
                       <linearGradient id="limits-risk-area" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="rgb(248 113 113)" stopOpacity={0.28} />

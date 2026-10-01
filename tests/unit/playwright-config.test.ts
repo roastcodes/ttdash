@@ -94,6 +94,9 @@ describe('playwright config', () => {
 
     expect(specs.map((spec) => spec.filename)).toEqual([
       'command-palette.spec.ts',
+      'dashboard-chart-layout.spec.ts',
+      'dashboard-chart-motion.spec.ts',
+      'dashboard-chart-stress.spec.ts',
       'dashboard-correctness.spec.ts',
       'dashboard-forecast-filters.spec.ts',
       'dashboard-load-upload.spec.ts',
@@ -122,9 +125,17 @@ describe('playwright config', () => {
 
   it('keeps Playwright as a representative smoke suite instead of a contract matrix', async () => {
     const specs = await readE2ESpecs()
-    const totalTests = specs.reduce((count, spec) => {
-      return count + (spec.source.match(/\btest\(/g) ?? []).length
-    }, 0)
+    // Native SVG geometry, viewport collisions and CPU throttling require separate browser checks.
+    const geometrySpecs = new Set([
+      'dashboard-chart-layout.spec.ts',
+      'dashboard-chart-motion.spec.ts',
+      'dashboard-chart-stress.spec.ts',
+    ])
+    const totalTests = specs
+      .filter((spec) => !geometrySpecs.has(spec.filename))
+      .reduce((count, spec) => {
+        return count + (spec.source.match(/\btest\(/g) ?? []).length
+      }, 0)
 
     expect(totalTests).toBeGreaterThan(8)
     expect(totalTests).toBeLessThan(20)

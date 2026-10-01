@@ -1,18 +1,13 @@
+import {
+  MotionArea as Area,
+  MotionLine as Line,
+  MotionPie as Pie,
+  TimeSeriesReveal,
+} from './chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from './chart-axis'
 import { useMemo, useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts'
+import { ComposedChart, CartesianGrid, Tooltip, Legend, PieChart, Cell, Label } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
@@ -43,25 +38,17 @@ function formatRequests(value: number) {
   }).format(value)
 }
 
-function RequestCenterLabel({
-  viewBox,
-  total,
-}: {
-  viewBox?: { cx: number; cy: number }
-  total: string
-}) {
+function RequestCenterLabel({ x, y, total }: { x?: number; y?: number; total: string }) {
   const { t } = useTranslation()
-  if (!viewBox) return null
-  const { cx, cy } = viewBox
-
+  if (x === undefined || y === undefined) return null
   return (
     <g>
-      <text x={cx} y={cy - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={11}>
+      <text x={x} y={y - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={11}>
         {t('charts.requestsOverTime.total')}
       </text>
       <text
-        x={cx}
-        y={cy + 14}
+        x={x}
+        y={y + 14}
         textAnchor="middle"
         className="fill-foreground"
         fontSize={16}
@@ -142,7 +129,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
   }
 
   const expandedChart = (
-    <ChartAnimationAware>
+    <ChartAnimationAware data={data} partitionKey={viewMode}>
       {(animate) => (
         <div className="mt-6 space-y-5">
           <div>
@@ -152,6 +139,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
             <ChartReveal variant="line">
               <ChartResponsiveContainer width="100%" height={360}>
                 <ComposedChart data={data} margin={CHART_MARGIN}>
+                  <TimeSeriesReveal />
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
                   <XAxis
                     dataKey="date"
@@ -257,10 +245,10 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
     >
       {(expanded) => {
         const lineHeight = expanded ? 420 : 320
-        const donutHeight = expanded ? 440 : 340
-        const innerRadius = expanded ? 70 : 54
-        const outerRadius = expanded ? 112 : 82
-        const donutCenterY = expanded ? '48%' : '46%'
+        const donutHeight = expanded ? 300 : 220
+        const innerRadius = expanded ? '47%' : '49%'
+        const outerRadius = '75%'
+        const donutCenterY = '50%'
 
         return (
           <>
@@ -312,11 +300,12 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
               className={`grid gap-4 ${expanded ? 'grid-cols-1 xl:grid-cols-3' : 'grid-cols-1 lg:grid-cols-3'}`}
             >
               <div className={expanded ? 'xl:col-span-2' : 'lg:col-span-2'}>
-                <ChartAnimationAware>
+                <ChartAnimationAware data={data} partitionKey={viewMode}>
                   {(animate) => (
                     <ChartReveal variant="line">
                       <ChartResponsiveContainer width="100%" height={lineHeight}>
                         <ComposedChart data={data} margin={CHART_MARGIN} onClick={handleClick}>
+                          <TimeSeriesReveal />
                           <defs>
                             <linearGradient id={`${uid}-requests`} x1="0" y1="0" x2="0" y2="1">
                               <stop
@@ -409,47 +398,54 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
               </div>
 
               <div className="min-w-0 pt-1">
-                <ChartAnimationAware>
+                <ChartAnimationAware data={donutData} partitionKey={viewMode}>
                   {(animate) => (
-                    <ChartReveal variant="radial">
-                      <ChartResponsiveContainer width="100%" height={donutHeight}>
-                        <PieChart>
-                          <Pie
-                            data={donutData}
-                            cx="50%"
-                            cy={donutCenterY}
-                            innerRadius={innerRadius}
-                            outerRadius={outerRadius}
-                            paddingAngle={2}
-                            dataKey="value"
-                            nameKey="name"
-                            {...getRadialAnimationProps(animate)}
-                          >
-                            {donutData.map((entry) => (
-                              <Cell key={entry.name} fill={getModelColor(entry.name)} />
-                            ))}
-                            <RequestCenterLabel
-                              total={summary ? formatRequests(summary.totalRequests) : '0'}
-                            />
-                          </Pie>
-                          <Tooltip
-                            content={<CustomTooltip formatter={(v) => formatRequests(v)} />}
-                          />
-                          <Legend
-                            content={
-                              <ChartLegend
-                                className={expanded ? 'pt-[18px]' : 'pt-2'}
-                                renderLabel={(entry: { value?: string | number }) => {
-                                  const value = String(entry.value ?? '')
-                                  const segment = donutData.find((item) => item.name === value)
-                                  return `${value} (${segment ? formatRequests(segment.value) : ''})`
-                                }}
+                    <>
+                      <ChartReveal variant="radial">
+                        <ChartResponsiveContainer width="100%" height={donutHeight}>
+                          <PieChart>
+                            <Pie
+                              data={donutData}
+                              cx="50%"
+                              cy={donutCenterY}
+                              innerRadius={innerRadius}
+                              outerRadius={outerRadius}
+                              paddingAngle={2}
+                              dataKey="value"
+                              nameKey="name"
+                              {...getRadialAnimationProps(animate)}
+                            >
+                              {donutData.map((entry) => (
+                                <Cell key={entry.name} fill={getModelColor(entry.name)} />
+                              ))}
+                              <Label
+                                position="center"
+                                content={
+                                  <RequestCenterLabel
+                                    total={summary ? formatRequests(summary.totalRequests) : '0'}
+                                  />
+                                }
                               />
-                            }
-                          />
-                        </PieChart>
-                      </ChartResponsiveContainer>
-                    </ChartReveal>
+                            </Pie>
+                            <Tooltip
+                              content={<CustomTooltip formatter={(v) => formatRequests(v)} />}
+                            />
+                          </PieChart>
+                        </ChartResponsiveContainer>
+                      </ChartReveal>
+                      <ChartLegend
+                        payload={donutData.map((entry) => ({
+                          id: entry.name,
+                          value: entry.name,
+                          color: getModelColor(entry.name),
+                        }))}
+                        renderLabel={(entry) => {
+                          const value = String(entry.value ?? '')
+                          const segment = donutData.find((item) => item.name === value)
+                          return `${value} (${segment ? formatRequests(segment.value) : ''})`
+                        }}
+                      />
+                    </>
                   )}
                 </ChartAnimationAware>
               </div>

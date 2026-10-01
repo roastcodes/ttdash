@@ -14,7 +14,7 @@ export const CHART_COLORS = {
 }
 
 /** Defines the default chart margins used across the dashboard. */
-export const CHART_MARGIN = { top: 5, right: 10, left: 10, bottom: 5 }
+export const CHART_MARGIN = { top: 8, right: 16, left: 8, bottom: 12 }
 
 /** Defines the shared chart animation timings. */
 export const CHART_ANIMATION = {
@@ -24,8 +24,9 @@ export const CHART_ANIMATION = {
   slowDuration: 520,
   chartStartDelay: 35,
   barDuration: 420,
-  radialDuration: 520,
-  revealDuration: 240,
+  radialDuration: 560,
+  revealDuration: 200,
+  updateDuration: 200,
 }
 
 /** Shared opacity stops for filled line/area gradients. */

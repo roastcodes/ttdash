@@ -41,6 +41,7 @@ export function useMotionVisibility<T extends Element>(
   ref: RefObject<T | null>,
   amount = 0.2,
   observeParent = false,
+  observeSelector?: string,
 ) {
   const observerAvailable = typeof IntersectionObserver !== 'undefined'
   const [isInView, setIsInView] = useState(!observerAvailable)
@@ -51,16 +52,36 @@ export function useMotionVisibility<T extends Element>(
   )
 
   useEffect(() => {
-    const element = observeParent ? ref.current?.parentElement : ref.current
+    const container = observeParent ? ref.current?.parentElement : ref.current
+    const element = observeSelector
+      ? (container?.querySelector(observeSelector) ?? container)
+      : container
     if (!element || typeof IntersectionObserver === 'undefined') return
 
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsInView(Boolean(entry?.isIntersecting)),
-      { threshold: amount },
-    )
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [amount, observeParent, ref])
+    let observer: IntersectionObserver
+    const observe = () => {
+      observer?.disconnect()
+      const bounds = element.getBoundingClientRect()
+      // Tall plots can exceed a viewport; their visible viewport portion still deserves a reveal.
+      const threshold = observeSelector
+        ? amount *
+          Math.min(1, window.innerWidth / Math.max(bounds.width, 1)) *
+          Math.min(1, window.innerHeight / Math.max(bounds.height, 1))
+        : amount
+      observer = new IntersectionObserver(
+        ([entry]) =>
+          setIsInView(Boolean(entry?.isIntersecting && entry.intersectionRatio >= threshold)),
+        { threshold },
+      )
+      observer.observe(element)
+    }
+    observe()
+    window.addEventListener('resize', observe)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', observe)
+    }
+  }, [amount, observeParent, observeSelector, ref])
 
   return {
     isInView: isInView && documentVisible,
