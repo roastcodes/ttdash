@@ -1,18 +1,11 @@
+import { MotionScatter as Scatter } from './chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from './chart-axis'
 import { getRequestCountStatus } from '../../../shared/usage-quality.js'
-import { useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  ResponsiveContainer,
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ZAxis,
-} from 'recharts'
+import { ResponsiveContainer, ScatterChart, CartesianGrid, Tooltip, ZAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
+import { ChartAnimationAware, ChartReveal } from './ChartCard'
 import { InfoHeading } from '@/components/ui/info-heading'
 import { CHART_COLORS, CHART_MARGIN, getScatterAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
@@ -145,8 +138,6 @@ function CorrelationPanel({
   xTickFormatter,
   yAxisName,
   footer,
-  showPoints,
-  animatePoints,
 }: {
   title: string
   subtitle: string
@@ -158,11 +149,7 @@ function CorrelationPanel({
   xTickFormatter?: (value: number) => string
   yAxisName: string
   footer: string
-  showPoints: boolean
-  animatePoints: boolean
 }) {
-  const chartData = showPoints ? data : []
-
   return (
     <div>
       <div>
@@ -172,39 +159,48 @@ function CorrelationPanel({
           </div>
           <div className="text-[10px] text-muted-foreground">{subtitle}</div>
         </div>
-        <ResponsiveContainer width="100%" height={260}>
-          <ScatterChart margin={CHART_MARGIN}>
-            <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.25} />
-            <XAxis
-              type="number"
-              dataKey="x"
-              stroke={CHART_COLORS.axis}
-              fontSize={10}
-              tickLine={false}
-              name={xAxisName}
-              {...(xTickFormatter ? { tickFormatter: xTickFormatter } : {})}
-            />
-            <YAxis
-              type="number"
-              dataKey="y"
-              stroke={CHART_COLORS.axis}
-              fontSize={10}
-              tickLine={false}
-              axisLine={false}
-              name={yAxisName}
-              tickFormatter={formatCurrency}
-            />
-            <ZAxis type="number" dataKey="z" range={[30, 180]} />
-            <Tooltip content={<ScatterTooltip mode={mode} />} cursor={{ strokeDasharray: '4 4' }} />
-            <Scatter
-              data={chartData}
-              fill={color}
-              stroke={color}
-              fillOpacity={0.72}
-              {...getScatterAnimationProps(animatePoints, animationBegin)}
-            />
-          </ScatterChart>
-        </ResponsiveContainer>
+        <ChartAnimationAware data={data}>
+          {(animatePoints) => (
+            <ChartReveal variant="scatter">
+              <ResponsiveContainer width="100%" height={260}>
+                <ScatterChart margin={CHART_MARGIN}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.25} />
+                  <XAxis
+                    type="number"
+                    dataKey="x"
+                    stroke={CHART_COLORS.axis}
+                    fontSize={10}
+                    tickLine={false}
+                    name={xAxisName}
+                    {...(xTickFormatter ? { tickFormatter: xTickFormatter } : {})}
+                  />
+                  <YAxis
+                    type="number"
+                    dataKey="y"
+                    stroke={CHART_COLORS.axis}
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    name={yAxisName}
+                    tickFormatter={formatCurrency}
+                  />
+                  <ZAxis type="number" dataKey="z" range={[30, 180]} />
+                  <Tooltip
+                    content={<ScatterTooltip mode={mode} />}
+                    cursor={{ strokeDasharray: '4 4' }}
+                  />
+                  <Scatter
+                    data={data}
+                    fill={color}
+                    stroke={color}
+                    fillOpacity={0.72}
+                    {...getScatterAnimationProps(animatePoints, animationBegin)}
+                  />
+                </ScatterChart>
+              </ResponsiveContainer>
+            </ChartReveal>
+          )}
+        </ChartAnimationAware>
         <div className="mt-2 text-xs text-muted-foreground">{footer}</div>
       </div>
     </div>
@@ -214,13 +210,6 @@ function CorrelationPanel({
 /** Renders scatter-plot based correlation analysis for the current dataset. */
 export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   const { t } = useTranslation()
-  const cardRef = useRef<HTMLDivElement | null>(null)
-  const chartMotion = useDashboardElementMotion(cardRef, {
-    kind: 'chart',
-    amount: 0.28,
-  })
-  const showPoints = chartMotion.shouldReduceMotion || chartMotion.active
-  const animatePoints = !chartMotion.shouldReduceMotion && chartMotion.active
   const requestVsCost = useMemo<ScatterPoint[]>(
     () =>
       data
@@ -270,7 +259,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
 
   if (data.length < 2) {
     return (
-      <Card ref={cardRef}>
+      <Card>
         <CardHeader>
           <InfoHeading info={CHART_HELP.correlationAnalysis}>
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -288,7 +277,7 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   }
 
   return (
-    <Card ref={cardRef}>
+    <Card>
       <CardHeader>
         <InfoHeading info={CHART_HELP.correlationAnalysis}>
           <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -298,28 +287,22 @@ export function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <CorrelationPanel
-          key={`request-cost-${chartMotion.runKey}`}
           title={t('charts.correlation.requestsVsCost')}
           subtitle={`r ${requestCostCorrelation.toFixed(2)} · ${t('charts.correlation.points', { count: requestVsCost.length })}`}
           mode="requestCost"
           data={requestVsCost}
           color={CHART_COLORS.cost}
-          showPoints={showPoints}
-          animatePoints={animatePoints}
           xAxisName={t('charts.correlation.requestsAxis')}
           yAxisName={t('charts.correlation.cost')}
           footer={getCorrelationInterpretation(t, requestCostCorrelation, 'requestCost')}
         />
 
         <CorrelationPanel
-          key={`cache-cost-${chartMotion.runKey}`}
           title={t('charts.correlation.cacheVsCostPerRequest')}
           subtitle={`r ${cacheEfficiencyCorrelation.toFixed(2)} · ${t('charts.correlation.points', { count: cacheVsCostPerRequest.length })}`}
           mode="cacheEfficiency"
           data={cacheVsCostPerRequest}
           color={CHART_COLORS.cumulative}
-          showPoints={showPoints}
-          animatePoints={animatePoints}
           animationBegin={70}
           xAxisName={t('charts.correlation.cacheRate')}
           xTickFormatter={(value) => formatPercent(value, 0)}

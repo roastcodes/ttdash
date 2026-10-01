@@ -1,7 +1,10 @@
+import { toDistributionBins as toBins, type DistributionBin } from '@/lib/chart-distributions'
+import { MotionBar as Bar } from './chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from './chart-axis'
 import { getRequestCountStatus } from '../../../shared/usage-quality.js'
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts'
+import { BarChart, CartesianGrid, Tooltip, Cell } from 'recharts'
 import {
   ChartAnimationAware,
   ChartCard,
@@ -19,46 +22,9 @@ interface DistributionAnalysisProps {
   viewMode?: ViewMode
 }
 
-interface DistributionBin {
-  label: string
-  rangeStart: number
-  rangeEnd: number
-  count: number
-}
-
 interface DistributionSeries {
   title: string
   data: DistributionBin[]
-}
-
-function toBins(values: number[], formatter: (value: number) => string): DistributionBin[] {
-  if (values.length === 0) return []
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const bucketCount = Math.min(8, Math.max(4, Math.ceil(Math.sqrt(values.length))))
-  const span = max - min || 1
-  const bucketSize = span / bucketCount
-
-  const bins = Array.from({ length: bucketCount }, (_, index) => {
-    const rangeStart = min + bucketSize * index
-    const rangeEnd = index === bucketCount - 1 ? max : rangeStart + bucketSize
-    return {
-      label: `${formatter(rangeStart)}–${formatter(rangeEnd)}`,
-      rangeStart,
-      rangeEnd,
-      count: 0,
-    }
-  })
-
-  for (const value of values) {
-    const bucketIndex = Math.min(bucketCount - 1, Math.floor((value - min) / bucketSize))
-    const bucket = bins[bucketIndex]
-    if (bucket) {
-      bucket.count += 1
-    }
-  }
-
-  return bins
 }
 
 function DistributionTooltip({
@@ -80,7 +46,7 @@ function DistributionTooltip({
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground">{t('charts.distribution.interval')}</span>
-          <span className="font-mono font-medium">{entry.payload.label}</span>
+          <span className="font-mono font-medium">{entry.payload.exactLabel}</span>
         </div>
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground">{t('charts.distribution.dataPoints')}</span>
@@ -161,7 +127,7 @@ function DistributionCharts({
     <div className="space-y-5">
       {distributions.map((distribution, index) => (
         <div key={distribution.title}>
-          <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
               {distribution.title}
             </div>
@@ -174,13 +140,13 @@ function DistributionCharts({
           {distribution.data.length === 0 && (
             <p className="text-xs text-muted-foreground">{t('common.notAvailable')}</p>
           )}
-          <ChartAnimationAware>
+          <ChartAnimationAware data={distribution.data}>
             {(animate) => (
               <ChartReveal variant="bar">
                 <ChartResponsiveContainer
                   key={`distribution-${runKey}-${index}`}
                   width="100%"
-                  height={160}
+                  height={220}
                 >
                   <BarChart data={distribution.data} margin={CHART_MARGIN}>
                     <defs>
@@ -205,10 +171,7 @@ function DistributionCharts({
                       stroke={CHART_COLORS.axis}
                       fontSize={10}
                       tickLine={false}
-                      interval={0}
-                      angle={distribution.data.length > 5 ? -16 : 0}
-                      textAnchor={distribution.data.length > 5 ? 'end' : 'middle'}
-                      height={distribution.data.length > 5 ? 48 : 30}
+                      interval="preserveStartEnd"
                     />
                     <YAxis
                       stroke={CHART_COLORS.axis}

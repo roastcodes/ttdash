@@ -1,3 +1,4 @@
+import type * as Recharts from 'recharts'
 // @vitest-environment jsdom
 
 import { act, render, screen } from '@testing-library/react'
@@ -9,7 +10,8 @@ import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
 import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
 
-vi.mock('recharts', () => ({
+vi.mock('recharts', async (importOriginal) => ({
+  ...(await importOriginal<typeof Recharts>()),
   AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer data-testid="responsive-container">{children}</MockSvgContainer>
@@ -61,6 +63,7 @@ class MockIntersectionObserver {
       [
         {
           isIntersecting,
+          intersectionRatio: isIntersecting ? 1 : 0,
           target: document.createElement('div'),
         } as IntersectionObserverEntry,
       ],
@@ -107,12 +110,8 @@ describe('DistributionAnalysis', () => {
       </TooltipProvider>,
     )
 
-    expect(screen.getAllByTestId('distribution-bar-count')).not.toHaveLength(0)
-    expect(
-      screen
-        .getAllByTestId('distribution-bar-count')
-        .every((bar) => bar.dataset.animate === 'false'),
-    ).toBe(true)
+    expect(screen.queryAllByTestId('distribution-bar-count')).toHaveLength(0)
+    expect(screen.getAllByTestId('distribution-bar-chart')).toHaveLength(3)
 
     act(() => {
       MockIntersectionObserver.instances.forEach((observer) => observer.trigger(true))
@@ -123,5 +122,10 @@ describe('DistributionAnalysis', () => {
         .getAllByTestId('distribution-bar-count')
         .every((bar) => bar.dataset.animate === 'true'),
     ).toBe(true)
+
+    act(() => {
+      MockIntersectionObserver.instances.forEach((observer) => observer.trigger(false))
+    })
+    expect(screen.getAllByTestId('distribution-bar-count')).toHaveLength(3)
   })
 })

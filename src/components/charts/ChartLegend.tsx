@@ -31,12 +31,17 @@ export function ChartLegend({ payload, className, renderLabel, filterEntry }: Ch
           const key = entry.id ?? entry.dataKey ?? `${label}-${color}-${index}`
 
           return (
-            <div key={String(key)} className="inline-flex min-w-0 items-center gap-2 text-xs">
+            <div
+              key={String(key)}
+              className="inline-flex max-w-full min-w-0 items-center gap-2 text-xs"
+            >
               <span
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: color }}
               />
-              <span className="min-w-0 break-words text-muted-foreground">{renderedLabel}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere] text-muted-foreground">
+                {renderedLabel}
+              </span>
             </div>
           )
         })}

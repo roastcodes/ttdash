@@ -1,6 +1,8 @@
+import { MotionArea as Area, MotionLine as Line, TimeSeriesReveal } from './chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from './chart-axis'
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { ComposedChart, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
@@ -58,7 +60,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
       valueKey="cost"
       valueFormatter={formatCurrency}
     >
-      <ChartAnimationAware>
+      <ChartAnimationAware data={data}>
         {(animate) => (
           <ChartReveal variant="line">
             <ChartResponsiveContainer width="100%" height={300}>
@@ -78,6 +80,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
                   }
                 }}
               >
+                <TimeSeriesReveal />
                 <defs>
                   <linearGradient id={`${uid}-gradCostLine`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.3} />

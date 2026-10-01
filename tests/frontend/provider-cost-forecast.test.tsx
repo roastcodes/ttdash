@@ -1,3 +1,4 @@
+import type * as Recharts from 'recharts'
 // @vitest-environment jsdom
 
 import { cloneElement, type ReactElement, type ReactNode } from 'react'
@@ -8,10 +9,11 @@ import { computeCurrentMonthProviderForecasts } from '@/lib/calculations'
 import { initI18n } from '@/lib/i18n'
 import { getProviderBadgeStyle } from '@/lib/model-utils'
 import type { DailyUsage } from '@/types'
-import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
+import { MockSvgContainer, MockSvgGroup, VisibleIntersectionObserver } from '../recharts-test-utils'
 import { renderWithTooltip } from '../test-utils'
 
-vi.mock('recharts', () => ({
+vi.mock('recharts', async (importOriginal) => ({
+  ...(await importOriginal<typeof Recharts>()),
   AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer>{children}</MockSvgContainer>
@@ -164,6 +166,7 @@ describe('ProviderCostForecast', () => {
   })
 
   beforeEach(() => {
+    vi.stubGlobal('IntersectionObserver', VisibleIntersectionObserver)
     vi.restoreAllMocks()
   })
 

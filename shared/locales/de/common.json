@@ -634,6 +634,7 @@
       "shareShort": "Anteil",
       "req": "Anfragen",
       "reqShare": "Anfragen %",
+      "costPerMillion": "$/1M",
       "costPerReq": "Kosten / Anfrage",
       "tokensPerReq": "Tokens / Anfrage",
       "cacheShare": "Cache %",

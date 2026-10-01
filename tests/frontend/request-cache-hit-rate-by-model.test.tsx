@@ -1,3 +1,4 @@
+import type * as Recharts from 'recharts'
 // @vitest-environment jsdom
 
 import { render, screen } from '@testing-library/react'
@@ -7,9 +8,10 @@ import { RequestCacheHitRateByModel } from '@/components/charts/RequestCacheHitR
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { initI18n } from '@/lib/i18n'
 import type { DailyUsage } from '@/types'
-import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
+import { MockSvgContainer, MockSvgGroup, VisibleIntersectionObserver } from '../recharts-test-utils'
 
-vi.mock('recharts', () => ({
+vi.mock('recharts', async (importOriginal) => ({
+  ...(await importOriginal<typeof Recharts>()),
   AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer data-testid="responsive-container">{children}</MockSvgContainer>
@@ -47,13 +49,6 @@ vi.mock('recharts', () => ({
   Cell: () => null,
 }))
 
-class MockIntersectionObserver {
-  constructor() {}
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
 function buildDay(overrides: Partial<DailyUsage>): DailyUsage {
   return {
     date: '2026-04-01',
@@ -84,7 +79,7 @@ function buildDay(overrides: Partial<DailyUsage>): DailyUsage {
 
 describe('RequestCacheHitRateByModel', () => {
   beforeEach(async () => {
-    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+    vi.stubGlobal('IntersectionObserver', VisibleIntersectionObserver)
     await initI18n('en')
   })
 

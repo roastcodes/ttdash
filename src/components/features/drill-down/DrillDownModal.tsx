@@ -1,3 +1,4 @@
+import { MotionPie as Pie } from '../../charts/chart-motion'
 import { useMemo, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -9,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
+import { ResponsiveContainer, PieChart, Cell, Tooltip } from 'recharts'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
 import { getRadialAnimationProps } from '@/components/charts/chart-theme'
 import {
@@ -471,7 +472,7 @@ export function DrillDownModal({
                   <div className="text-xs text-muted-foreground">
                     {t('drillDown.costShareByModel')}
                   </div>
-                  <ChartAnimationAware>
+                  <ChartAnimationAware data={pieData}>
                     {(animate) => (
                       <ResponsiveContainer width="100%" height={220}>
                         <PieChart>
@@ -507,12 +508,14 @@ export function DrillDownModal({
                   className="rounded-xl border border-border/50 bg-muted/10 p-3"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <span
                         className="h-2.5 w-2.5 rounded-full"
                         style={{ backgroundColor: getModelColor(model.name) }}
                       />
-                      <span className="truncate font-medium">{model.name}</span>
+                      <span className="min-w-0 font-medium [overflow-wrap:anywhere]">
+                        {model.name}
+                      </span>
                       <span
                         className={cn(
                           'inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] leading-none font-medium',

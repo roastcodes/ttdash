@@ -1,15 +1,7 @@
+import { MotionArea as Area, MotionLine as Line, TimeSeriesReveal } from './chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from './chart-axis'
 import { useId } from 'react'
-import {
-  ComposedChart,
-  Area,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts'
+import { ComposedChart, LineChart, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
@@ -50,7 +42,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
 
   // Expanded extra: taller chart with per-model 7-day MA lines
   const expandedChart = (
-    <ChartAnimationAware>
+    <ChartAnimationAware data={data}>
       {(animate) => (
         <div className="mt-6">
           <div className="mb-2 text-[10px] tracking-wider text-muted-foreground uppercase">
@@ -59,6 +51,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
           <ChartReveal variant="line">
             <ChartResponsiveContainer width="100%" height={350}>
               <LineChart data={data} margin={CHART_MARGIN}>
+                <TimeSeriesReveal />
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
                 <XAxis
                   dataKey="date"
@@ -120,11 +113,12 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
       valueFormatter={formatCurrency}
       expandedExtra={expandedChart}
     >
-      <ChartAnimationAware>
+      <ChartAnimationAware data={data}>
         {(animate) => (
           <ChartReveal variant="line">
             <ChartResponsiveContainer width="100%" height={300}>
               <ComposedChart data={data} margin={CHART_MARGIN}>
+                <TimeSeriesReveal />
                 <defs>
                   {models.map((model) => {
                     const color = getModelColor(model)

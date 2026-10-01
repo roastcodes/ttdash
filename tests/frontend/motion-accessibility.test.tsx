@@ -161,10 +161,8 @@ describe('motion accessibility', () => {
     const dialog = screen.getByRole('dialog')
 
     expect(screen.getByTestId('motion-probe')).toHaveTextContent('full')
-    expect(screen.getByTestId('chart-content').parentElement?.style.width).toBe('')
-    expect(screen.getByTestId('chart-content').parentElement?.parentElement?.style.width).toBe(
-      '100%',
-    )
+    expect(screen.getByTestId('chart-content').parentElement?.style.width).toBe('100%')
+    expect(screen.getByTestId('chart-content').parentElement?.style.overflow).toBe('visible')
     expect(dialog).toHaveClass('dialog-motion')
   })
 })

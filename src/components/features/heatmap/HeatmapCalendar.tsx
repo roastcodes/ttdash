@@ -9,7 +9,7 @@ import {
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { DASHBOARD_MOTION, useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
+import { useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
 import { InfoHeading } from '@/components/ui/info-heading'
 import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatTokens, localToday } from '@/lib/formatters'
@@ -56,7 +56,8 @@ export function HeatmapCalendar({
   const overlayRef = useRef<HTMLDivElement>(null)
   const heatmapMotion = useDashboardElementMotion(cardRef, {
     kind: 'chart',
-    amount: 0.32,
+    observeSelector: '[data-heatmap-plot]',
+    amount: 0.12,
   })
   const dayLabels = useMemo(() => buildHeatmapDayLabels(locale), [locale])
   const fullDateFormatter = useMemo(
@@ -187,7 +188,7 @@ export function HeatmapCalendar({
       </CardHeader>
       <CardContent className="overflow-visible">
         <div ref={overlayRef} className="relative z-10 overflow-visible">
-          <div className="overflow-x-auto overflow-y-hidden">
+          <div className="overflow-x-auto overflow-y-hidden" data-heatmap-plot>
             <svg
               width={svgWidth}
               height={svgHeight}
@@ -236,10 +237,8 @@ export function HeatmapCalendar({
                   initial={false}
                   animate={{ opacity: heatmapMotion.hasRevealed ? 1 : 0 }}
                   transition={{
-                    duration: heatmapMotion.canAnimate ? 0.24 : 0,
-                    delay: heatmapMotion.canAnimate
-                      ? Math.min(rowIndex * DASHBOARD_MOTION.itemStaggerMs, 140) / 1000
-                      : 0,
+                    duration: heatmapMotion.canAnimate ? 0.16 : 0,
+                    delay: heatmapMotion.canAnimate ? Math.min(rowIndex * 12, 72) / 1000 : 0,
                   }}
                 >
                   {row.map((cell) => {

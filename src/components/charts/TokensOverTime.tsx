@@ -1,6 +1,8 @@
+import { MotionArea as Area, MotionLine as Line, TimeSeriesReveal } from './chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from './chart-axis'
 import { useMemo, useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Line } from 'recharts'
+import { ComposedChart, CartesianGrid, Tooltip } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import {
@@ -77,7 +79,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
   }
 
   const totalChart = (
-    <ChartAnimationAware>
+    <ChartAnimationAware data={totalPerDay}>
       {(animate) => (
         <div className="mt-4">
           <div className="mb-1 text-[10px] tracking-wider text-muted-foreground uppercase">
@@ -86,6 +88,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
           <ChartReveal variant="line">
             <ChartResponsiveContainer width="100%" height={180}>
               <ComposedChart data={totalPerDay} margin={CHART_MARGIN}>
+                <TimeSeriesReveal />
                 <defs>
                   <linearGradient id={gid('total')} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.25} />
@@ -181,7 +184,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
         <div className="mb-1 text-[10px] tracking-wider text-muted-foreground uppercase">
           {t('charts.tokensOverTime.cacheTokens')}
         </div>
-        <ChartAnimationAware>
+        <ChartAnimationAware data={data}>
           {(animate) => (
             <ChartReveal variant="line">
               <ChartResponsiveContainer width="100%" height={150}>
@@ -190,6 +193,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                   margin={{ ...CHART_MARGIN, bottom: 0 }}
                   onClick={handleClick}
                 >
+                  <TimeSeriesReveal />
                   <defs>
                     <linearGradient id={gid('cacheRead')} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={CHART_COLORS.cacheRead} stopOpacity={0.25} />
@@ -271,11 +275,12 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
         <div className="mb-1 text-[10px] tracking-wider text-muted-foreground uppercase">
           {t('charts.tokensOverTime.inputOutputTokens')}
         </div>
-        <ChartAnimationAware>
+        <ChartAnimationAware data={data}>
           {(animate) => (
             <ChartReveal variant="line">
               <ChartResponsiveContainer width="100%" height={150}>
                 <ComposedChart data={data} margin={CHART_MARGIN} onClick={handleClick}>
+                  <TimeSeriesReveal />
                   <defs>
                     <linearGradient id={gid('output')} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={CHART_COLORS.output} stopOpacity={0.25} />
@@ -355,11 +360,12 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
         <div className="mb-1 text-[10px] tracking-wider text-muted-foreground uppercase">
           {t('charts.tokensOverTime.thinkingTokens')}
         </div>
-        <ChartAnimationAware>
+        <ChartAnimationAware data={data}>
           {(animate) => (
             <ChartReveal variant="line">
               <ChartResponsiveContainer width="100%" height={110}>
                 <ComposedChart data={data} margin={CHART_MARGIN} onClick={handleClick}>
+                  <TimeSeriesReveal />
                   <defs>
                     <linearGradient id={gid('thinking')} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={CHART_COLORS.cost} stopOpacity={0.25} />

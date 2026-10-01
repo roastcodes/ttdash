@@ -1,4 +1,5 @@
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
+import { MotionPie as Pie } from './chart-motion'
+import { ResponsiveContainer, PieChart, Cell, Tooltip, Label } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
@@ -12,18 +13,17 @@ interface CostByModelProps {
   data: { name: string; value: number }[]
 }
 
-function CenterLabel({ viewBox, total }: { viewBox?: { cx: number; cy: number }; total: string }) {
+function CenterLabel({ x, y, total }: { x?: number; y?: number; total: string }) {
   const { t } = useTranslation()
-  if (!viewBox) return null
-  const { cx, cy } = viewBox
+  if (x === undefined || y === undefined) return null
   return (
     <g>
-      <text x={cx} y={cy - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={11}>
+      <text x={x} y={y - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={11}>
         {t('charts.costByModel.total')}
       </text>
       <text
-        x={cx}
-        y={cy + 14}
+        x={x}
+        y={y + 14}
         textAnchor="middle"
         className="fill-foreground"
         fontSize={16}
@@ -54,7 +54,7 @@ export function CostByModel({ data }: CostByModelProps) {
       subtitle={t('charts.costByModel.subtitle')}
       summary={
         topDriver ? (
-          <span className="max-w-[10rem] truncate">
+          <span className="block [overflow-wrap:anywhere]">
             {topDriver.name} · {formatPercent(topDriver.share, 0)}
           </span>
         ) : undefined
@@ -65,10 +65,10 @@ export function CostByModel({ data }: CostByModelProps) {
       valueFormatter={formatCurrency}
     >
       {(expanded) => {
-        const chartHeight = expanded ? 360 : 220
+        const chartHeight = expanded ? 320 : 220
         const pieCenterY = '50%'
-        const innerRadius = expanded ? 84 : 58
-        const outerRadius = expanded ? 134 : 92
+        const innerRadius = '53%'
+        const outerRadius = '84%'
         const legendPayload = data.map((entry) => ({
           id: entry.name,
           value: entry.name,
@@ -76,7 +76,7 @@ export function CostByModel({ data }: CostByModelProps) {
         }))
 
         return (
-          <ChartAnimationAware>
+          <ChartAnimationAware data={data}>
             {(animate) => (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col">
@@ -98,7 +98,10 @@ export function CostByModel({ data }: CostByModelProps) {
                           {data.map((entry) => (
                             <Cell key={entry.name} fill={getModelColor(entry.name)} />
                           ))}
-                          <CenterLabel total={formatCurrency(total)} />
+                          <Label
+                            position="center"
+                            content={<CenterLabel total={formatCurrency(total)} />}
+                          />
                         </Pie>
                         <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} />} />
                       </PieChart>
@@ -115,11 +118,11 @@ export function CostByModel({ data }: CostByModelProps) {
                   />
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,140px),1fr))] gap-2">
                   {leadingSegments.map((entry) => (
                     <div
                       key={entry.name}
-                      className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2"
+                      className="min-w-0 rounded-lg border border-border/60 bg-muted/20 px-3 py-2"
                     >
                       <div className="flex items-start gap-2">
                         <span
@@ -127,7 +130,7 @@ export function CostByModel({ data }: CostByModelProps) {
                           style={{ backgroundColor: getModelColor(entry.name) }}
                         />
                         <div className="min-w-0">
-                          <div className="truncate text-xs font-medium text-foreground">
+                          <div className="text-xs font-medium [overflow-wrap:anywhere] text-foreground">
                             {entry.name}
                           </div>
                           <div className="text-[11px] text-muted-foreground">

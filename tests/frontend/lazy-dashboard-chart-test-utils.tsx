@@ -1,3 +1,4 @@
+import type * as Recharts from 'recharts'
 import type { ReactNode } from 'react'
 import { expect, vi } from 'vitest'
 import type { DailyUsage, TokenChartDataPoint, WeekdayData } from '@/types'
@@ -41,7 +42,8 @@ vi.mock('@/lib/model-color-context', () => ({
   }),
 }))
 
-vi.mock('recharts', () => ({
+vi.mock('recharts', async (importOriginal) => ({
+  ...(await importOriginal<typeof Recharts>()),
   AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer>{children}</MockSvgContainer>

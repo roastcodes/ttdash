@@ -15,7 +15,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, ...props 
     transition: { duration: 0 },
   }
   const motionProps =
-    shouldReduceMotion || dashboardSectionMotion
+    shouldReduceMotion || dashboardSectionMotion || typeof IntersectionObserver === 'undefined'
       ? staticMotion
       : {
           initial: { opacity: 0, y: 6 },
@@ -30,7 +30,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, ...props 
       {...props}
       {...motionProps}
       className={cn(
-        'relative rounded-xl border border-border/50 bg-card/80 text-card-foreground shadow-[var(--shadow-card)] transition-colors duration-150 motion-reduce:transition-none',
+        'relative min-w-0 rounded-xl border border-border/50 bg-card/80 text-card-foreground shadow-[var(--shadow-card)] transition-colors duration-150 motion-reduce:transition-none',
         className,
       )}
     />
@@ -56,7 +56,7 @@ CardTitle.displayName = 'CardTitle'
 
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('p-4 pt-0', className)} {...props} />
+    <div ref={ref} className={cn('min-w-0 p-4 pt-0', className)} {...props} />
   ),
 )
 CardContent.displayName = 'CardContent'

@@ -1,5 +1,7 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts'
-import { useState, useId } from 'react'
+import { MotionBar as Bar } from './chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from './chart-axis'
+import { BarChart, CartesianGrid, Tooltip, Cell } from 'recharts'
+import { useState, useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
@@ -56,18 +58,22 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const uid = useId()
   const gid = (n: string) => `${uid}-${n}`.replace(/:/g, '')
-  const chartData = [...data].sort((left, right) => {
-    if (left.weekdayIndex === undefined && right.weekdayIndex === undefined) {
-      return 0
-    }
-    if (left.weekdayIndex === undefined) {
-      return 1
-    }
-    if (right.weekdayIndex === undefined) {
-      return -1
-    }
-    return left.weekdayIndex - right.weekdayIndex
-  })
+  const chartData = useMemo(
+    () =>
+      [...data].sort((left, right) => {
+        if (left.weekdayIndex === undefined && right.weekdayIndex === undefined) {
+          return 0
+        }
+        if (left.weekdayIndex === undefined) {
+          return 1
+        }
+        if (right.weekdayIndex === undefined) {
+          return -1
+        }
+        return left.weekdayIndex - right.weekdayIndex
+      }),
+    [data],
+  )
 
   const maxCost = Math.max(...chartData.map((d) => d.cost))
   const minCost = Math.min(...chartData.map((d) => d.cost))
@@ -91,7 +97,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
       valueKey="cost"
       valueFormatter={formatCurrency}
     >
-      <ChartAnimationAware>
+      <ChartAnimationAware data={chartData}>
         {(animate) => (
           <ChartReveal variant="bar">
             <ChartResponsiveContainer width="100%" height={300}>

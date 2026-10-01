@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { AnimationControllerProvider, ResponsiveContainer } from 'recharts'
+import { ResponsiveContainer } from 'recharts'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
 import { ZoomDialogContent } from '@/components/ui/zoom-dialog-content'
@@ -24,7 +24,7 @@ import {
   useDashboardSectionMotion,
 } from '@/components/dashboard/DashboardMotion'
 import { CHART_ANIMATION } from './chart-theme'
-import { createChartAnimationController } from './chart-animation-controller'
+import { PlotMotionProvider } from './chart-motion'
 import { cn } from '@/lib/cn'
 import { buildCsvLine } from '@/lib/csv'
 import { formatCurrency } from '@/lib/formatters'
@@ -90,8 +90,8 @@ export function ChartResponsiveContainer(props: ComponentProps<typeof Responsive
     typeof props.height === 'number' && expanded !== null
       ? Math.round(
           props.height >= 250
-            ? Math.max(props.height * 1.6, Math.min(expanded * 0.62, 800))
-            : props.height * 1.6,
+            ? Math.max(220, Math.min(expanded * 0.62, 720))
+            : Math.max(180, Math.min(expanded * 0.35, 360)),
         )
       : props.height
   return <ResponsiveContainer {...props} {...(height !== undefined ? { height } : {})} />
@@ -131,10 +131,21 @@ export function useChartAnimationRunKey() {
 }
 
 /** Exposes the current chart animation state to a render prop. */
-export function ChartAnimationAware({ children }: { children: (active: boolean) => ReactNode }) {
+export function ChartAnimationAware({
+  children,
+  data,
+  partitionKey,
+}: {
+  children: (active: boolean) => ReactNode
+  data?: readonly unknown[] | undefined
+  partitionKey?: string | undefined
+}) {
   const ref = useRef<HTMLDivElement | null>(null)
-  const [animationController] = useState(createChartAnimationController)
-  const visibility = useDashboardElementMotion(ref, { kind: 'chart', amount: 0.12 })
+  const visibility = useDashboardElementMotion(ref, {
+    kind: 'chart',
+    amount: 0.12,
+    observeSelector: '.recharts-responsive-container',
+  })
   const state = useMemo(
     () => ({
       active: visibility.canAnimate,
@@ -147,9 +158,15 @@ export function ChartAnimationAware({ children }: { children: (active: boolean) 
   return (
     <div ref={ref} className="h-full min-h-0 w-full" data-chart-animate={String(state.active)}>
       <ChartAnimationContext.Provider value={state}>
-        <AnimationControllerProvider value={animationController}>
+        <PlotMotionProvider
+          ready={visibility.hasRevealed}
+          visible={visibility.canAnimate}
+          enabled={!visibility.shouldReduceMotion && typeof IntersectionObserver !== 'undefined'}
+          data={data}
+          partitionKey={partitionKey}
+        >
           {children(state.active)}
-        </AnimationControllerProvider>
+        </PlotMotionProvider>
       </ChartAnimationContext.Provider>
     </div>
   )
@@ -157,7 +174,7 @@ export function ChartAnimationAware({ children }: { children: (active: boolean) 
 
 interface ChartRevealProps {
   children: ReactNode
-  variant?: 'line' | 'bar' | 'radial'
+  variant?: 'line' | 'bar' | 'radial' | 'scatter'
 }
 
 /** Wraps chart content in the shared reveal policy for its chart variant. */
@@ -168,14 +185,13 @@ export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
   const wrapperStyle = {
     width: '100%',
     height: '100%',
-    overflow: variant === 'radial' ? 'visible' : 'hidden',
-    transformOrigin: variant === 'bar' ? 'center bottom' : 'center center',
+    overflow: 'visible',
     paddingTop: variant === 'radial' ? 8 : 0,
     paddingBottom: variant === 'radial' ? 8 : 0,
     boxSizing: 'border-box',
   } as const
 
-  if (shouldReduceMotion) {
+  if (shouldReduceMotion || variant !== 'scatter') {
     return <div style={wrapperStyle}>{children}</div>
   }
 
@@ -183,7 +199,7 @@ export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
     <motion.div
       style={wrapperStyle}
       initial={false}
-      animate={revealed ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
+      animate={revealed ? { opacity: 1 } : { opacity: 0 }}
       transition={{
         duration: state.active ? CHART_ANIMATION.revealDuration / 1000 : 0,
         delay: 0,
@@ -279,16 +295,18 @@ export function ChartCard({
 
   const header = (
     <CardHeader className={cn('pb-2', expandable && 'pr-16')}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
+      <div className="chart-card-heading">
+        <div className="flex min-w-0 items-start gap-2">
+          <CardTitle className="min-w-0 text-sm font-semibold break-words text-foreground">
+            {title}
+          </CardTitle>
           {info && <InfoButton text={info} />}
         </div>
-        <div className="flex min-w-0 flex-1 justify-end">
-          {summary && (
-            <div className="min-w-0 text-sm font-semibold text-foreground">{summary}</div>
-          )}
-        </div>
+        {summary && (
+          <div className="chart-card-summary min-w-0 text-sm font-semibold text-foreground">
+            {summary}
+          </div>
+        )}
       </div>
       {subtitle && <CardDescription className="mt-0.5">{subtitle}</CardDescription>}
     </CardHeader>
@@ -297,7 +315,11 @@ export function ChartCard({
   return (
     <>
       <ChartAnimationContext.Provider value={animationState}>
-        <Card ref={cardRef} data-testid="chart-card" className={cn('group relative', className)}>
+        <Card
+          ref={cardRef}
+          data-testid="chart-card"
+          className={cn('group @container/chart-card relative', className)}
+        >
           {header}
           <CardContent>{renderChildren(false)}</CardContent>
           {expandable && (

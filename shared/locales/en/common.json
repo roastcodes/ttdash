@@ -634,6 +634,7 @@
       "shareShort": "Share",
       "req": "Req",
       "reqShare": "Req %",
+      "costPerMillion": "$/1M",
       "costPerReq": "$ / Req",
       "tokensPerReq": "Tokens / Req",
       "cacheShare": "Cache %",

@@ -1,6 +1,8 @@
+import { MotionArea as Area, MotionLine as Line, TimeSeriesReveal } from './chart-motion'
+import { ChartXAxis as XAxis, ChartYAxis as YAxis } from './chart-axis'
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { ComposedChart, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
@@ -178,11 +180,12 @@ export function CumulativeCostPerProvider({ data, forecast }: CumulativeCostPerP
       info={CHART_HELP.cumulativeCostPerProvider}
       chartData={chartData}
     >
-      <ChartAnimationAware>
+      <ChartAnimationAware data={chartData}>
         {(animate) => (
           <ChartReveal variant="line">
             <ChartResponsiveContainer width="100%" height={300}>
               <ComposedChart data={chartData} margin={CHART_MARGIN}>
+                <TimeSeriesReveal />
                 <defs>
                   {seriesMeta.map((series) => (
                     <linearGradient

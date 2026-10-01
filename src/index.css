@@ -258,3 +258,34 @@ body {
   filter: invert(0.9) brightness(1.2);
   opacity: 0.95;
 }
+
+.chart-card-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chart-card-summary {
+  overflow-wrap: anywhere;
+}
+
+section[id] {
+  overflow-wrap: anywhere;
+}
+
+.chart-card-summary > * {
+  max-width: 100%;
+}
+
+@container chart-card (min-width: 480px) {
+  .chart-card-heading {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .chart-card-summary {
+    max-width: 40%;
+    flex-shrink: 0;
+  }
+}

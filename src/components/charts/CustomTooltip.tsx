@@ -119,7 +119,7 @@ export function CustomTooltip({
   const deltaLabel = t('customTooltip.delta')
 
   return (
-    <div className="max-w-[280px] rounded-lg border border-border/50 bg-popover/90 p-3 text-xs shadow-lg backdrop-blur-xl">
+    <div className="max-w-[280px] rounded-lg border border-border/50 bg-popover/90 p-3 text-xs [overflow-wrap:anywhere] shadow-lg backdrop-blur-xl">
       <p className="mb-1.5 font-medium text-muted-foreground">{label}</p>
       <div className="space-y-1.5">
         {actualEntries.map((entry, i) => {

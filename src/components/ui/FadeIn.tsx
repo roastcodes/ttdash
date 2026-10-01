@@ -27,7 +27,7 @@ export function FadeIn({
     none: {},
   }
 
-  if (shouldReduceMotion) {
+  if (shouldReduceMotion || typeof IntersectionObserver === 'undefined') {
     return <div className={className}>{children}</div>
   }
 

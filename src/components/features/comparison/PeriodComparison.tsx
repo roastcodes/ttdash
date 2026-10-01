@@ -162,7 +162,14 @@ export function PeriodComparison({ data, endDate }: PeriodComparisonProps) {
         {(periodA.length < days || periodB.length < days) && (
           <p className="mb-3 text-xs text-muted-foreground">{t('comparison.missingDays')}</p>
         )}
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          // Keyboard users need to reach the contained horizontal table scroll area.
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
+          role="region"
+          aria-label={t('comparison.title')}
+        >
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">

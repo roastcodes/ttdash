@@ -20,13 +20,13 @@ export const DASHBOARD_MOTION = {
   sectionPreloadIdleTimeoutMs: 160,
   sectionPreloadMinimumIdleMs: 8,
   sectionRevealAmount: 0.14,
-  sectionRevealOffset: 8,
-  sectionRevealDuration: 0.28,
+  sectionRevealOffset: 4,
+  sectionRevealDuration: 0.18,
   sectionRevealEase: APP_MOTION.ease,
   placeholderFadeDuration: 0.16,
   itemRevealAmount: 0.24,
-  itemRevealOffset: 6,
-  itemRevealDuration: 0.24,
+  itemRevealOffset: 0,
+  itemRevealDuration: 0.18,
   itemStaggerMs: APP_MOTION.staggerMs,
   chartStartDelayMs: 35,
   meterStartDelayMs: 35,
@@ -171,6 +171,7 @@ interface DashboardElementMotionOptions {
   amount?: number
   kind?: 'chart' | 'meter' | 'item'
   observeParent?: boolean
+  observeSelector?: string
   order?: number
   delayMs?: number
 }
@@ -191,13 +192,14 @@ export function useDashboardElementMotion<T extends Element>(
     amount = DASHBOARD_MOTION.itemRevealAmount,
     kind = 'item',
     observeParent = false,
+    observeSelector,
     order = 0,
     delayMs,
   }: DashboardElementMotionOptions = {},
 ): DashboardElementMotionState {
   const sectionMotion = useDashboardSectionMotion()
   const shouldReduceMotion = useShouldReduceMotion()
-  const visibility = useMotionVisibility(ref, amount, observeParent)
+  const visibility = useMotionVisibility(ref, amount, observeParent, observeSelector)
   const active = (sectionMotion?.sectionVisible ?? true) && visibility.isInView
   const [introduced, setIntroduced] = useState(false)
 
@@ -284,7 +286,7 @@ export function DashboardMotionItem({
 
   if (itemMotion.shouldReduceMotion) {
     return (
-      <div ref={itemRef} className={className} data-testid={dataTestId}>
+      <div ref={itemRef} className={cn('min-w-0', className)} data-testid={dataTestId}>
         {children}
       </div>
     )
@@ -293,7 +295,7 @@ export function DashboardMotionItem({
   return (
     <motion.div
       ref={itemRef}
-      className={className}
+      className={cn('min-w-0', className)}
       data-testid={dataTestId}
       aria-hidden={!itemMotion.hasRevealed}
       {...(!itemMotion.hasRevealed ? { style: { pointerEvents: 'none' as const } } : {})}

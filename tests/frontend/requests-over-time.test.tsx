@@ -1,3 +1,4 @@
+import type * as Recharts from 'recharts'
 // @vitest-environment jsdom
 
 import type { ReactNode } from 'react'
@@ -9,7 +10,8 @@ import type { RequestChartDataPoint } from '@/types'
 import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
 import { renderWithTooltip } from '../test-utils'
 
-vi.mock('recharts', () => ({
+vi.mock('recharts', async (importOriginal) => ({
+  ...(await importOriginal<typeof Recharts>()),
   AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer>{children}</MockSvgContainer>
@@ -100,7 +102,7 @@ describe('RequestsOverTime', () => {
       }),
     ]
 
-    renderWithTooltip(<RequestsOverTime data={data} />)
+    renderWithTooltip(<RequestsOverTime data={data} />, { motionPreference: 'always' })
 
     const lineNames = screen
       .getAllByTestId('request-line')
@@ -165,7 +167,7 @@ describe('RequestsOverTime', () => {
       ),
     ]
 
-    renderWithTooltip(<RequestsOverTime data={data} />)
+    renderWithTooltip(<RequestsOverTime data={data} />, { motionPreference: 'always' })
 
     fireEvent.click(screen.getByRole('button', { name: 'Requests over time expand' }))
 
