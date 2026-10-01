@@ -1,4 +1,5 @@
 import { ConcentrationRisk } from '../../features/risk/ConcentrationRisk'
+import { Disclosure } from '../../ui/disclosure'
 import { SectionHeader } from '../../ui/section-header'
 import { SECTION_HELP } from '@/lib/help-content'
 import type { DashboardSectionId } from '@/types'
@@ -53,36 +54,45 @@ export const analysisSectionRenderers = {
               </div>
               {renderLazySection(<CostByModel data={costAnalysis.modelPieData} />, 'h-[360px]')}
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {renderLazySection(
-                <CumulativeCostPerProvider
-                  data={costAnalysis.filteredData}
-                  forecast={costAnalysis.forecastState.providerForecast}
-                />,
-                'h-[320px]',
-              )}
-              {renderLazySection(
-                <CostByModelOverTime
-                  data={costAnalysis.modelCostChartData}
-                  models={costAnalysis.allModels}
-                />,
-                'h-[320px]',
-              )}
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {renderLazySection(
-                <CumulativeCost
-                  data={costAnalysis.costChartData}
-                  forecast={costAnalysis.forecastState.costForecast}
-                />,
-                'h-[320px]',
-              )}
-              {renderLazySection(<CostByWeekday data={costAnalysis.weekdayData} />, 'h-[320px]')}
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {renderLazySection(<TokenEfficiency data={costAnalysis.filteredData} />, 'h-[320px]')}
-              {renderLazySection(<ModelMix data={costAnalysis.filteredData} />, 'h-[320px]')}
-            </div>
+            <Disclosure
+              label={t('dashboard.costAnalysis.more')}
+              className="mt-3"
+              testId="cost-analysis-details"
+            >
+              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {renderLazySection(
+                  <CumulativeCostPerProvider
+                    data={costAnalysis.filteredData}
+                    forecast={costAnalysis.forecastState.providerForecast}
+                  />,
+                  'h-[320px]',
+                )}
+                {renderLazySection(
+                  <CostByModelOverTime
+                    data={costAnalysis.modelCostChartData}
+                    models={costAnalysis.allModels}
+                  />,
+                  'h-[320px]',
+                )}
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {renderLazySection(
+                  <CumulativeCost
+                    data={costAnalysis.costChartData}
+                    forecast={costAnalysis.forecastState.costForecast}
+                  />,
+                  'h-[320px]',
+                )}
+                {renderLazySection(<CostByWeekday data={costAnalysis.weekdayData} />, 'h-[320px]')}
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {renderLazySection(
+                  <TokenEfficiency data={costAnalysis.filteredData} />,
+                  'h-[320px]',
+                )}
+                {renderLazySection(<ModelMix data={costAnalysis.filteredData} />, 'h-[320px]')}
+              </div>
+            </Disclosure>
           </>,
           {
             onPreload: dashboardSectionPreloaders.costAnalysis,

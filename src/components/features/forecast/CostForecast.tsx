@@ -1,17 +1,12 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import {
-  ResponsiveContainer,
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts'
-import { ChartCard, ChartAnimationAware, ChartReveal } from '@/components/charts/ChartCard'
+  ChartCard,
+  ChartAnimationAware,
+  ChartReveal,
+  ChartResponsiveContainer,
+} from '@/components/charts/ChartCard'
 import { ChartLegend } from '@/components/charts/ChartLegend'
 import { CustomTooltip } from '@/components/charts/CustomTooltip'
 import {
@@ -254,7 +249,7 @@ export function CostForecast({
         <ChartAnimationAware>
           {(animate) => (
             <ChartReveal variant="line">
-              <ResponsiveContainer width="100%" height={250}>
+              <ChartResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData} margin={CHART_MARGIN}>
                   <defs>
                     <linearGradient id="forecast-cost-grad" x1="0" y1="0" x2="0" y2="1">
@@ -324,7 +319,7 @@ export function CostForecast({
                     {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
                 </ComposedChart>
-              </ResponsiveContainer>
+              </ChartResponsiveContainer>
             </ChartReveal>
           )}
         </ChartAnimationAware>

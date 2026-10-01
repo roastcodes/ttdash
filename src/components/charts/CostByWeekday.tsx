@@ -1,16 +1,7 @@
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts'
 import { useState, useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import { CHART_COLORS, CHART_MARGIN, getBarAnimationProps } from './chart-theme'
 import { coerceNumber, formatCurrency } from '@/lib/formatters'
@@ -103,7 +94,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="bar">
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartResponsiveContainer width="100%" height={300}>
               <BarChart
                 data={chartData}
                 margin={CHART_MARGIN}
@@ -166,7 +157,7 @@ export function CostByWeekday({ data }: CostByWeekdayProps) {
                   })}
                 </Bar>
               </BarChart>
-            </ResponsiveContainer>
+            </ChartResponsiveContainer>
           </ChartReveal>
         )}
       </ChartAnimationAware>

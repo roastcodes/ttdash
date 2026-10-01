@@ -3,10 +3,13 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync, spawn } = require('child_process');
-const { chromium } = require('@playwright/test');
+const { chromium, expect } = require('@playwright/test');
 const { createDefaultPersistedAppSettings } = require('../shared/app-settings.js');
 const { normalizeIncomingData } = require('../usage-normalizer.js');
-const { waitForRenderedChartData } = require('./rendered-chart-data.js');
+const {
+  countRenderedChartDataShapes,
+  waitForRenderedChartData,
+} = require('./rendered-chart-data.js');
 
 const root = path.resolve(__dirname, '..');
 const screenshotsDir = path.join(root, 'docs-site', 'public', 'screenshots');
@@ -321,7 +324,13 @@ async function captureScreenshots() {
         path: path.join(screenshotsDir, 'ttdash-dashboard.png'),
       });
 
+      await page.getByTestId('cost-analysis-details').getByRole('button').click();
       await page.locator('#charts').scrollIntoViewIfNeeded();
+      const costCards = page.locator('#charts').getByTestId('chart-card');
+      await expect(costCards).toHaveCount(8);
+      for (const card of await costCards.all()) {
+        await expect.poll(() => countRenderedChartDataShapes(card)).toBeGreaterThan(0);
+      }
       await waitForRenderedChartData(page, { sectionSelector: '#charts' });
       await page.locator('#charts').screenshot({
         path: path.join(screenshotsDir, 'ttdash-dashboard-analytics.png'),

@@ -1,7 +1,6 @@
 import { useMemo, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  ResponsiveContainer,
   ComposedChart,
   Area,
   Line,
@@ -14,7 +13,7 @@ import {
   Pie,
   Cell,
 } from 'recharts'
-import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import {
@@ -151,7 +150,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
               {trendHeading}
             </div>
             <ChartReveal variant="line">
-              <ResponsiveContainer width="100%" height={360}>
+              <ChartResponsiveContainer width="100%" height={360}>
                 <ComposedChart data={data} margin={CHART_MARGIN}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
                   <XAxis
@@ -197,7 +196,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                     />
                   ))}
                 </ComposedChart>
-              </ResponsiveContainer>
+              </ChartResponsiveContainer>
             </ChartReveal>
           </div>
 
@@ -316,7 +315,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                 <ChartAnimationAware>
                   {(animate) => (
                     <ChartReveal variant="line">
-                      <ResponsiveContainer width="100%" height={lineHeight}>
+                      <ChartResponsiveContainer width="100%" height={lineHeight}>
                         <ComposedChart data={data} margin={CHART_MARGIN} onClick={handleClick}>
                           <defs>
                             <linearGradient id={`${uid}-requests`} x1="0" y1="0" x2="0" y2="1">
@@ -403,7 +402,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                             />
                           ))}
                         </ComposedChart>
-                      </ResponsiveContainer>
+                      </ChartResponsiveContainer>
                     </ChartReveal>
                   )}
                 </ChartAnimationAware>
@@ -413,7 +412,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                 <ChartAnimationAware>
                   {(animate) => (
                     <ChartReveal variant="radial">
-                      <ResponsiveContainer width="100%" height={donutHeight}>
+                      <ChartResponsiveContainer width="100%" height={donutHeight}>
                         <PieChart>
                           <Pie
                             data={donutData}
@@ -449,7 +448,7 @@ export function RequestsOverTime({ data, viewMode = 'daily', onClickDay }: Reque
                             }
                           />
                         </PieChart>
-                      </ResponsiveContainer>
+                      </ChartResponsiveContainer>
                     </ChartReveal>
                   )}
                 </ChartAnimationAware>

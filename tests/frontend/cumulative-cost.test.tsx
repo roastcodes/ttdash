@@ -11,6 +11,7 @@ import { MockSvgContainer } from '../recharts-test-utils'
 import { renderWithTooltip } from '../test-utils'
 
 vi.mock('recharts', () => ({
+  AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer>{children}</MockSvgContainer>
   ),

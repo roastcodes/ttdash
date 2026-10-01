@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { Dialog } from '@/components/ui/dialog'
+import { ZoomDialogContent } from './zoom-dialog-content'
 import { EXPAND_BUTTON_CLASSNAME } from '@/components/ui/expand-button-styles'
 import { Maximize2 } from 'lucide-react'
 import { cn } from '@/lib/cn'
@@ -49,16 +50,11 @@ export function ExpandableCard({
 
       {!onExpand && (
         <Dialog open={expanded} onOpenChange={setExpanded}>
-          <DialogContent
-            className={cn(
-              'h-[92vh] max-h-[92vh] w-[96vw] max-w-[96vw] overflow-auto p-4 sm:h-[90vh] sm:max-h-[90vh] sm:w-[95vw] sm:max-w-[95vw] sm:p-6',
-              expandedClassName,
-            )}
+          <ZoomDialogContent
+            title={title ?? t('common.expand')}
+            description={t('common.expandedCardDescription')}
+            className={expandedClassName}
           >
-            <DialogTitle className="sr-only">{title ?? t('common.expand')}</DialogTitle>
-            <DialogDescription className="sr-only">
-              {t('common.expandedCardDescription')}
-            </DialogDescription>
             <div className="h-full">
               {stats && stats.length > 0 && (
                 <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -74,7 +70,7 @@ export function ExpandableCard({
               )}
               {children}
             </div>
-          </DialogContent>
+          </ZoomDialogContent>
         </Dialog>
       )}
     </>

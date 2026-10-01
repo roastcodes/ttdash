@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures'
+import { expect, test, openHeaderMenu } from './fixtures'
 import { gotoDashboard, mockPdfReport, resetAppState, uploadSampleUsage } from './helpers'
 
 test('uses the current UI language when generating a PDF report after switching locale', async ({
@@ -14,6 +14,7 @@ test('uses the current UI language when generating a PDF report after switching 
   await page.getByTestId('language-switcher-de').click()
   await expect(page.locator('html')).toHaveAttribute('lang', 'de')
 
+  await openHeaderMenu(page, 'export')
   await page.getByRole('button', { name: 'Report' }).click()
   await expect.poll(() => pdfReport.getReportRequest()?.language).toBe('de')
 
@@ -21,6 +22,7 @@ test('uses the current UI language when generating a PDF report after switching 
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   await expect(page.locator('#filters').getByText('Filter status')).toBeVisible()
 
+  await openHeaderMenu(page, 'export')
   await page.getByRole('button', { name: 'Report' }).click()
   await expect.poll(() => pdfReport.getReportRequest()?.language).toBe('en')
 })

@@ -18,10 +18,10 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, ...props 
     shouldReduceMotion || dashboardSectionMotion
       ? staticMotion
       : {
-          initial: { opacity: 0, y: 14 },
+          initial: { opacity: 0, y: 6 },
           whileInView: { opacity: 1, y: 0 },
           viewport: { once: true, amount: 0.15 },
-          transition: { duration: 0.35, ease: 'easeOut' as const },
+          transition: { duration: 0.24, ease: 'easeOut' as const },
         }
 
   return (
@@ -30,7 +30,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, ...props 
       {...props}
       {...motionProps}
       className={cn(
-        'relative rounded-xl border border-border/50 bg-card/80 text-card-foreground shadow-[var(--shadow-card)] backdrop-blur-xl transition-all duration-300 hover:border-border/80 hover:shadow-[var(--shadow-card-hover)] motion-reduce:transition-none',
+        'relative rounded-xl border border-border/50 bg-card/80 text-card-foreground shadow-[var(--shadow-card)] transition-colors duration-150 motion-reduce:transition-none',
         className,
       )}
     />

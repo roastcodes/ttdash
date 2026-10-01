@@ -42,10 +42,13 @@ export function downloadBlobFile(filename: string, blob: Blob) {
   triggerDownload(blob, filename)
 }
 
-/** Scrolls smoothly to a dashboard section when it exists in the current document. */
-export function scrollToSection(sectionId: string) {
+/** Scrolls to a dashboard section with the current motion preference. */
+export function scrollToSection(sectionId: string, shouldReduceMotion = false) {
   if (typeof document === 'undefined') return
-  document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  document.getElementById(sectionId)?.scrollIntoView({
+    behavior: shouldReduceMotion ? 'instant' : 'smooth',
+    block: 'start',
+  })
 }
 
 /** Registers the dashboard test hook that opens settings from browser tests. */

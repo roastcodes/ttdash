@@ -1,5 +1,5 @@
 import fsPromises from 'node:fs/promises'
-import { expect, test } from './fixtures'
+import { openHeaderMenu, expect, test } from './fixtures'
 import {
   createApiAuthHeaders,
   createApiUrl,
@@ -78,14 +78,14 @@ test('manages settings and backup imports through the settings dialog using isol
         .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-section-id'))),
     )
     .toEqual([
-      'insights',
       'metrics',
+      'costAnalysis',
+      'insights',
       'today',
       'currentMonth',
       'activity',
       'forecastCache',
       'limits',
-      'costAnalysis',
       'tokenAnalysis',
       'requestAnalysis',
       'advancedAnalysis',
@@ -152,7 +152,7 @@ test('manages settings and backup imports through the settings dialog using isol
   expect(exportedSettings.settings.defaultFilters.datePreset).toBe('30d')
   expect(exportedSettings.settings.sectionVisibility.tokenAnalysis).toBe(false)
   expect(exportedSettings.settings.sectionOrder.indexOf('tokenAnalysis')).toBeLessThan(
-    exportedSettings.settings.sectionOrder.indexOf('costAnalysis'),
+    exportedSettings.settings.sectionOrder.indexOf('limits'),
   )
 
   await page.getByRole('button', { name: exportDataButtonPattern }).click()
@@ -348,7 +348,9 @@ test('loads persisted settings on a fresh browser start and applies them immedia
     await expect(
       freshPage.locator('#filters').getByRole('combobox', { name: viewModeComboboxPattern }),
     ).toContainText(monthlyViewPattern)
+    await openHeaderMenu(freshPage, 'more')
     await expect(freshPage.getByRole('button', { name: deleteButtonPattern })).toBeVisible()
+    await freshPage.keyboard.press('Escape')
     await expect
       .poll(async () =>
         freshPage.evaluate(() => {

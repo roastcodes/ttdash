@@ -4,6 +4,7 @@ import { TodayMetrics } from '../../cards/TodayMetrics'
 import { MonthMetrics } from '../../cards/MonthMetrics'
 import { HeatmapCalendar } from '../../features/heatmap/HeatmapCalendar'
 import { UsageInsights } from '../../features/insights/UsageInsights'
+import { Disclosure } from '../../ui/disclosure'
 import { SectionHeader } from '../../ui/section-header'
 import { SECTION_HELP } from '@/lib/help-content'
 import type { DashboardSectionId } from '@/types'
@@ -46,17 +47,31 @@ export const overviewSectionRenderers = {
               info={SECTION_HELP.metrics}
             />
             <PrimaryMetrics
+              group="primary"
               metrics={overview.metrics}
               totalCalendarDays={overview.totalCalendarDays}
               viewMode={overview.viewMode}
             />
-            <div className="mt-4">
-              <SecondaryMetrics
+            <Disclosure
+              desktopOpen
+              label={t('dashboard.metrics.more')}
+              className="mt-3"
+              testId="metric-details"
+            >
+              <PrimaryMetrics
+                group="details"
                 metrics={overview.metrics}
-                dailyCosts={overview.dailyCosts}
+                totalCalendarDays={overview.totalCalendarDays}
                 viewMode={overview.viewMode}
               />
-            </div>
+              <div className="mt-3">
+                <SecondaryMetrics
+                  metrics={overview.metrics}
+                  dailyCosts={overview.dailyCosts}
+                  viewMode={overview.viewMode}
+                />
+              </div>
+            </Disclosure>
           </>,
           { eager: true },
         )

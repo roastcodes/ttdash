@@ -1,16 +1,7 @@
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from 'recharts'
-import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import {
   CHART_COLORS,
@@ -82,7 +73,7 @@ export function CumulativeCost({ data, forecast }: CumulativeCostProps) {
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="line">
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartResponsiveContainer width="100%" height={300}>
               <ComposedChart data={chartData} margin={CHART_MARGIN}>
                 <defs>
                   <linearGradient id={`${uid}-cumulGrad`} x1="0" y1="0" x2="0" y2="1">
@@ -142,7 +133,7 @@ export function CumulativeCost({ data, forecast }: CumulativeCostProps) {
                   {...getLineAnimationProps(animate, { role: 'secondary' })}
                 />
               </ComposedChart>
-            </ResponsiveContainer>
+            </ChartResponsiveContainer>
           </ChartReveal>
         )}
       </ChartAnimationAware>

@@ -10,6 +10,7 @@ import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
 import { renderWithTooltip } from '../test-utils'
 
 vi.mock('@/components/charts/ChartCard', () => ({
+  ChartResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   ChartCard: ({
     title,
     subtitle,
@@ -32,6 +33,7 @@ vi.mock('@/components/charts/ChartCard', () => ({
 }))
 
 vi.mock('recharts', () => ({
+  AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer>{children}</MockSvgContainer>
   ),

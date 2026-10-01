@@ -1,17 +1,7 @@
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts'
-import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import {
@@ -71,7 +61,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="line">
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartResponsiveContainer width="100%" height={300}>
               <ComposedChart
                 data={data}
                 margin={CHART_MARGIN}
@@ -144,7 +134,7 @@ export function CostOverTime({ data, onClickDay }: CostOverTimeProps) {
                   {...getLineAnimationProps(animate, { role: 'secondary' })}
                 />
               </ComposedChart>
-            </ResponsiveContainer>
+            </ChartResponsiveContainer>
           </ChartReveal>
         )}
       </ChartAnimationAware>

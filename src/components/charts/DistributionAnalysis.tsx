@@ -1,17 +1,14 @@
 import { getRequestCountStatus } from '../../../shared/usage-quality.js'
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts'
 import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-} from 'recharts'
-import { ChartAnimationAware, ChartCard, ChartReveal, useChartAnimationRunKey } from './ChartCard'
+  ChartAnimationAware,
+  ChartCard,
+  ChartReveal,
+  useChartAnimationRunKey,
+  ChartResponsiveContainer,
+} from './ChartCard'
 import { CHART_COLORS, CHART_MARGIN, getBarAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import { formatCurrency, formatNumber, formatTokens, periodLabel } from '@/lib/formatters'
@@ -180,7 +177,7 @@ function DistributionCharts({
           <ChartAnimationAware>
             {(animate) => (
               <ChartReveal variant="bar">
-                <ResponsiveContainer
+                <ChartResponsiveContainer
                   key={`distribution-${runKey}-${index}`}
                   width="100%"
                   height={160}
@@ -245,7 +242,7 @@ function DistributionCharts({
                       })}
                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
+                </ChartResponsiveContainer>
               </ChartReveal>
             )}
           </ChartAnimationAware>

@@ -30,6 +30,21 @@ export function chartCardByTitle(section: ReturnType<Page['locator']>, titlePatt
     .locator('xpath=ancestor::*[@data-testid="chart-card"][1]')
 }
 
+/** Reveals the secondary filters through the same control available to dashboard users. */
+export async function openDashboardFilters(page: Page) {
+  const toggle = page
+    .locator('#filters')
+    .getByRole('button', { name: /^(More filters|Weitere Filter)$/ })
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+}
+
+/** Opens one compact header action menu. */
+export async function openHeaderMenu(page: Page, label: 'data' | 'export' | 'more') {
+  const names = { data: /^(Data|Daten)$/, export: /^Export$/, more: /^(More|Mehr)$/ }
+  const summary = page.locator('header summary').filter({ hasText: names[label] })
+  await summary.click()
+}
+
 function buildWorkerServer(workerIndex: number) {
   const port = basePort + workerIndex
   const authToken = `ttdash-playwright-local-auth-token-worker-${workerIndex}-port-${port}`

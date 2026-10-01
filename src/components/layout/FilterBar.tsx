@@ -4,6 +4,8 @@ import type { DashboardFilterBarViewModel } from '@/types/dashboard-view-model'
 import { FilterBarChipFilters } from './FilterBarChipFilters'
 import { FilterBarDateRange } from './FilterBarDateRange'
 import { FilterBarQuickControls } from './FilterBarQuickControls'
+import { Disclosure } from '@/components/ui/disclosure'
+import { useTranslation } from 'react-i18next'
 import { FilterBarStatus } from './FilterBarStatus'
 
 type FilterBarProps = DashboardFilterBarViewModel
@@ -34,6 +36,7 @@ export function FilterBar({
   onClearSystems,
   onResetAll,
 }: FilterBarProps) {
+  const { t } = useTranslation()
   const activePreset = useMemo(
     () => resolveDashboardActivePreset({ selectedMonth, startDate, endDate }),
     [selectedMonth, startDate, endDate],
@@ -47,18 +50,26 @@ export function FilterBar({
     viewMode !== 'daily'
 
   return (
-    <div className="rounded-2xl border border-border/50 bg-card/40 px-3 py-3 backdrop-blur-xl">
+    <div className="rounded-2xl border border-border/50 bg-card px-3 py-3 sm:px-4">
       <div className="flex flex-col gap-3">
         <FilterBarStatus
           selectedProviders={selectedProviders}
           selectedModels={selectedModels}
+          selectedSystems={selectedSystems}
+          onToggleProvider={onToggleProvider}
+          onToggleModel={onToggleModel}
+          onToggleSystem={onToggleSystem}
+          onClearDateRange={() => {
+            onStartDateChange(undefined)
+            onEndDateChange(undefined)
+          }}
           startDate={startDate}
           endDate={endDate}
           hasCustomFilters={hasCustomFilters}
           onResetAll={onResetAll}
         />
 
-        <div className="grid grid-cols-1 gap-3 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
+        <div className="min-w-0">
           <FilterBarQuickControls
             viewMode={viewMode}
             onViewModeChange={onViewModeChange}
@@ -68,28 +79,30 @@ export function FilterBar({
             activePreset={activePreset}
             onApplyPreset={onApplyPreset}
           />
+        </div>
+        <Disclosure label={t('filterBar.moreFilters')} testId="filter-details">
           <FilterBarDateRange
             startDate={startDate}
             endDate={endDate}
             onStartDateChange={onStartDateChange}
             onEndDateChange={onEndDateChange}
           />
-        </div>
 
-        <FilterBarChipFilters
-          availableSystems={availableSystems}
-          selectedSystems={selectedSystems}
-          onToggleSystem={onToggleSystem}
-          onClearSystems={onClearSystems}
-          availableProviders={availableProviders}
-          selectedProviders={selectedProviders}
-          onToggleProvider={onToggleProvider}
-          onClearProviders={onClearProviders}
-          allModels={allModels}
-          selectedModels={selectedModels}
-          onToggleModel={onToggleModel}
-          onClearModels={onClearModels}
-        />
+          <FilterBarChipFilters
+            availableSystems={availableSystems}
+            selectedSystems={selectedSystems}
+            onToggleSystem={onToggleSystem}
+            onClearSystems={onClearSystems}
+            availableProviders={availableProviders}
+            selectedProviders={selectedProviders}
+            onToggleProvider={onToggleProvider}
+            onClearProviders={onClearProviders}
+            allModels={allModels}
+            selectedModels={selectedModels}
+            onToggleModel={onToggleModel}
+            onClearModels={onClearModels}
+          />
+        </Disclosure>
       </div>
     </div>
   )

@@ -20,10 +20,7 @@ const DialogOverlay = React.forwardRef<
       ref={ref}
       className={cn(
         'fixed inset-0 z-50 bg-black/60 backdrop-blur-sm',
-        getMotionAwareClasses(
-          shouldReduceMotion,
-          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-        ),
+        getMotionAwareClasses(shouldReduceMotion, 'overlay-motion'),
         className,
       )}
       {...props}
@@ -46,19 +43,17 @@ const DialogContent = React.forwardRef<
         ref={ref}
         className={cn(
           'fixed top-[50%] left-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-xl border border-border bg-card p-6 shadow-lg duration-200',
-          getMotionAwareClasses(
-            shouldReduceMotion,
-            'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
-          ),
+          getMotionAwareClasses(shouldReduceMotion, 'dialog-motion'),
           className,
         )}
         {...props}
       >
         {children}
         <DialogPrimitive.Close
+          data-dialog-close
           aria-label={t('common.close')}
           title={t('common.close')}
-          className="absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:outline-none"
+          className="absolute top-2 right-2 flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           <X className="h-4 w-4" />
         </DialogPrimitive.Close>

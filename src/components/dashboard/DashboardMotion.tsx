@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/cn'
-import { APP_MOTION, useShouldReduceMotion } from '@/lib/motion'
+import { APP_MOTION, useMotionVisibility, useShouldReduceMotion } from '@/lib/motion'
 
 /** Defines the shared dashboard motion timings for section reveal and child chart orchestration. */
 export const DASHBOARD_MOTION = {
@@ -20,16 +20,16 @@ export const DASHBOARD_MOTION = {
   sectionPreloadIdleTimeoutMs: 160,
   sectionPreloadMinimumIdleMs: 8,
   sectionRevealAmount: 0.14,
-  sectionRevealOffset: 12,
-  sectionRevealDuration: 0.6,
+  sectionRevealOffset: 8,
+  sectionRevealDuration: 0.28,
   sectionRevealEase: APP_MOTION.ease,
-  placeholderFadeDuration: 0.34,
+  placeholderFadeDuration: 0.16,
   itemRevealAmount: 0.24,
-  itemRevealOffset: 8,
-  itemRevealDuration: 0.42,
+  itemRevealOffset: 6,
+  itemRevealDuration: 0.24,
   itemStaggerMs: APP_MOTION.staggerMs,
-  chartStartDelayMs: 285,
-  meterStartDelayMs: 375,
+  chartStartDelayMs: 35,
+  meterStartDelayMs: 35,
   meterDurationMs: APP_MOTION.meterDurationMs,
 }
 
@@ -170,50 +170,18 @@ export function useDashboardSectionMotion() {
 interface DashboardElementMotionOptions {
   amount?: number
   kind?: 'chart' | 'meter' | 'item'
+  observeParent?: boolean
   order?: number
   delayMs?: number
 }
 
 interface DashboardElementMotionState {
   active: boolean
+  hasRevealed: boolean
+  canAnimate: boolean
   runKey: number
   delayMs: number
   shouldReduceMotion: boolean
-}
-
-function useElementInView<T extends Element>(ref: RefObject<T | null>, amount: number) {
-  const [isInView, setIsInView] = useState(typeof IntersectionObserver === 'undefined')
-
-  useEffect(() => {
-    if (typeof IntersectionObserver === 'undefined') {
-      setIsInView(true)
-      return
-    }
-
-    if (isInView) return
-
-    const element = ref.current
-    if (!element) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0]
-        if (entry?.isIntersecting) {
-          setIsInView(true)
-          observer.disconnect()
-        }
-      },
-      { threshold: amount },
-    )
-
-    observer.observe(element)
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [amount, isInView, ref])
-
-  return isInView
 }
 
 /** Tracks one dashboard element and only activates motion once the element itself is visible. */
@@ -222,24 +190,22 @@ export function useDashboardElementMotion<T extends Element>(
   {
     amount = DASHBOARD_MOTION.itemRevealAmount,
     kind = 'item',
+    observeParent = false,
     order = 0,
     delayMs,
   }: DashboardElementMotionOptions = {},
 ): DashboardElementMotionState {
   const sectionMotion = useDashboardSectionMotion()
   const shouldReduceMotion = useShouldReduceMotion()
-  const observerMissing = typeof IntersectionObserver === 'undefined'
-  const isInView = useElementInView(ref, amount)
-  const active = (sectionMotion?.sectionVisible ?? true) && (observerMissing ? true : isInView)
-  const [runKey, setRunKey] = useState(0)
-  const previousActiveRef = useRef(false)
+  const visibility = useMotionVisibility(ref, amount, observeParent)
+  const active = (sectionMotion?.sectionVisible ?? true) && visibility.isInView
+  const [introduced, setIntroduced] = useState(false)
 
   useEffect(() => {
-    if (active && !previousActiveRef.current) {
-      setRunKey((current) => current + 1)
-    }
-    previousActiveRef.current = active
+    if (active) setIntroduced(true)
   }, [active])
+
+  const hasRevealed = introduced || active || shouldReduceMotion
 
   const baseDelayMs =
     delayMs ??
@@ -249,8 +215,11 @@ export function useDashboardElementMotion<T extends Element>(
 
   return {
     active: shouldReduceMotion ? true : active,
-    runKey,
-    delayMs: baseDelayMs + order * DASHBOARD_MOTION.itemStaggerMs,
+    hasRevealed,
+    canAnimate: !shouldReduceMotion && visibility.canAnimate && active,
+    runKey: hasRevealed ? 1 : 0,
+    delayMs:
+      baseDelayMs + Math.min(order * DASHBOARD_MOTION.itemStaggerMs, APP_MOTION.maxStaggerMs),
     shouldReduceMotion,
   }
 }
@@ -290,7 +259,7 @@ export function DashboardMotionItem({
     )
 
     focusableElements.forEach((focusable) => {
-      if (!itemMotion.active) {
+      if (!itemMotion.hasRevealed) {
         if (!focusable.hasAttribute('data-dashboard-motion-tabindex')) {
           focusable.setAttribute(
             'data-dashboard-motion-tabindex',
@@ -311,7 +280,7 @@ export function DashboardMotionItem({
       }
       focusable.removeAttribute('data-dashboard-motion-tabindex')
     })
-  }, [itemMotion.active])
+  }, [itemMotion.hasRevealed])
 
   if (itemMotion.shouldReduceMotion) {
     return (
@@ -326,17 +295,17 @@ export function DashboardMotionItem({
       ref={itemRef}
       className={className}
       data-testid={dataTestId}
-      aria-hidden={!itemMotion.active}
-      {...(!itemMotion.active ? { style: { pointerEvents: 'none' as const } } : {})}
+      aria-hidden={!itemMotion.hasRevealed}
+      {...(!itemMotion.hasRevealed ? { style: { pointerEvents: 'none' as const } } : {})}
       initial={false}
       animate={
-        itemMotion.active
+        itemMotion.hasRevealed
           ? { opacity: 1, y: 0 }
           : { opacity: 0, y: DASHBOARD_MOTION.itemRevealOffset }
       }
       transition={{
-        duration: DASHBOARD_MOTION.itemRevealDuration,
-        delay: itemMotion.active ? itemMotion.delayMs / 1000 : 0,
+        duration: itemMotion.canAnimate ? DASHBOARD_MOTION.itemRevealDuration : 0,
+        delay: itemMotion.canAnimate ? itemMotion.delayMs / 1000 : 0,
         ease: DASHBOARD_MOTION.sectionRevealEase,
       }}
     >
@@ -371,9 +340,15 @@ export function AnimatedDashboardSection({
   const isMountedRef = useRef(true)
   const shouldReduceMotion = useShouldReduceMotion()
   const [contentPrepared, setContentPrepared] = useState(eager)
-  const [sectionVisible, setSectionVisible] = useState(eager)
+  const [sectionVisible, setSectionVisible] = useState(false)
+  const sectionVisibility = useMotionVisibility(sectionRef, DASHBOARD_MOTION.sectionRevealAmount)
 
   useEffect(() => {
+    if (sectionVisibility.isInView) setSectionVisible(true)
+  }, [sectionVisibility.isInView])
+
+  useEffect(() => {
+    isMountedRef.current = true
     return () => {
       isMountedRef.current = false
     }
@@ -407,7 +382,6 @@ export function AnimatedDashboardSection({
   useEffect(() => {
     if (eager) {
       void triggerPreload()
-      setSectionVisible(true)
       return
     }
 
@@ -432,26 +406,10 @@ export function AnimatedDashboardSection({
       },
     )
 
-    const revealObserver = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0]
-        if (entry?.isIntersecting) {
-          void triggerPreload()
-          setSectionVisible(true)
-          revealObserver.disconnect()
-        }
-      },
-      {
-        threshold: DASHBOARD_MOTION.sectionRevealAmount,
-      },
-    )
-
     preloadObserver.observe(element)
-    revealObserver.observe(element)
 
     return () => {
       preloadObserver.disconnect()
-      revealObserver.disconnect()
     }
   }, [eager, triggerPreload])
 
@@ -482,7 +440,7 @@ export function AnimatedDashboardSection({
         <div
           aria-hidden="true"
           className={cn(
-            'rounded-2xl border border-border/40 bg-card/50 backdrop-blur-xl',
+            'rounded-2xl border border-border/40 bg-card/50',
             placeholderClassName ?? 'min-h-[320px]',
           )}
         />
@@ -511,7 +469,10 @@ export function AnimatedDashboardSection({
                     : { opacity: 0, y: DASHBOARD_MOTION.sectionRevealOffset }
                 }
                 transition={{
-                  duration: DASHBOARD_MOTION.sectionRevealDuration,
+                  duration:
+                    sectionVisibility.canAnimate && !shouldReduceMotion
+                      ? DASHBOARD_MOTION.sectionRevealDuration
+                      : 0,
                   ease: DASHBOARD_MOTION.sectionRevealEase,
                 }}
                 className={contentClassName}
@@ -526,7 +487,7 @@ export function AnimatedDashboardSection({
                   <div
                     aria-hidden="true"
                     className={cn(
-                      'pointer-events-none absolute inset-0 rounded-2xl border border-border/40 bg-card/50 backdrop-blur-xl',
+                      'pointer-events-none absolute inset-0 rounded-2xl border border-border/40 bg-card/50',
                       placeholderClassName ?? 'min-h-[320px]',
                     )}
                   />
@@ -539,7 +500,7 @@ export function AnimatedDashboardSection({
                     exit={{ opacity: 0 }}
                     transition={{ duration: DASHBOARD_MOTION.placeholderFadeDuration }}
                     className={cn(
-                      'pointer-events-none absolute inset-0 rounded-2xl border border-border/40 bg-card/50 backdrop-blur-xl',
+                      'pointer-events-none absolute inset-0 rounded-2xl border border-border/40 bg-card/50',
                       placeholderClassName ?? 'min-h-[320px]',
                     )}
                   />

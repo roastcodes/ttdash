@@ -192,7 +192,7 @@ export function Dashboard({
           />
         </div>
 
-        <div key={controller.shell.animationKey} className="mt-4 space-y-4">
+        <div className="mt-4 space-y-4">
           <DashboardSections viewModel={controller.sections} />
         </div>
 

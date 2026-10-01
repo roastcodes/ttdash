@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { screen, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CHART_ANIMATION } from '@/components/charts/chart-theme'
 import { DrillDownModal } from '@/components/features/drill-down/DrillDownModal'
 import { initI18n } from '@/lib/i18n'
@@ -11,6 +11,7 @@ import type { DailyUsage } from '@/types'
 import { renderWithAppProviders, withAppProviders } from '../test-utils'
 
 vi.mock('recharts', () => ({
+  AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   PieChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   Pie: ({
@@ -92,7 +93,22 @@ function buildDay(): DailyUsage {
 }
 
 describe('DrillDownModal motion and positioning', () => {
+  afterEach(() => vi.unstubAllGlobals())
   beforeEach(async () => {
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(private callback: IntersectionObserverCallback) {}
+        observe(target: Element) {
+          this.callback(
+            [{ isIntersecting: true, target } as IntersectionObserverEntry],
+            this as unknown as IntersectionObserver,
+          )
+        }
+        disconnect() {}
+        unobserve() {}
+      },
+    )
     await initI18n('en')
   })
 
@@ -106,7 +122,7 @@ describe('DrillDownModal motion and positioning', () => {
 
     expect(dialog).toHaveClass('top-6')
     expect(dialog).toHaveClass('translate-y-0')
-    expect(dialog).toHaveClass('data-[state=open]:slide-in-from-top-[2rem]')
+    expect(dialog).toHaveClass('dialog-motion')
     expect(dialog).not.toHaveClass('translate-y-[-50%]')
   })
 

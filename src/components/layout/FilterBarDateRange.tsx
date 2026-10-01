@@ -447,7 +447,7 @@ export function FilterBarDateRange({
             onStartDateChange(undefined)
             onEndDateChange(undefined)
           }}
-          className="rounded-full border border-border px-3 py-2 text-xs font-medium transition-all duration-200 hover:border-accent hover:bg-accent"
+          className="rounded-full border border-border px-3 py-2 text-xs font-medium transition-colors duration-150 hover:border-accent hover:bg-accent"
         >
           {t('filterBar.resetDateRange')}
         </button>

@@ -17,6 +17,8 @@ The filter bar supports:
 - one or more providers
 - one or more models
 
+Open **More filters** for custom dates, systems, providers, and models. Active selections remain visible as removable chips even when these controls are collapsed.
+
 System, provider, and model filters combine with the selected time range. An empty system selection means all available systems. **Reset all** returns to your saved defaults, not necessarily the factory defaults. Configure those defaults in **Settings**.
 
 :::tip
@@ -27,7 +29,7 @@ Use daily aggregation to inspect exact activity and calendar heatmaps. Monthly a
 
 TTDash groups analysis into configurable sections:
 
-- insights and headline metrics
+- headline metrics, cost analysis, and insights
 - today and current-month summaries
 - cost, request, and token activity calendars
 - forecasts, cache ROI, and request quality
@@ -36,6 +38,12 @@ TTDash groups analysis into configurable sections:
 - distributions, correlations, and concentration risk
 - period comparisons and anomaly detection
 - provider, model, and recent-period tables
+
+The first four metrics show total cost, total tokens, requests, and cache share. **More metrics · 8** retains the other eight metrics, their explanations, and exact-value tooltips. These details start expanded on desktop and collapsed on mobile. Cost analysis starts with cost over time and model shares; **More cost analyses · 6** reveals the other six cost charts. Once opened, supplementary content retains its selections when collapsed or when usage is imported again.
+
+The previous factory section order updates to this overview-first order. Custom section order and visibility settings remain intact.
+
+Use **Import** for automatic import, **Data → Upload** for JSON files, **Export** for PDF reports and CSV, and **More → Delete** for data removal. Settings, language, theme, and help remain directly accessible.
 
 General metrics use the selected normalized daily rows. Today, current-month, and forecast views retain the source-system/provider/model selection but use their calendar context independently of the analysis date filter. Comparisons retain prior-period data outside that filter. Forecasts are estimates, not billing statements; compare important totals with your provider's official billing data.
 
@@ -55,7 +63,9 @@ The data-quality notice shows the most recent reported date, partial request cov
 
 Cost and request time-series points open a period drilldown. Recent-period table rows can be activated with a pointer, <kbd>Enter</kbd>, or <kbd>Space</kbd>. Inside a drilldown, use left and right arrow keys to move between available periods.
 
-Expanded charts preserve the current selection. Close an expanded view or dialog with <kbd>Escape</kbd>.
+Expanded charts preserve the current selection, statistics, extra analyses, and precise CSV values. Zoom windows use a fixed title and close button with a scrolling analysis area; time-series plots grow with the available viewport. Both forecast charts open the same forecast detail window. Close an expanded view or dialog with <kbd>Escape</kbd>; focus returns to the control that opened it.
+
+Sections and charts introduce themselves on their first visible appearance. Chart and meter animations run only while their content is visible, including inside scrolling zoom windows, and pause in a hidden browser tab. Scrolling back keeps revealed content in place. Visible value changes use short transitions. The app's reduced-motion setting also applies to zoom animations and section navigation.
 
 ## Customize sections
 

@@ -21,10 +21,7 @@ import {
   buildHeatmapGrid,
   getHeatmapColor as getColor,
   HEATMAP_CELL_SIZE as CELL_SIZE,
-  HEATMAP_CELL_STAGGER_DAY_OFFSET_MS as CELL_STAGGER_DAY_OFFSET_MS,
-  HEATMAP_CELL_STAGGER_WEEK_OFFSET_MS as CELL_STAGGER_WEEK_OFFSET_MS,
   HEATMAP_LEFT_GUTTER as LEFT_GUTTER,
-  HEATMAP_TODAY_OUTLINE_EXTRA_DELAY_MS as TODAY_OUTLINE_EXTRA_DELAY_MS,
   HEATMAP_TOP_GUTTER as TOP_GUTTER,
   HEATMAP_TOTAL_CELL_SIZE as TOTAL,
   resolveHeatmapDefaultFocusedDate,
@@ -104,9 +101,6 @@ export function HeatmapCalendar({
   )
 
   const todayStr = localToday()
-  const shouldReduceMotion = heatmapMotion.shouldReduceMotion
-  const animateCells = !shouldReduceMotion && heatmapMotion.active
-  const cellAnimationDelayMs = heatmapMotion.delayMs
   const axisColor = 'hsl(var(--muted-foreground))'
   const todayOutlineColor = 'hsl(var(--primary))'
   const [focusedDate, setFocusedDate] = useState<string | null>(null)
@@ -236,7 +230,18 @@ export function HeatmapCalendar({
 
               {/* Cells */}
               {cellRows.map((row, rowIndex) => (
-                <g key={rowIndex} role="row">
+                <motion.g
+                  key={rowIndex}
+                  role="row"
+                  initial={false}
+                  animate={{ opacity: heatmapMotion.hasRevealed ? 1 : 0 }}
+                  transition={{
+                    duration: heatmapMotion.canAnimate ? 0.24 : 0,
+                    delay: heatmapMotion.canAnimate
+                      ? Math.min(rowIndex * DASHBOARD_MOTION.itemStaggerMs, 140) / 1000
+                      : 0,
+                  }}
+                >
                   {row.map((cell) => {
                     const isToday = cell.date === todayStr
                     const formattedDate = fullDateFormatter.format(
@@ -246,49 +251,9 @@ export function HeatmapCalendar({
                       date: formattedDate,
                       value: config.formatter(cell.value),
                     })
-                    const cellMotionProps = shouldReduceMotion
-                      ? {}
-                      : {
-                          initial: { opacity: 0, fillOpacity: 0, scale: 0.96 },
-                          animate: {
-                            opacity: animateCells ? 1 : 0,
-                            fillOpacity: animateCells ? 1 : 0,
-                            scale: animateCells ? 1 : 0.96,
-                          },
-                          transition: {
-                            duration: 0.28,
-                            delay:
-                              (animateCells
-                                ? cellAnimationDelayMs +
-                                  cell.week *
-                                    (DASHBOARD_MOTION.itemStaggerMs + CELL_STAGGER_WEEK_OFFSET_MS) +
-                                  cell.day * CELL_STAGGER_DAY_OFFSET_MS
-                                : 0) / 1000,
-                            ease: [0.22, 1, 0.36, 1] as const,
-                          },
-                        }
-                    const todayOutlineMotionProps = shouldReduceMotion
-                      ? {}
-                      : {
-                          initial: { opacity: 0 },
-                          animate: { opacity: animateCells ? 1 : 0 },
-                          transition: {
-                            duration: 0.2,
-                            delay:
-                              (animateCells
-                                ? cellAnimationDelayMs +
-                                  cell.week *
-                                    (DASHBOARD_MOTION.itemStaggerMs + CELL_STAGGER_WEEK_OFFSET_MS) +
-                                  cell.day * CELL_STAGGER_DAY_OFFSET_MS +
-                                  TODAY_OUTLINE_EXTRA_DELAY_MS
-                                : 0) / 1000,
-                            ease: [0.22, 1, 0.36, 1] as const,
-                          },
-                        }
-
                     return (
                       <g key={cell.date}>
-                        <motion.rect
+                        <rect
                           ref={(node) => {
                             if (node) dayButtonRefs.current.set(cell.date, node)
                             else dayButtonRefs.current.delete(cell.date)
@@ -301,8 +266,8 @@ export function HeatmapCalendar({
                           fill={getColor(cell.value, maxValue, config.hue, isDark)}
                           stroke="transparent"
                           strokeWidth={1.5}
-                          className="transition-all duration-150 focus-visible:stroke-primary"
-                          tabIndex={focusedDate === cell.date ? 0 : -1}
+                          className="transition-colors duration-150 focus-visible:stroke-primary"
+                          tabIndex={heatmapMotion.hasRevealed && focusedDate === cell.date ? 0 : -1}
                           role="gridcell"
                           aria-label={accessibleLabel}
                           aria-current={isToday ? 'date' : undefined}
@@ -331,12 +296,11 @@ export function HeatmapCalendar({
                           }}
                           onBlur={() => setTooltip(null)}
                           onMouseLeave={() => setTooltip(null)}
-                          {...cellMotionProps}
                         >
                           <title>{accessibleLabel}</title>
-                        </motion.rect>
+                        </rect>
                         {isToday && (
-                          <motion.rect
+                          <rect
                             x={LEFT_GUTTER + cell.week * TOTAL - 1}
                             y={TOP_GUTTER + cell.day * TOTAL - 1}
                             width={CELL_SIZE + 2}
@@ -345,13 +309,12 @@ export function HeatmapCalendar({
                             fill="none"
                             stroke={todayOutlineColor}
                             strokeWidth={1.5}
-                            {...todayOutlineMotionProps}
                           />
                         )}
                       </g>
                     )
                   })}
-                </g>
+                </motion.g>
               ))}
             </svg>
           </div>

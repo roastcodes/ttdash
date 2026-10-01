@@ -8,13 +8,13 @@ import type { DashboardSectionId } from '@/types'
  */
 export const dashboardSectionPlaceholderClassName: Record<DashboardSectionId, string> = {
   insights: 'min-h-[260px]',
-  metrics: 'min-h-[320px]',
+  metrics: 'min-h-[370px] md:min-h-[490px]',
   today: 'min-h-[320px]',
   currentMonth: 'min-h-[360px]',
   activity: 'min-h-[360px]',
   forecastCache: 'min-h-[900px]',
   limits: 'min-h-[480px]',
-  costAnalysis: 'min-h-[1460px]',
+  costAnalysis: 'min-h-[820px] lg:min-h-[460px]',
   tokenAnalysis: 'min-h-[430px]',
   requestAnalysis: 'min-h-[1040px]',
   advancedAnalysis: 'min-h-[760px]',

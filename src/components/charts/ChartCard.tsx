@@ -1,16 +1,20 @@
 import {
   createContext,
   useState,
+  useEffect,
   useMemo,
   useCallback,
   useContext,
   useRef,
   type ReactNode,
+  type ComponentProps,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, useInView } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { AnimationControllerProvider, ResponsiveContainer } from 'recharts'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { Dialog } from '@/components/ui/dialog'
+import { ZoomDialogContent } from '@/components/ui/zoom-dialog-content'
 import { EXPAND_BUTTON_CLASSNAME } from '@/components/ui/expand-button-styles'
 import { Maximize2 } from 'lucide-react'
 import { InfoButton } from '@/components/ui/InfoButton'
@@ -20,6 +24,7 @@ import {
   useDashboardSectionMotion,
 } from '@/components/dashboard/DashboardMotion'
 import { CHART_ANIMATION } from './chart-theme'
+import { createChartAnimationController } from './chart-animation-controller'
 import { cn } from '@/lib/cn'
 import { buildCsvLine } from '@/lib/csv'
 import { formatCurrency } from '@/lib/formatters'
@@ -60,6 +65,7 @@ interface ChartAnimationState {
   active: boolean
   delayMs: number
   runKey: number
+  hasRevealed?: boolean
 }
 
 const ChartAnimationContext = createContext<ChartAnimationState>({
@@ -67,6 +73,42 @@ const ChartAnimationContext = createContext<ChartAnimationState>({
   delayMs: 0,
   runKey: 0,
 })
+
+const expandedChartAnimationState: ChartAnimationState = {
+  active: false,
+  delayMs: 0,
+  runKey: 1,
+  hasRevealed: true,
+}
+
+const ChartExpandedContext = createContext<number | null>(null)
+
+/** Scales fixed-height plots inside the expanded instance without changing the original card. */
+export function ChartResponsiveContainer(props: ComponentProps<typeof ResponsiveContainer>) {
+  const expanded = useContext(ChartExpandedContext)
+  const height =
+    typeof props.height === 'number' && expanded !== null
+      ? Math.round(
+          props.height >= 250
+            ? Math.max(props.height * 1.6, Math.min(expanded * 0.62, 800))
+            : props.height * 1.6,
+        )
+      : props.height
+  return <ResponsiveContainer {...props} {...(height !== undefined ? { height } : {})} />
+}
+
+/** Gives a shared zoom surface the same plot-sizing policy as an individual chart zoom. */
+export function ChartExpandedSurface({ children }: { children: ReactNode }) {
+  const [height, setHeight] = useState(() =>
+    typeof window === 'undefined' ? 800 : window.innerHeight,
+  )
+  useEffect(() => {
+    const resize = () => setHeight(window.innerHeight)
+    window.addEventListener('resize', resize)
+    return () => window.removeEventListener('resize', resize)
+  }, [])
+  return <ChartExpandedContext.Provider value={height}>{children}</ChartExpandedContext.Provider>
+}
 
 /** Returns whether chart-specific animation should currently run. */
 export function useChartAnimationActive() {
@@ -90,9 +132,27 @@ export function useChartAnimationRunKey() {
 
 /** Exposes the current chart animation state to a render prop. */
 export function ChartAnimationAware({ children }: { children: (active: boolean) => ReactNode }) {
-  const shouldReduceMotion = useShouldReduceMotion()
-  const animationState = useChartAnimationState()
-  return <>{children(shouldReduceMotion ? false : animationState.active)}</>
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [animationController] = useState(createChartAnimationController)
+  const visibility = useDashboardElementMotion(ref, { kind: 'chart', amount: 0.12 })
+  const state = useMemo(
+    () => ({
+      active: visibility.canAnimate,
+      runKey: visibility.runKey,
+      delayMs: visibility.delayMs,
+      hasRevealed: visibility.hasRevealed,
+    }),
+    [visibility.canAnimate, visibility.runKey, visibility.delayMs, visibility.hasRevealed],
+  )
+  return (
+    <div ref={ref} className="h-full min-h-0 w-full" data-chart-animate={String(state.active)}>
+      <ChartAnimationContext.Provider value={state}>
+        <AnimationControllerProvider value={animationController}>
+          {children(state.active)}
+        </AnimationControllerProvider>
+      </ChartAnimationContext.Provider>
+    </div>
+  )
 }
 
 interface ChartRevealProps {
@@ -103,8 +163,8 @@ interface ChartRevealProps {
 /** Wraps chart content in the shared reveal policy for its chart variant. */
 export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
   const shouldReduceMotion = useShouldReduceMotion()
-  const active = useChartAnimationActive()
-  const runKey = useChartAnimationRunKey()
+  const state = useChartAnimationState()
+  const revealed = state.hasRevealed ?? state.active
   const wrapperStyle = {
     width: '100%',
     height: '100%',
@@ -123,14 +183,14 @@ export function ChartReveal({ children, variant = 'line' }: ChartRevealProps) {
     <motion.div
       style={wrapperStyle}
       initial={false}
-      animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+      animate={revealed ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
       transition={{
-        duration: CHART_ANIMATION.revealDuration / 1000,
+        duration: state.active ? CHART_ANIMATION.revealDuration / 1000 : 0,
         delay: 0,
         ease: DASHBOARD_MOTION.sectionRevealEase,
       }}
     >
-      <div key={shouldReduceMotion ? 'reduced-motion' : `chart-run-${runKey}`}>{children}</div>
+      <div className="h-full min-h-0">{children}</div>
     </motion.div>
   )
 }
@@ -154,40 +214,27 @@ export function ChartCard({
   const sectionMotion = useDashboardSectionMotion()
   const [expanded, setExpanded] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
-  const isInView = useInView(cardRef, { once: true, amount: 0.25 })
   const elementMotion = useDashboardElementMotion(cardRef, {
     kind: 'chart',
     amount: 0.3,
   })
-  const animationState = useMemo<ChartAnimationState>(() => {
-    if (expanded) {
-      return { active: true, delayMs: 0, runKey: 1 }
-    }
-
-    if (sectionMotion) {
-      return {
-        active: elementMotion.active,
-        delayMs: elementMotion.delayMs,
-        runKey: elementMotion.runKey,
-      }
-    }
-
-    return {
-      active: isInView,
-      delayMs: DASHBOARD_MOTION.chartStartDelayMs,
-      runKey: isInView ? 1 : 0,
-    }
-  }, [
-    elementMotion.active,
-    elementMotion.delayMs,
-    elementMotion.runKey,
-    expanded,
-    isInView,
-    sectionMotion,
-  ])
+  const animationState = useMemo<ChartAnimationState>(
+    () => ({
+      active: elementMotion.canAnimate,
+      delayMs: elementMotion.delayMs,
+      runKey: elementMotion.runKey,
+      hasRevealed: elementMotion.hasRevealed,
+    }),
+    [
+      elementMotion.canAnimate,
+      elementMotion.delayMs,
+      elementMotion.runKey,
+      elementMotion.hasRevealed,
+    ],
+  )
 
   const stats = useMemo(() => {
-    if (!chartData || !valueKey) return null
+    if (!expanded || !chartData || !valueKey) return null
     const values = chartData
       .map((d) => d[valueKey])
       .filter((v): v is number => typeof v === 'number' && !isNaN(v))
@@ -200,7 +247,7 @@ export function ChartCard({
       total: sum,
       count: values.length,
     }
-  }, [chartData, valueKey])
+  }, [chartData, expanded, valueKey])
 
   const fmt = valueFormatter ?? formatCurrency
   const renderChildren = (isExpanded: boolean) =>
@@ -231,10 +278,10 @@ export function ChartCard({
   }, [onExpand])
 
   const header = (
-    <CardHeader className="pb-2">
+    <CardHeader className={cn('pb-2', expandable && 'pr-16')}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
           {info && <InfoButton text={info} />}
         </div>
         <div className="flex min-w-0 flex-1 justify-end">
@@ -270,29 +317,24 @@ export function ChartCard({
 
       {selfExpandable && (
         <Dialog open={expanded} onOpenChange={setExpanded}>
-          <DialogContent className="h-[92vh] max-h-[92vh] w-[96vw] max-w-[96vw] overflow-auto p-0 sm:h-[90vh] sm:max-h-[90vh] sm:w-[95vw] sm:max-w-[95vw]">
-            <DialogTitle className="sr-only">{title}</DialogTitle>
-            <DialogDescription className="sr-only">
-              {t('chartCard.expandedDescription')}
-            </DialogDescription>
-            <ChartAnimationContext.Provider value={{ active: expanded, delayMs: 0, runKey: 1 }}>
-              <div className="relative flex h-full flex-col">
-                <div className="p-4 pb-2 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-lg font-semibold">{title}</h2>
-                      {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
-                    </div>
-                    {chartData && chartData.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={handleExport}
-                        className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground"
-                      >
-                        {t('chartCard.exportCsv')}
-                      </button>
-                    )}
-                  </div>
+          <ZoomDialogContent
+            title={title}
+            description={subtitle ?? t('chartCard.expandedDescription')}
+            actions={
+              chartData && chartData.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  className="min-h-11 rounded-lg border border-border px-3 text-xs transition-colors hover:bg-accent"
+                >
+                  {t('chartCard.exportCsv')}
+                </button>
+              ) : undefined
+            }
+          >
+            <ChartAnimationContext.Provider value={expandedChartAnimationState}>
+              <ChartExpandedSurface>
+                <div className="relative flex min-h-full flex-col gap-5">
                   {stats && (
                     <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
                       <div className="rounded-lg bg-muted/20 p-2.5 text-center">
@@ -329,14 +371,14 @@ export function ChartCard({
                       </div>
                     </div>
                   )}
+                  <div className="min-h-0 flex-1">
+                    {renderChildren(true)}
+                    {expandedExtra}
+                  </div>
                 </div>
-                <div className="flex-1 overflow-auto p-4 pt-2 sm:p-6">
-                  {renderChildren(true)}
-                  {expandedExtra}
-                </div>
-              </div>
+              </ChartExpandedSurface>
             </ChartAnimationContext.Provider>
-          </DialogContent>
+          </ZoomDialogContent>
         </Dialog>
       )}
     </>

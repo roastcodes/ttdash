@@ -130,7 +130,7 @@ describe('FilterBar preset and chip states', () => {
     })
 
     expect(screen.getByRole('region', { name: 'Systems' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /workstation-b/i })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /^workstation-b/i })).toHaveAttribute(
       'aria-pressed',
       'true',
     )

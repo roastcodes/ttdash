@@ -1,16 +1,7 @@
 import { useMemo, useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Line,
-} from 'recharts'
-import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Line } from 'recharts'
+import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { CustomTooltip } from './CustomTooltip'
 import {
   CHART_COLORS,
@@ -93,7 +84,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
             {t('charts.tokensOverTime.allTypes')}
           </div>
           <ChartReveal variant="line">
-            <ResponsiveContainer width="100%" height={180}>
+            <ChartResponsiveContainer width="100%" height={180}>
               <ComposedChart data={totalPerDay} margin={CHART_MARGIN}>
                 <defs>
                   <linearGradient id={gid('total')} x1="0" y1="0" x2="0" y2="1">
@@ -141,7 +132,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                   {...getLineAnimationProps(animate, { role: 'secondary' })}
                 />
               </ComposedChart>
-            </ResponsiveContainer>
+            </ChartResponsiveContainer>
           </ChartReveal>
         </div>
       )}
@@ -193,7 +184,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
         <ChartAnimationAware>
           {(animate) => (
             <ChartReveal variant="line">
-              <ResponsiveContainer width="100%" height={150}>
+              <ChartResponsiveContainer width="100%" height={150}>
                 <ComposedChart
                   data={data}
                   margin={{ ...CHART_MARGIN, bottom: 0 }}
@@ -269,7 +260,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     {...getLineAnimationProps(animate, { order: 1, role: 'secondary' })}
                   />
                 </ComposedChart>
-              </ResponsiveContainer>
+              </ChartResponsiveContainer>
             </ChartReveal>
           )}
         </ChartAnimationAware>
@@ -283,7 +274,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
         <ChartAnimationAware>
           {(animate) => (
             <ChartReveal variant="line">
-              <ResponsiveContainer width="100%" height={150}>
+              <ChartResponsiveContainer width="100%" height={150}>
                 <ComposedChart data={data} margin={CHART_MARGIN} onClick={handleClick}>
                   <defs>
                     <linearGradient id={gid('output')} x1="0" y1="0" x2="0" y2="1">
@@ -354,7 +345,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     {...getLineAnimationProps(animate, { order: 1, role: 'secondary' })}
                   />
                 </ComposedChart>
-              </ResponsiveContainer>
+              </ChartResponsiveContainer>
             </ChartReveal>
           )}
         </ChartAnimationAware>
@@ -367,7 +358,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
         <ChartAnimationAware>
           {(animate) => (
             <ChartReveal variant="line">
-              <ResponsiveContainer width="100%" height={110}>
+              <ChartResponsiveContainer width="100%" height={110}>
                 <ComposedChart data={data} margin={CHART_MARGIN} onClick={handleClick}>
                   <defs>
                     <linearGradient id={gid('thinking')} x1="0" y1="0" x2="0" y2="1">
@@ -416,7 +407,7 @@ export function TokensOverTime({ data, onClickDay }: TokensOverTimeProps) {
                     {...getLineAnimationProps(animate, { role: 'secondary' })}
                   />
                 </ComposedChart>
-              </ResponsiveContainer>
+              </ChartResponsiveContainer>
             </ChartReveal>
           )}
         </ChartAnimationAware>

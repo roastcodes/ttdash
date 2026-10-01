@@ -111,7 +111,7 @@ describe('RequestQuality', () => {
       <RequestQuality metrics={baseMetrics} viewMode="daily" />,
     )
 
-    const progressBars = container.querySelectorAll('[style*="width: 0%"]')
+    const progressBars = container.querySelectorAll('[data-target-width="0%"]')
     expect(progressBars.length).toBeGreaterThanOrEqual(4)
     expect(screen.getAllByText('n/a').length).toBeGreaterThanOrEqual(4)
   })
@@ -132,7 +132,7 @@ describe('RequestQuality', () => {
       />,
     )
 
-    const progressBars = container.querySelectorAll('[style*="width: 0%"]')
+    const progressBars = container.querySelectorAll('[data-target-width="0%"]')
     expect(progressBars.length).toBeGreaterThanOrEqual(4)
     expect(screen.queryByText('n/a')).not.toBeInTheDocument()
   })
@@ -182,7 +182,7 @@ describe('RequestQuality', () => {
 
     const fills = () => Array.from(container.querySelectorAll('.h-full.rounded-full'))
 
-    expect(fills().some((fill) => Number.parseFloat((fill as HTMLElement).style.width) > 0)).toBe(
+    expect(fills().some((fill) => (fill as HTMLElement).style.transform !== 'scaleX(0)')).toBe(
       false,
     )
 
@@ -192,7 +192,7 @@ describe('RequestQuality', () => {
 
     await waitFor(() => {
       expect(
-        fills().filter((fill) => Number.parseFloat((fill as HTMLElement).style.width) > 0).length,
+        fills().filter((fill) => (fill as HTMLElement).style.transform !== 'scaleX(0)').length,
       ).toBeGreaterThanOrEqual(4)
     })
   })

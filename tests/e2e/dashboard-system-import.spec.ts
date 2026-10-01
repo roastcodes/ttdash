@@ -1,5 +1,5 @@
 import fsPromises from 'node:fs/promises'
-import { expect, test } from './fixtures'
+import { expect, test, openDashboardFilters } from './fixtures'
 import {
   createApiAuthHeaders,
   createApiUrl,
@@ -69,6 +69,7 @@ test('imports multiple systems, filters one system, replaces a conflict, and del
 
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
+  await openDashboardFilters(page)
   const systemFilter = page.getByTestId('system-filter')
   await expect(systemFilter).toBeVisible()
   await expect(systemFilter.getByRole('button')).toHaveCount(3)

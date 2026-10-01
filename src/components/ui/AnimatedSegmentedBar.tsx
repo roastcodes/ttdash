@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+import { useDashboardElementMotion } from '@/components/dashboard/DashboardMotion'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/cn'
 import { APP_MOTION, useShouldReduceMotion } from '@/lib/motion'
@@ -18,7 +20,7 @@ interface AnimatedSegmentedBarProps {
   'data-testid'?: string
 }
 
-/** Renders a stacked bar that animates each segment width unless reduced motion is enabled. */
+/** Reveals stacked segments with transforms and briefly highlights visible value updates. */
 export function AnimatedSegmentedBar({
   segments,
   className,
@@ -28,9 +30,24 @@ export function AnimatedSegmentedBar({
   'data-testid': dataTestId,
 }: AnimatedSegmentedBarProps) {
   const shouldReduceMotion = useShouldReduceMotion()
+  const barRef = useRef<HTMLDivElement | null>(null)
+  const visibility = useDashboardElementMotion(barRef, { kind: 'meter', delayMs: 0 })
+  const signature = segments.map((segment) => `${segment.id}:${segment.width}`).join('|')
+  const previousSignature = useRef(signature)
+  const isUpdate = previousSignature.current !== signature
+  useEffect(() => {
+    previousSignature.current = signature
+  }, [signature])
 
   return (
-    <div className={cn('flex overflow-hidden rounded-full', className)} data-testid={dataTestId}>
+    <motion.div
+      ref={barRef}
+      className={cn('flex overflow-hidden rounded-full', className)}
+      data-testid={dataTestId}
+      initial={false}
+      animate={{ opacity: isUpdate && visibility.canAnimate ? [0.7, 1] : 1 }}
+      transition={{ duration: visibility.canAnimate ? APP_MOTION.updateDurationMs / 1000 : 0 }}
+    >
       {segments.map((segment, index) => {
         const clampedWidth = Math.max(0, Math.min(100, segment.width))
         const width = `${clampedWidth}%`
@@ -57,24 +74,26 @@ export function AnimatedSegmentedBar({
           <motion.div
             key={segment.id}
             className={cn('h-full flex-shrink-0', segmentClassName)}
-            style={{ backgroundColor: segment.color }}
-            initial={{ width: '0%' }}
-            animate={{ width }}
+            style={{ width, backgroundColor: segment.color, transformOrigin: 'left' }}
+            initial={false}
+            animate={{ scaleX: visibility.hasRevealed ? 1 : 0 }}
             transition={{
-              duration: durationMs / 1000,
-              delay: (index * staggerMs) / 1000,
+              duration: visibility.canAnimate ? durationMs / 1000 : 0,
+              delay: visibility.canAnimate
+                ? Math.min(index * staggerMs, APP_MOTION.maxStaggerMs) / 1000
+                : 0,
               ease: APP_MOTION.ease,
             }}
             title={segment.label}
             aria-label={segment.label}
             data-testid={segmentTestId}
-            data-animate="true"
+            data-animate={String(visibility.canAnimate)}
             data-target-width={width}
-            data-delay-ms={String(index * staggerMs)}
+            data-delay-ms={String(Math.min(index * staggerMs, APP_MOTION.maxStaggerMs))}
             data-duration-ms={String(durationMs)}
           />
         )
       })}
-    </div>
+    </motion.div>
   )
 }

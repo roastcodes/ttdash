@@ -218,6 +218,33 @@ describe('dashboard preferences config', () => {
     expect(new Set(orderedSections).size).toBe(DASHBOARD_SECTION_DEFINITIONS.length)
   })
 
+  it('migrates only the exact previous default order and retains all sections and custom visibility', () => {
+    const legacy = [
+      'insights',
+      'metrics',
+      'today',
+      'currentMonth',
+      'activity',
+      'forecastCache',
+      'limits',
+      'costAnalysis',
+      'tokenAnalysis',
+      'requestAnalysis',
+      'advancedAnalysis',
+      'comparisons',
+      'tables',
+    ]
+    const next = DASHBOARD_SECTION_DEFINITIONS.map(({ id }) => id)
+    expect(normalizeDashboardSectionOrder(legacy)).toEqual(next)
+    expect(next.slice(0, 3)).toEqual(['metrics', 'costAnalysis', 'insights'])
+    expect([...next].sort()).toEqual([...legacy].sort())
+    const custom = [...legacy].reverse()
+    expect(normalizeDashboardSectionOrder(custom)).toEqual(custom)
+    const visibility = normalizeDashboardSectionVisibility({ costAnalysis: false, metrics: true })
+    expect(visibility.costAnalysis).toBe(false)
+    expect(visibility.metrics).toBe(true)
+  })
+
   it('resolves preset ranges through the same shared contract used by runtime consumers', () => {
     const referenceDate = new Date('2026-04-06T12:00:00Z')
 

@@ -1,3 +1,4 @@
+import { fireEvent, screen } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import { renderWithAppProviders } from '../test-utils'
 import { FilterBar } from '@/components/layout/FilterBar'
@@ -36,5 +37,9 @@ export function buildFilterBarProps(overrides: Partial<FilterBarProps> = {}): Fi
 }
 
 export function renderFilterBar(overrides: Partial<FilterBarProps> = {}) {
-  return renderWithAppProviders(<FilterBar {...buildFilterBarProps(overrides)} />)
+  const result = renderWithAppProviders(<FilterBar {...buildFilterBarProps(overrides)} />, {
+    motionPreference: 'always',
+  })
+  fireEvent.click(screen.getByRole('button', { name: /More filters|Weitere Filter/ }))
+  return result
 }

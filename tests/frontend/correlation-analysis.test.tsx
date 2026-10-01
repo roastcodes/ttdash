@@ -17,6 +17,7 @@ vi.mock('@/lib/motion', async (importOriginal) => {
 })
 
 vi.mock('recharts', () => ({
+  AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <div data-testid="responsive-container">{children}</div>
   ),

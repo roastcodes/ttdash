@@ -26,7 +26,10 @@
       "loadData": "Load data",
       "useExport": "Use & export",
       "maintenance": "Maintenance"
-    }
+    },
+    "dataMenu": "Data",
+    "exportMenu": "Export",
+    "moreMenu": "More"
   },
   "emptyState": {
     "description": "Upload a `toktrack` or legacy JSON file, or start local auto-import with local `toktrack`, `bunx {{toktrackSpec}} daily --json`, or `npx --yes {{toktrackSpec}} daily --json`.",
@@ -158,7 +161,9 @@
     "resetModels": "Reset models",
     "systems": "Systems",
     "allSystems": "All systems",
-    "localSystem": "this system"
+    "localSystem": "this system",
+    "moreFilters": "More filters",
+    "removeFilter": "Remove {{label}} filter"
   },
   "dashboard": {
     "insights": {
@@ -169,8 +174,9 @@
     },
     "metrics": {
       "title": "Metrics",
-      "badge": "10 metrics",
-      "description": "Core KPIs at a glance"
+      "badge": "12 metrics",
+      "description": "Core KPIs at a glance",
+      "more": "More metrics · 8"
     },
     "activity": {
       "title": "Activity",
@@ -185,7 +191,8 @@
     },
     "costAnalysis": {
       "title": "Cost analysis",
-      "description": "Detailed cost breakdown"
+      "description": "Detailed cost breakdown",
+      "more": "More cost analyses · 6"
     },
     "tokenAnalysis": {
       "title": "Token analysis",
