@@ -81,9 +81,13 @@ test('shows cumulative provider cost next to model cost trends in cost analysis'
   )
   const costByModelOverTimeChart = chartCardByTitle(costAnalysisSection, costByModelOverTimePattern)
 
+  await cumulativeProviderCostChart
+    .locator('.recharts-responsive-container')
+    .scrollIntoViewIfNeeded()
   await expect
     .poll(async () => countRenderedChartDataShapes(cumulativeProviderCostChart))
     .toBeGreaterThan(0)
+  await costByModelOverTimeChart.locator('.recharts-responsive-container').scrollIntoViewIfNeeded()
   await expect
     .poll(async () => countRenderedChartDataShapes(costByModelOverTimeChart))
     .toBeGreaterThan(0)
