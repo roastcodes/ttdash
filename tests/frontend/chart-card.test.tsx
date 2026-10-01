@@ -31,7 +31,7 @@ describe('ChartCard', () => {
     expect(screen.getByText('Data points')).toBeInTheDocument()
   })
 
-  it('reveals the expand control for keyboard focus on desktop', () => {
+  it('keeps the expand control visible and keyboard-accessible on desktop', () => {
     renderWithAppProviders(
       <ChartCard title="Demo chart">
         <div>Content</div>
@@ -39,8 +39,8 @@ describe('ChartCard', () => {
     )
 
     const button = screen.getByRole('button', { name: 'Demo chart expand' })
-    expect(button).toHaveClass('md:group-focus-within:opacity-100')
-    expect(button).toHaveClass('focus-visible:opacity-100')
+    expect(button).toHaveClass('min-h-11', 'min-w-11')
+    expect(button).toHaveClass('focus-visible:ring-2')
     expect(button).toHaveClass('motion-reduce:transition-none')
   })
 })

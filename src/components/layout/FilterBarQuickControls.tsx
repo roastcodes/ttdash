@@ -38,14 +38,11 @@ export function FilterBarQuickControls({
   }))
 
   return (
-    <section
-      aria-label={t('filterBar.groups.time')}
-      className="rounded-2xl border border-border/50 bg-muted/15 p-3"
-    >
+    <section aria-label={t('filterBar.groups.time')} className="min-w-0">
       <div className="mb-2 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
         {t('filterBar.groups.time')}
       </div>
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[160px_190px_1fr]">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-[160px_190px_1fr]">
         <Select value={viewMode} onValueChange={(value) => onViewModeChange(value as ViewMode)}>
           <SelectTrigger className="w-full" aria-label={t('filterBar.viewModeLabel')}>
             <SelectValue />
@@ -76,7 +73,7 @@ export function FilterBarQuickControls({
           </SelectContent>
         </Select>
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className="col-span-2 flex flex-wrap gap-1.5 lg:col-span-1">
           {presets.map((preset) => (
             <button
               key={preset.key}
@@ -84,7 +81,7 @@ export function FilterBarQuickControls({
               aria-pressed={activePreset === preset.key}
               onClick={() => onApplyPreset(preset.key)}
               className={cn(
-                'min-w-[48px] rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200',
+                'min-h-11 min-w-[48px] rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors duration-150 sm:min-h-9',
                 activePreset === preset.key
                   ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.06)]'
                   : 'border-border hover:border-accent hover:bg-accent',

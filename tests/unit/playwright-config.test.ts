@@ -97,6 +97,7 @@ describe('playwright config', () => {
       'dashboard-correctness.spec.ts',
       'dashboard-forecast-filters.spec.ts',
       'dashboard-load-upload.spec.ts',
+      'dashboard-presentation.spec.ts',
       'dashboard-reporting.spec.ts',
       'dashboard-settings-backups.spec.ts',
       'dashboard-system-import.spec.ts',

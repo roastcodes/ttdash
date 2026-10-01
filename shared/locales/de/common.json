@@ -26,7 +26,10 @@
       "loadData": "Daten laden",
       "useExport": "Nutzen & exportieren",
       "maintenance": "Wartung"
-    }
+    },
+    "dataMenu": "Daten",
+    "exportMenu": "Export",
+    "moreMenu": "Mehr"
   },
   "emptyState": {
     "description": "Lade ein `toktrack`- oder Legacy-JSON hoch oder starte den lokalen Auto-Import mit lokalem `toktrack`, `bunx {{toktrackSpec}} daily --json` oder `npx --yes {{toktrackSpec}} daily --json`.",
@@ -158,7 +161,9 @@
     "resetModels": "Modelle zurücksetzen",
     "systems": "Systeme",
     "allSystems": "Alle Systeme",
-    "localSystem": "dieses System"
+    "localSystem": "dieses System",
+    "moreFilters": "Weitere Filter",
+    "removeFilter": "Filter {{label}} entfernen"
   },
   "dashboard": {
     "insights": {
@@ -169,8 +174,9 @@
     },
     "metrics": {
       "title": "Metriken",
-      "badge": "10 Kennzahlen",
-      "description": "Wichtigste KPIs im Überblick"
+      "badge": "12 Kennzahlen",
+      "description": "Wichtigste KPIs im Überblick",
+      "more": "Weitere Kennzahlen · 8"
     },
     "activity": {
       "title": "Aktivität",
@@ -185,7 +191,8 @@
     },
     "costAnalysis": {
       "title": "Kostenanalyse",
-      "description": "Detaillierte Kostenaufschlüsselung"
+      "description": "Detaillierte Kostenaufschlüsselung",
+      "more": "Weitere Kostenanalysen · 6"
     },
     "tokenAnalysis": {
       "title": "Token-Analyse",

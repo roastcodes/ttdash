@@ -90,6 +90,7 @@ export function SecondaryMetrics({
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <DashboardMotionItem order={0}>
         <MetricCard
+          compact
           label={
             viewMode === 'yearly'
               ? t('metricCards.secondary.mostExpensiveYear')
@@ -107,6 +108,7 @@ export function SecondaryMetrics({
       </DashboardMotionItem>
       <DashboardMotionItem order={1}>
         <MetricCard
+          compact
           label={t('metricCards.secondary.dominantProvider')}
           value={metrics.topProvider?.name ?? '–'}
           icon={<Building2 className="h-4 w-4" />}
@@ -116,6 +118,7 @@ export function SecondaryMetrics({
       </DashboardMotionItem>
       <DashboardMotionItem order={2}>
         <MetricCard
+          compact
           label={
             viewMode === 'daily'
               ? t('metricCards.secondary.peak7Days')
@@ -135,6 +138,7 @@ export function SecondaryMetrics({
       </DashboardMotionItem>
       <DashboardMotionItem order={3}>
         <MetricCard
+          compact
           label={t('metricCards.secondary.medianPerUnit', { unit: periodUnit(viewMode) })}
           value={median !== null ? <FormattedValue value={median} type="currency" /> : '–'}
           icon={<Sigma className="h-4 w-4" />}

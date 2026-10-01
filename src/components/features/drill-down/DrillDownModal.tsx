@@ -23,7 +23,7 @@ import { FormattedValue } from '@/components/ui/formatted-value'
 import { AnimatedSegmentedBar } from '@/components/ui/AnimatedSegmentedBar'
 import { getProviderBadgeClasses } from '@/lib/model-utils'
 import { useModelColorHelpers } from '@/lib/model-color-context'
-import { useShouldReduceMotion } from '@/lib/motion'
+import { ChartAnimationAware } from '@/components/charts/ChartCard'
 import { cn } from '@/lib/cn'
 import {
   deriveDrillDownData,
@@ -111,7 +111,6 @@ export function DrillDownModal({
 }: DrillDownModalProps) {
   const { t } = useTranslation()
   const { getModelColor } = useModelColorHelpers()
-  const shouldReduceMotion = useShouldReduceMotion()
 
   const drillDownData = useMemo(
     () => (day ? deriveDrillDownData(day, contextData) : null),
@@ -358,7 +357,7 @@ export function DrillDownModal({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent
         data-testid="drilldown-dialog"
-        className="data-[state=closed]:slide-out-to-top-[2rem] data-[state=open]:slide-in-from-top-[2rem] top-6 max-h-[calc(100vh-3rem)] max-w-5xl translate-y-0 overflow-y-auto sm:top-10 sm:max-h-[calc(100vh-5rem)]"
+        className="top-6 max-h-[calc(100vh-3rem)] max-w-5xl translate-y-0 overflow-y-auto sm:top-10 sm:max-h-[calc(100vh-5rem)]"
         onKeyDown={handleDialogKeyDown}
       >
         <DialogHeader>
@@ -472,27 +471,31 @@ export function DrillDownModal({
                   <div className="text-xs text-muted-foreground">
                     {t('drillDown.costShareByModel')}
                   </div>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={46}
-                        outerRadius={84}
-                        paddingAngle={2}
-                        dataKey="value"
-                        {...getRadialAnimationProps(!shouldReduceMotion)}
-                      >
-                        {pieData.map((entry) => (
-                          <Cell key={entry.name} fill={getModelColor(entry.name)} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        content={<CustomTooltip formatter={(value) => formatCurrency(value)} />}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <ChartAnimationAware>
+                    {(animate) => (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={46}
+                            outerRadius={84}
+                            paddingAngle={2}
+                            dataKey="value"
+                            {...getRadialAnimationProps(animate)}
+                          >
+                            {pieData.map((entry) => (
+                              <Cell key={entry.name} fill={getModelColor(entry.name)} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            content={<CustomTooltip formatter={(value) => formatCurrency(value)} />}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                  </ChartAnimationAware>
                 </div>
               )}
             </div>

@@ -1,15 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from 'recharts'
-import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { CHART_COLORS, CHART_MARGIN, getAreaAnimationProps } from './chart-theme'
 import { CHART_HELP } from '@/lib/help-content'
 import { useModelColorHelpers } from '@/lib/model-color-context'
@@ -91,7 +83,7 @@ export function ModelMix({ data }: ModelMixProps) {
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="line">
-            <ResponsiveContainer width="100%" height={250}>
+            <ChartResponsiveContainer width="100%" height={250}>
               <AreaChart
                 data={chartData}
                 margin={CHART_MARGIN}
@@ -154,7 +146,7 @@ export function ModelMix({ data }: ModelMixProps) {
                   )
                 })}
               </AreaChart>
-            </ResponsiveContainer>
+            </ChartResponsiveContainer>
           </ChartReveal>
         )}
       </ChartAnimationAware>

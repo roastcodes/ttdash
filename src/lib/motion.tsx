@@ -1,4 +1,13 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type RefObject,
+  type ReactNode,
+} from 'react'
 import { MotionConfig } from 'framer-motion'
 import type { ReducedMotionPreference } from '@/types'
 
@@ -12,8 +21,51 @@ const MotionPreferenceContext = createContext<MotionPreferenceContextValue | nul
 /** Defines the shared app motion timings used across charts, meters, and dialogs. */
 export const APP_MOTION = {
   ease: [0.22, 1, 0.36, 1] as const,
-  staggerMs: 105,
-  meterDurationMs: 960,
+  staggerMs: 35,
+  maxStaggerMs: 140,
+  meterDurationMs: 420,
+  updateDurationMs: 200,
+}
+
+function subscribeDocumentVisibility(onChange: () => void) {
+  document.addEventListener('visibilitychange', onChange)
+  return () => document.removeEventListener('visibilitychange', onChange)
+}
+
+function getDocumentVisible() {
+  return typeof document === 'undefined' || document.visibilityState !== 'hidden'
+}
+
+/** Tracks live intersection, including clipping by scrollable dialogs, without replaying content. */
+export function useMotionVisibility<T extends Element>(
+  ref: RefObject<T | null>,
+  amount = 0.2,
+  observeParent = false,
+) {
+  const observerAvailable = typeof IntersectionObserver !== 'undefined'
+  const [isInView, setIsInView] = useState(!observerAvailable)
+  const documentVisible = useSyncExternalStore(
+    subscribeDocumentVisibility,
+    getDocumentVisible,
+    () => true,
+  )
+
+  useEffect(() => {
+    const element = observeParent ? ref.current?.parentElement : ref.current
+    if (!element || typeof IntersectionObserver === 'undefined') return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(Boolean(entry?.isIntersecting)),
+      { threshold: amount },
+    )
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [amount, observeParent, ref])
+
+  return {
+    isInView: isInView && documentVisible,
+    canAnimate: observerAvailable && isInView && documentVisible,
+  }
 }
 
 function getSystemReducedMotion() {

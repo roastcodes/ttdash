@@ -25,6 +25,7 @@ import type {
   DashboardSettingsModalViewModel,
 } from '@/types/dashboard-view-model'
 import { VERSION } from '@/lib/constants'
+import { useShouldReduceMotion } from '@/lib/motion'
 import { formatDateTimeFull, localToday } from '@/lib/formatters'
 import { getCurrentLocale } from '@/lib/i18n'
 import type {
@@ -160,6 +161,11 @@ export function useDashboardControllerActions({
   const dataImportRef = useRef<HTMLInputElement>(null)
   const systemImportRef = useRef<HTMLInputElement>(null)
   const [reportGenerating, setReportGenerating] = useState(false)
+  const shouldReduceMotion = useShouldReduceMotion()
+  const handleScrollTo = useCallback(
+    (section: string) => scrollToSection(section, shouldReduceMotion),
+    [shouldReduceMotion],
+  )
   const [settingsTransferBusy, setSettingsTransferBusy] = useState(false)
   const [dataTransferBusy, setDataTransferBusy] = useState(false)
   const [dataSource, setDataSource] = useState<DashboardDataSource | null>(null)
@@ -647,6 +653,6 @@ export function useDashboardControllerActions({
     },
     onClearDateRange: handleClearDateRange,
     onApplyPreset: handleApplyPreset,
-    onScrollTo: scrollToSection,
+    onScrollTo: handleScrollTo,
   }
 }

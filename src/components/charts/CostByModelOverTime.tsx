@@ -1,6 +1,5 @@
 import { useId } from 'react'
 import {
-  ResponsiveContainer,
   ComposedChart,
   Area,
   LineChart,
@@ -12,7 +11,7 @@ import {
   Legend,
 } from 'recharts'
 import { useTranslation } from 'react-i18next'
-import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import {
@@ -58,7 +57,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
             {t('charts.costByModelOverTime.movingAverageHeading')}
           </div>
           <ChartReveal variant="line">
-            <ResponsiveContainer width="100%" height={350}>
+            <ChartResponsiveContainer width="100%" height={350}>
               <LineChart data={data} margin={CHART_MARGIN}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} opacity={0.3} />
                 <XAxis
@@ -97,7 +96,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                   />
                 ))}
               </LineChart>
-            </ResponsiveContainer>
+            </ChartResponsiveContainer>
           </ChartReveal>
         </div>
       )}
@@ -124,7 +123,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="line">
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartResponsiveContainer width="100%" height={300}>
               <ComposedChart data={data} margin={CHART_MARGIN}>
                 <defs>
                   {models.map((model) => {
@@ -189,7 +188,7 @@ export function CostByModelOverTime({ data, models }: CostByModelOverTimeProps) 
                   />
                 ))}
               </ComposedChart>
-            </ResponsiveContainer>
+            </ChartResponsiveContainer>
           </ChartReveal>
         )}
       </ChartAnimationAware>

@@ -10,6 +10,7 @@ import type { DailyUsage } from '@/types'
 import { MockSvgContainer, MockSvgGroup } from '../recharts-test-utils'
 
 vi.mock('recharts', () => ({
+  AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer data-testid="responsive-container">{children}</MockSvgContainer>
   ),

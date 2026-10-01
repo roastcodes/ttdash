@@ -4,6 +4,7 @@ import { Command } from 'cmdk'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Search } from 'lucide-react'
 import type { DashboardCommandPaletteViewModel } from '@/types/dashboard-view-model'
+import { useShouldReduceMotion } from '@/lib/motion'
 import {
   buildCommandPaletteCommands,
   filterCommandItems,
@@ -48,10 +49,11 @@ export function CommandPalette({
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const shouldReduceMotion = useShouldReduceMotion()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         setOpen((prev) => !prev)
       }
@@ -61,12 +63,15 @@ export function CommandPalette({
   }, [])
 
   const onScrollTop = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [])
+    window.scrollTo({ top: 0, behavior: shouldReduceMotion ? 'instant' : 'smooth' })
+  }, [shouldReduceMotion])
 
   const onScrollBottom = useCallback(() => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-  }, [])
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: shouldReduceMotion ? 'instant' : 'smooth',
+    })
+  }, [shouldReduceMotion])
 
   const commands = useMemo(
     () =>

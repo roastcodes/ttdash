@@ -1,4 +1,4 @@
-import { chartCardByTitle, expect, test, type Page } from './fixtures'
+import { chartCardByTitle, expect, test, openHeaderMenu, type Page } from './fixtures'
 import { gotoDashboard, resetAppState, uploadSampleUsage } from './helpers'
 import renderedChartDataHelpers from '../../scripts/rendered-chart-data.js'
 
@@ -45,8 +45,12 @@ test('uploads sample usage data and renders the dashboard without browser errors
   await uploadSampleUsage(page)
 
   await expect(page.getByRole('button', { name: importEntryButtonPattern })).toBeVisible()
+  await openHeaderMenu(page, 'data')
   await expect(page.getByRole('button', { name: uploadEntryButtonPattern })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await openHeaderMenu(page, 'export')
   await expect(page.getByRole('button', { name: csvButtonPattern })).toBeVisible()
+  await page.keyboard.press('Escape')
   await expect(page.locator('#token-analysis')).toBeVisible()
 
   expect(pageErrors, pageErrors.join('\n')).toEqual([])
@@ -64,7 +68,10 @@ test('shows cumulative provider cost next to model cost trends in cost analysis'
   const costAnalysisSection = page.locator('#charts')
   await costAnalysisSection.scrollIntoViewIfNeeded()
 
-  await expect(costAnalysisSection.getByText(/Cost analysis|Kostenanalyse/)).toBeVisible()
+  await expect(
+    costAnalysisSection.getByRole('heading', { name: /^(Cost analysis|Kostenanalyse)$/ }),
+  ).toBeVisible()
+  await page.getByTestId('cost-analysis-details').getByRole('button').click()
   await expect(costAnalysisSection.getByText(cumulativeProviderCostPattern)).toBeVisible()
   await expect(costAnalysisSection.getByText(costByModelOverTimePattern)).toBeVisible()
 

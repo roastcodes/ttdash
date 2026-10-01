@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react'
 import {
+  ChevronDown,
   Upload,
   Trash2,
   Download,
@@ -32,26 +34,28 @@ function DataSourceBadge({ source }: { source: DashboardDataSource }) {
   if (source.type === 'auto-import') {
     return (
       <span
-        className="inline-flex items-center gap-1 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-400"
+        className="inline-flex items-center gap-1 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-400"
         title={source.title ?? t('emptyState.autoImport')}
       >
         <Zap className="h-2.5 w-2.5" />
         {t('emptyState.autoImport')}
-        {source.time && <span className="text-green-400/60">· {source.time}</span>}
+        {source.time && <span className="text-green-700 dark:text-green-400">· {source.time}</span>}
       </span>
     )
   }
   if (source.type === 'file') {
     return (
       <span
-        className="inline-flex max-w-full items-center gap-1 rounded-md border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-400"
+        className="inline-flex max-w-full items-center gap-1 rounded-md border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-400"
         title={source.title ?? source.label ?? t('emptyState.uploadFile')}
       >
         <FileUp className="h-2.5 w-2.5 shrink-0" />
         <span className="max-w-28 truncate sm:max-w-40">
           {source.label ?? t('emptyState.uploadFile')}
         </span>
-        {source.time && <span className="shrink-0 text-blue-400/60">· {source.time}</span>}
+        {source.time && (
+          <span className="shrink-0 text-blue-700 dark:text-blue-400">· {source.time}</span>
+        )}
       </span>
     )
   }
@@ -62,7 +66,7 @@ function DataSourceBadge({ source }: { source: DashboardDataSource }) {
     >
       <HardDrive className="h-2.5 w-2.5" />
       {t('header.loaded')}
-      {source.time && <span className="text-muted-foreground/70">· {source.time}</span>}
+      {source.time && <span className="text-muted-foreground">· {source.time}</span>}
     </span>
   )
 }
@@ -74,28 +78,59 @@ function StartupAutoLoadBadge({ badge }: { badge: DashboardStartupAutoLoadBadge 
 
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400"
+      className="inline-flex items-center gap-1 rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-400"
       title={badge.title ?? t('header.autoLoadActive')}
     >
       <Zap className="h-2.5 w-2.5" />
       {t('header.autoLoadActive')}
-      {badge.time && <span className="text-amber-400/70">· {badge.time}</span>}
+      {badge.time && <span className="text-amber-800 dark:text-amber-400">· {badge.time}</span>}
     </span>
   )
 }
 
 function HeaderActionGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDetailsElement | null>(null)
+  useEffect(() => {
+    const close = (event: MouseEvent | KeyboardEvent) => {
+      const menu = ref.current
+      if (!menu?.open) return
+      if (event instanceof KeyboardEvent) {
+        if (event.key !== 'Escape') return
+        menu.open = false
+        menu.querySelector('summary')?.focus()
+      } else if (!menu.contains(event.target as Node)) menu.open = false
+    }
+    document.addEventListener('click', close)
+    document.addEventListener('keydown', close)
+    return () => {
+      document.removeEventListener('click', close)
+      document.removeEventListener('keydown', close)
+    }
+  }, [])
   return (
-    <div
-      role="group"
-      aria-label={label}
-      className="rounded-xl border border-border/50 bg-muted/15 p-2"
+    <details
+      ref={ref}
+      className="relative"
+      data-action-menu
+      onClickCapture={(event) => {
+        if (!(event.target as Element).closest('button')) return
+        const menu = event.currentTarget
+        menu.open = false
+        menu.querySelector('summary')?.focus()
+      }}
     >
-      <div className="mb-1.5 text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-border bg-card px-3 text-xs font-medium transition-colors duration-150 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-9 sm:text-sm">
         {label}
+        <ChevronDown className="h-3.5 w-3.5" />
+      </summary>
+      <div
+        role="group"
+        aria-label={label}
+        className="absolute top-full right-0 z-40 mt-2 flex min-w-48 flex-col gap-1 rounded-xl border border-border bg-popover p-2 shadow-xl"
+      >
+        {children}
       </div>
-      <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap">{children}</div>
-    </div>
+    </details>
   )
 }
 
@@ -111,18 +146,18 @@ function HeaderActions({
   const { t } = useTranslation()
 
   return (
-    <div className="grid grid-cols-1 gap-2 lg:grid-cols-[auto_auto_auto] lg:items-start">
-      <HeaderActionGroup label={t('header.actionGroups.loadData')}>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onAutoImport}
-          title={t('emptyState.autoImport')}
-          className={headerActionButtonClass}
-        >
-          <Zap className="h-4 w-4" />
-          <span>{t('header.import')}</span>
-        </Button>
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onAutoImport}
+        title={t('emptyState.autoImport')}
+        className={headerActionButtonClass}
+      >
+        <Zap className="h-4 w-4" />
+        <span>{t('header.import')}</span>
+      </Button>
+      <HeaderActionGroup label={t('header.dataMenu')}>
         <Button
           variant="outline"
           size="sm"
@@ -135,8 +170,7 @@ function HeaderActions({
         </Button>
       </HeaderActionGroup>
 
-      <HeaderActionGroup label={t('header.actionGroups.useExport')}>
-        {settingsButton}
+      <HeaderActionGroup label={t('header.exportMenu')}>
         {pdfButton}
         <Button
           variant="outline"
@@ -150,7 +184,8 @@ function HeaderActions({
         </Button>
       </HeaderActionGroup>
 
-      <HeaderActionGroup label={t('header.actionGroups.maintenance')}>
+      {settingsButton}
+      <HeaderActionGroup label={t('header.moreMenu')}>
         <Button
           variant="ghost"
           size="sm"
@@ -190,7 +225,7 @@ export function Header({
     : t('commandPalette.commands.themeDark.label')
 
   return (
-    <header className="space-y-3 px-1 py-4">
+    <header className="space-y-3 px-1 py-4 sm:py-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 space-y-2">
           <div className="flex items-center justify-between gap-2">
@@ -209,26 +244,6 @@ export function Header({
                 v{VERSION}
               </a>
             </div>
-            <div className="flex shrink-0 items-center gap-1 md:hidden">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onHelpOpenChange(true)}
-                aria-label={t('header.help')}
-                title={t('header.help')}
-              >
-                <CircleHelp className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onToggleTheme}
-                aria-label={themeToggleLabel}
-                title={themeToggleLabel}
-              >
-                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
-            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -240,7 +255,7 @@ export function Header({
             {dataSource && <DataSourceBadge source={dataSource} />}
             {startupAutoLoad && <StartupAutoLoadBadge badge={startupAutoLoad} />}
             {streak != null && streak > 1 && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-xs font-medium text-orange-400">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-xs font-medium text-orange-800 dark:text-orange-400">
                 <Flame className="h-3 w-3" />
                 {t('header.streak', { count: streak })}
               </span>
@@ -248,7 +263,7 @@ export function Header({
           </div>
         </div>
 
-        <div className="hidden shrink-0 items-center gap-1 md:flex">
+        <div className="flex shrink-0 items-center gap-1">
           <div className="inline-flex items-center rounded-md border border-border/50 bg-muted/20 p-0.5">
             {(['de', 'en'] as const).map((language) => (
               <button
@@ -257,7 +272,7 @@ export function Header({
                 data-testid={`language-switcher-${language}`}
                 onClick={() => onLanguageChange(language)}
                 aria-pressed={currentLanguage === language}
-                className={`rounded px-2 py-1 text-[10px] font-medium transition-colors ${currentLanguage === language ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`min-h-11 min-w-11 rounded px-2 py-1 text-xs font-medium transition-colors sm:min-h-9 sm:min-w-9 ${currentLanguage === language ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                 title={t(`app.languages.${language}`)}
               >
                 {language.toUpperCase()}
@@ -267,18 +282,20 @@ export function Header({
           <Button
             variant="ghost"
             size="icon"
+            className="h-11 w-11 sm:h-9 sm:w-9"
             onClick={() => onHelpOpenChange(true)}
             aria-label={t('header.help')}
             title={t('header.help')}
           >
             <CircleHelp className="h-4 w-4" />
           </Button>
-          <kbd className="hidden items-center gap-0.5 rounded border border-border/30 bg-muted/20 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/50 lg:inline-flex">
+          <kbd className="hidden items-center gap-0.5 rounded border border-border/30 bg-muted/20 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground lg:inline-flex">
             ⌘K
           </kbd>
           <Button
             variant="ghost"
             size="icon"
+            className="h-11 w-11 sm:h-9 sm:w-9"
             onClick={onToggleTheme}
             aria-label={themeToggleLabel}
             title={themeToggleLabel}

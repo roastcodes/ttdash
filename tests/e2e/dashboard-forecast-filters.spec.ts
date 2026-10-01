@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures'
+import { expect, test, openDashboardFilters } from './fixtures'
 import { gotoDashboard, resetAppState, uploadSampleUsage } from './helpers'
 
 const costForecastExpandPattern =
@@ -8,7 +8,7 @@ const providerForecastExpandPattern =
 const forecastDialogTitlePattern = /^(Forecast details|Prognose-Details)$/
 const providersActivePattern = /^(1 providers active|1 Anbieter aktiv)$/
 const modelsActivePattern = /^(1 models active|1 Modelle aktiv)$/
-const dateFilterActivePattern = /^(Date filter active|Datumsfilter aktiv)$/
+const dateFilterActivePattern = /^(Date filter active|Datumsfilter aktiv) ·/
 
 test('opens one shared forecast zoom dialog from both forecast cards', async ({
   page,
@@ -76,6 +76,7 @@ test('exposes pressed filter state and supports keyboard date selection in the d
   await gotoDashboard(page)
   await uploadSampleUsage(page)
 
+  await openDashboardFilters(page)
   const filters = page.locator('#filters')
   const openAiFilter = filters.getByRole('button', { name: 'OpenAI', exact: true })
   const anthropicFilter = filters.getByRole('button', { name: 'Anthropic', exact: true })

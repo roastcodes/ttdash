@@ -18,14 +18,14 @@ export const CHART_MARGIN = { top: 5, right: 10, left: 10, bottom: 5 }
 
 /** Defines the shared chart animation timings. */
 export const CHART_ANIMATION = {
-  duration: 1290,
+  duration: 520,
   easing: 'ease-out' as const,
-  stagger: 120,
-  slowDuration: 1560,
-  chartStartDelay: 285,
-  barDuration: 930,
-  radialDuration: 1230,
-  revealDuration: 780,
+  stagger: 35,
+  slowDuration: 520,
+  chartStartDelay: 35,
+  barDuration: 420,
+  radialDuration: 520,
+  revealDuration: 240,
 }
 
 /** Shared opacity stops for filled line/area gradients. */
@@ -49,7 +49,9 @@ export function getLineAnimationProps(
   } = {},
 ) {
   const delayOffset =
-    role === 'secondary' ? 140 + order * CHART_ANIMATION.stagger : order * CHART_ANIMATION.stagger
+    role === 'secondary'
+      ? 35 + Math.min(order * CHART_ANIMATION.stagger, 140)
+      : Math.min(order * CHART_ANIMATION.stagger, 140)
 
   return {
     isAnimationActive: active,
@@ -80,7 +82,7 @@ export function getAreaAnimationProps(
 export function getBarAnimationProps(active: boolean, order = 0) {
   return {
     isAnimationActive: active,
-    animationBegin: CHART_ANIMATION.chartStartDelay + order * 90,
+    animationBegin: CHART_ANIMATION.chartStartDelay + Math.min(order * 35, 140),
     animationDuration: CHART_ANIMATION.barDuration,
     animationEasing: CHART_ANIMATION.easing,
   }
@@ -90,7 +92,7 @@ export function getBarAnimationProps(active: boolean, order = 0) {
 export function getRadialAnimationProps(active: boolean, order = 0) {
   return {
     isAnimationActive: active,
-    animationBegin: CHART_ANIMATION.chartStartDelay + 20 + order * 80,
+    animationBegin: CHART_ANIMATION.chartStartDelay + 20 + Math.min(order * 35, 140),
     animationDuration: CHART_ANIMATION.radialDuration,
     animationEasing: CHART_ANIMATION.easing,
   }

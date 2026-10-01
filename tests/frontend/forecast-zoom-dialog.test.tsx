@@ -11,6 +11,7 @@ import type { DailyUsage } from '@/types'
 import { MockSvgContainer } from '../recharts-test-utils'
 
 vi.mock('recharts', () => ({
+  AnimationControllerProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   ResponsiveContainer: ({ children }: { children: ReactNode }) => (
     <MockSvgContainer>{children}</MockSvgContainer>
   ),
@@ -125,7 +126,9 @@ describe('ForecastZoomDialog', () => {
     expect(screen.getByTestId('forecast-zoom-dialog-content')).toHaveClass('translate-y-0')
     expect(screen.getByTestId('forecast-zoom-dialog-shell')).toHaveClass('flex')
     expect(screen.getByTestId('forecast-zoom-dialog-shell')).toHaveClass('flex-col')
-    expect(screen.getByTestId('forecast-zoom-dialog-body')).toHaveClass('overflow-y-auto')
+    expect(
+      screen.getByTestId('forecast-zoom-dialog-content').querySelector('[data-zoom-scroll]'),
+    ).toHaveClass('overflow-y-auto')
     expect(screen.getByTestId('forecast-zoom-dialog-body')).toHaveClass('flex-1')
     expect(screen.getByText('Forecast details')).toBeInTheDocument()
     expect(

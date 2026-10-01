@@ -89,25 +89,31 @@ describe('Header external links', () => {
     try {
       const { unmount } = render(<HeaderTestHarness />)
 
-      const loadDataGroup = screen.getByRole('group', { name: 'Load data' })
-      expect(within(loadDataGroup).getByRole('button', { name: 'Import' })).toBeInTheDocument()
-      expect(within(loadDataGroup).getByRole('button', { name: 'Upload' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Import' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
+      const openMenu = (label: string) => {
+        const summary = screen.getByText(label, { selector: 'summary' })
+        const details = summary.closest('details')!
+        details.open = true
+        return within(screen.getByRole('group', { name: label }))
+      }
+      expect(openMenu('Data').getByRole('button', { name: 'Upload' })).toBeInTheDocument()
+      openMenu('Export')
+      const exportGroup = screen.getByRole('group', { name: 'Export' })
+      expect(within(exportGroup).getByRole('button', { name: 'Report' })).toBeInTheDocument()
+      expect(within(exportGroup).getByRole('button', { name: 'CSV' })).toBeInTheDocument()
+      expect(openMenu('More').getByRole('button', { name: 'Delete' })).toBeInTheDocument()
 
-      const useExportGroup = screen.getByRole('group', { name: 'Use & export' })
-      expect(within(useExportGroup).getByRole('button', { name: 'Settings' })).toBeInTheDocument()
-      expect(within(useExportGroup).getByRole('button', { name: 'Report' })).toBeInTheDocument()
-      expect(within(useExportGroup).getByRole('button', { name: 'CSV' })).toBeInTheDocument()
-
-      const maintenanceGroup = screen.getByRole('group', { name: 'Maintenance' })
-      expect(within(maintenanceGroup).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
-
+      fireEvent.keyDown(document, { key: 'Escape' })
+      expect(
+        screen.getByText('More', { selector: 'summary' }).closest('details'),
+      ).not.toHaveAttribute('open')
       unmount()
       await initI18n('de')
       render(<HeaderTestHarness />)
-
-      expect(screen.getByRole('group', { name: 'Daten laden' })).toBeInTheDocument()
-      expect(screen.getByRole('group', { name: 'Nutzen & exportieren' })).toBeInTheDocument()
-      expect(screen.getByRole('group', { name: 'Wartung' })).toBeInTheDocument()
+      expect(screen.getByText('Daten', { selector: 'summary' })).toBeInTheDocument()
+      expect(screen.getByText('Export', { selector: 'summary' })).toBeInTheDocument()
+      expect(screen.getByText('Mehr', { selector: 'summary' })).toBeInTheDocument()
     } finally {
       await initI18n(currentLanguage || 'en')
     }

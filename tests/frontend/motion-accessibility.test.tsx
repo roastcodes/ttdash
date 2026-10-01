@@ -83,8 +83,7 @@ describe('motion accessibility', () => {
 
     expect(screen.getByTestId('motion-probe')).toHaveTextContent('reduce')
     expect(screen.getByTestId('fade-content').parentElement).not.toHaveAttribute('style')
-    expect(dialog).not.toHaveClass('data-[state=open]:animate-in')
-    expect(dialog).not.toHaveClass('data-[state=open]:zoom-in-95')
+    expect(dialog).not.toHaveClass('dialog-motion')
   })
 
   it('does not subscribe to browser motion changes when the override is forced', () => {
@@ -166,7 +165,6 @@ describe('motion accessibility', () => {
     expect(screen.getByTestId('chart-content').parentElement?.parentElement?.style.width).toBe(
       '100%',
     )
-    expect(dialog).toHaveClass('data-[state=open]:animate-in')
-    expect(dialog).toHaveClass('data-[state=open]:zoom-in-95')
+    expect(dialog).toHaveClass('dialog-motion')
   })
 })

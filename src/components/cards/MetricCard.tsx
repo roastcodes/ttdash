@@ -11,6 +11,7 @@ interface MetricCardProps {
   trend?: { value: number; label?: string } | null
   info?: string
   className?: string
+  compact?: boolean
 }
 
 /** Renders one compact KPI card with optional trend and tooltip support. */
@@ -22,6 +23,7 @@ export function MetricCard({
   trend,
   info,
   className,
+  compact = false,
 }: MetricCardProps) {
   const trendClassName =
     trend && trend.value > 0
@@ -31,7 +33,8 @@ export function MetricCard({
   return (
     <Card
       className={cn(
-        'flex min-h-[122px] flex-col gap-1 p-4 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transform-none motion-reduce:transition-none',
+        'flex min-h-[122px] flex-col gap-1 p-4',
+        compact && 'min-h-[94px] gap-0.5 p-3',
         className,
       )}
     >
@@ -42,7 +45,9 @@ export function MetricCard({
         </span>
         {icon && <span className="shrink-0 text-muted-foreground">{icon}</span>}
       </div>
-      <div className="text-2xl leading-none font-bold tracking-tight">{value}</div>
+      <div className="text-2xl leading-tight font-semibold tracking-tight break-words tabular-nums">
+        {value}
+      </div>
       <div className="mt-auto flex flex-wrap items-center gap-2">
         {subtitle && <span className="text-xs text-pretty text-muted-foreground">{subtitle}</span>}
         {trend && trend.value !== 0 && (

@@ -61,7 +61,7 @@ export function FilterBarChipFilters({
               <button
                 type="button"
                 onClick={onClearSystems}
-                className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:bg-accent"
+                className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-colors duration-150 hover:bg-accent"
               >
                 {t('filterBar.allSystems')}
               </button>
@@ -79,7 +79,7 @@ export function FilterBarChipFilters({
                   data-filter-state={visualState}
                   onClick={() => onToggleSystem(system.id)}
                   className={cn(
-                    'inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition-all duration-200',
+                    'inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors duration-150',
                     visualState === 'selected'
                       ? 'border-primary/50 bg-primary/15 text-primary'
                       : visualState === 'included'
@@ -119,7 +119,7 @@ export function FilterBarChipFilters({
                 aria-pressed={isSelected}
                 onClick={() => onToggleProvider(provider)}
                 className={cn(
-                  'inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition-all duration-200',
+                  'inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors duration-150',
                   visualState === 'selected'
                     ? getProviderBadgeClasses(provider)
                     : visualState === 'included'
@@ -142,7 +142,7 @@ export function FilterBarChipFilters({
             <button
               type="button"
               onClick={onClearProviders}
-              className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:bg-accent"
+              className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-colors duration-150 hover:bg-accent"
             >
               {t('common.reset')}
             </button>
@@ -162,7 +162,7 @@ export function FilterBarChipFilters({
             <button
               type="button"
               onClick={onClearModels}
-              className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:bg-accent"
+              className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-colors duration-150 hover:bg-accent"
             >
               {t('filterBar.resetModels')}
             </button>
@@ -182,7 +182,7 @@ export function FilterBarChipFilters({
                 onClick={() => onToggleModel(model)}
                 className={cn(
                   'inline-flex cursor-pointer items-center rounded-full px-2.5 py-1 text-xs font-medium',
-                  'border transition-all duration-200 hover:scale-[1.03]',
+                  'border transition-colors duration-150 hover:scale-[1.03]',
                   visualState === 'selected'
                     ? 'opacity-100'
                     : visualState === 'included'

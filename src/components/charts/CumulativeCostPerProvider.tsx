@@ -1,17 +1,7 @@
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts'
-import { ChartCard, ChartAnimationAware, ChartReveal } from './ChartCard'
+import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { ChartCard, ChartAnimationAware, ChartReveal, ChartResponsiveContainer } from './ChartCard'
 import { ChartLegend } from './ChartLegend'
 import { CustomTooltip } from './CustomTooltip'
 import {
@@ -191,7 +181,7 @@ export function CumulativeCostPerProvider({ data, forecast }: CumulativeCostPerP
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="line">
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartResponsiveContainer width="100%" height={300}>
               <ComposedChart data={chartData} margin={CHART_MARGIN}>
                 <defs>
                   {seriesMeta.map((series) => (
@@ -279,7 +269,7 @@ export function CumulativeCostPerProvider({ data, forecast }: CumulativeCostPerP
                   />
                 ))}
               </ComposedChart>
-            </ResponsiveContainer>
+            </ChartResponsiveContainer>
           </ChartReveal>
         )}
       </ChartAnimationAware>

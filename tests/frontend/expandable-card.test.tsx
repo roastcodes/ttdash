@@ -10,7 +10,7 @@ describe('ExpandableCard', () => {
     await initI18n('de')
   })
 
-  it('uses a focus-revealed expand control and localized dialog description', () => {
+  it('uses a visible expand control and localized dialog description', () => {
     render(
       <ExpandableCard title="Forecast">
         <div>Inhalt</div>
@@ -18,8 +18,8 @@ describe('ExpandableCard', () => {
     )
 
     const button = screen.getByRole('button', { name: 'Forecast vergrössern' })
-    expect(button).toHaveClass('opacity-100')
-    expect(button).toHaveClass('md:group-focus-within:opacity-100')
+    expect(button).not.toHaveClass('md:opacity-0')
+    expect(button).toHaveClass('min-h-11', 'min-w-11')
     expect(button).toHaveClass('motion-reduce:transition-none')
 
     fireEvent.click(button)

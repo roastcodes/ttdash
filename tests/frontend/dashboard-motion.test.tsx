@@ -249,7 +249,9 @@ describe('AnimatedDashboardSection', () => {
 
     expect(screen.getByTestId('section-visible')).toHaveTextContent('true')
     expect(screen.getByTestId('chart-active')).toHaveTextContent('true')
-    expect(screen.getByTestId('chart-delay')).toHaveTextContent('285')
+    expect(screen.getByTestId('chart-delay')).toHaveTextContent(
+      String(DASHBOARD_MOTION.chartStartDelayMs),
+    )
   })
 
   it('keeps preloaded hidden content inert until the section is revealed', async () => {
@@ -354,9 +356,9 @@ describe('AnimatedDashboardSection', () => {
     expect(button).toHaveAttribute('tabindex', '-1')
 
     act(() => {
-      getObservers((observer) => observer.options?.threshold === 0.24).forEach((observer) =>
-        observer.trigger(true),
-      )
+      getObservers(
+        (observer) => observer.options?.threshold === 0.14 || observer.options?.threshold === 0.24,
+      ).forEach((observer) => observer.trigger(true))
     })
 
     expect(wrapper).toHaveAttribute('aria-hidden', 'false')

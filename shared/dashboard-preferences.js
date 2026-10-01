@@ -180,6 +180,22 @@ function getDefaultDashboardSectionOrder() {
   return [...DASHBOARD_SECTION_IDS]
 }
 
+const LEGACY_DASHBOARD_SECTION_ORDER = [
+  'insights',
+  'metrics',
+  'today',
+  'currentMonth',
+  'activity',
+  'forecastCache',
+  'limits',
+  'costAnalysis',
+  'tokenAnalysis',
+  'requestAnalysis',
+  'advancedAnalysis',
+  'comparisons',
+  'tables',
+]
+
 const DEFAULT_DASHBOARD_FILTERS = createDefaultDashboardFilters()
 
 /**
@@ -254,6 +270,13 @@ function normalizeDashboardSectionOrder(value) {
   const defaults = getDefaultDashboardSectionOrder()
 
   if (!Array.isArray(value)) {
+    return defaults
+  }
+
+  if (
+    value.length === LEGACY_DASHBOARD_SECTION_ORDER.length &&
+    value.every((sectionId, index) => sectionId === LEGACY_DASHBOARD_SECTION_ORDER[index])
+  ) {
     return defaults
   }
 

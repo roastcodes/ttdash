@@ -1,18 +1,13 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts'
+import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { TrendingUp } from 'lucide-react'
-import { ChartCard, ChartAnimationAware, ChartReveal } from '@/components/charts/ChartCard'
+import {
+  ChartCard,
+  ChartAnimationAware,
+  ChartReveal,
+  ChartResponsiveContainer,
+} from '@/components/charts/ChartCard'
 import { ChartLegend } from '@/components/charts/ChartLegend'
 import {
   CHART_COLORS,
@@ -338,7 +333,7 @@ export function ProviderCostForecast({
       <ChartAnimationAware>
         {(animate) => (
           <ChartReveal variant="line">
-            <ResponsiveContainer width="100%" height={320}>
+            <ChartResponsiveContainer width="100%" height={320}>
               <ComposedChart data={chartData} margin={CHART_MARGIN}>
                 <defs>
                   {seriesMeta.map((series) => (
@@ -433,7 +428,7 @@ export function ProviderCostForecast({
                   />
                 ))}
               </ComposedChart>
-            </ResponsiveContainer>
+            </ChartResponsiveContainer>
           </ChartReveal>
         )}
       </ChartAnimationAware>

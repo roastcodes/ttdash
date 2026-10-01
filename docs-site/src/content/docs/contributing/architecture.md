@@ -86,6 +86,8 @@ Hooks must not import components. `lib-core` must remain free of React, Recharts
 
 Complex non-presentational derivations—drilldowns, heatmap data, request quality, sortable tables, and date-picker data—belong in focused `src/lib` modules rather than render components.
 
+`src/lib/motion.tsx` owns the app motion preference, timings, live intersection, and browser-document visibility. `DashboardMotion.tsx` separates section preparation from first visible reveal; it keeps mounted content and reveal state across data updates. `ChartCard.tsx` gates each plot's motion and scales fixed-height plots within expanded surfaces. Its Recharts animation controller remembers introduced plot data so returning to view does not restart an entrance. Horizontal meters animate transforms instead of layout width; heatmaps animate seven row groups rather than each calendar cell. `components/ui/disclosure.tsx` defers supplementary content until opened and then preserves its state. `components/ui/zoom-dialog-content.tsx` gives chart and forecast zoom windows a fixed header, viewport bounds, scroll area, and return focus.
+
 `shared/usage-quality.js` defines calendar ordinals, request-counter provenance, active-day semantics, and the reserved unassigned model for the normalizer, server, and frontend. Shared dashboard metrics keep daily, calendar, and display-period denominators distinct. `src/lib/period-comparison-data.ts` builds matched comparison ranges; `src/lib/model-pricing.ts` and `cache-roi-data.ts` keep versioned pricing estimates separate from recorded costs. `use-local-day.ts` refreshes calendar-dependent state at midnight and when focus returns. Model-name/provider caches are bounded to 2,048 identifiers.
 
 ## Architecture gates

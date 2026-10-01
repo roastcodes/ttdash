@@ -21,7 +21,9 @@ describe('HeatmapCalendar accessibility', () => {
       day: 'numeric',
     }).format(new Date('2026-04-07T00:00:00'))
 
-    renderWithTooltip(<HeatmapCalendar data={[day]} metric="cost" />)
+    renderWithTooltip(<HeatmapCalendar data={[day]} metric="cost" />, {
+      motionPreference: 'always',
+    })
 
     expect(screen.getByRole('grid', { name: 'Cost heatmap' })).toHaveAttribute('aria-rowcount', '7')
     const cell = screen.getByRole('gridcell', { name: `${dateLabel}: ${formatCurrency(5)}` })
@@ -60,7 +62,7 @@ describe('HeatmapCalendar accessibility', () => {
       }),
     ]
 
-    renderWithTooltip(<HeatmapCalendar data={days} metric="cost" />)
+    renderWithTooltip(<HeatmapCalendar data={days} metric="cost" />, { motionPreference: 'always' })
 
     expect(screen.getAllByRole('row')).toHaveLength(7)
     const tabbableCells = document.querySelectorAll('[role="gridcell"][tabindex="0"]')
