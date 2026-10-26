@@ -14,14 +14,14 @@
     "verify": "npm run check && npm run build"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "7.3.3",
+    "@astrojs/markdown-remark": "7.3.4",
     "@astrojs/starlight": "0.42.6",
-    "astro": "7.4.0",
+    "astro": "7.4.2",
     "starlight-links-validator": "0.27.0"
   },
   "devDependencies": {
-    "@astrojs/check": "0.9.10",
-    "markdownlint-cli2": "0.23.3",
+    "@astrojs/check": "0.9.12",
+    "markdownlint-cli2": "0.24.0",
     "typescript": "~6.0.3"
   },
   "overrides": {
