@@ -14,9 +14,9 @@
     "verify": "npm run check && npm run build"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "7.3.5",
-    "@astrojs/starlight": "0.42.7",
-    "astro": "7.4.4",
+    "@astrojs/markdown-remark": "7.3.6",
+    "@astrojs/starlight": "0.42.9",
+    "astro": "7.4.7",
     "starlight-links-validator": "0.27.0"
   },
   "devDependencies": {
