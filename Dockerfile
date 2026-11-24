@@ -1,4 +1,9 @@
-FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS build
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS base
+
+# npm 10 tries to install an incompatible optional TypeScript compiler peer.
+RUN npm install --global npm@11.20.0 --ignore-scripts && npm cache clean --force
+
+FROM base AS build
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -9,7 +14,7 @@ COPY src ./src
 COPY shared ./shared
 RUN npm run build:app
 
-FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS runtime
+FROM base AS runtime
 
 ENV NODE_ENV=production \
     TTDASH_DOCKER=1 \
