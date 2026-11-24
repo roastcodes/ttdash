@@ -1,9 +1,11 @@
-FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS base
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS node-base
+
+FROM node-base AS build-base
 
 # npm 10 tries to install an incompatible optional TypeScript compiler peer.
 RUN npm install --global npm@11.20.0 --ignore-scripts && npm cache clean --force
 
-FROM base AS build
+FROM build-base AS build
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -14,7 +16,13 @@ COPY src ./src
 COPY shared ./shared
 RUN npm run build:app
 
-FROM base AS runtime
+FROM build-base AS production-dependencies
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
+
+FROM node-base AS runtime
 
 ENV NODE_ENV=production \
     TTDASH_DOCKER=1 \
@@ -23,8 +31,8 @@ ENV NODE_ENV=production \
     TTDASH_CACHE_DIR=/data/cache
 
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+COPY --from=production-dependencies /app/package.json /app/package-lock.json ./
+COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY server ./server
 COPY shared ./shared
