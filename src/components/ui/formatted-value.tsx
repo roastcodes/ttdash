@@ -82,7 +82,7 @@ export function FormattedValue({
       <TooltipTrigger asChild>
         <button
           type="button"
-          aria-label={accessibleLabel}
+          aria-label={`${abbreviated}, ${accessibleLabel}`}
           className={cn(
             'inline cursor-help rounded-sm border-0 bg-transparent p-0 text-inherit underline decoration-muted-foreground/40 decoration-dotted underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
             className,

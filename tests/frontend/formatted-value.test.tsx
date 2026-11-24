@@ -25,7 +25,7 @@ describe('FormattedValue', () => {
     )
 
     const trigger = screen.getByRole('button', {
-      name: `Total cost: ${formatCurrencyExact(5046.25)}`,
+      name: `$5.0k, Total cost: ${formatCurrencyExact(5046.25)}`,
     })
 
     fireEvent.focus(trigger)

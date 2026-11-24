@@ -63,6 +63,11 @@ body {
   border-radius: 0.55rem;
 }
 
+/* Starlight exposes the search shortcut through aria-keyshortcuts. */
+site-search button[data-open-modal] > kbd {
+  display: none;
+}
+
 .hero {
   position: relative;
   isolation: isolate;
