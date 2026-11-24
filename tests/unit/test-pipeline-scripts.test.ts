@@ -320,7 +320,7 @@ describe('test pipeline scripts', () => {
     expect(releaseBlock.indexOf('- name: Configure authenticated remote')).toBeGreaterThan(
       releaseBlock.indexOf('- name: Create release app token'),
     )
-    expect(bunVersion).toBe('1.3.14')
+    expect(bunVersion).toBe('1.4.5')
     expect(verifyScript).toContain("url.searchParams.set('event', options.event)")
     expect(verifyScript).toContain("url.searchParams.set('head_sha', options.sha)")
     expect(verifyScript).toContain('--required-job')
