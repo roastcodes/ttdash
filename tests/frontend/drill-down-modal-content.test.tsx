@@ -57,7 +57,9 @@ describe('DrillDownModal content', () => {
     expect(openAiProviderCard).not.toBeNull()
     if (!openAiProviderCard) throw new Error('Expected OpenAI provider card')
     expect(within(openAiProviderCard).getByText('1 active model')).toBeInTheDocument()
-    expect(within(openAiProviderCard).getByLabelText('$18.00')).toBeInTheDocument()
+    expect(
+      within(openAiProviderCard).getByRole('button', { name: '$18.0, $18.00' }),
+    ).toBeInTheDocument()
 
     expect(screen.getByLabelText(/^Input: /)).toBeInTheDocument()
   })
